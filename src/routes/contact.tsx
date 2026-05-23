@@ -31,8 +31,8 @@ function ContactPage() {
       <div className="grid md:grid-cols-12 gap-16">
         <Reveal delay={200} className="md:col-span-5 space-y-10">
           <div>
-            <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Headquarters</p>
-            <p className="text-lg">World Wide</p>
+            <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Location</p>
+            <p className="text-lg">Global</p>
           </div>
           <div>
             <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Email</p>
