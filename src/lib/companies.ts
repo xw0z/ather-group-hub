@@ -91,12 +91,12 @@ export const companies: Company[] = [
     image: carTradeImg,
   },
   {
-    id: "money-transfer",
-    name: "Money Transfer",
+    id: "banking-transfer",
+    name: "Banking Transfer",
     tag: "09",
-    sector: "Global Remittance",
+    sector: "Global Banking Transfers",
     description:
-      "Fast and secure money transfer services to Africa, Europe, China, UAE, Turkey and beyond. Competitive rates with rapid settlement across our network.",
+      "Fast and secure banking transfer services to Africa, Europe, China, UAE, Turkey and beyond. Competitive rates with rapid settlement across our banking network.",
     image: transferImg,
   },
 ];
