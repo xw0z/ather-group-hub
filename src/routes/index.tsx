@@ -17,25 +17,29 @@ export const Route = createFileRoute("/")({
 });
 
 const stats = [
-  { v: "7", l: "Operating Companies" },
+  { v: "9", l: "Operating Companies" },
   { v: "15+", l: "Years in the Market" },
-  { v: "6+", l: "Countries Served" },
+  { v: "8+", l: "Countries Served" },
   { v: "24/7", l: "Trading Desks" },
 ];
 
 const tickers = [
   "GOLD BULLION", "FINE JEWELLERY", "GENERAL TRADING",
   "LUXURY MOBILITY", "FOREIGN EXCHANGE", "MOBILE DEVICES",
-  "REAL ESTATE", "PRECIOUS METALS",
+  "REAL ESTATE", "CAR IMPORT / EXPORT", "MONEY TRANSFER",
+  "PRECIOUS METALS",
 ];
 
 const regions = [
   { name: "United Arab Emirates", code: "UAE" },
-  { name: "Oman", code: "OM" },
   { name: "Turkey", code: "TR" },
-  { name: "Italy", code: "IT" },
+  { name: "China", code: "CN" },
+  { name: "Europe", code: "EU" },
   { name: "Africa", code: "AF" },
+  { name: "Oman", code: "OM" },
+  { name: "Italy", code: "IT" },
   { name: "& more markets", code: "+" },
+];
 ];
 
 function HomePage() {
