@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
 
 const stats = [
   { v: "4", l: "Operating Companies" },
-  { v: "5", l: "Business Services" },
+  { v: "6", l: "Business Services" },
   { v: "8+", l: "Countries Served" },
   { v: "24/7", l: "Trading Desks" },
 ];
@@ -178,7 +178,7 @@ function HomePage() {
                 </Link>
               </div>
             </Reveal>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-px bg-border">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-px bg-border">
               {services.map((s, i) => (
                 <Reveal key={s.id} delay={i * 60}>
                   <Link

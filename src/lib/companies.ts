@@ -7,6 +7,7 @@ import mobilesImg from "@/assets/mobiles.jpg";
 import realestateImg from "@/assets/realestate.jpg";
 import carTradeImg from "@/assets/car-trade.jpg";
 import transferImg from "@/assets/transfer.jpg";
+import cryptoImg from "@/assets/crypto.jpg";
 
 export type Company = {
   id: string;
@@ -110,5 +111,14 @@ export const services: Service[] = [
     description:
       "Fast and secure banking transfer services to Africa, Europe, China, UAE, Turkey and beyond. Competitive rates with rapid settlement across our banking network.",
     image: transferImg,
+  },
+  {
+    id: "crypto",
+    name: "Crypto Buying & Selling",
+    tag: "06",
+    sector: "Digital Assets",
+    description:
+      "Buying and selling of major cryptocurrencies — Bitcoin, Ethereum, USDT and more. Secure OTC settlement with competitive rates for individuals and businesses.",
+    image: cryptoImg,
   },
 ];
