@@ -3,6 +3,8 @@ import jewelleryImg from "@/assets/jewellery.jpg";
 import carsImg from "@/assets/cars.jpg";
 import tradingImg from "@/assets/trading.jpg";
 import currencyImg from "@/assets/currency.jpg";
+import mobilesImg from "@/assets/mobiles.jpg";
+import realestateImg from "@/assets/realestate.jpg";
 
 export type Company = {
   id: string;
@@ -58,5 +60,23 @@ export const companies: Company[] = [
     description:
       "In-house currency exchange and FX operations. Competitive rates on major and emerging market pairs with rapid settlement.",
     image: currencyImg,
+  },
+  {
+    id: "mobiles",
+    name: "Mobile Devices",
+    tag: "06",
+    sector: "Consumer Electronics",
+    description:
+      "Wholesale and retail of premium mobile devices and accessories. Sourcing genuine stock from authorised channels with regional distribution.",
+    image: mobilesImg,
+  },
+  {
+    id: "realestate",
+    name: "Real Estate",
+    tag: "07",
+    sector: "Property & Development",
+    description:
+      "Residential and commercial real estate acquisition, brokerage and long-term holdings across our active markets.",
+    image: realestateImg,
   },
 ];
