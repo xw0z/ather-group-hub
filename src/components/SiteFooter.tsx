@@ -30,9 +30,9 @@ export function SiteFooter() {
           <div className="md:col-span-4">
             <h4 className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Reach us</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>info@athergroup.com</li>
-              <li>+971 00 000 0000</li>
-              <li>Headquarters &mdash; Dubai, UAE</li>
+              <li><a href="mailto:augustus@ather.group" className="hover:text-ember transition-colors">augustus@ather.group</a></li>
+              <li><a href="tel:+16194320431" className="hover:text-ember transition-colors">+1 619 432 0431</a></li>
+              <li>World Wide</li>
             </ul>
           </div>
         </div>
