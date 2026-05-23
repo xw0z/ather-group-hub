@@ -196,7 +196,7 @@ function HomePage() {
             <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-ember/20 blur-[100px]" />
             <div className="relative grid md:grid-cols-[1fr_auto] gap-10 items-end">
               <div>
-                <p className="text-xs tracking-[0.3em] uppercase text-ember mb-6">&mdash; 03 / Partner with us</p>
+                <p className="text-xs tracking-[0.3em] uppercase text-ember mb-6">&mdash; 04 / Partner with us</p>
                 <h2 className="font-display font-black text-5xl md:text-7xl leading-[0.95] tracking-tight max-w-3xl text-balance">
                   Let's build something that lasts.
                 </h2>
