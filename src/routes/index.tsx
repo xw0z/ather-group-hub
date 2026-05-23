@@ -159,6 +159,36 @@ function HomePage() {
         </div>
       </section>
 
+      {/* GLOBAL PRESENCE */}
+      <section className="mx-auto max-w-7xl px-6 lg:px-10 py-32">
+        <div className="grid md:grid-cols-12 gap-12 items-start">
+          <Reveal className="md:col-span-5">
+            <p className="text-xs tracking-[0.3em] uppercase text-ember mb-6">&mdash; 03 / Global Presence</p>
+            <h2 className="font-display font-black text-5xl md:text-6xl leading-[1] tracking-tight">
+              Operating <br />
+              <span className="italic font-light text-ember">across</span> borders.
+            </h2>
+            <p className="mt-8 text-muted-foreground leading-relaxed max-w-md">
+              Every Ather company is available across our active markets &mdash; with local teams,
+              trusted partners and the same operating standard wherever we work.
+            </p>
+          </Reveal>
+          <div className="md:col-span-7 md:pl-12 md:border-l border-border grid sm:grid-cols-2 gap-px bg-border">
+            {regions.map((r, i) => (
+              <Reveal key={r.name} delay={i * 70}>
+                <div className="bg-background p-8 h-full flex items-center justify-between group hover:bg-surface transition-colors">
+                  <span className="font-display font-bold text-2xl tracking-tight group-hover:text-ember transition-colors">
+                    {r.name}
+                  </span>
+                  <span className="text-xs tracking-[0.2em] text-muted-foreground">{r.code}</span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-6 lg:px-10 py-40">
         <Reveal>
