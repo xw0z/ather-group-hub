@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Ather Group — Diversified Holdings in Gold, Trade & Mobility" },
-      { name: "description", content: "Holding company behind Gold Bridge, Izirova Jewellery, Treeway Trading, ViceCity Car Rental and a global FX desk." },
+      { name: "description", content: "Holding company behind Golden Bridge, Izirova Jewellery, Treeway Trading, ViceCity Car Rental and a global FX desk." },
       { property: "og:title", content: "Ather Group" },
       { property: "og:description", content: "A diversified holding company forging enduring value across gold, jewellery, trade and mobility." },
     ],

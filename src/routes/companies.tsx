@@ -6,7 +6,7 @@ export const Route = createFileRoute("/companies")({
   head: () => ({
     meta: [
       { title: "Companies — Ather Group" },
-      { name: "description", content: "The five operating companies of Ather Group: Gold Bridge, Izirova, Treeway, ViceCity and the FX desk." },
+      { name: "description", content: "The five operating companies of Ather Group: Golden Bridge, Izirova, Treeway, ViceCity and the FX desk." },
       { property: "og:title", content: "Ather Group Companies" },
       { property: "og:description", content: "Explore the operating companies of Ather Group." },
     ],
