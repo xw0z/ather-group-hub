@@ -40,7 +40,6 @@ const regions = [
   { name: "Italy", code: "IT" },
   { name: "& more markets", code: "+" },
 ];
-];
 
 function HomePage() {
   return (
