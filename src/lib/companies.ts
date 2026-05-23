@@ -17,6 +17,15 @@ export type Company = {
   image: string;
 };
 
+export type Service = {
+  id: string;
+  name: string;
+  tag: string;
+  sector: string;
+  description: string;
+  image: string;
+};
+
 export const companies: Company[] = [
   {
     id: "gold-bridge",
@@ -54,10 +63,13 @@ export const companies: Company[] = [
       "Luxury and exotic vehicle rental in the Emirates. From daily premium hires to chauffeured experiences and long-term corporate fleets.",
     image: carsImg,
   },
+];
+
+export const services: Service[] = [
   {
     id: "currencies",
     name: "Currency & FX Desk",
-    tag: "05",
+    tag: "01",
     sector: "Foreign Exchange",
     description:
       "In-house currency exchange and FX operations. Competitive rates on major and emerging market pairs with rapid settlement.",
@@ -66,16 +78,16 @@ export const companies: Company[] = [
   {
     id: "mobiles",
     name: "Mobile Devices",
-    tag: "06",
+    tag: "02",
     sector: "Consumer Electronics",
     description:
-      "Wholesale import and export of mobile devices and accessories. Bulk sourcing of genuine stock from authorised channels with regional distribution across our markets.",
+      "Wholesale import and export of mobile devices and accessories. Bulk sourcing of genuine stock from authorised channels with regional distribution.",
     image: mobilesImg,
   },
   {
     id: "realestate",
     name: "Real Estate",
-    tag: "07",
+    tag: "03",
     sector: "Property & Development",
     description:
       "Residential and commercial real estate acquisition, brokerage and long-term holdings across our active markets.",
@@ -84,7 +96,7 @@ export const companies: Company[] = [
   {
     id: "car-trade",
     name: "Car Trading & Import-Export",
-    tag: "08",
+    tag: "04",
     sector: "Automotive Trade",
     description:
       "International car trading with full import and export services. Sourcing, shipping and documentation for individual buyers, dealers and fleet operators.",
@@ -93,7 +105,7 @@ export const companies: Company[] = [
   {
     id: "banking-transfer",
     name: "Banking Transfer",
-    tag: "09",
+    tag: "05",
     sector: "Global Banking Transfers",
     description:
       "Fast and secure banking transfer services to Africa, Europe, China, UAE, Turkey and beyond. Competitive rates with rapid settlement across our banking network.",

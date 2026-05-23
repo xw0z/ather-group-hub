@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import heroImg from "@/assets/hero-gold.jpg";
-import { companies } from "@/lib/companies";
+import { companies, services } from "@/lib/companies";
 import { Reveal } from "@/components/Reveal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Ather Group — Diversified Holdings in Gold, Trade & Mobility" },
-      { name: "description", content: "Holding company behind Golden Bridge, Izirova Jewellery, Treeway Trading, ViceCity Car Rental and a global FX desk." },
+      { name: "description", content: "Holding company behind four operating companies — Golden Bridge, Izirova Jewellery, Treeway Trading and ViceCity — plus additional business services across FX, mobiles, real estate, car trade and banking transfers." },
       { property: "og:title", content: "Ather Group" },
       { property: "og:description", content: "A diversified holding company forging enduring value across gold, jewellery, trade and mobility." },
     ],
@@ -17,8 +17,8 @@ export const Route = createFileRoute("/")({
 });
 
 const stats = [
-  { v: "9", l: "Operating Companies" },
-  { v: "15+", l: "Years in the Market" },
+  { v: "4", l: "Operating Companies" },
+  { v: "5", l: "Business Services" },
   { v: "8+", l: "Countries Served" },
   { v: "24/7", l: "Trading Desks" },
 ];
@@ -69,9 +69,9 @@ function HomePage() {
           <Reveal delay={260}>
             <div className="mt-12 grid md:grid-cols-[1fr_auto] gap-10 items-end max-w-4xl">
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                Ather Group operates five companies spanning precious metals, fine jewellery,
-                global trade, currency exchange and premium mobility &mdash; built on discipline,
-                trust and long-term relationships.
+                Ather Group operates four companies across precious metals, fine jewellery,
+                global trade and premium mobility &mdash; alongside additional business services
+                in FX, electronics, real estate, automotive trade and banking transfers.
               </p>
               <div className="flex gap-3">
                 <Link to="/companies" className="inline-flex items-center gap-2 px-7 py-4 text-xs font-medium tracking-[0.2em] uppercase bg-ember text-ember-foreground hover:shadow-ember transition-all">
@@ -131,8 +131,11 @@ function HomePage() {
               <div>
                 <p className="text-xs tracking-[0.3em] uppercase text-ember mb-6">&mdash; 02 / Portfolio</p>
                 <h2 className="font-display font-black text-5xl md:text-6xl leading-[1] tracking-tight max-w-2xl">
-                  Five companies, <br />one standard.
+                  Four companies, <br />one standard.
                 </h2>
+                <p className="mt-6 text-sm text-muted-foreground max-w-md">
+                  The operating companies of the Group. See additional business services below.
+                </p>
               </div>
               <Link to="/companies" className="text-xs tracking-[0.2em] uppercase border-b border-ember pb-1 text-ember">
                 See all &rarr;
@@ -158,6 +161,40 @@ function HomePage() {
                 </Link>
               </Reveal>
             ))}
+          </div>
+
+          {/* SERVICES PREVIEW */}
+          <div className="mt-24">
+            <Reveal>
+              <div className="flex items-end justify-between mb-12 flex-wrap gap-6">
+                <div>
+                  <p className="text-xs tracking-[0.3em] uppercase text-ember mb-4">— Also</p>
+                  <h3 className="font-display font-black text-3xl md:text-4xl leading-[1.05] tracking-tight max-w-2xl">
+                    Additional business services <span className="italic font-light text-ember">we provide.</span>
+                  </h3>
+                </div>
+                <Link to="/companies" hash="services" className="text-xs tracking-[0.2em] uppercase border-b border-ember pb-1 text-ember">
+                  See services &rarr;
+                </Link>
+              </div>
+            </Reveal>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-px bg-border">
+              {services.map((s, i) => (
+                <Reveal key={s.id} delay={i * 60}>
+                  <Link
+                    to="/companies"
+                    hash={s.id}
+                    className="block bg-background hover:bg-surface transition-colors p-6 h-full group"
+                  >
+                    <span className="text-[10px] tracking-[0.3em] text-ember">{s.tag}</span>
+                    <h4 className="mt-3 font-display font-bold text-lg tracking-tight group-hover:text-ember transition-colors">
+                      {s.name}
+                    </h4>
+                    <p className="mt-2 text-xs tracking-[0.2em] uppercase text-muted-foreground">{s.sector}</p>
+                  </Link>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </section>
