@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Mail, Phone, Globe } from "lucide-react";
 
 export function SiteFooter() {
   return (
@@ -29,10 +30,28 @@ export function SiteFooter() {
 
           <div className="md:col-span-4">
             <h4 className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Reach us</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><a href="mailto:augustus@ather.group" className="hover:text-ember transition-colors">augustus@ather.group</a></li>
-              <li><a href="tel:+16194320431" className="hover:text-ember transition-colors">+1 619 432 0431</a></li>
-              <li>World Wide</li>
+            <ul className="space-y-5 text-sm">
+              <li className="flex items-start gap-3">
+                <Mail className="h-4 w-4 mt-0.5 text-ember shrink-0" />
+                <div>
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Email</div>
+                  <a href="mailto:augustus@ather.group" className="hover:text-ember transition-colors">augustus@ather.group</a>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Phone className="h-4 w-4 mt-0.5 text-ember shrink-0" />
+                <div>
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Phone</div>
+                  <a href="tel:+16194320431" className="hover:text-ember transition-colors">+1 619 432 0431</a>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Globe className="h-4 w-4 mt-0.5 text-ember shrink-0" />
+                <div>
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-1">Location</div>
+                  <span>Global</span>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
