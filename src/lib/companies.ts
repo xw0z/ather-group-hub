@@ -5,6 +5,8 @@ import tradingImg from "@/assets/trading.jpg";
 import currencyImg from "@/assets/currency.jpg";
 import mobilesImg from "@/assets/mobiles.jpg";
 import realestateImg from "@/assets/realestate.jpg";
+import carTradeImg from "@/assets/car-trade.jpg";
+import transferImg from "@/assets/transfer.jpg";
 
 export type Company = {
   id: string;
@@ -78,5 +80,23 @@ export const companies: Company[] = [
     description:
       "Residential and commercial real estate acquisition, brokerage and long-term holdings across our active markets.",
     image: realestateImg,
+  },
+  {
+    id: "car-trade",
+    name: "Car Trading & Import-Export",
+    tag: "08",
+    sector: "Automotive Trade",
+    description:
+      "International car trading with full import and export services. Sourcing, shipping and documentation for individual buyers, dealers and fleet operators.",
+    image: carTradeImg,
+  },
+  {
+    id: "money-transfer",
+    name: "Money Transfer",
+    tag: "09",
+    sector: "Global Remittance",
+    description:
+      "Fast and secure money transfer services to Africa, Europe, China, UAE, Turkey and beyond. Competitive rates with rapid settlement across our network.",
+    image: transferImg,
   },
 ];
