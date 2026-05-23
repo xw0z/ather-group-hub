@@ -20,7 +20,7 @@ export type Company = {
 export const companies: Company[] = [
   {
     id: "gold-bridge",
-    name: "Gold Bridge",
+    name: "Golden Bridge",
     tag: "01",
     sector: "Precious Metals & Bullion",
     description:
