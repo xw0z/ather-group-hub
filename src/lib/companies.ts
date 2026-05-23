@@ -69,7 +69,7 @@ export const companies: Company[] = [
     tag: "06",
     sector: "Consumer Electronics",
     description:
-      "Wholesale and retail of premium mobile devices and accessories. Sourcing genuine stock from authorised channels with regional distribution.",
+      "Wholesale import and export of mobile devices and accessories. Bulk sourcing of genuine stock from authorised channels with regional distribution across our markets.",
     image: mobilesImg,
   },
   {
