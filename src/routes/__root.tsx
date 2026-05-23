@@ -76,6 +76,7 @@ function RootComponent() {
         <Outlet />
       </main>
       <SiteFooter />
+      <WhatsAppButton />
     </QueryClientProvider>
   );
 }

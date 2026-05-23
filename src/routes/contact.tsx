@@ -32,17 +32,17 @@ function ContactPage() {
         <Reveal delay={200} className="md:col-span-5 space-y-10">
           <div>
             <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Headquarters</p>
-            <p className="text-lg">Dubai, United Arab Emirates</p>
+            <p className="text-lg">World Wide</p>
           </div>
           <div>
             <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Email</p>
-            <a href="mailto:info@athergroup.com" className="text-lg hover:text-ember transition-colors">
-              info@athergroup.com
+            <a href="mailto:augustus@ather.group" className="text-lg hover:text-ember transition-colors">
+              augustus@ather.group
             </a>
           </div>
           <div>
             <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Phone</p>
-            <p className="text-lg">+971 00 000 0000</p>
+            <a href="tel:+16194320431" className="text-lg hover:text-ember transition-colors">+1 619 432 0431</a>
           </div>
           <div className="pt-10 border-t border-border">
             <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Hours</p>
