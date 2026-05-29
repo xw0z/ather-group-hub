@@ -1594,6 +1594,10 @@ function SupplierRow({
       .eq("id", client.id);
     setSaving(false);
     if (!error) {
+      await logActivity("update", "supplier", {
+        name: name.trim(),
+        phone: phone || null,
+      }, client.id);
       setEditing(false);
       await onSaved();
     }
