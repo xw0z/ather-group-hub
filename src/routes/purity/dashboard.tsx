@@ -41,7 +41,7 @@ type Trip = {
   departure_date: string;
   arrival_date: string | null;
   declared_purity: number;
-  actual_purity: number | null;
+  scrap_weight: number | null;
   notes: string | null;
   created_at: string;
 };
@@ -52,13 +52,19 @@ type Piece = {
   client_id: string | null;
   label: string | null;
   weight_grams: number;
+  purity: number | null;
   created_at: string;
 };
 
-// loss(grams) = weight * (declared - actual) / 1000
-function lossGrams(weight: number, declared: number, actual: number | null) {
-  if (actual == null) return 0;
-  return (Number(weight) * (Number(declared) - Number(actual))) / 1000;
+// Pure gold content of a bar (grams) = weight * purity / 1000
+function pureGrams(weight: number, purity: number | null) {
+  if (purity == null) return 0;
+  return (Number(weight) * Number(purity)) / 1000;
+}
+// Loss per bar (grams) = weight * (declared - purity) / 1000
+function lossGrams(weight: number, declared: number, purity: number | null) {
+  if (purity == null) return 0;
+  return (Number(weight) * (Number(declared) - Number(purity))) / 1000;
 }
 
 function PurityDashboard() {
@@ -228,7 +234,7 @@ function TripsTab({
   const [departure, setDeparture] = useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [declared, setDeclared] = useState("999");
+  const [scrap, setScrap] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -241,12 +247,14 @@ function TripsTab({
       user_id: u.user.id,
       name: name || null,
       departure_date: departure,
-      declared_purity: Number(declared) || 999,
+      scrap_weight: scrap ? Number(scrap) : null,
+      declared_purity: 999,
       notes: notes || null,
     });
     setSaving(false);
     if (!error) {
       setName("");
+      setScrap("");
       setNotes("");
       setShowNew(false);
       reloadTrips();
@@ -293,12 +301,14 @@ function TripsTab({
               />
             </div>
             <div>
-              <Label>Declared purity (‰)</Label>
+              <Label>Scrap weight (g)</Label>
               <Input
                 type="number"
-                step="0.01"
-                value={declared}
-                onChange={(e) => setDeclared(e.target.value)}
+                step="0.001"
+                value={scrap}
+                onChange={(e) => setScrap(e.target.value)}
+                placeholder="Total raw scrap"
+                required
               />
             </div>
             <div className="col-span-2">
@@ -369,14 +379,21 @@ function TripCard({
   onDelete: () => void;
   onChange: () => Promise<void>;
 }) {
-  const totalWeight = pieces.reduce((s, p) => s + Number(p.weight_grams), 0);
-  const totalLoss = pieces.reduce(
-    (s, p) =>
-      s + lossGrams(Number(p.weight_grams), trip.declared_purity, trip.actual_purity),
+  const totalBarWeight = pieces.reduce(
+    (s, p) => s + Number(p.weight_grams),
     0,
   );
-
-  const status = trip.actual_purity != null ? "settled" : "pending";
+  const totalPure = pieces.reduce(
+    (s, p) => s + pureGrams(Number(p.weight_grams), p.purity),
+    0,
+  );
+  const totalLoss = pieces.reduce(
+    (s, p) =>
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.purity),
+    0,
+  );
+  const allPriced = pieces.length > 0 && pieces.every((p) => p.purity != null);
+  const status = allPriced ? "settled" : "pending";
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -400,16 +417,22 @@ function TripCard({
               </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting Bafleh
+                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting purity
               </span>
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
             Dep {trip.departure_date}
-            {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""} ·{" "}
-            {pieces.length} bars · {totalWeight.toFixed(2)} g
-            {trip.actual_purity != null && (
-              <> · Loss {totalLoss.toFixed(2)} g</>
+            {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
+            {trip.scrap_weight != null && (
+              <> · Scrap {Number(trip.scrap_weight).toFixed(2)} g</>
+            )}{" "}
+            · {pieces.length} bars
+            {allPriced && (
+              <>
+                {" "}
+                · Pure {totalPure.toFixed(2)} g · Loss {totalLoss.toFixed(2)} g
+              </>
             )}
           </div>
         </div>
@@ -417,14 +440,22 @@ function TripCard({
 
       {open && (
         <div className="border-t border-border p-4 space-y-4">
-          <TripSettlement trip={trip} onChange={onChange} />
+          <TripHeaderEditor trip={trip} onChange={onChange} />
           <BarsManager
             trip={trip}
             clients={clients}
             pieces={pieces}
             onChange={onChange}
           />
-          {trip.actual_purity != null && pieces.length > 0 && (
+          {pieces.some((p) => p.purity != null) && (
+            <TripTotals
+              trip={trip}
+              totalBarWeight={totalBarWeight}
+              totalPure={totalPure}
+              totalLoss={totalLoss}
+            />
+          )}
+          {pieces.some((p) => p.purity != null) && (
             <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
           )}
           <div className="flex justify-end">
@@ -443,18 +474,16 @@ function TripCard({
   );
 }
 
-function TripSettlement({
+function TripHeaderEditor({
   trip,
   onChange,
 }: {
   trip: Trip;
   onChange: () => Promise<void>;
 }) {
-  const [arrival, setArrival] = useState(
-    trip.arrival_date ?? new Date().toISOString().slice(0, 10),
-  );
-  const [actual, setActual] = useState(
-    trip.actual_purity != null ? String(trip.actual_purity) : "",
+  const [arrival, setArrival] = useState(trip.arrival_date ?? "");
+  const [scrap, setScrap] = useState(
+    trip.scrap_weight != null ? String(trip.scrap_weight) : "",
   );
   const [saving, setSaving] = useState(false);
 
@@ -464,8 +493,8 @@ function TripSettlement({
     await supabase
       .from("purity_trips")
       .update({
-        arrival_date: arrival,
-        actual_purity: actual === "" ? null : Number(actual),
+        arrival_date: arrival || null,
+        scrap_weight: scrap === "" ? null : Number(scrap),
       })
       .eq("id", trip.id);
     setSaving(false);
@@ -477,36 +506,86 @@ function TripSettlement({
       onSubmit={save}
       className="rounded-md bg-muted/40 p-3 grid grid-cols-2 gap-3"
     >
-      <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Bafleh Lab report (Dubai)
+      <div>
+        <Label className="text-xs">Scrap weight (g)</Label>
+        <Input
+          type="number"
+          step="0.001"
+          value={scrap}
+          onChange={(e) => setScrap(e.target.value)}
+        />
       </div>
       <div>
-        <Label className="text-xs">Arrival date</Label>
+        <Label className="text-xs">Arrival date (Dubai)</Label>
         <Input
           type="date"
           value={arrival}
           onChange={(e) => setArrival(e.target.value)}
         />
       </div>
-      <div>
-        <Label className="text-xs">Actual purity (‰)</Label>
-        <Input
-          type="number"
-          step="0.01"
-          placeholder="e.g. 985.40"
-          value={actual}
-          onChange={(e) => setActual(e.target.value)}
-        />
-      </div>
-      <div className="col-span-2 flex justify-between items-center">
-        <div className="text-xs text-muted-foreground">
-          Declared {trip.declared_purity}‰
-        </div>
+      <div className="col-span-2 flex justify-end">
         <Button size="sm" disabled={saving}>
-          {saving ? "Saving…" : "Save report"}
+          {saving ? "Saving…" : "Save"}
         </Button>
       </div>
     </form>
+  );
+}
+
+function TripTotals({
+  trip,
+  totalBarWeight,
+  totalPure,
+  totalLoss,
+}: {
+  trip: Trip;
+  totalBarWeight: number;
+  totalPure: number;
+  totalLoss: number;
+}) {
+  const declaredPure =
+    trip.scrap_weight != null
+      ? (Number(trip.scrap_weight) * Number(trip.declared_purity)) / 1000
+      : null;
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
+      <Stat label="Bars total weight" value={`${totalBarWeight.toFixed(3)} g`} />
+      <Stat label="Pure gold (from bars)" value={`${totalPure.toFixed(3)} g`} />
+      {declaredPure != null && (
+        <Stat
+          label={`Declared pure (scrap × ${trip.declared_purity}‰)`}
+          value={`${declaredPure.toFixed(3)} g`}
+        />
+      )}
+      <Stat
+        label="Total loss"
+        value={`${totalLoss.toFixed(3)} g`}
+        highlight
+      />
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div
+        className={`font-mono ${highlight ? "text-primary font-semibold" : ""}`}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 
@@ -522,6 +601,7 @@ function BarsManager({
   onChange: () => Promise<void>;
 }) {
   const [weight, setWeight] = useState("");
+  const [purity, setPurity] = useState("");
   const [label, setLabel] = useState("");
   const [clientId, setClientId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -536,15 +616,25 @@ function BarsManager({
       user_id: u.user.id,
       trip_id: trip.id,
       weight_grams: Number(weight),
+      purity: purity === "" ? null : Number(purity),
       label: label || null,
       client_id: clientId || null,
     });
     setSaving(false);
     if (!error) {
       setWeight("");
+      setPurity("");
       setLabel("");
       await onChange();
     }
+  }
+
+  async function updateBarPurity(id: string, value: string) {
+    await supabase
+      .from("purity_pieces")
+      .update({ purity: value === "" ? null : Number(value) })
+      .eq("id", id);
+    await onChange();
   }
 
   async function deleteBar(id: string) {
@@ -558,11 +648,8 @@ function BarsManager({
         Bars
       </div>
 
-      <form
-        onSubmit={addBar}
-        className="grid grid-cols-12 gap-2 items-end"
-      >
-        <div className="col-span-4">
+      <form onSubmit={addBar} className="grid grid-cols-12 gap-2 items-end">
+        <div className="col-span-3">
           <Label className="text-xs">Weight (g)</Label>
           <Input
             type="number"
@@ -572,7 +659,17 @@ function BarsManager({
             required
           />
         </div>
-        <div className="col-span-3">
+        <div className="col-span-2">
+          <Label className="text-xs">Purity ‰</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={purity}
+            onChange={(e) => setPurity(e.target.value)}
+            placeholder="—"
+          />
+        </div>
+        <div className="col-span-2">
           <Label className="text-xs">Label</Label>
           <Input
             value={label}
@@ -613,6 +710,8 @@ function BarsManager({
               <tr>
                 <th className="text-left py-1.5 pr-2">#</th>
                 <th className="text-right py-1.5 pr-2">Weight</th>
+                <th className="text-right py-1.5 pr-2">Purity ‰</th>
+                <th className="text-right py-1.5 pr-2">Pure</th>
                 <th className="text-left py-1.5 pr-2">Client</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
                 <th></th>
@@ -621,10 +720,11 @@ function BarsManager({
             <tbody>
               {pieces.map((p, i) => {
                 const client = clients.find((c) => c.id === p.client_id);
+                const pure = pureGrams(Number(p.weight_grams), p.purity);
                 const loss = lossGrams(
                   Number(p.weight_grams),
                   trip.declared_purity,
-                  trip.actual_purity,
+                  p.purity,
                 );
                 return (
                   <tr key={p.id} className="border-b border-border/50">
@@ -634,13 +734,31 @@ function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {Number(p.weight_grams).toFixed(3)}
                     </td>
+                    <td className="py-1.5 pr-2 text-right">
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={p.purity ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          if (v !== (p.purity?.toString() ?? "")) {
+                            updateBarPurity(p.id, v);
+                          }
+                        }}
+                        placeholder="—"
+                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5"
+                      />
+                    </td>
+                    <td className="py-1.5 pr-2 text-right font-mono">
+                      {p.purity != null ? pure.toFixed(3) : "—"}
+                    </td>
                     <td className="py-1.5 pr-2 truncate max-w-[120px]">
                       {client?.name ?? (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {trip.actual_purity != null ? loss.toFixed(3) : "—"}
+                      {p.purity != null ? loss.toFixed(3) : "—"}
                     </td>
                     <td className="py-1.5 text-right">
                       <button
@@ -673,9 +791,16 @@ function ClientBreakdown({
   const rows = useMemo(() => {
     const map = new Map<
       string,
-      { name: string; bars: Piece[]; totalWeight: number; totalLoss: number }
+      {
+        name: string;
+        bars: Piece[];
+        totalWeight: number;
+        totalPure: number;
+        totalLoss: number;
+      }
     >();
     for (const p of pieces) {
+      if (p.purity == null) continue;
       const key = p.client_id ?? "_none";
       const name =
         clients.find((c) => c.id === p.client_id)?.name ?? "Unassigned";
@@ -683,19 +808,23 @@ function ClientBreakdown({
         name,
         bars: [],
         totalWeight: 0,
+        totalPure: 0,
         totalLoss: 0,
       };
       row.bars.push(p);
       row.totalWeight += Number(p.weight_grams);
+      row.totalPure += pureGrams(Number(p.weight_grams), p.purity);
       row.totalLoss += lossGrams(
         Number(p.weight_grams),
         trip.declared_purity,
-        trip.actual_purity,
+        p.purity,
       );
       map.set(key, row);
     }
     return Array.from(map.values()).sort((a, b) => b.totalLoss - a.totalLoss);
   }, [pieces, clients, trip]);
+
+  if (rows.length === 0) return null;
 
   return (
     <div className="space-y-2">
@@ -715,12 +844,16 @@ function ClientBreakdown({
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {r.bars.length} bars · {r.totalWeight.toFixed(3)} g supplied
+              {r.bars.length} bars · {r.totalWeight.toFixed(3)} g ·{" "}
+              {r.totalPure.toFixed(3)} g pure
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
               Bars:{" "}
               {r.bars
-                .map((b) => `${Number(b.weight_grams).toFixed(3)}g`)
+                .map(
+                  (b) =>
+                    `${Number(b.weight_grams).toFixed(3)}g @ ${b.purity}‰`,
+                )
                 .join(", ")}
             </div>
           </div>
@@ -921,6 +1054,12 @@ function SearchTab({
                     <div>
                       <div className="font-medium font-mono">
                         {Number(p.weight_grams).toFixed(3)} g
+                        {p.purity != null && (
+                          <span className="text-muted-foreground font-normal">
+                            {" "}
+                            @ {p.purity}‰
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {trip?.name || `Trip ${trip?.departure_date}`}
