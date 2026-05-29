@@ -1249,7 +1249,7 @@ function ClientBreakdown({
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Loss per client
+        Loss per supplier
       </div>
       <div className="space-y-2">
         {rows.map((r) => (
