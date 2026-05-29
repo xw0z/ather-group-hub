@@ -191,7 +191,7 @@ function PurityDashboard() {
             <Plane className="h-4 w-4 mr-1.5" /> Trips
           </TabBtn>
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <Users className="h-4 w-4 mr-1.5" /> Clients
+            <Users className="h-4 w-4 mr-1.5" /> Suppliers
           </TabBtn>
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> Search bar
