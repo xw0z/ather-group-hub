@@ -392,6 +392,14 @@ function TripsTab({
               </div>
             </div>
             <div>
+              <Label>Receiver company (Dubai)</Label>
+              <Input
+                value={receiverCompany}
+                onChange={(e) => setReceiverCompany(e.target.value)}
+                placeholder="e.g. Bafleh / Kaloti"
+              />
+            </div>
+            <div className="col-span-2">
               <Label>Notes (optional)</Label>
               <Input
                 value={notes}
