@@ -460,7 +460,7 @@ function TripsTab({
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Departure (Algeria)</Label>
+              <Label>{t("trips.departure")}</Label>
               <Input
                 type="date"
                 value={departure}
@@ -468,19 +468,19 @@ function TripsTab({
                 required
               />
               <div className="text-[11px] text-muted-foreground mt-1">
-                Trip name: <span className="font-mono">TRIP_{departure}</span>
+                {t("trips.tripName")} <span className="font-mono">TRIP_{departure}</span>
               </div>
             </div>
             <div>
-              <Label>Receiver company (Dubai)</Label>
+              <Label>{t("trips.receiver")}</Label>
               <Input
                 value={receiverCompany}
                 onChange={(e) => setReceiverCompany(e.target.value)}
-                placeholder="e.g. Bafleh / Kaloti"
+                placeholder={t("trips.receiverPh")}
               />
             </div>
             <div className="col-span-2">
-              <Label>Notes (optional)</Label>
+              <Label>{t("trips.notes")}</Label>
               <Input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
