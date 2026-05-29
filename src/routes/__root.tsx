@@ -83,7 +83,13 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {!isPurity && <SiteHeader />}
       <main className={isPurity ? "" : "pt-20"}>
-        <Outlet />
+        {isPurity ? (
+          <PurityLanguageProvider>
+            <Outlet />
+          </PurityLanguageProvider>
+        ) : (
+          <Outlet />
+        )}
       </main>
       {!isPurity && <SiteFooter />}
       {!isPurity && <WhatsAppButton />}
