@@ -1,6 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { LogOut, Plus, Scale, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  LogOut,
+  Plus,
+  Scale,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Users,
+  Plane,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +28,20 @@ export const Route = createFileRoute("/purity/dashboard")({
   component: PurityDashboard,
 });
 
+type Client = {
+  id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
+};
+
 type Trip = {
   id: string;
   name: string | null;
-  delivery_date: string;
+  departure_date: string;
+  arrival_date: string | null;
+  declared_purity: number;
+  actual_purity: number | null;
   notes: string | null;
   created_at: string;
 };
@@ -27,20 +49,29 @@ type Trip = {
 type Piece = {
   id: string;
   trip_id: string;
+  client_id: string | null;
   label: string | null;
   weight_grams: number;
-  purity: number | null;
   created_at: string;
 };
+
+// loss(grams) = weight * (declared - actual) / 1000
+function lossGrams(weight: number, declared: number, actual: number | null) {
+  if (actual == null) return 0;
+  return (Number(weight) * (Number(declared) - Number(actual))) / 1000;
+}
 
 function PurityDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState<string>("");
+  const [email, setEmail] = useState("");
+
+  const [tab, setTab] = useState<"trips" | "clients" | "search">("trips");
+
+  const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [pieces, setPieces] = useState<Record<string, Piece[]>>({});
   const [openTrip, setOpenTrip] = useState<string | null>(null);
-  const [showNewTrip, setShowNewTrip] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,318 +82,867 @@ function PurityDashboard() {
         return;
       }
       setEmail(data.session.user.email ?? "");
-      await loadTrips();
+      await Promise.all([loadClients(), loadTrips()]);
       setReady(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) navigate({ to: "/purity", replace: true });
-    });
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
-  }, [navigate]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadClients() {
+    const { data } = await supabase
+      .from("purity_clients")
+      .select("*")
+      .order("name", { ascending: true });
+    setClients((data ?? []) as Client[]);
+  }
 
   async function loadTrips() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("purity_trips")
       .select("*")
-      .order("delivery_date", { ascending: false });
-    if (!error && data) setTrips(data as Trip[]);
+      .order("departure_date", { ascending: false });
+    setTrips((data ?? []) as Trip[]);
   }
 
   async function loadPieces(tripId: string) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("purity_pieces")
       .select("*")
       .eq("trip_id", tripId)
       .order("created_at", { ascending: true });
-    if (!error && data) setPieces((prev) => ({ ...prev, [tripId]: data as Piece[] }));
+    setPieces((p) => ({ ...p, [tripId]: (data ?? []) as Piece[] }));
   }
 
-  async function toggleTrip(id: string) {
-    if (openTrip === id) { setOpenTrip(null); return; }
-    setOpenTrip(id);
-    if (!pieces[id]) await loadPieces(id);
-  }
-
-  async function deleteTrip(id: string) {
-    if (!confirm("Delete this trip and all its pieces?")) return;
-    await supabase.from("purity_trips").delete().eq("id", id);
-    setTrips((t) => t.filter((x) => x.id !== id));
-  }
-
-  async function deletePiece(tripId: string, pieceId: string) {
-    await supabase.from("purity_pieces").delete().eq("id", pieceId);
-    setPieces((p) => ({ ...p, [tripId]: (p[tripId] || []).filter((x) => x.id !== pieceId) }));
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/purity", replace: true });
   }
 
   if (!ready) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground text-sm">Loading…</div>;
+    return (
+      <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+        Loading…
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card/40">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
-              <Scale className="h-4 w-4 text-ember" />
-            </div>
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Scale className="h-5 w-5 text-primary" />
             <div>
-              <p className="font-display text-lg leading-none">Purity</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{email}</p>
+              <div className="text-sm font-semibold leading-none">Purity</div>
+              <div className="text-[11px] text-muted-foreground">{email}</div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/purity", replace: true }); }}
-          >
-            <LogOut className="h-4 w-4 mr-2" /> Sign out
+          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4 mr-1" /> Sign out
           </Button>
         </div>
+        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
+          <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
+            <Plane className="h-4 w-4 mr-1.5" /> Trips
+          </TabBtn>
+          <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
+            <Users className="h-4 w-4 mr-1.5" /> Clients
+          </TabBtn>
+          <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
+            <Search className="h-4 w-4 mr-1.5" /> Search bar
+          </TabBtn>
+        </nav>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h1 className="font-display text-3xl">Trips</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {trips.length} {trips.length === 1 ? "trip" : "trips"} logged
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowNewTrip((s) => !s)}
-            className="bg-ember text-ember-foreground hover:bg-ember/90"
-          >
-            <Plus className="h-4 w-4 mr-2" /> New trip
-          </Button>
-        </div>
-
-        {showNewTrip && (
-          <NewTripForm
-            onCreated={async (trip) => {
-              setTrips((t) => [trip, ...t]);
-              setShowNewTrip(false);
-              setOpenTrip(trip.id);
-              setPieces((p) => ({ ...p, [trip.id]: [] }));
+      <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
+        {tab === "trips" && (
+          <TripsTab
+            trips={trips}
+            clients={clients}
+            pieces={pieces}
+            openTrip={openTrip}
+            setOpenTrip={(id) => {
+              setOpenTrip(id);
+              if (id && !pieces[id]) loadPieces(id);
             }}
-            onCancel={() => setShowNewTrip(false)}
+            reloadTrips={loadTrips}
+            reloadPieces={loadPieces}
           />
         )}
-
-        {trips.length === 0 && !showNewTrip && (
-          <div className="rounded-lg border border-dashed border-border p-12 text-center">
-            <p className="text-muted-foreground">No trips yet. Create your first to start logging pieces.</p>
-          </div>
+        {tab === "clients" && (
+          <ClientsTab clients={clients} reload={loadClients} />
         )}
-
-        <div className="space-y-3">
-          {trips.map((trip) => (
-            <TripCard
-              key={trip.id}
-              trip={trip}
-              open={openTrip === trip.id}
-              pieces={pieces[trip.id]}
-              onToggle={() => toggleTrip(trip.id)}
-              onDelete={() => deleteTrip(trip.id)}
-              onPieceAdded={(p) =>
-                setPieces((prev) => ({ ...prev, [trip.id]: [...(prev[trip.id] || []), p] }))
-              }
-              onPieceDeleted={(pid) => deletePiece(trip.id, pid)}
-            />
-          ))}
-        </div>
+        {tab === "search" && <SearchTab clients={clients} trips={trips} />}
       </main>
     </div>
   );
 }
 
-function NewTripForm({ onCreated, onCancel }: { onCreated: (t: Trip) => void; onCancel: () => void }) {
-  const [name, setName] = useState("");
-  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+        active
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
-  async function submit(e: FormEvent) {
+/* -------------------- TRIPS -------------------- */
+
+function TripsTab({
+  trips,
+  clients,
+  pieces,
+  openTrip,
+  setOpenTrip,
+  reloadTrips,
+  reloadPieces,
+}: {
+  trips: Trip[];
+  clients: Client[];
+  pieces: Record<string, Piece[]>;
+  openTrip: string | null;
+  setOpenTrip: (id: string | null) => void;
+  reloadTrips: () => Promise<void>;
+  reloadPieces: (tripId: string) => Promise<void>;
+}) {
+  const [showNew, setShowNew] = useState(false);
+  const [name, setName] = useState("");
+  const [departure, setDeparture] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [declared, setDeclared] = useState("999");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function createTrip(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) { setError("Not signed in"); setSubmitting(false); return; }
-    const { data, error } = await supabase
-      .from("purity_trips")
-      .insert({ user_id: uid, name: name || null, delivery_date: deliveryDate, notes: notes || null })
-      .select()
-      .single();
-    setSubmitting(false);
-    if (error) { setError(error.message); return; }
-    onCreated(data as Trip);
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { error } = await supabase.from("purity_trips").insert({
+      user_id: u.user.id,
+      name: name || null,
+      departure_date: departure,
+      declared_purity: Number(declared) || 999,
+      notes: notes || null,
+    });
+    setSaving(false);
+    if (!error) {
+      setName("");
+      setNotes("");
+      setShowNew(false);
+      reloadTrips();
+    }
+  }
+
+  async function deleteTrip(id: string) {
+    if (!confirm("Delete this trip and all its bars?")) return;
+    await supabase.from("purity_pieces").delete().eq("trip_id", id);
+    await supabase.from("purity_trips").delete().eq("id", id);
+    reloadTrips();
   }
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-border bg-card p-6 mb-4 space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="trip-name">Name (optional)</Label>
-          <Input id="trip-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dubai run #4" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="trip-date">Delivery date</Label>
-          <Input id="trip-date" type="date" required value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="trip-notes">Notes (optional)</Label>
-        <Input id="trip-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Supplier, courier, reference…" />
-      </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="flex gap-2 justify-end">
-        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={submitting} className="bg-ember text-ember-foreground hover:bg-ember/90">
-          {submitting ? "Saving…" : "Save trip"}
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Trips</h2>
+        <Button size="sm" onClick={() => setShowNew((s) => !s)}>
+          <Plus className="h-4 w-4 mr-1" /> New trip
         </Button>
       </div>
-    </form>
+
+      {showNew && (
+        <form
+          onSubmit={createTrip}
+          className="rounded-lg border border-border bg-card p-4 space-y-3"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>Trip name (optional)</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Algiers → Dubai #14"
+              />
+            </div>
+            <div>
+              <Label>Departure (Algeria)</Label>
+              <Input
+                type="date"
+                value={departure}
+                onChange={(e) => setDeparture(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label>Declared purity (‰)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={declared}
+                onChange={(e) => setDeclared(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Notes</Label>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNew(false)}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" disabled={saving}>
+              {saving ? "Saving…" : "Create trip"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {trips.length === 0 && (
+        <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
+          No trips yet. Create one to start logging gold bars.
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {trips.map((trip) => (
+          <TripCard
+            key={trip.id}
+            trip={trip}
+            clients={clients}
+            pieces={pieces[trip.id] ?? []}
+            open={openTrip === trip.id}
+            onToggle={() => setOpenTrip(openTrip === trip.id ? null : trip.id)}
+            onDelete={() => deleteTrip(trip.id)}
+            onChange={async () => {
+              await reloadTrips();
+              await reloadPieces(trip.id);
+            }}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
 function TripCard({
-  trip, open, pieces, onToggle, onDelete, onPieceAdded, onPieceDeleted,
+  trip,
+  clients,
+  pieces,
+  open,
+  onToggle,
+  onDelete,
+  onChange,
 }: {
   trip: Trip;
+  clients: Client[];
+  pieces: Piece[];
   open: boolean;
-  pieces: Piece[] | undefined;
   onToggle: () => void;
   onDelete: () => void;
-  onPieceAdded: (p: Piece) => void;
-  onPieceDeleted: (pid: string) => void;
+  onChange: () => Promise<void>;
 }) {
-  const totalWeight = useMemo(
-    () => (pieces || []).reduce((s, p) => s + Number(p.weight_grams), 0),
-    [pieces]
+  const totalWeight = pieces.reduce((s, p) => s + Number(p.weight_grams), 0);
+  const totalLoss = pieces.reduce(
+    (s, p) =>
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, trip.actual_purity),
+    0,
   );
-  const avgPurity = useMemo(() => {
-    const list = (pieces || []).filter((p) => p.purity != null);
-    if (list.length === 0) return null;
-    const weightedSum = list.reduce((s, p) => s + Number(p.purity) * Number(p.weight_grams), 0);
-    const weightTotal = list.reduce((s, p) => s + Number(p.weight_grams), 0);
-    return weightTotal > 0 ? weightedSum / weightTotal : null;
-  }, [pieces]);
+
+  const status = trip.actual_purity != null ? "settled" : "pending";
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface/40 transition text-left">
-        <div className="flex items-center gap-3">
-          {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          <div>
-            <p className="font-medium">{trip.name || "Untitled trip"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Delivery {new Date(trip.delivery_date).toLocaleDateString()} ·{" "}
-              {(pieces || []).length} {(pieces || []).length === 1 ? "piece" : "pieces"}
-              {pieces && pieces.length > 0 && ` · ${totalWeight.toFixed(3)} g`}
-              {avgPurity != null && ` · avg ${avgPurity.toFixed(2)}‰`}
-            </p>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium truncate">
+              {trip.name || `Trip ${trip.departure_date}`}
+            </span>
+            {status === "settled" ? (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Settled
+              </span>
+            ) : (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
+                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting Bafleh
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            Dep {trip.departure_date}
+            {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""} ·{" "}
+            {pieces.length} bars · {totalWeight.toFixed(2)} g
+            {trip.actual_purity != null && (
+              <> · Loss {totalLoss.toFixed(2)} g</>
+            )}
           </div>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="text-muted-foreground hover:text-destructive p-1"
-          aria-label="Delete trip"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
       </button>
 
       {open && (
-        <div className="border-t border-border px-5 py-5 space-y-4">
-          {trip.notes && <p className="text-sm text-muted-foreground italic">{trip.notes}</p>}
-
-          {pieces && pieces.length > 0 && (
-            <div className="rounded-md border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-surface/50 text-xs text-muted-foreground uppercase tracking-wide">
-                  <tr>
-                    <th className="text-left px-3 py-2 font-medium">Piece</th>
-                    <th className="text-right px-3 py-2 font-medium">Weight (g)</th>
-                    <th className="text-right px-3 py-2 font-medium">Purity (‰)</th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pieces.map((p, i) => (
-                    <tr key={p.id} className="border-t border-border">
-                      <td className="px-3 py-2">{p.label || `#${i + 1}`}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{Number(p.weight_grams).toFixed(3)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {p.purity != null ? Number(p.purity).toFixed(2) : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <button onClick={() => onPieceDeleted(p.id)} className="text-muted-foreground hover:text-destructive" aria-label="Delete piece">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <div className="border-t border-border p-4 space-y-4">
+          <TripSettlement trip={trip} onChange={onChange} />
+          <BarsManager
+            trip={trip}
+            clients={clients}
+            pieces={pieces}
+            onChange={onChange}
+          />
+          {trip.actual_purity != null && pieces.length > 0 && (
+            <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
           )}
-
-          <AddPieceForm tripId={trip.id} onAdded={onPieceAdded} />
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-1" /> Delete trip
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function AddPieceForm({ tripId, onAdded }: { tripId: string; onAdded: (p: Piece) => void }) {
-  const [label, setLabel] = useState("");
-  const [weight, setWeight] = useState("");
-  const [purity, setPurity] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function TripSettlement({
+  trip,
+  onChange,
+}: {
+  trip: Trip;
+  onChange: () => Promise<void>;
+}) {
+  const [arrival, setArrival] = useState(
+    trip.arrival_date ?? new Date().toISOString().slice(0, 10),
+  );
+  const [actual, setActual] = useState(
+    trip.actual_purity != null ? String(trip.actual_purity) : "",
+  );
+  const [saving, setSaving] = useState(false);
 
-  async function submit(e: FormEvent) {
+  async function save(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    const w = parseFloat(weight);
-    if (!w || w <= 0) { setError("Weight must be greater than 0"); return; }
-    const p = purity ? parseFloat(purity) : null;
-    if (p != null && (isNaN(p) || p <= 0 || p > 1000)) { setError("Purity must be between 0 and 1000 ‰"); return; }
-    setSubmitting(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) { setError("Not signed in"); setSubmitting(false); return; }
-    const { data, error } = await supabase
-      .from("purity_pieces")
-      .insert({ trip_id: tripId, user_id: uid, label: label || null, weight_grams: w, purity: p })
-      .select()
-      .single();
-    setSubmitting(false);
-    if (error) { setError(error.message); return; }
-    onAdded(data as Piece);
-    setLabel(""); setWeight(""); setPurity("");
+    setSaving(true);
+    await supabase
+      .from("purity_trips")
+      .update({
+        arrival_date: arrival,
+        actual_purity: actual === "" ? null : Number(actual),
+      })
+      .eq("id", trip.id);
+    setSaving(false);
+    await onChange();
   }
 
   return (
-    <form onSubmit={submit} className="grid sm:grid-cols-[1fr_120px_120px_auto] gap-2 items-end">
-      <div className="space-y-1">
-        <Label htmlFor={`label-${tripId}`} className="text-xs">Piece label</Label>
-        <Input id={`label-${tripId}`} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Bar #1" />
+    <form
+      onSubmit={save}
+      className="rounded-md bg-muted/40 p-3 grid grid-cols-2 gap-3"
+    >
+      <div className="col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Bafleh Lab report (Dubai)
       </div>
-      <div className="space-y-1">
-        <Label htmlFor={`weight-${tripId}`} className="text-xs">Weight (g)</Label>
-        <Input id={`weight-${tripId}`} type="number" step="0.001" min="0" required value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="100.000" />
+      <div>
+        <Label className="text-xs">Arrival date</Label>
+        <Input
+          type="date"
+          value={arrival}
+          onChange={(e) => setArrival(e.target.value)}
+        />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor={`purity-${tripId}`} className="text-xs">Purity (‰)</Label>
-        <Input id={`purity-${tripId}`} type="number" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} placeholder="999.90" />
+      <div>
+        <Label className="text-xs">Actual purity (‰)</Label>
+        <Input
+          type="number"
+          step="0.01"
+          placeholder="e.g. 985.40"
+          value={actual}
+          onChange={(e) => setActual(e.target.value)}
+        />
       </div>
-      <Button type="submit" disabled={submitting} className="bg-ember text-ember-foreground hover:bg-ember/90">
-        {submitting ? "…" : "Add piece"}
-      </Button>
-      {error && <p className="text-sm text-destructive sm:col-span-4">{error}</p>}
+      <div className="col-span-2 flex justify-between items-center">
+        <div className="text-xs text-muted-foreground">
+          Declared {trip.declared_purity}‰
+        </div>
+        <Button size="sm" disabled={saving}>
+          {saving ? "Saving…" : "Save report"}
+        </Button>
+      </div>
     </form>
+  );
+}
+
+function BarsManager({
+  trip,
+  clients,
+  pieces,
+  onChange,
+}: {
+  trip: Trip;
+  clients: Client[];
+  pieces: Piece[];
+  onChange: () => Promise<void>;
+}) {
+  const [weight, setWeight] = useState("");
+  const [label, setLabel] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function addBar(e: FormEvent) {
+    e.preventDefault();
+    if (!weight) return;
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { error } = await supabase.from("purity_pieces").insert({
+      user_id: u.user.id,
+      trip_id: trip.id,
+      weight_grams: Number(weight),
+      label: label || null,
+      client_id: clientId || null,
+    });
+    setSaving(false);
+    if (!error) {
+      setWeight("");
+      setLabel("");
+      await onChange();
+    }
+  }
+
+  async function deleteBar(id: string) {
+    await supabase.from("purity_pieces").delete().eq("id", id);
+    await onChange();
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Bars
+      </div>
+
+      <form
+        onSubmit={addBar}
+        className="grid grid-cols-12 gap-2 items-end"
+      >
+        <div className="col-span-4">
+          <Label className="text-xs">Weight (g)</Label>
+          <Input
+            type="number"
+            step="0.001"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-span-3">
+          <Label className="text-xs">Label</Label>
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="#"
+          />
+        </div>
+        <div className="col-span-3">
+          <Label className="text-xs">Client</Label>
+          <select
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">—</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <Button size="sm" className="w-full" disabled={saving}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+
+      {pieces.length === 0 ? (
+        <div className="text-xs text-muted-foreground text-center py-3">
+          No bars yet.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left py-1.5 pr-2">#</th>
+                <th className="text-right py-1.5 pr-2">Weight</th>
+                <th className="text-left py-1.5 pr-2">Client</th>
+                <th className="text-right py-1.5 pr-2">Loss</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pieces.map((p, i) => {
+                const client = clients.find((c) => c.id === p.client_id);
+                const loss = lossGrams(
+                  Number(p.weight_grams),
+                  trip.declared_purity,
+                  trip.actual_purity,
+                );
+                return (
+                  <tr key={p.id} className="border-b border-border/50">
+                    <td className="py-1.5 pr-2 text-muted-foreground">
+                      {p.label || i + 1}
+                    </td>
+                    <td className="py-1.5 pr-2 text-right font-mono">
+                      {Number(p.weight_grams).toFixed(3)}
+                    </td>
+                    <td className="py-1.5 pr-2 truncate max-w-[120px]">
+                      {client?.name ?? (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 pr-2 text-right font-mono">
+                      {trip.actual_purity != null ? loss.toFixed(3) : "—"}
+                    </td>
+                    <td className="py-1.5 text-right">
+                      <button
+                        onClick={() => deleteBar(p.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClientBreakdown({
+  trip,
+  clients,
+  pieces,
+}: {
+  trip: Trip;
+  clients: Client[];
+  pieces: Piece[];
+}) {
+  const rows = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; bars: Piece[]; totalWeight: number; totalLoss: number }
+    >();
+    for (const p of pieces) {
+      const key = p.client_id ?? "_none";
+      const name =
+        clients.find((c) => c.id === p.client_id)?.name ?? "Unassigned";
+      const row = map.get(key) ?? {
+        name,
+        bars: [],
+        totalWeight: 0,
+        totalLoss: 0,
+      };
+      row.bars.push(p);
+      row.totalWeight += Number(p.weight_grams);
+      row.totalLoss += lossGrams(
+        Number(p.weight_grams),
+        trip.declared_purity,
+        trip.actual_purity,
+      );
+      map.set(key, row);
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalLoss - a.totalLoss);
+  }, [pieces, clients, trip]);
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Loss per client
+      </div>
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div
+            key={r.name}
+            className="rounded-md border border-border bg-muted/30 p-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{r.name}</div>
+              <div className="text-sm font-mono text-primary">
+                {r.totalLoss.toFixed(3)} g loss
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {r.bars.length} bars · {r.totalWeight.toFixed(3)} g supplied
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Bars:{" "}
+              {r.bars
+                .map((b) => `${Number(b.weight_grams).toFixed(3)}g`)
+                .join(", ")}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- CLIENTS -------------------- */
+
+function ClientsTab({
+  clients,
+  reload,
+}: {
+  clients: Client[];
+  reload: () => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function addClient(e: FormEvent) {
+    e.preventDefault();
+    if (!name) return;
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { error } = await supabase.from("purity_clients").insert({
+      user_id: u.user.id,
+      name,
+      phone: phone || null,
+      notes: notes || null,
+    });
+    setSaving(false);
+    if (!error) {
+      setName("");
+      setPhone("");
+      setNotes("");
+      await reload();
+    }
+  }
+
+  async function deleteClient(id: string) {
+    if (!confirm("Delete this client? Their bars will become unassigned."))
+      return;
+    await supabase.from("purity_clients").delete().eq("id", id);
+    await reload();
+  }
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold">Clients</h2>
+
+      <form
+        onSubmit={addClient}
+        className="rounded-lg border border-border bg-card p-4 space-y-3"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <Label>Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label>Phone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button size="sm" disabled={saving}>
+            <Plus className="h-4 w-4 mr-1" /> Add client
+          </Button>
+        </div>
+      </form>
+
+      {clients.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
+          No clients yet.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {clients.map((c) => (
+            <div
+              key={c.id}
+              className="rounded-md border border-border bg-card p-3 flex items-center justify-between"
+            >
+              <div>
+                <div className="font-medium">{c.name}</div>
+                {(c.phone || c.notes) && (
+                  <div className="text-xs text-muted-foreground">
+                    {[c.phone, c.notes].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => deleteClient(c.id)}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* -------------------- SEARCH -------------------- */
+
+function SearchTab({
+  clients,
+  trips,
+}: {
+  clients: Client[];
+  trips: Trip[];
+}) {
+  const [weight, setWeight] = useState("");
+  const [tolerance, setTolerance] = useState("0.05");
+  const [results, setResults] = useState<Piece[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  async function search(e: FormEvent) {
+    e.preventDefault();
+    if (!weight) return;
+    setSearching(true);
+    const w = Number(weight);
+    const t = Number(tolerance) || 0;
+    const { data } = await supabase
+      .from("purity_pieces")
+      .select("*")
+      .gte("weight_grams", w - t)
+      .lte("weight_grams", w + t)
+      .order("created_at", { ascending: false });
+    setResults((data ?? []) as Piece[]);
+    setSearching(false);
+  }
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold">Search bar by weight</h2>
+      <form
+        onSubmit={search}
+        className="rounded-lg border border-border bg-card p-4 grid grid-cols-12 gap-2 items-end"
+      >
+        <div className="col-span-6">
+          <Label>Weight (g)</Label>
+          <Input
+            type="number"
+            step="0.001"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-span-3">
+          <Label>± Tolerance</Label>
+          <Input
+            type="number"
+            step="0.001"
+            value={tolerance}
+            onChange={(e) => setTolerance(e.target.value)}
+          />
+        </div>
+        <div className="col-span-3">
+          <Button className="w-full" disabled={searching}>
+            <Search className="h-4 w-4 mr-1" />
+            {searching ? "…" : "Find"}
+          </Button>
+        </div>
+      </form>
+
+      {results && (
+        <div className="space-y-2">
+          {results.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-6">
+              No bars match that weight.
+            </div>
+          ) : (
+            results.map((p) => {
+              const trip = trips.find((t) => t.id === p.trip_id);
+              const client = clients.find((c) => c.id === p.client_id);
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-md border border-border bg-card p-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium font-mono">
+                        {Number(p.weight_grams).toFixed(3)} g
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {trip?.name || `Trip ${trip?.departure_date}`}
+                      </div>
+                    </div>
+                    <div className="text-right text-sm">
+                      <div className="font-medium text-primary">
+                        {client?.name ?? "Unassigned"}
+                      </div>
+                      {client?.phone && (
+                        <div className="text-xs text-muted-foreground">
+                          {client.phone}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </section>
   );
 }
