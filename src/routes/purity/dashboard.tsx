@@ -45,14 +45,14 @@ export const Route = createFileRoute("/purity/dashboard")({
   component: PurityDashboard,
 });
 
-type Client = {
+export type Client = {
   id: string;
   name: string;
   phone: string | null;
   notes: string | null;
 };
 
-type Trip = {
+export type Trip = {
   id: string;
   name: string | null;
   departure_date: string;
@@ -65,7 +65,7 @@ type Trip = {
   created_at: string;
 };
 
-type Piece = {
+export type Piece = {
   id: string;
   trip_id: string;
   client_id: string | null;
@@ -78,23 +78,23 @@ type Piece = {
 };
 
 // Pure gold content of a bar (grams) using Bafleh (lab) purity
-function pureGrams(weight: number, purity: number | null) {
+export function pureGrams(weight: number, purity: number | null) {
   if (purity == null) return 0;
   return (Number(weight) * Number(purity)) / 1000;
 }
 // Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
-function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+export function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
   if (baflehPurity == null) return 0;
   return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
 }
 
-function tripDisplayName(trip: Trip) {
+export function tripDisplayName(trip: Trip) {
   // Always render as TRIP_YYYY-MM-DD based on departure date (ignore legacy stored names).
   return `TRIP_${trip.departure_date}`;
 }
 
 
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
