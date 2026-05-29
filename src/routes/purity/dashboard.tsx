@@ -736,25 +736,27 @@ function TripHeaderEditor({
   return (
     <form
       onSubmit={save}
-      className="rounded-md bg-muted/40 p-3 grid grid-cols-2 gap-3 items-end"
+      className="rounded-md bg-muted/40 p-3 flex flex-col sm:flex-row sm:items-end gap-3"
     >
-      <div>
-        <Label className="text-xs">Arrival date (Dubai / Bafleh report)</Label>
+      <div className="flex-1 min-w-0">
+        <Label className="text-xs block mb-1">Arrival date (Dubai / Bafleh report)</Label>
         <Input
           type="date"
           value={arrival}
           onChange={(e) => setArrival(e.target.value)}
+          className="w-full"
         />
       </div>
-      <div>
-        <Label className="text-xs">Receiver company (Dubai)</Label>
+      <div className="flex-1 min-w-0">
+        <Label className="text-xs block mb-1">Receiver company (Dubai)</Label>
         <Input
           value={receiver}
           onChange={(e) => setReceiver(e.target.value)}
           placeholder="e.g. Bafleh / Kaloti"
+          className="w-full"
         />
       </div>
-      <div className="col-span-2 flex justify-end">
+      <div className="flex justify-end">
         <Button size="sm" disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </Button>
