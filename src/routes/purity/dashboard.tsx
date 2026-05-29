@@ -543,7 +543,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-3">
-                    {i === 0 && <Label className="text-xs">Supplier</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.supplier")}</Label>}
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
