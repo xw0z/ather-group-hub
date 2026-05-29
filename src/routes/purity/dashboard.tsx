@@ -614,6 +614,7 @@ function TripCard({
           <div className="text-xs text-muted-foreground truncate">
             Dep {trip.departure_date}
             {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
+            {trip.receiver_company ? ` · → ${trip.receiver_company}` : ""}
             {trip.scrap_weight != null && (
               <> · Scrap {Number(trip.scrap_weight).toFixed(2)} g</>
             )}{" "}
