@@ -595,10 +595,10 @@ function TripsTab({
                 setShowNew(false);
               }}
             >
-              Cancel
+              {t("app.cancel")}
             </Button>
             <Button size="sm" disabled={saving}>
-              {saving ? "Saving…" : "Create trip"}
+              {saving ? t("app.saving") : t("trips.createBtn")}
             </Button>
           </div>
         </form>
