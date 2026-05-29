@@ -887,6 +887,12 @@ function BarsManager({
     await onChange();
   }
 
+  async function toggleChecked(id: string, next: boolean) {
+    await supabase.from("purity_pieces").update({ checked: next }).eq("id", id);
+    await onChange();
+  }
+
+
 
   async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
