@@ -518,12 +518,12 @@ function TripsTab({
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                      className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm"
                     >
-                      <option value="">—</option>
+                      <option value="" className="bg-background text-foreground">—</option>
                       {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
+                        <option key={c.id} value={c.id} className="bg-background text-foreground">
+                          {c.name}{c.notes ? ` (${c.notes})` : ""}
                         </option>
                       ))}
                     </select>
@@ -1062,12 +1062,12 @@ function BarsManager({
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm"
           >
-            <option value="">—</option>
+            <option value="" className="bg-background text-foreground">—</option>
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+              <option key={c.id} value={c.id} className="bg-background text-foreground">
+                {c.name}{c.notes ? ` (${c.notes})` : ""}
               </option>
             ))}
           </select>
@@ -1165,12 +1165,12 @@ function BarsManager({
                         value={p.client_id ?? ""}
                         disabled={p.checked}
                         onChange={(e) => updateClient(p.id, e.target.value)}
-                        className="w-full h-7 bg-transparent border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full h-7 bg-background text-foreground border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <option value="">—</option>
+                        <option value="" className="bg-background text-foreground">—</option>
                         {clients.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
+                          <option key={c.id} value={c.id} className="bg-background text-foreground">
+                            {c.name}{c.notes ? ` (${c.notes})` : ""}
                           </option>
                         ))}
                       </select>
