@@ -1114,7 +1114,7 @@ function ClientBreakdown({
     ctx.fillStyle = "#9aa3b2";
     ctx.font = "400 24px system-ui, sans-serif";
     ctx.fillText(
-      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}`,
+      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}${trip.receiver_company ? "  →  " + trip.receiver_company : ""}`,
       48,
       178,
     );
