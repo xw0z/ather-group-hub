@@ -45,6 +45,7 @@ type Trip = {
   scrap_weight: number | null;
   notes: string | null;
   receiver_company: string | null;
+  is_settled: boolean;
   created_at: string;
 };
 
@@ -56,6 +57,7 @@ type Piece = {
   weight_grams: number;
   initial_purity: number | null;
   bafleh_purity: number | null;
+  checked: boolean;
   created_at: string;
 };
 
@@ -71,8 +73,10 @@ function lossGrams(weight: number, declared: number, baflehPurity: number | null
 }
 
 function tripDisplayName(trip: Trip) {
-  return trip.name || `TRIP_${trip.departure_date}`;
+  // Always render as TRIP_YYYY-MM-DD based on departure date (ignore legacy stored names).
+  return `TRIP_${trip.departure_date}`;
 }
+
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -583,7 +587,17 @@ function TripCard({
     0,
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
-  const status = allPriced ? "settled" : "pending";
+  const allChecked = pieces.length > 0 && pieces.every((p) => p.checked);
+  const status: "settled" | "ready" | "pending" = trip.is_settled
+    ? "settled"
+    : allPriced && allChecked
+      ? "ready"
+      : "pending";
+
+  async function toggleSettled(next: boolean) {
+    await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
+    await onChange();
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -605,9 +619,14 @@ function TripCard({
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
                 <CheckCircle2 className="h-3 w-3 mr-0.5" /> Settled
               </span>
+            ) : status === "ready" ? (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600">
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Ready to settle
+              </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting Bafleh
+                <AlertCircle className="h-3 w-3 mr-0.5" />
+                {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
               </span>
             )}
           </div>
@@ -649,6 +668,29 @@ function TripCard({
           {pieces.some((p) => p.bafleh_purity != null) && (
             <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
           )}
+          <div className="rounded-md border border-border bg-muted/30 p-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground">
+              {pieces.filter((p) => p.checked).length}/{pieces.length} bars checked
+              {!allPriced && " · waiting Bafleh purity on some bars"}
+            </div>
+            {trip.is_settled ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => toggleSettled(false)}
+              >
+                Reopen trip
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={!(allPriced && allChecked)}
+                onClick={() => toggleSettled(true)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark as settled
+              </Button>
+            )}
+          </div>
           <div className="flex justify-end">
             <Button
               variant="ghost"
@@ -664,6 +706,7 @@ function TripCard({
     </div>
   );
 }
+
 
 function TripHeaderEditor({
   trip,
@@ -844,6 +887,12 @@ function BarsManager({
     await onChange();
   }
 
+  async function toggleChecked(id: string, next: boolean) {
+    await supabase.from("purity_pieces").update({ checked: next }).eq("id", id);
+    await onChange();
+  }
+
+
 
   async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
@@ -932,6 +981,7 @@ function BarsManager({
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
+                <th className="text-center py-1.5 pr-2">✓</th>
                 <th className="text-left py-1.5 pr-2">#</th>
                 <th className="text-right py-1.5 pr-2">Weight</th>
                 <th className="text-right py-1.5 pr-2">Init ‰</th>
@@ -941,6 +991,7 @@ function BarsManager({
                 <th className="text-right py-1.5 pr-2">Loss</th>
                 <th></th>
               </tr>
+
             </thead>
             <tbody>
               {pieces.map((p, i) => {
@@ -958,10 +1009,20 @@ function BarsManager({
                     : "text-red-600"
                   : "";
                 return (
-                  <tr key={p.id} className="border-b border-border/50">
+                  <tr key={p.id} className={`border-b border-border/50 ${p.checked ? "bg-emerald-500/5" : ""}`}>
+                    <td className="py-1.5 pr-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={p.checked}
+                        onChange={(e) => toggleChecked(p.id, e.target.checked)}
+                        className="h-4 w-4 accent-emerald-600 cursor-pointer"
+                        aria-label="Bar checked"
+                      />
+                    </td>
                     <td className="py-1.5 pr-2 text-muted-foreground">
                       {p.label || i + 1}
                     </td>
+
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {Number(p.weight_grams).toFixed(3)}
                     </td>
