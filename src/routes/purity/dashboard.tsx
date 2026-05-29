@@ -2292,6 +2292,33 @@ function ProfileTab({
           </div>
         </div>
       </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Languages className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Language</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { code: "en", label: "English" },
+            { code: "ar", label: "العربية" },
+            { code: "fr", label: "Français" },
+          ] as const).map((opt) => (
+            <Button
+              key={opt.code}
+              type="button"
+              size="sm"
+              variant={language === opt.code ? "default" : "outline"}
+              onClick={() => applyLanguage(opt.code)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground">
+          Current: {language === "ar" ? "العربية (RTL)" : language === "fr" ? "Français" : "English"}
+        </div>
+      </div>
     </section>
   );
 }
