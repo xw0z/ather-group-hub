@@ -1,10 +1,11 @@
-import { Outlet, createRootRouteWithContext, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, HeadContent, Scripts, useRouter, useRouterState } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+
 
 function NotFoundComponent() {
   return (
@@ -75,14 +76,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isPurity = pathname.startsWith("/purity");
   return (
     <QueryClientProvider client={queryClient}>
-      <SiteHeader />
-      <main className="pt-20">
+      {!isPurity && <SiteHeader />}
+      <main className={isPurity ? "" : "pt-20"}>
         <Outlet />
       </main>
-      <SiteFooter />
-      <WhatsAppButton />
+      {!isPurity && <SiteFooter />}
+      {!isPurity && <WhatsAppButton />}
     </QueryClientProvider>
   );
 }
