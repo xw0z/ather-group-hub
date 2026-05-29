@@ -167,7 +167,8 @@ function PurityDashboard() {
     const { data } = await supabase
       .from("purity_pieces")
       .select("*")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     const grouped: Record<string, Piece[]> = {};
     for (const p of (data ?? []) as unknown as Piece[]) {
       (grouped[p.trip_id] ||= []).push(p);
@@ -180,7 +181,8 @@ function PurityDashboard() {
       .from("purity_pieces")
       .select("*")
       .eq("trip_id", tripId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     setPieces((p) => ({ ...p, [tripId]: (data ?? []) as unknown as Piece[] }));
   }
 
@@ -633,6 +635,7 @@ function TripCard({
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
   const allChecked = pieces.length > 0 && pieces.every((p) => p.checked);
+  const allSuppliers = pieces.length > 0 && pieces.every((p) => p.client_id != null);
   const status: "settled" | "ready" | "pending" = trip.is_settled
     ? "settled"
     : allPriced && allChecked
@@ -676,6 +679,17 @@ function TripCard({
                 <AlertCircle className="h-3 w-3 mr-0.5" />
                 {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
               </span>
+            )}
+            {pieces.length > 0 && (
+              allSuppliers ? (
+                <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
+                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> Suppliers Done
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
+                  <AlertCircle className="h-3 w-3 mr-0.5" /> Missing Supplier
+                </span>
+              )
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
