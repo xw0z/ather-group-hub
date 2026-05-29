@@ -241,7 +241,7 @@ function PurityDashboard() {
           <ClientsTab clients={clients} reload={loadClients} />
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
-        {tab === "users" && <UsersTab />}
+        {tab === "users" && isAdmin && <UsersTab currentUserId="" />}
       </main>
     </div>
   );
