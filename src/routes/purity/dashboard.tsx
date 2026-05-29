@@ -433,7 +433,7 @@ function TripsTab({
   }
 
   async function deleteTrip(id: string) {
-    if (!confirm("Delete this trip and all its bars?")) return;
+    if (!confirm(t("trips.confirmDelete"))) return;
     const trip = trips.find((t) => t.id === id);
     await supabase.from("purity_pieces").delete().eq("trip_id", id);
     await supabase.from("purity_trips").delete().eq("id", id);
