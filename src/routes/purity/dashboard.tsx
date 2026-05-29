@@ -782,7 +782,7 @@ export function TripHeaderEditor({
       className="rounded-md bg-muted/40 p-3 flex flex-col sm:flex-row sm:items-end gap-3"
     >
       <div className="flex-1 min-w-0">
-        <Label className="text-xs block mb-1">Arrival date (Dubai / Bafleh report)</Label>
+        <Label className="text-xs block mb-1">{t("trips.arrival")}</Label>
         <Input
           type="date"
           value={arrival}
@@ -791,17 +791,17 @@ export function TripHeaderEditor({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <Label className="text-xs block mb-1">Receiver company (Dubai)</Label>
+        <Label className="text-xs block mb-1">{t("trips.receiver")}</Label>
         <Input
           value={receiver}
           onChange={(e) => setReceiver(e.target.value)}
-          placeholder="e.g. Bafleh / Kaloti"
+          placeholder={t("trips.receiverPh")}
           className="w-full"
         />
       </div>
       <div className="flex justify-end">
         <Button size="sm" disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("app.saving") : t("app.save")}
         </Button>
       </div>
     </form>
