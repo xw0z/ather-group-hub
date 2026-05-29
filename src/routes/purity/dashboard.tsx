@@ -35,6 +35,7 @@ import {
   updatePurityProfile,
 } from "@/lib/purity-users.functions";
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
+import { useLang, type Lang } from "@/lib/purity-i18n";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
@@ -195,51 +196,53 @@ function PurityDashboard() {
     navigate({ to: "/purity", replace: true });
   }
 
+  const { t, dir } = useLang();
+
   if (!ready) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
-        Loading…
+      <div dir={dir} className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+        {t("app.loading")}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-popover text-popover-foreground">
+    <div dir={dir} className="min-h-screen bg-popover text-popover-foreground">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-sm font-semibold leading-none">Purity</div>
+              <div className="text-sm font-semibold leading-none">{t("app.name")}</div>
               <div className="text-[11px] text-muted-foreground">{email}</div>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-1" /> Sign out
+            <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
           </Button>
         </div>
         <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
           <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
-            <Plane className="h-4 w-4 mr-1.5" /> Trips
+            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")}
           </TabBtn>
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <Users className="h-4 w-4 mr-1.5" /> Suppliers
+            <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
           </TabBtn>
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
-            <Search className="h-4 w-4 mr-1.5" /> Search bar
+            <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
           </TabBtn>
           {isAdmin && (
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-              <UserPlus className="h-4 w-4 mr-1.5" /> Users
+              <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
             </TabBtn>
           )}
           {isAdmin && (
             <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
-              <FileClock className="h-4 w-4 mr-1.5" /> Logs
+              <FileClock className="h-4 w-4 mr-1.5" /> {t("tab.logs")}
             </TabBtn>
           )}
           <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
-            <UserCircle className="h-4 w-4 mr-1.5" /> Profile
+            <UserCircle className="h-4 w-4 mr-1.5" /> {t("tab.profile")}
           </TabBtn>
         </nav>
       </header>
@@ -268,13 +271,14 @@ function PurityDashboard() {
 }
 
 export function PurityFooter() {
+  const { t } = useLang();
   return (
     <footer className="border-t border-border/60 bg-background/80 mt-10">
       <div className="mx-auto max-w-3xl px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <Scale className="h-3.5 w-3.5 text-primary" />
-          <span className="font-semibold tracking-wide">PURITY</span>
-          <span>· Gold purity & loss tracker</span>
+          <span className="font-semibold tracking-wide">{t("app.name").toUpperCase()}</span>
+          <span>· {t("footer.tag")}</span>
         </div>
         <div>© {new Date().getFullYear()} Ather Group</div>
       </div>
@@ -321,6 +325,7 @@ function TripsTab({
   reloadTrips: () => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const { t } = useLang();
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(trips.length / TRIPS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -377,7 +382,7 @@ function TripsTab({
     e.preventDefault();
     const validBars = bars.filter((b) => b.weight && Number(b.weight) > 0);
     if (validBars.length === 0) {
-      alert("Add at least one gold bar.");
+      alert(t("trips.addAtLeastOne"));
       return;
     }
     setSaving(true);
@@ -428,7 +433,7 @@ function TripsTab({
   }
 
   async function deleteTrip(id: string) {
-    if (!confirm("Delete this trip and all its bars?")) return;
+    if (!confirm(t("trips.confirmDelete"))) return;
     const trip = trips.find((t) => t.id === id);
     await supabase.from("purity_pieces").delete().eq("trip_id", id);
     await supabase.from("purity_trips").delete().eq("id", id);
@@ -442,9 +447,9 @@ function TripsTab({
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Trips</h2>
+        <h2 className="text-lg font-semibold">{t("trips.heading")}</h2>
         <Button size="sm" onClick={() => setShowNew((s) => !s)}>
-          <Plus className="h-4 w-4 mr-1" /> New trip
+          <Plus className="h-4 w-4 mr-1" /> {t("trips.new")}
         </Button>
       </div>
 
@@ -455,7 +460,7 @@ function TripsTab({
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Departure (Algeria)</Label>
+              <Label>{t("trips.departure")}</Label>
               <Input
                 type="date"
                 value={departure}
@@ -463,19 +468,19 @@ function TripsTab({
                 required
               />
               <div className="text-[11px] text-muted-foreground mt-1">
-                Trip name: <span className="font-mono">TRIP_{departure}</span>
+                {t("trips.tripName")} <span className="font-mono">TRIP_{departure}</span>
               </div>
             </div>
             <div>
-              <Label>Receiver company (Dubai)</Label>
+              <Label>{t("trips.receiver")}</Label>
               <Input
                 value={receiverCompany}
                 onChange={(e) => setReceiverCompany(e.target.value)}
-                placeholder="e.g. Bafleh / Kaloti"
+                placeholder={t("trips.receiverPh")}
               />
             </div>
             <div className="col-span-2">
-              <Label>Notes (optional)</Label>
+              <Label>{t("trips.notes")}</Label>
               <Input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -486,17 +491,17 @@ function TripsTab({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Gold bars (declared purity 999‰)
+                {t("trips.goldBars")}
               </Label>
               <Button type="button" size="sm" variant="ghost" onClick={addRow}>
-                <Plus className="h-4 w-4 mr-1" /> Add bar
+                <Plus className="h-4 w-4 mr-1" /> {t("trips.addBar")}
               </Button>
             </div>
             <div className="space-y-2">
               {bars.map((b, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
-                    {i === 0 && <Label className="text-xs">Weight (g)</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.weight")}</Label>}
                     <Input
                       type="number"
                       step="0.001"
@@ -506,7 +511,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-2">
-                    {i === 0 && <Label className="text-xs">Initial ‰</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.initial")}</Label>}
                     <Input
                       type="number"
                       step="0.01"
@@ -518,7 +523,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-2">
-                    {i === 0 && <Label className="text-xs">Bafleh ‰</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.bafleh")}</Label>}
                     <Input
                       type="number"
                       step="0.01"
@@ -538,7 +543,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-3">
-                    {i === 0 && <Label className="text-xs">Supplier</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.supplier")}</Label>}
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
@@ -569,15 +574,14 @@ function TripsTab({
             </div>
             <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
               <span className="text-muted-foreground">
-                Trip scrap weight (sum of bars)
+                {t("trips.scrapSum")}
               </span>
               <span className="font-mono font-semibold">
                 {totalWeight.toFixed(3)} g
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Tip: leave Bafleh ‰ empty if the lab report hasn't arrived yet —
-              you can fill it in later from the trip view.
+              {t("trips.tipBafleh")}
             </div>
           </div>
 
@@ -591,10 +595,10 @@ function TripsTab({
                 setShowNew(false);
               }}
             >
-              Cancel
+              {t("app.cancel")}
             </Button>
             <Button size="sm" disabled={saving}>
-              {saving ? "Saving…" : "Create trip"}
+              {saving ? t("app.saving") : t("trips.createBtn")}
             </Button>
           </div>
         </form>
@@ -602,7 +606,7 @@ function TripsTab({
 
       {trips.length === 0 && (
         <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
-          No trips yet. Create one to start logging gold bars.
+          {t("trips.none")}
         </div>
       )}
 
@@ -625,10 +629,10 @@ function TripsTab({
             disabled={currentPage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            ← Prev
+            {t("app.prev")}
           </Button>
           <div className="text-xs text-muted-foreground">
-            Page {currentPage} of {totalPages} · {trips.length} trips
+            {t("app.page")} {currentPage} {t("app.of")} {totalPages} · {trips.length} {t("trips.tripsCount")}
           </div>
           <Button
             size="sm"
@@ -636,7 +640,7 @@ function TripsTab({
             disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            Next →
+            {t("app.next")}
           </Button>
         </div>
       )}
@@ -653,6 +657,7 @@ function TripCard({
   pieces: Piece[];
   onDelete: () => void;
 }) {
+  const { t } = useLang();
   const totalPure = pieces.reduce(
     (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
     0,
@@ -686,42 +691,42 @@ function TripCard({
             </span>
             {status === "settled" ? (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Settled
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.settled")}
               </span>
             ) : status === "ready" ? (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Ready to settle
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.ready")}
               </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
                 <AlertCircle className="h-3 w-3 mr-0.5" />
-                {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
+                {allPriced ? t("status.awaitingCheck") : t("status.awaitingBafleh")}
               </span>
             )}
             {pieces.length > 0 && (
               allSuppliers ? (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
-                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> Suppliers Done
+                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.suppliersDone")}
                 </span>
               ) : (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                  <AlertCircle className="h-3 w-3 mr-0.5" /> Missing Supplier
+                  <AlertCircle className="h-3 w-3 mr-0.5" /> {t("status.missingSupplier")}
                 </span>
               )
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
-            Dep {trip.departure_date}
-            {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
+            {t("status.dep")} {trip.departure_date}
+            {trip.arrival_date ? ` · ${t("status.arr")} ${trip.arrival_date}` : ""}
             {trip.receiver_company ? ` · → ${trip.receiver_company}` : ""}
             {trip.scrap_weight != null && (
-              <> · <span className="text-white font-bold">Scrap {Number(trip.scrap_weight).toFixed(2)} g</span></>
+              <> · <span className="text-white font-bold">{t("status.scrap")} {Number(trip.scrap_weight).toFixed(2)} g</span></>
             )}{" "}
-            · {pieces.length} bars
+            · {pieces.length} {t("status.bars")}
             {allPriced && (
               <>
                 {" "}
-                · Pure {totalPure.toFixed(2)} g · Loss {totalLoss.toFixed(2)} g
+                · {t("status.pure")} {totalPure.toFixed(2)} g · {t("status.loss")} {totalLoss.toFixed(2)} g
               </>
             )}
           </div>
@@ -746,13 +751,14 @@ export function TripHeaderEditor({
   trip: Trip;
   onChange: () => Promise<void>;
 }) {
+  const { t } = useLang();
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
   const [receiver, setReceiver] = useState(trip.receiver_company ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!confirm("Save changes to this trip?")) return;
+    if (!confirm(t("trips.confirmSave"))) return;
     setSaving(true);
     await supabase
       .from("purity_trips")
@@ -776,7 +782,7 @@ export function TripHeaderEditor({
       className="rounded-md bg-muted/40 p-3 flex flex-col sm:flex-row sm:items-end gap-3"
     >
       <div className="flex-1 min-w-0">
-        <Label className="text-xs block mb-1">Arrival date (Dubai / Bafleh report)</Label>
+        <Label className="text-xs block mb-1">{t("trips.arrival")}</Label>
         <Input
           type="date"
           value={arrival}
@@ -785,17 +791,17 @@ export function TripHeaderEditor({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <Label className="text-xs block mb-1">Receiver company (Dubai)</Label>
+        <Label className="text-xs block mb-1">{t("trips.receiver")}</Label>
         <Input
           value={receiver}
           onChange={(e) => setReceiver(e.target.value)}
-          placeholder="e.g. Bafleh / Kaloti"
+          placeholder={t("trips.receiverPh")}
           className="w-full"
         />
       </div>
       <div className="flex justify-end">
         <Button size="sm" disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("app.saving") : t("app.save")}
         </Button>
       </div>
     </form>
@@ -813,22 +819,23 @@ export function TripTotals({
   totalPure: number;
   totalLoss: number;
 }) {
+  const { t } = useLang();
   const declaredPure =
     trip.scrap_weight != null
       ? (Number(trip.scrap_weight) * Number(trip.declared_purity)) / 1000
       : null;
   return (
     <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
-      <Stat label="Bars total weight" value={`${totalBarWeight.toFixed(3)} g`} />
-      <Stat label="Pure gold (Bafleh)" value={`${totalPure.toFixed(3)} g`} />
+      <Stat label={t("stat.barsTotal")} value={`${totalBarWeight.toFixed(3)} g`} />
+      <Stat label={t("stat.pureBafleh")} value={`${totalPure.toFixed(3)} g`} />
       {declaredPure != null && (
         <Stat
-          label={`Declared pure (scrap × ${trip.declared_purity}‰)`}
+          label={`${t("stat.declaredPure")} (× ${trip.declared_purity}‰)`}
           value={`${declaredPure.toFixed(3)} g`}
         />
       )}
       <Stat
-        label="Total loss"
+        label={t("stat.totalLoss")}
         value={`${totalLoss.toFixed(3)} g`}
         highlight
       />
@@ -870,6 +877,7 @@ export function BarsManager({
   pieces: Piece[];
   onChange: () => Promise<void>;
 }) {
+  const { t } = useLang();
   const [weight, setWeight] = useState("");
   const [initialPurity, setInitialPurity] = useState("999");
   const [baflehPurity, setBaflehPurity] = useState("");
@@ -985,12 +993,12 @@ export function BarsManager({
   return (
     <div className="space-y-3">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Bars
+        {t("trips.bars")}
       </div>
 
       <form onSubmit={addBar} className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-3">
-          <Label className="text-xs">Weight (g)</Label>
+          <Label className="text-xs">{t("trips.weight")}</Label>
           <Input
             type="number"
             step="0.001"
@@ -1000,7 +1008,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Initial ‰</Label>
+          <Label className="text-xs">{t("trips.initial")}</Label>
           <Input
             type="number"
             step="0.01"
@@ -1010,7 +1018,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Bafleh ‰</Label>
+          <Label className="text-xs">{t("trips.bafleh")}</Label>
           <Input
             type="number"
             step="0.01"
@@ -1028,7 +1036,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-3">
-          <Label className="text-xs">Supplier</Label>
+          <Label className="text-xs">{t("trips.supplier")}</Label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
@@ -1051,7 +1059,7 @@ export function BarsManager({
 
       {pieces.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-3">
-          No bars yet.
+          {t("trips.noBars")}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -1059,12 +1067,12 @@ export function BarsManager({
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left py-1.5 pr-2">#</th>
-                <th className="text-right py-1.5 pr-2">Weight</th>
-                <th className="text-right py-1.5 pr-2">Init ‰</th>
-                <th className="text-right py-1.5 pr-2">Bafleh ‰</th>
-                <th className="text-right py-1.5 pr-2">Pure</th>
-                <th className="text-left py-1.5 pr-2">Supplier</th>
-                <th className="text-right py-1.5 pr-2">Loss</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.weight")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.init")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.bafleh")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.pure")}</th>
+                <th className="text-left py-1.5 pr-2">{t("tbl.supplier")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.loss")}</th>
                 <th className="text-center py-1.5 pr-2">✓</th>
                 <th></th>
               </tr>
@@ -2048,26 +2056,8 @@ function ProfileTab({
   const [linkMsg, setLinkMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [linking, setLinking] = useState(false);
 
-  const [language, setLanguage] = useState<"en" | "ar" | "fr">(() => {
-    if (typeof window === "undefined") return "en";
-    const saved = window.localStorage.getItem("purity_lang");
-    return saved === "ar" || saved === "fr" ? saved : "en";
-  });
-
-  function applyLanguage(lang: "en" | "ar" | "fr") {
-    setLanguage(lang);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("purity_lang", lang);
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    }
-  }
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-  }, [language]);
+  const { t, lang: language, setLang } = useLang();
+  const applyLanguage = (l: Lang) => setLang(l);
 
   useEffect(() => {
     (async () => {
