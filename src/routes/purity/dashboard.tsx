@@ -606,7 +606,7 @@ function TripsTab({
 
       {trips.length === 0 && (
         <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
-          No trips yet. Create one to start logging gold bars.
+          {t("trips.none")}
         </div>
       )}
 
