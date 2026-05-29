@@ -18,6 +18,9 @@ import {
   Check,
   X,
   FileClock,
+  UserCircle,
+  KeyRound,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +31,7 @@ import {
   deletePurityUser,
   getCurrentPurityUser,
   listPurityUsers,
+  updatePurityProfile,
 } from "@/lib/purity-users.functions";
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 
