@@ -1496,6 +1496,7 @@ function ClientsTab({
     });
     setSaving(false);
     if (!error) {
+      await logActivity("create", "supplier", { name });
       setName("");
       setPhone("");
       setNotes("");
@@ -1506,7 +1507,9 @@ function ClientsTab({
   async function deleteClient(id: string) {
     if (!confirm("Delete this supplier? Their bars will become unassigned."))
       return;
+    const target = clients.find((c) => c.id === id);
     await supabase.from("purity_clients").delete().eq("id", id);
+    await logActivity("delete", "supplier", { name: target?.name ?? null }, id);
     await reload();
   }
 
