@@ -641,6 +641,9 @@ function TripCard({
 
   async function toggleSettled(next: boolean) {
     await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
+    await logActivity(next ? "settle" : "reopen", "trip", {
+      trip: tripDisplayName(trip),
+    }, trip.id);
     await onChange();
   }
 
