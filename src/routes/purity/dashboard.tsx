@@ -94,7 +94,7 @@ function PurityDashboard() {
         return;
       }
       setEmail(data.session.user.email ?? "");
-      await Promise.all([loadClients(), loadTrips()]);
+      await Promise.all([loadClients(), loadTrips(), loadAllPieces()]);
       setReady(true);
     });
     return () => {
@@ -117,6 +117,18 @@ function PurityDashboard() {
       .select("*")
       .order("departure_date", { ascending: false });
     setTrips((data ?? []) as Trip[]);
+  }
+
+  async function loadAllPieces() {
+    const { data } = await supabase
+      .from("purity_pieces")
+      .select("*")
+      .order("created_at", { ascending: true });
+    const grouped: Record<string, Piece[]> = {};
+    for (const p of (data ?? []) as unknown as Piece[]) {
+      (grouped[p.trip_id] ||= []).push(p);
+    }
+    setPieces(grouped);
   }
 
   async function loadPieces(tripId: string) {
