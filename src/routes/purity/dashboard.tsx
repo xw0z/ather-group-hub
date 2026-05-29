@@ -45,6 +45,7 @@ type Trip = {
   scrap_weight: number | null;
   notes: string | null;
   receiver_company: string | null;
+  is_settled: boolean;
   created_at: string;
 };
 
@@ -56,6 +57,7 @@ type Piece = {
   weight_grams: number;
   initial_purity: number | null;
   bafleh_purity: number | null;
+  checked: boolean;
   created_at: string;
 };
 
@@ -71,8 +73,10 @@ function lossGrams(weight: number, declared: number, baflehPurity: number | null
 }
 
 function tripDisplayName(trip: Trip) {
-  return trip.name || `TRIP_${trip.departure_date}`;
+  // Always render as TRIP_YYYY-MM-DD based on departure date (ignore legacy stored names).
+  return `TRIP_${trip.departure_date}`;
 }
+
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
