@@ -1009,10 +1009,20 @@ function BarsManager({
                     : "text-red-600"
                   : "";
                 return (
-                  <tr key={p.id} className="border-b border-border/50">
+                  <tr key={p.id} className={`border-b border-border/50 ${p.checked ? "bg-emerald-500/5" : ""}`}>
+                    <td className="py-1.5 pr-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={p.checked}
+                        onChange={(e) => toggleChecked(p.id, e.target.checked)}
+                        className="h-4 w-4 accent-emerald-600 cursor-pointer"
+                        aria-label="Bar checked"
+                      />
+                    </td>
                     <td className="py-1.5 pr-2 text-muted-foreground">
                       {p.label || i + 1}
                     </td>
+
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {Number(p.weight_grams).toFixed(3)}
                     </td>
