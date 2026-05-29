@@ -238,6 +238,9 @@ function PurityDashboard() {
               <FileClock className="h-4 w-4 mr-1.5" /> Logs
             </TabBtn>
           )}
+          <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
+            <UserCircle className="h-4 w-4 mr-1.5" /> Profile
+          </TabBtn>
         </nav>
       </header>
 
