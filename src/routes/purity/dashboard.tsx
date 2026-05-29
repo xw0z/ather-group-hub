@@ -1832,6 +1832,7 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
           password,
         },
       });
+      await logActivity("create", "user", { username: username.trim() });
       setOk(`User "${username.trim()}" created.`);
       setUsername("");
       setEmail("");
