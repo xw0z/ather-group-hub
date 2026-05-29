@@ -927,6 +927,11 @@ function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {p.bafleh_purity != null ? loss.toFixed(3) : "—"}
                     </td>
+                    <td className="py-1.5 pr-2 text-right font-mono">
+                      {p.bafleh_purity != null && Number(p.weight_grams) > 0
+                        ? `${((loss / Number(p.weight_grams)) * 100).toFixed(2)}%`
+                        : "—"}
+                    </td>
                     <td className="py-1.5 text-right">
                       <button
                         onClick={() => deleteBar(p.id, Number(p.weight_grams))}
