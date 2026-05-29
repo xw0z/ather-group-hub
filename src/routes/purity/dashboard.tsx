@@ -999,6 +999,84 @@ function ClientBreakdown({
 
   if (rows.length === 0) return null;
 
+  function downloadClientCsv(r: {
+    name: string;
+    bars: Piece[];
+    totalWeight: number;
+    totalPure: number;
+    totalLoss: number;
+  }) {
+    const tripName = tripDisplayName(trip);
+    const header = [
+      "Trip",
+      "Departure",
+      "Arrival",
+      "Client",
+      "Bar #",
+      "Weight (g)",
+      "Initial ‰",
+      "Bafleh ‰",
+      "Pure (g)",
+      "Loss (g)",
+      "Loss %",
+    ];
+    const lines = [header.join(",")];
+    r.bars.forEach((b, i) => {
+      const w = Number(b.weight_grams);
+      const pure = pureGrams(w, b.bafleh_purity);
+      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity);
+      const lossPct = w > 0 ? (loss / w) * 100 : 0;
+      lines.push(
+        [
+          tripName,
+          trip.departure_date,
+          trip.arrival_date ?? "",
+          r.name,
+          b.label || i + 1,
+          w.toFixed(3),
+          b.initial_purity ?? 999,
+          b.bafleh_purity ?? "",
+          pure.toFixed(3),
+          loss.toFixed(3),
+          lossPct.toFixed(2),
+        ]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(","),
+      );
+    });
+    lines.push("");
+    lines.push(
+      [
+        "",
+        "",
+        "",
+        r.name,
+        "TOTAL",
+        r.totalWeight.toFixed(3),
+        "",
+        "",
+        r.totalPure.toFixed(3),
+        r.totalLoss.toFixed(3),
+        r.totalWeight > 0
+          ? ((r.totalLoss / r.totalWeight) * 100).toFixed(2)
+          : "0.00",
+      ]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    const blob = new Blob(["\ufeff" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${tripName}_${r.name.replace(/\s+/g, "_")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1010,15 +1088,31 @@ function ClientBreakdown({
             key={r.name}
             className="rounded-md border border-border bg-muted/30 p-3"
           >
-            <div className="flex items-center justify-between">
-              <div className="font-medium">{r.name}</div>
-              <div className="text-sm font-mono text-primary">
-                {r.totalLoss.toFixed(3)} g loss
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-medium truncate">{r.name}</div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="text-sm font-mono text-primary">
+                  {r.totalLoss.toFixed(3)} g loss
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => downloadClientCsv(r)}
+                  title="Download CSV report for this client"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {r.bars.length} bars · {r.totalWeight.toFixed(3)} g ·{" "}
-              {r.totalPure.toFixed(3)} g pure
+              {r.totalPure.toFixed(3)} g pure ·{" "}
+              {r.totalWeight > 0
+                ? ((r.totalLoss / r.totalWeight) * 100).toFixed(2)
+                : "0.00"}
+              % loss
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
               Bars:{" "}
