@@ -919,6 +919,14 @@ function BarsManager({
     await onChange();
   }
 
+  async function updateClient(id: string, value: string) {
+    await supabase
+      .from("purity_pieces")
+      .update({ client_id: value === "" ? null : value })
+      .eq("id", id);
+    await onChange();
+  }
+
 
 
   async function deleteBar(id: string, weightG: number) {
