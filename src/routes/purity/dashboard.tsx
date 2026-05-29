@@ -587,7 +587,17 @@ function TripCard({
     0,
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
-  const status = allPriced ? "settled" : "pending";
+  const allChecked = pieces.length > 0 && pieces.every((p) => p.checked);
+  const status: "settled" | "ready" | "pending" = trip.is_settled
+    ? "settled"
+    : allPriced && allChecked
+      ? "ready"
+      : "pending";
+
+  async function toggleSettled(next: boolean) {
+    await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
+    await onChange();
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -609,9 +619,14 @@ function TripCard({
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
                 <CheckCircle2 className="h-3 w-3 mr-0.5" /> Settled
               </span>
+            ) : status === "ready" ? (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600">
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Ready to settle
+              </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting Bafleh
+                <AlertCircle className="h-3 w-3 mr-0.5" />
+                {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
               </span>
             )}
           </div>
@@ -653,6 +668,29 @@ function TripCard({
           {pieces.some((p) => p.bafleh_purity != null) && (
             <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
           )}
+          <div className="rounded-md border border-border bg-muted/30 p-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground">
+              {pieces.filter((p) => p.checked).length}/{pieces.length} bars checked
+              {!allPriced && " · waiting Bafleh purity on some bars"}
+            </div>
+            {trip.is_settled ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => toggleSettled(false)}
+              >
+                Reopen trip
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                disabled={!(allPriced && allChecked)}
+                onClick={() => toggleSettled(true)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark as settled
+              </Button>
+            )}
+          </div>
           <div className="flex justify-end">
             <Button
               variant="ghost"
@@ -668,6 +706,7 @@ function TripCard({
     </div>
   );
 }
+
 
 function TripHeaderEditor({
   trip,
