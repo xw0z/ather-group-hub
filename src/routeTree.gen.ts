@@ -13,6 +13,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PurityIndexRouteImport } from './routes/purity/index'
 
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
@@ -34,18 +35,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PurityIndexRoute = PurityIndexRouteImport.update({
+  id: '/purity/',
+  path: '/purity/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/purity/': typeof PurityIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/purity': typeof PurityIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/purity/': typeof PurityIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/companies' | '/contact'
+  fullPaths: '/' | '/about' | '/companies' | '/contact' | '/purity/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/companies' | '/contact'
-  id: '__root__' | '/' | '/about' | '/companies' | '/contact'
+  to: '/' | '/about' | '/companies' | '/contact' | '/purity'
+  id: '__root__' | '/' | '/about' | '/companies' | '/contact' | '/purity/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CompaniesRoute: typeof CompaniesRoute
   ContactRoute: typeof ContactRoute
+  PurityIndexRoute: typeof PurityIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/purity/': {
+      id: '/purity/'
+      path: '/purity'
+      fullPath: '/purity/'
+      preLoaderRoute: typeof PurityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CompaniesRoute: CompaniesRoute,
   ContactRoute: ContactRoute,
+  PurityIndexRoute: PurityIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
