@@ -447,9 +447,9 @@ function TripsTab({
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Trips</h2>
+        <h2 className="text-lg font-semibold">{t("trips.heading")}</h2>
         <Button size="sm" onClick={() => setShowNew((s) => !s)}>
-          <Plus className="h-4 w-4 mr-1" /> New trip
+          <Plus className="h-4 w-4 mr-1" /> {t("trips.new")}
         </Button>
       </div>
 
