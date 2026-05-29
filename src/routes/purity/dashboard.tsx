@@ -680,6 +680,17 @@ function TripCard({
                 {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
               </span>
             )}
+            {pieces.length > 0 && (
+              allSuppliers ? (
+                <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
+                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> Suppliers Done
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
+                  <AlertCircle className="h-3 w-3 mr-0.5" /> Missing Supplier
+                </span>
+              )
+            )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
             Dep {trip.departure_date}
