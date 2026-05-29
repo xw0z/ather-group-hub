@@ -227,6 +227,11 @@ function PurityDashboard() {
               <UserPlus className="h-4 w-4 mr-1.5" /> Users
             </TabBtn>
           )}
+          {isAdmin && (
+            <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
+              <FileClock className="h-4 w-4 mr-1.5" /> Logs
+            </TabBtn>
+          )}
         </nav>
       </header>
 
