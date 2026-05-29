@@ -14,7 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      purity_pieces: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          purity: number | null
+          trip_id: string
+          user_id: string
+          weight_grams: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          purity?: number | null
+          trip_id: string
+          user_id: string
+          weight_grams: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          purity?: number | null
+          trip_id?: string
+          user_id?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purity_pieces_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "purity_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purity_trips: {
+        Row: {
+          created_at: string
+          delivery_date: string
+          id: string
+          name: string | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_date: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_date?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
