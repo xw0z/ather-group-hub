@@ -123,7 +123,6 @@ function PurityDashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [pieces, setPieces] = useState<Record<string, Piece[]>>({});
-  const [openTrip, setOpenTrip] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
