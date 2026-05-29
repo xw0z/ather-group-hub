@@ -1593,3 +1593,139 @@ function SearchTab({
     </section>
   );
 }
+
+/* -------------------- USERS -------------------- */
+
+type PurityUser = {
+  id: string;
+  username: string;
+  email: string | null;
+  created_at: string;
+};
+
+function UsersTab() {
+  const [users, setUsers] = useState<PurityUser[]>([]);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const data = await listPurityUsers();
+      setUsers(data as PurityUser[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load users.");
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setOk(null);
+    if (!username.trim() || !password) {
+      setError("Username and password are required.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await createPurityUser({
+        data: {
+          username: username.trim(),
+          email: email.trim() || undefined,
+          password,
+        },
+      });
+      setOk(`User "${username.trim()}" created.`);
+      setUsername("");
+      setEmail("");
+      setPassword("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create user.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h2 className="font-semibold mb-1 flex items-center gap-2">
+          <UserPlus className="h-4 w-4" /> Add user
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Only the username and password are required. Email is optional.
+        </p>
+        <form onSubmit={handleCreate} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-username">Username *</Label>
+            <Input
+              id="new-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. ahmad"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-email">Email (optional)</Label>
+            <Input
+              id="new-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="optional"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-password">Password *</Label>
+            <Input
+              id="new-password"
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="min 6 characters"
+              autoComplete="new-password"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {ok && <p className="text-sm text-emerald-600">{ok}</p>}
+          <Button type="submit" disabled={busy}>
+            {busy ? "Creating…" : "Create user"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h2 className="font-semibold mb-3">Existing users</h2>
+        {users.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No users yet.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {users.map((u) => (
+              <li key={u.id} className="py-2 flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{u.username}</div>
+                  {u.email && (
+                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(u.created_at).toLocaleDateString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
