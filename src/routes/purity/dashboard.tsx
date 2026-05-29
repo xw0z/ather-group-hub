@@ -1927,6 +1927,7 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
                           setOk(null);
                           try {
                             await deletePurityUser({ data: { id: u.id } });
+                            await logActivity("delete", "user", { username: u.username }, u.id);
                             setOk(`User "${u.username}" deleted.`);
                             await load();
                           } catch (err) {
