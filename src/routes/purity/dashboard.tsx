@@ -635,6 +635,7 @@ function TripCard({
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
   const allChecked = pieces.length > 0 && pieces.every((p) => p.checked);
+  const allSuppliers = pieces.length > 0 && pieces.every((p) => p.client_id != null);
   const status: "settled" | "ready" | "pending" = trip.is_settled
     ? "settled"
     : allPriced && allChecked
