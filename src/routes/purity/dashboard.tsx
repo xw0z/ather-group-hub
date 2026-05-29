@@ -877,6 +877,7 @@ function BarsManager({
                 <th className="text-right py-1.5 pr-2">Pure</th>
                 <th className="text-left py-1.5 pr-2">Client</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
+                <th className="text-right py-1.5 pr-2">Loss %</th>
                 <th></th>
               </tr>
             </thead>
