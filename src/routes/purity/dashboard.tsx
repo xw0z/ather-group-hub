@@ -998,7 +998,7 @@ export function BarsManager({
 
       <form onSubmit={addBar} className="grid grid-cols-12 gap-2 items-end">
         <div className="col-span-3">
-          <Label className="text-xs">Weight (g)</Label>
+          <Label className="text-xs">{t("trips.weight")}</Label>
           <Input
             type="number"
             step="0.001"
@@ -1008,7 +1008,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Initial ‰</Label>
+          <Label className="text-xs">{t("trips.initial")}</Label>
           <Input
             type="number"
             step="0.01"
@@ -1018,7 +1018,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Bafleh ‰</Label>
+          <Label className="text-xs">{t("trips.bafleh")}</Label>
           <Input
             type="number"
             step="0.01"
@@ -1036,7 +1036,7 @@ export function BarsManager({
           />
         </div>
         <div className="col-span-3">
-          <Label className="text-xs">Supplier</Label>
+          <Label className="text-xs">{t("trips.supplier")}</Label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
