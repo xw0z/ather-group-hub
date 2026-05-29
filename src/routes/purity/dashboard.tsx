@@ -35,6 +35,7 @@ import {
   updatePurityProfile,
 } from "@/lib/purity-users.functions";
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
+import { useLang, type Lang } from "@/lib/purity-i18n";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
