@@ -44,6 +44,7 @@ type Trip = {
   declared_purity: number;
   scrap_weight: number | null;
   notes: string | null;
+  receiver_company: string | null;
   created_at: string;
 };
 
