@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   LogOut,
@@ -45,14 +45,14 @@ export const Route = createFileRoute("/purity/dashboard")({
   component: PurityDashboard,
 });
 
-type Client = {
+export type Client = {
   id: string;
   name: string;
   phone: string | null;
   notes: string | null;
 };
 
-type Trip = {
+export type Trip = {
   id: string;
   name: string | null;
   departure_date: string;
@@ -65,7 +65,7 @@ type Trip = {
   created_at: string;
 };
 
-type Piece = {
+export type Piece = {
   id: string;
   trip_id: string;
   client_id: string | null;
@@ -78,23 +78,23 @@ type Piece = {
 };
 
 // Pure gold content of a bar (grams) using Bafleh (lab) purity
-function pureGrams(weight: number, purity: number | null) {
+export function pureGrams(weight: number, purity: number | null) {
   if (purity == null) return 0;
   return (Number(weight) * Number(purity)) / 1000;
 }
 // Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
-function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+export function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
   if (baflehPurity == null) return 0;
   return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
 }
 
-function tripDisplayName(trip: Trip) {
+export function tripDisplayName(trip: Trip) {
   // Always render as TRIP_YYYY-MM-DD based on departure date (ignore legacy stored names).
   return `TRIP_${trip.departure_date}`;
 }
 
 
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -123,7 +123,6 @@ function PurityDashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [pieces, setPieces] = useState<Record<string, Piece[]>>({});
-  const [openTrip, setOpenTrip] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,13 +249,7 @@ function PurityDashboard() {
             trips={trips}
             clients={clients}
             pieces={pieces}
-            openTrip={openTrip}
-            setOpenTrip={(id) => {
-              setOpenTrip(id);
-              if (id && !pieces[id]) loadPieces(id);
-            }}
             reloadTrips={loadTrips}
-            reloadPieces={loadPieces}
           />
         )}
         {tab === "clients" && (
@@ -267,7 +260,24 @@ function PurityDashboard() {
         {tab === "logs" && isAdmin && <LogsTab />}
         {tab === "profile" && <ProfileTab email={email} setEmail={setEmail} /> }
       </main>
+
+      <PurityFooter />
     </div>
+  );
+}
+
+export function PurityFooter() {
+  return (
+    <footer className="border-t border-border/60 bg-background/80 mt-10">
+      <div className="mx-auto max-w-3xl px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Scale className="h-3.5 w-3.5 text-primary" />
+          <span className="font-semibold tracking-wide">PURITY</span>
+          <span>· Gold purity & loss tracker</span>
+        </div>
+        <div>© {new Date().getFullYear()} Ather Group</div>
+      </div>
+    </footer>
   );
 }
 
@@ -296,23 +306,27 @@ function TabBtn({
 
 /* -------------------- TRIPS -------------------- */
 
+const TRIPS_PER_PAGE = 10;
+
 function TripsTab({
   trips,
   clients,
   pieces,
-  openTrip,
-  setOpenTrip,
   reloadTrips,
-  reloadPieces,
 }: {
   trips: Trip[];
   clients: Client[];
   pieces: Record<string, Piece[]>;
-  openTrip: string | null;
-  setOpenTrip: (id: string | null) => void;
   reloadTrips: () => Promise<void>;
-  reloadPieces: (tripId: string) => Promise<void>;
 }) {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(trips.length / TRIPS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTrips = trips.slice(
+    (currentPage - 1) * TRIPS_PER_PAGE,
+    currentPage * TRIPS_PER_PAGE,
+  );
   const [showNew, setShowNew] = useState(false);
   const [departure, setDeparture] = useState(
     new Date().toISOString().slice(0, 10),
@@ -408,7 +422,8 @@ function TripsTab({
     setSaving(false);
     resetForm();
     setShowNew(false);
-    reloadTrips();
+    await reloadTrips();
+    navigate({ to: "/purity/trips/$tripId", params: { tripId: tripRow.id } });
   }
 
   async function deleteTrip(id: string) {
@@ -591,47 +606,52 @@ function TripsTab({
       )}
 
       <div className="space-y-3">
-        {trips.map((trip) => (
+        {pagedTrips.map((trip) => (
           <TripCard
             key={trip.id}
             trip={trip}
-            clients={clients}
             pieces={pieces[trip.id] ?? []}
-            open={openTrip === trip.id}
-            onToggle={() => setOpenTrip(openTrip === trip.id ? null : trip.id)}
             onDelete={() => deleteTrip(trip.id)}
-            onChange={async () => {
-              await reloadTrips();
-              await reloadPieces(trip.id);
-            }}
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            ← Prev
+          </Button>
+          <div className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages} · {trips.length} trips
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next →
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
 
 function TripCard({
   trip,
-  clients,
   pieces,
-  open,
-  onToggle,
   onDelete,
-  onChange,
 }: {
   trip: Trip;
-  clients: Client[];
   pieces: Piece[];
-  open: boolean;
-  onToggle: () => void;
   onDelete: () => void;
-  onChange: () => Promise<void>;
 }) {
-  const totalBarWeight = pieces.reduce(
-    (s, p) => s + Number(p.weight_grams),
-    0,
-  );
   const totalPure = pieces.reduce(
     (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
     0,
@@ -650,27 +670,16 @@ function TripCard({
       ? "ready"
       : "pending";
 
-  async function toggleSettled(next: boolean) {
-    await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
-    await logActivity(next ? "settle" : "reopen", "trip", {
-      trip: tripDisplayName(trip),
-    }, trip.id);
-    await onChange();
-  }
-
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
+    <div className="rounded-lg border border-border bg-card overflow-hidden flex items-stretch">
+      <Link
+        to="/purity/trips/$tripId"
+        params={{ tripId: trip.id }}
+        className="flex-1 min-w-0 flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
       >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
-        )}
+        <ChevronRight className="h-4 w-4 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium truncate font-mono">
               {tripDisplayName(trip)}
             </span>
@@ -716,69 +725,20 @@ function TripCard({
             )}
           </div>
         </div>
+      </Link>
+      <button
+        onClick={onDelete}
+        className="px-3 text-muted-foreground hover:text-destructive border-l border-border"
+        aria-label="Delete trip"
+      >
+        <Trash2 className="h-4 w-4" />
       </button>
-
-      {open && (
-        <div className="border-t border-border p-4 space-y-4">
-          <TripHeaderEditor trip={trip} onChange={onChange} />
-          <BarsManager
-            trip={trip}
-            clients={clients}
-            pieces={pieces}
-            onChange={onChange}
-          />
-          {pieces.some((p) => p.bafleh_purity != null) && (
-            <TripTotals
-              trip={trip}
-              totalBarWeight={totalBarWeight}
-              totalPure={totalPure}
-              totalLoss={totalLoss}
-            />
-          )}
-          {pieces.some((p) => p.bafleh_purity != null) && (
-            <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
-          )}
-          <div className="rounded-md border border-border bg-muted/30 p-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs text-muted-foreground">
-              {pieces.filter((p) => p.checked).length}/{pieces.length} bars checked
-              {!allPriced && " · waiting Bafleh purity on some bars"}
-            </div>
-            {trip.is_settled ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => toggleSettled(false)}
-              >
-                Reopen trip
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={!(allPriced && allChecked)}
-                onClick={() => toggleSettled(true)}
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark as settled
-              </Button>
-            )}
-          </div>
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-1" /> Delete trip
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 
-function TripHeaderEditor({
+export function TripHeaderEditor({
   trip,
   onChange,
 }: {
@@ -840,7 +800,7 @@ function TripHeaderEditor({
   );
 }
 
-function TripTotals({
+export function TripTotals({
   trip,
   totalBarWeight,
   totalPure,
@@ -874,7 +834,7 @@ function TripTotals({
   );
 }
 
-function Stat({
+export function Stat({
   label,
   value,
   highlight,
@@ -897,7 +857,7 @@ function Stat({
   );
 }
 
-function BarsManager({
+export function BarsManager({
   trip,
   clients,
   pieces,
@@ -1214,7 +1174,7 @@ function BarsManager({
   );
 }
 
-function ClientBreakdown({
+export function ClientBreakdown({
   trip,
   clients,
   pieces,

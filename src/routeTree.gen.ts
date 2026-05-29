@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PurityIndexRouteImport } from './routes/purity/index'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
+import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
 
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
@@ -46,6 +47,11 @@ const PurityDashboardRoute = PurityDashboardRouteImport.update({
   path: '/purity/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PurityTripsTripIdRoute = PurityTripsTripIdRouteImport.update({
+  id: '/purity/trips/$tripId',
+  path: '/purity/trips/$tripId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/purity/': typeof PurityIndexRoute
+  '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/purity': typeof PurityIndexRoute
+  '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/purity/': typeof PurityIndexRoute
+  '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/purity/dashboard'
     | '/purity/'
+    | '/purity/trips/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/purity/dashboard'
     | '/purity'
+    | '/purity/trips/$tripId'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/purity/dashboard'
     | '/purity/'
+    | '/purity/trips/$tripId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
   PurityIndexRoute: typeof PurityIndexRoute
+  PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurityDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/purity/trips/$tripId': {
+      id: '/purity/trips/$tripId'
+      path: '/purity/trips/$tripId'
+      fullPath: '/purity/trips/$tripId'
+      preLoaderRoute: typeof PurityTripsTripIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,17 +182,8 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   PurityDashboardRoute: PurityDashboardRoute,
   PurityIndexRoute: PurityIndexRoute,
+  PurityTripsTripIdRoute: PurityTripsTripIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
