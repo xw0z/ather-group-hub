@@ -605,22 +605,39 @@ function TripsTab({
       )}
 
       <div className="space-y-3">
-        {trips.map((trip) => (
+        {pagedTrips.map((trip) => (
           <TripCard
             key={trip.id}
             trip={trip}
-            clients={clients}
             pieces={pieces[trip.id] ?? []}
-            open={openTrip === trip.id}
-            onToggle={() => setOpenTrip(openTrip === trip.id ? null : trip.id)}
             onDelete={() => deleteTrip(trip.id)}
-            onChange={async () => {
-              await reloadTrips();
-              await reloadPieces(trip.id);
-            }}
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={currentPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            ← Prev
+          </Button>
+          <div className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages} · {trips.length} trips
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={currentPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next →
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
