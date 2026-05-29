@@ -1059,7 +1059,7 @@ export function BarsManager({
 
       {pieces.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-3">
-          No bars yet.
+          {t("trips.noBars")}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -1067,12 +1067,12 @@ export function BarsManager({
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
                 <th className="text-left py-1.5 pr-2">#</th>
-                <th className="text-right py-1.5 pr-2">Weight</th>
-                <th className="text-right py-1.5 pr-2">Init ‰</th>
-                <th className="text-right py-1.5 pr-2">Bafleh ‰</th>
-                <th className="text-right py-1.5 pr-2">Pure</th>
-                <th className="text-left py-1.5 pr-2">Supplier</th>
-                <th className="text-right py-1.5 pr-2">Loss</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.weight")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.init")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.bafleh")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.pure")}</th>
+                <th className="text-left py-1.5 pr-2">{t("tbl.supplier")}</th>
+                <th className="text-right py-1.5 pr-2">{t("tbl.loss")}</th>
                 <th className="text-center py-1.5 pr-2">✓</th>
                 <th></th>
               </tr>
