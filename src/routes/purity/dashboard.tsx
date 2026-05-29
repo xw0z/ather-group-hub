@@ -1060,13 +1060,14 @@ function BarsManager({
                         type="number"
                         step="0.01"
                         defaultValue={p.initial_purity ?? 999}
+                        disabled={p.checked}
                         onBlur={(e) => {
                           const v = e.target.value;
                           if (v !== (p.initial_purity?.toString() ?? "999")) {
                             updateInitialPurity(p.id, v);
                           }
                         }}
-                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5"
+                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="py-1.5 pr-2 text-right">
@@ -1074,6 +1075,7 @@ function BarsManager({
                         type="number"
                         step="0.01"
                         defaultValue={p.bafleh_purity ?? ""}
+                        disabled={p.checked}
                         onBlur={(e) => {
                           const v = e.target.value;
                           if (v !== (p.bafleh_purity?.toString() ?? "")) {
@@ -1081,7 +1083,7 @@ function BarsManager({
                           }
                         }}
                         placeholder="—"
-                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5"
+                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
@@ -1090,8 +1092,9 @@ function BarsManager({
                     <td className="py-1.5 pr-2 max-w-[140px]">
                       <select
                         value={p.client_id ?? ""}
+                        disabled={p.checked}
                         onChange={(e) => updateClient(p.id, e.target.value)}
-                        className="w-full h-7 bg-transparent border border-input rounded px-1.5 text-sm"
+                        className="w-full h-7 bg-transparent border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <option value="">—</option>
                         {clients.map((c) => (
