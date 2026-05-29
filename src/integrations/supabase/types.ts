@@ -14,35 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      purity_pieces: {
+      purity_clients: {
         Row: {
           created_at: string
           id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purity_pieces: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          id: string
           label: string | null
-          purity: number | null
           trip_id: string
           user_id: string
           weight_grams: number
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
-          purity?: number | null
           trip_id: string
           user_id: string
           weight_grams: number
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
-          purity?: number | null
           trip_id?: string
           user_id?: string
           weight_grams?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "purity_pieces_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "purity_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purity_pieces_trip_id_fkey"
             columns: ["trip_id"]
@@ -54,24 +88,33 @@ export type Database = {
       }
       purity_trips: {
         Row: {
+          actual_purity: number | null
+          arrival_date: string | null
           created_at: string
-          delivery_date: string
+          declared_purity: number
+          departure_date: string
           id: string
           name: string | null
           notes: string | null
           user_id: string
         }
         Insert: {
+          actual_purity?: number | null
+          arrival_date?: string | null
           created_at?: string
-          delivery_date: string
+          declared_purity?: number
+          departure_date: string
           id?: string
           name?: string | null
           notes?: string | null
           user_id: string
         }
         Update: {
+          actual_purity?: number | null
+          arrival_date?: string | null
           created_at?: string
-          delivery_date?: string
+          declared_purity?: number
+          departure_date?: string
           id?: string
           name?: string | null
           notes?: string | null
