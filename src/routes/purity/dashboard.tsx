@@ -518,12 +518,12 @@ function TripsTab({
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                      className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm"
                     >
-                      <option value="">—</option>
+                      <option value="" className="bg-background text-foreground">—</option>
                       {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
+                        <option key={c.id} value={c.id} className="bg-background text-foreground">
+                          {c.name}{c.notes ? ` (${c.notes})` : ""}
                         </option>
                       ))}
                     </select>
