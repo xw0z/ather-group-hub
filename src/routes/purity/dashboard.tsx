@@ -52,19 +52,24 @@ type Piece = {
   client_id: string | null;
   label: string | null;
   weight_grams: number;
-  purity: number | null;
+  initial_purity: number | null;
+  bafleh_purity: number | null;
   created_at: string;
 };
 
-// Pure gold content of a bar (grams) = weight * purity / 1000
+// Pure gold content of a bar (grams) using Bafleh (lab) purity
 function pureGrams(weight: number, purity: number | null) {
   if (purity == null) return 0;
   return (Number(weight) * Number(purity)) / 1000;
 }
-// Loss per bar (grams) = weight * (declared - purity) / 1000
-function lossGrams(weight: number, declared: number, purity: number | null) {
-  if (purity == null) return 0;
-  return (Number(weight) * (Number(declared) - Number(purity))) / 1000;
+// Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
+function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+  if (baflehPurity == null) return 0;
+  return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
+}
+
+function tripDisplayName(trip: Trip) {
+  return trip.name || `TRIP_${trip.departure_date}`;
 }
 
 function PurityDashboard() {
@@ -119,7 +124,7 @@ function PurityDashboard() {
       .select("*")
       .eq("trip_id", tripId)
       .order("created_at", { ascending: true });
-    setPieces((p) => ({ ...p, [tripId]: (data ?? []) as Piece[] }));
+    setPieces((p) => ({ ...p, [tripId]: (data ?? []) as unknown as Piece[] }));
   }
 
   async function handleSignOut() {
@@ -230,7 +235,6 @@ function TripsTab({
   reloadPieces: (tripId: string) => Promise<void>;
 }) {
   const [showNew, setShowNew] = useState(false);
-  const [name, setName] = useState("");
   const [departure, setDeparture] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -239,11 +243,18 @@ function TripsTab({
 
   type DraftBar = {
     weight: string;
-    purity: string;
+    initialPurity: string;
+    baflehPurity: string;
     label: string;
     clientId: string;
   };
-  const emptyBar: DraftBar = { weight: "", purity: "", label: "", clientId: "" };
+  const emptyBar: DraftBar = {
+    weight: "",
+    initialPurity: "999",
+    baflehPurity: "",
+    label: "",
+    clientId: "",
+  };
   const [bars, setBars] = useState<DraftBar[]>([{ ...emptyBar }]);
 
   const totalWeight = bars.reduce(
@@ -262,7 +273,6 @@ function TripsTab({
   }
 
   function resetForm() {
-    setName("");
     setNotes("");
     setBars([{ ...emptyBar }]);
   }
@@ -285,7 +295,7 @@ function TripsTab({
       .from("purity_trips")
       .insert({
         user_id: u.user.id,
-        name: name || null,
+        name: `TRIP_${departure}`,
         departure_date: departure,
         scrap_weight: scrapTotal,
         declared_purity: 999,
@@ -301,7 +311,8 @@ function TripsTab({
       user_id: u.user!.id,
       trip_id: tripRow.id,
       weight_grams: Number(b.weight),
-      purity: b.purity === "" ? null : Number(b.purity),
+      initial_purity: b.initialPurity === "" ? 999 : Number(b.initialPurity),
+      bafleh_purity: b.baflehPurity === "" ? null : Number(b.baflehPurity),
       label: b.label || null,
       client_id: b.clientId || null,
     }));
@@ -334,15 +345,7 @@ function TripsTab({
           className="rounded-lg border border-border bg-card p-4 space-y-4"
         >
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label>Trip name (optional)</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Algiers → Dubai #14"
-              />
-            </div>
-            <div className="col-span-2">
+            <div>
               <Label>Departure (Algeria)</Label>
               <Input
                 type="date"
@@ -350,9 +353,12 @@ function TripsTab({
                 onChange={(e) => setDeparture(e.target.value)}
                 required
               />
+              <div className="text-[11px] text-muted-foreground mt-1">
+                Trip name: <span className="font-mono">TRIP_{departure}</span>
+              </div>
             </div>
-            <div className="col-span-2">
-              <Label>Notes</Label>
+            <div>
+              <Label>Notes (optional)</Label>
               <Input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -363,7 +369,7 @@ function TripsTab({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Gold bars
+                Gold bars (declared purity 999‰)
               </Label>
               <Button type="button" size="sm" variant="ghost" onClick={addRow}>
                 <Plus className="h-4 w-4 mr-1" /> Add bar
@@ -383,24 +389,38 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-2">
-                    {i === 0 && <Label className="text-xs">Purity ‰</Label>}
+                    {i === 0 && <Label className="text-xs">Initial ‰</Label>}
                     <Input
                       type="number"
                       step="0.01"
-                      value={b.purity}
-                      onChange={(e) => updateBar(i, { purity: e.target.value })}
-                      placeholder="—"
+                      value={b.initialPurity}
+                      onChange={(e) =>
+                        updateBar(i, { initialPurity: e.target.value })
+                      }
+                      placeholder="999"
                     />
                   </div>
                   <div className="col-span-2">
-                    {i === 0 && <Label className="text-xs">Label</Label>}
+                    {i === 0 && <Label className="text-xs">Bafleh ‰</Label>}
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={b.baflehPurity}
+                      onChange={(e) =>
+                        updateBar(i, { baflehPurity: e.target.value })
+                      }
+                      placeholder="—"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    {i === 0 && <Label className="text-xs">#</Label>}
                     <Input
                       value={b.label}
                       onChange={(e) => updateBar(i, { label: e.target.value })}
                       placeholder="#"
                     />
                   </div>
-                  <div className="col-span-4">
+                  <div className="col-span-3">
                     {i === 0 && <Label className="text-xs">Client</Label>}
                     <select
                       value={b.clientId}
@@ -431,10 +451,16 @@ function TripsTab({
               ))}
             </div>
             <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
-              <span className="text-muted-foreground">Trip scrap weight (sum of bars)</span>
+              <span className="text-muted-foreground">
+                Trip scrap weight (sum of bars)
+              </span>
               <span className="font-mono font-semibold">
                 {totalWeight.toFixed(3)} g
               </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Tip: leave Bafleh ‰ empty if the lab report hasn't arrived yet —
+              you can fill it in later from the trip view.
             </div>
           </div>
 
@@ -506,15 +532,15 @@ function TripCard({
     0,
   );
   const totalPure = pieces.reduce(
-    (s, p) => s + pureGrams(Number(p.weight_grams), p.purity),
+    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
     0,
   );
   const totalLoss = pieces.reduce(
     (s, p) =>
-      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.purity),
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity),
     0,
   );
-  const allPriced = pieces.length > 0 && pieces.every((p) => p.purity != null);
+  const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
   const status = allPriced ? "settled" : "pending";
 
   return (
@@ -530,8 +556,8 @@ function TripCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">
-              {trip.name || `Trip ${trip.departure_date}`}
+            <span className="font-medium truncate font-mono">
+              {tripDisplayName(trip)}
             </span>
             {status === "settled" ? (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
@@ -539,7 +565,7 @@ function TripCard({
               </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting purity
+                <AlertCircle className="h-3 w-3 mr-0.5" /> Awaiting Bafleh
               </span>
             )}
           </div>
@@ -569,7 +595,7 @@ function TripCard({
             pieces={pieces}
             onChange={onChange}
           />
-          {pieces.some((p) => p.purity != null) && (
+          {pieces.some((p) => p.bafleh_purity != null) && (
             <TripTotals
               trip={trip}
               totalBarWeight={totalBarWeight}
@@ -577,7 +603,7 @@ function TripCard({
               totalLoss={totalLoss}
             />
           )}
-          {pieces.some((p) => p.purity != null) && (
+          {pieces.some((p) => p.bafleh_purity != null) && (
             <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
           )}
           <div className="flex justify-end">
@@ -604,9 +630,6 @@ function TripHeaderEditor({
   onChange: () => Promise<void>;
 }) {
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
-  const [scrap, setScrap] = useState(
-    trip.scrap_weight != null ? String(trip.scrap_weight) : "",
-  );
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
@@ -616,7 +639,6 @@ function TripHeaderEditor({
       .from("purity_trips")
       .update({
         arrival_date: arrival || null,
-        scrap_weight: scrap === "" ? null : Number(scrap),
       })
       .eq("id", trip.id);
     setSaving(false);
@@ -626,26 +648,17 @@ function TripHeaderEditor({
   return (
     <form
       onSubmit={save}
-      className="rounded-md bg-muted/40 p-3 grid grid-cols-2 gap-3"
+      className="rounded-md bg-muted/40 p-3 grid grid-cols-2 gap-3 items-end"
     >
       <div>
-        <Label className="text-xs">Scrap weight (g)</Label>
-        <Input
-          type="number"
-          step="0.001"
-          value={scrap}
-          onChange={(e) => setScrap(e.target.value)}
-        />
-      </div>
-      <div>
-        <Label className="text-xs">Arrival date (Dubai)</Label>
+        <Label className="text-xs">Arrival date (Dubai / Bafleh report)</Label>
         <Input
           type="date"
           value={arrival}
           onChange={(e) => setArrival(e.target.value)}
         />
       </div>
-      <div className="col-span-2 flex justify-end">
+      <div className="flex justify-end">
         <Button size="sm" disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </Button>
@@ -672,7 +685,7 @@ function TripTotals({
   return (
     <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
       <Stat label="Bars total weight" value={`${totalBarWeight.toFixed(3)} g`} />
-      <Stat label="Pure gold (from bars)" value={`${totalPure.toFixed(3)} g`} />
+      <Stat label="Pure gold (Bafleh)" value={`${totalPure.toFixed(3)} g`} />
       {declaredPure != null && (
         <Stat
           label={`Declared pure (scrap × ${trip.declared_purity}‰)`}
@@ -723,7 +736,8 @@ function BarsManager({
   onChange: () => Promise<void>;
 }) {
   const [weight, setWeight] = useState("");
-  const [purity, setPurity] = useState("");
+  const [initialPurity, setInitialPurity] = useState("999");
+  const [baflehPurity, setBaflehPurity] = useState("");
   const [label, setLabel] = useState("");
   const [clientId, setClientId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -738,29 +752,45 @@ function BarsManager({
       user_id: u.user.id,
       trip_id: trip.id,
       weight_grams: Number(weight),
-      purity: purity === "" ? null : Number(purity),
+      initial_purity: initialPurity === "" ? 999 : Number(initialPurity),
+      bafleh_purity: baflehPurity === "" ? null : Number(baflehPurity),
       label: label || null,
       client_id: clientId || null,
     });
+    // After adding a bar, recompute trip scrap = sum of all bar weights.
+    if (!error) {
+      const newScrap =
+        pieces.reduce((s, p) => s + Number(p.weight_grams), 0) + Number(weight);
+      await supabase
+        .from("purity_trips")
+        .update({ scrap_weight: newScrap })
+        .eq("id", trip.id);
+    }
     setSaving(false);
     if (!error) {
       setWeight("");
-      setPurity("");
+      setBaflehPurity("");
       setLabel("");
       await onChange();
     }
   }
 
-  async function updateBarPurity(id: string, value: string) {
+  async function updateBaflehPurity(id: string, value: string) {
     await supabase
       .from("purity_pieces")
-      .update({ purity: value === "" ? null : Number(value) })
+      .update({ bafleh_purity: value === "" ? null : Number(value) })
       .eq("id", id);
     await onChange();
   }
 
-  async function deleteBar(id: string) {
+  async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
+    const newScrap =
+      pieces.reduce((s, p) => s + Number(p.weight_grams), 0) - Number(weightG);
+    await supabase
+      .from("purity_trips")
+      .update({ scrap_weight: newScrap < 0 ? 0 : newScrap })
+      .eq("id", trip.id);
     await onChange();
   }
 
@@ -782,17 +812,27 @@ function BarsManager({
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Purity ‰</Label>
+          <Label className="text-xs">Initial ‰</Label>
           <Input
             type="number"
             step="0.01"
-            value={purity}
-            onChange={(e) => setPurity(e.target.value)}
-            placeholder="—"
+            value={initialPurity}
+            onChange={(e) => setInitialPurity(e.target.value)}
+            placeholder="999"
           />
         </div>
         <div className="col-span-2">
-          <Label className="text-xs">Label</Label>
+          <Label className="text-xs">Bafleh ‰</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={baflehPurity}
+            onChange={(e) => setBaflehPurity(e.target.value)}
+            placeholder="—"
+          />
+        </div>
+        <div className="col-span-1">
+          <Label className="text-xs">#</Label>
           <Input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
@@ -814,7 +854,7 @@ function BarsManager({
             ))}
           </select>
         </div>
-        <div className="col-span-2">
+        <div className="col-span-1">
           <Button size="sm" className="w-full" disabled={saving}>
             <Plus className="h-4 w-4" />
           </Button>
@@ -832,7 +872,8 @@ function BarsManager({
               <tr>
                 <th className="text-left py-1.5 pr-2">#</th>
                 <th className="text-right py-1.5 pr-2">Weight</th>
-                <th className="text-right py-1.5 pr-2">Purity ‰</th>
+                <th className="text-right py-1.5 pr-2">Init ‰</th>
+                <th className="text-right py-1.5 pr-2">Bafleh ‰</th>
                 <th className="text-right py-1.5 pr-2">Pure</th>
                 <th className="text-left py-1.5 pr-2">Client</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
@@ -842,11 +883,11 @@ function BarsManager({
             <tbody>
               {pieces.map((p, i) => {
                 const client = clients.find((c) => c.id === p.client_id);
-                const pure = pureGrams(Number(p.weight_grams), p.purity);
+                const pure = pureGrams(Number(p.weight_grams), p.bafleh_purity);
                 const loss = lossGrams(
                   Number(p.weight_grams),
                   trip.declared_purity,
-                  p.purity,
+                  p.bafleh_purity,
                 );
                 return (
                   <tr key={p.id} className="border-b border-border/50">
@@ -856,15 +897,18 @@ function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {Number(p.weight_grams).toFixed(3)}
                     </td>
+                    <td className="py-1.5 pr-2 text-right font-mono text-muted-foreground">
+                      {p.initial_purity ?? 999}
+                    </td>
                     <td className="py-1.5 pr-2 text-right">
                       <input
                         type="number"
                         step="0.01"
-                        defaultValue={p.purity ?? ""}
+                        defaultValue={p.bafleh_purity ?? ""}
                         onBlur={(e) => {
                           const v = e.target.value;
-                          if (v !== (p.purity?.toString() ?? "")) {
-                            updateBarPurity(p.id, v);
+                          if (v !== (p.bafleh_purity?.toString() ?? "")) {
+                            updateBaflehPurity(p.id, v);
                           }
                         }}
                         placeholder="—"
@@ -872,7 +916,7 @@ function BarsManager({
                       />
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {p.purity != null ? pure.toFixed(3) : "—"}
+                      {p.bafleh_purity != null ? pure.toFixed(3) : "—"}
                     </td>
                     <td className="py-1.5 pr-2 truncate max-w-[120px]">
                       {client?.name ?? (
@@ -880,11 +924,11 @@ function BarsManager({
                       )}
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {p.purity != null ? loss.toFixed(3) : "—"}
+                      {p.bafleh_purity != null ? loss.toFixed(3) : "—"}
                     </td>
                     <td className="py-1.5 text-right">
                       <button
-                        onClick={() => deleteBar(p.id)}
+                        onClick={() => deleteBar(p.id, Number(p.weight_grams))}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -922,7 +966,7 @@ function ClientBreakdown({
       }
     >();
     for (const p of pieces) {
-      if (p.purity == null) continue;
+      if (p.bafleh_purity == null) continue;
       const key = p.client_id ?? "_none";
       const name =
         clients.find((c) => c.id === p.client_id)?.name ?? "Unassigned";
@@ -935,11 +979,11 @@ function ClientBreakdown({
       };
       row.bars.push(p);
       row.totalWeight += Number(p.weight_grams);
-      row.totalPure += pureGrams(Number(p.weight_grams), p.purity);
+      row.totalPure += pureGrams(Number(p.weight_grams), p.bafleh_purity);
       row.totalLoss += lossGrams(
         Number(p.weight_grams),
         trip.declared_purity,
-        p.purity,
+        p.bafleh_purity,
       );
       map.set(key, row);
     }
@@ -974,7 +1018,7 @@ function ClientBreakdown({
               {r.bars
                 .map(
                   (b) =>
-                    `${Number(b.weight_grams).toFixed(3)}g @ ${b.purity}‰`,
+                    `${Number(b.weight_grams).toFixed(3)}g @ ${b.bafleh_purity}‰`,
                 )
                 .join(", ")}
             </div>
@@ -1119,7 +1163,7 @@ function SearchTab({
       .gte("weight_grams", w - t)
       .lte("weight_grams", w + t)
       .order("created_at", { ascending: false });
-    setResults((data ?? []) as Piece[]);
+    setResults((data ?? []) as unknown as Piece[]);
     setSearching(false);
   }
 
@@ -1176,15 +1220,15 @@ function SearchTab({
                     <div>
                       <div className="font-medium font-mono">
                         {Number(p.weight_grams).toFixed(3)} g
-                        {p.purity != null && (
+                        {p.bafleh_purity != null && (
                           <span className="text-muted-foreground font-normal">
                             {" "}
-                            @ {p.purity}‰
+                            @ {p.bafleh_purity}‰
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {trip?.name || `Trip ${trip?.departure_date}`}
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {trip ? tripDisplayName(trip) : "—"}
                       </div>
                     </div>
                     <div className="text-right text-sm">
