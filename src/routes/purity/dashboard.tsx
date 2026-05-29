@@ -1165,12 +1165,12 @@ function BarsManager({
                         value={p.client_id ?? ""}
                         disabled={p.checked}
                         onChange={(e) => updateClient(p.id, e.target.value)}
-                        className="w-full h-7 bg-transparent border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full h-7 bg-background text-foreground border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <option value="">—</option>
+                        <option value="" className="bg-background text-foreground">—</option>
                         {clients.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
+                          <option key={c.id} value={c.id} className="bg-background text-foreground">
+                            {c.name}{c.notes ? ` (${c.notes})` : ""}
                           </option>
                         ))}
                       </select>
