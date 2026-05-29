@@ -200,7 +200,7 @@ function PurityDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-popover text-popover-foreground">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -518,11 +518,11 @@ function TripsTab({
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
-                      className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm"
+                      className="flex h-9 w-full rounded-md border border-input bg-popover text-popover-foreground px-2 text-sm"
                     >
-                      <option value="" className="bg-background text-foreground">—</option>
+                      <option value="" className="bg-popover text-popover-foreground">—</option>
                       {clients.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-background text-foreground">
+                        <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
                           {c.name}{c.notes ? ` (${c.notes})` : ""}
                         </option>
                       ))}
@@ -1062,11 +1062,11 @@ function BarsManager({
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-popover text-popover-foreground px-2 text-sm"
           >
-            <option value="" className="bg-background text-foreground">—</option>
+            <option value="" className="bg-popover text-popover-foreground">—</option>
             {clients.map((c) => (
-              <option key={c.id} value={c.id} className="bg-background text-foreground">
+              <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
                 {c.name}{c.notes ? ` (${c.notes})` : ""}
               </option>
             ))}
@@ -1165,11 +1165,11 @@ function BarsManager({
                         value={p.client_id ?? ""}
                         disabled={p.checked}
                         onChange={(e) => updateClient(p.id, e.target.value)}
-                        className="w-full h-7 bg-background text-foreground border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full h-7 bg-popover text-popover-foreground border border-input rounded px-1.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <option value="" className="bg-background text-foreground">—</option>
+                        <option value="" className="bg-popover text-popover-foreground">—</option>
                         {clients.map((c) => (
-                          <option key={c.id} value={c.id} className="bg-background text-foreground">
+                          <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
                             {c.name}{c.notes ? ` (${c.notes})` : ""}
                           </option>
                         ))}
