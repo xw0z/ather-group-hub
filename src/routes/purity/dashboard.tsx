@@ -899,7 +899,6 @@ function BarsManager({
                 <th className="text-right py-1.5 pr-2">Pure</th>
                 <th className="text-left py-1.5 pr-2">Client</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
-                <th className="text-right py-1.5 pr-2">Loss %</th>
                 <th></th>
               </tr>
             </thead>
@@ -912,6 +911,12 @@ function BarsManager({
                   trip.declared_purity,
                   p.bafleh_purity,
                 );
+                const hasBafleh = p.bafleh_purity != null;
+                const lossColor = hasBafleh
+                  ? loss === 0
+                    ? "text-emerald-600"
+                    : "text-red-600"
+                  : "";
                 return (
                   <tr key={p.id} className="border-b border-border/50">
                     <td className="py-1.5 pr-2 text-muted-foreground">
@@ -920,8 +925,19 @@ function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {Number(p.weight_grams).toFixed(3)}
                     </td>
-                    <td className="py-1.5 pr-2 text-right font-mono text-muted-foreground">
-                      {p.initial_purity ?? 999}
+                    <td className="py-1.5 pr-2 text-right">
+                      <input
+                        type="number"
+                        step="0.01"
+                        defaultValue={p.initial_purity ?? 999}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          if (v !== (p.initial_purity?.toString() ?? "999")) {
+                            updateInitialPurity(p.id, v);
+                          }
+                        }}
+                        className="w-20 h-7 text-right font-mono bg-transparent border border-input rounded px-1.5"
+                      />
                     </td>
                     <td className="py-1.5 pr-2 text-right">
                       <input
@@ -939,20 +955,15 @@ function BarsManager({
                       />
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {p.bafleh_purity != null ? pure.toFixed(3) : "—"}
+                      {hasBafleh ? pure.toFixed(3) : "—"}
                     </td>
                     <td className="py-1.5 pr-2 truncate max-w-[120px]">
                       {client?.name ?? (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="py-1.5 pr-2 text-right font-mono">
-                      {p.bafleh_purity != null ? loss.toFixed(3) : "—"}
-                    </td>
-                    <td className="py-1.5 pr-2 text-right font-mono">
-                      {p.bafleh_purity != null && Number(p.weight_grams) > 0
-                        ? `${((loss / Number(p.weight_grams)) * 100).toFixed(2)}%`
-                        : "—"}
+                    <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
+                      {hasBafleh ? loss.toFixed(3) : "—"}
                     </td>
                     <td className="py-1.5 text-right">
                       <button
