@@ -38,12 +38,13 @@ function PurityLoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !password) {
-      setError("Enter your email and password.");
+    if (!username || !password) {
+      setError("Enter your username and password.");
       return;
     }
     setLoading(true);
     try {
+      const { email } = await resolveUsernameToEmail({ data: { username: username.trim() } });
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err) {
