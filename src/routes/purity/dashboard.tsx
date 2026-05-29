@@ -902,7 +902,7 @@ function BarsManager({
           />
         </div>
         <div className="col-span-3">
-          <Label className="text-xs">Client</Label>
+          <Label className="text-xs">Supplier</Label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
