@@ -95,6 +95,27 @@ export type Database = {
           },
         ]
       }
+      purity_profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       purity_trips: {
         Row: {
           actual_purity: number | null
