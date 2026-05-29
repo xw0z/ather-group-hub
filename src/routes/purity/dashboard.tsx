@@ -523,7 +523,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-2">
-                    {i === 0 && <Label className="text-xs">Bafleh ‰</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.bafleh")}</Label>}
                     <Input
                       type="number"
                       step="0.01"
