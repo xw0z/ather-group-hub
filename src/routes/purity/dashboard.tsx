@@ -214,9 +214,11 @@ function PurityDashboard() {
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> Search bar
           </TabBtn>
-          <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-            <UserPlus className="h-4 w-4 mr-1.5" /> Users
-          </TabBtn>
+          {isAdmin && (
+            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
+              <UserPlus className="h-4 w-4 mr-1.5" /> Users
+            </TabBtn>
+          )}
         </nav>
       </header>
 
