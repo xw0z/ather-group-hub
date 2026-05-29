@@ -5,6 +5,7 @@ import appCss from "../styles.css?url";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { PurityLanguageProvider } from "@/lib/purity-i18n";
 
 
 function NotFoundComponent() {
