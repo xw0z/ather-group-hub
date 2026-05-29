@@ -382,7 +382,7 @@ function TripsTab({
     e.preventDefault();
     const validBars = bars.filter((b) => b.weight && Number(b.weight) > 0);
     if (validBars.length === 0) {
-      alert("Add at least one gold bar.");
+      alert(t("trips.addAtLeastOne"));
       return;
     }
     setSaving(true);
