@@ -919,6 +919,14 @@ function BarsManager({
     await onChange();
   }
 
+  async function updateClient(id: string, value: string) {
+    await supabase
+      .from("purity_pieces")
+      .update({ client_id: value === "" ? null : value })
+      .eq("id", id);
+    await onChange();
+  }
+
 
 
   async function deleteBar(id: string, weightG: number) {
@@ -1078,10 +1086,19 @@ function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {hasBafleh ? pure.toFixed(3) : "—"}
                     </td>
-                    <td className="py-1.5 pr-2 truncate max-w-[120px]">
-                      {client?.name ?? (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                    <td className="py-1.5 pr-2 max-w-[140px]">
+                      <select
+                        value={p.client_id ?? ""}
+                        onChange={(e) => updateClient(p.id, e.target.value)}
+                        className="w-full h-7 bg-transparent border border-input rounded px-1.5 text-sm"
+                      >
+                        <option value="">—</option>
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
                       {hasBafleh ? loss.toFixed(3) : "—"}
