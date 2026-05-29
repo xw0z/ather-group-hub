@@ -102,7 +102,7 @@ function PurityDashboard() {
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
 
-  const [tab, setTab] = useState<"trips" | "clients" | "search">("trips");
+  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users">("trips");
 
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
