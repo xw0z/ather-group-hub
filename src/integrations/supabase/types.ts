@@ -47,6 +47,7 @@ export type Database = {
           created_at: string
           id: string
           label: string | null
+          purity: number | null
           trip_id: string
           user_id: string
           weight_grams: number
@@ -56,6 +57,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string | null
+          purity?: number | null
           trip_id: string
           user_id: string
           weight_grams: number
@@ -65,6 +67,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string | null
+          purity?: number | null
           trip_id?: string
           user_id?: string
           weight_grams?: number
@@ -96,6 +99,7 @@ export type Database = {
           id: string
           name: string | null
           notes: string | null
+          scrap_weight: number | null
           user_id: string
         }
         Insert: {
@@ -107,6 +111,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          scrap_weight?: number | null
           user_id: string
         }
         Update: {
@@ -118,6 +123,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          scrap_weight?: number | null
           user_id?: string
         }
         Relationships: []
