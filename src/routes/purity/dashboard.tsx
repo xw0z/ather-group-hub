@@ -691,42 +691,42 @@ function TripCard({
             </span>
             {status === "settled" ? (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Settled
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.settled")}
               </span>
             ) : status === "ready" ? (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600">
-                <CheckCircle2 className="h-3 w-3 mr-0.5" /> Ready to settle
+                <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.ready")}
               </span>
             ) : (
               <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
                 <AlertCircle className="h-3 w-3 mr-0.5" />
-                {allPriced ? "Awaiting check" : "Awaiting Bafleh"}
+                {allPriced ? t("status.awaitingCheck") : t("status.awaitingBafleh")}
               </span>
             )}
             {pieces.length > 0 && (
               allSuppliers ? (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
-                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> Suppliers Done
+                  <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.suppliersDone")}
                 </span>
               ) : (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                  <AlertCircle className="h-3 w-3 mr-0.5" /> Missing Supplier
+                  <AlertCircle className="h-3 w-3 mr-0.5" /> {t("status.missingSupplier")}
                 </span>
               )
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
-            Dep {trip.departure_date}
-            {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
+            {t("status.dep")} {trip.departure_date}
+            {trip.arrival_date ? ` · ${t("status.arr")} ${trip.arrival_date}` : ""}
             {trip.receiver_company ? ` · → ${trip.receiver_company}` : ""}
             {trip.scrap_weight != null && (
-              <> · <span className="text-white font-bold">Scrap {Number(trip.scrap_weight).toFixed(2)} g</span></>
+              <> · <span className="text-white font-bold">{t("status.scrap")} {Number(trip.scrap_weight).toFixed(2)} g</span></>
             )}{" "}
-            · {pieces.length} bars
+            · {pieces.length} {t("status.bars")}
             {allPriced && (
               <>
                 {" "}
-                · Pure {totalPure.toFixed(2)} g · Loss {totalLoss.toFixed(2)} g
+                · {t("status.pure")} {totalPure.toFixed(2)} g · {t("status.loss")} {totalLoss.toFixed(2)} g
               </>
             )}
           </div>
