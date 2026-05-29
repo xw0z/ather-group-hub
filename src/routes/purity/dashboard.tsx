@@ -234,31 +234,82 @@ function TripsTab({
   const [departure, setDeparture] = useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [scrap, setScrap] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  type DraftBar = {
+    weight: string;
+    purity: string;
+    label: string;
+    clientId: string;
+  };
+  const emptyBar: DraftBar = { weight: "", purity: "", label: "", clientId: "" };
+  const [bars, setBars] = useState<DraftBar[]>([{ ...emptyBar }]);
+
+  const totalWeight = bars.reduce(
+    (s, b) => s + (b.weight ? Number(b.weight) : 0),
+    0,
+  );
+
+  function updateBar(i: number, patch: Partial<DraftBar>) {
+    setBars((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  }
+  function addRow() {
+    setBars((prev) => [...prev, { ...emptyBar }]);
+  }
+  function removeRow(i: number) {
+    setBars((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
+  }
+
+  function resetForm() {
+    setName("");
+    setNotes("");
+    setBars([{ ...emptyBar }]);
+  }
+
   async function createTrip(e: FormEvent) {
     e.preventDefault();
+    const validBars = bars.filter((b) => b.weight && Number(b.weight) > 0);
+    if (validBars.length === 0) {
+      alert("Add at least one gold bar.");
+      return;
+    }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { error } = await supabase.from("purity_trips").insert({
-      user_id: u.user.id,
-      name: name || null,
-      departure_date: departure,
-      scrap_weight: scrap ? Number(scrap) : null,
-      declared_purity: 999,
-      notes: notes || null,
-    });
-    setSaving(false);
-    if (!error) {
-      setName("");
-      setScrap("");
-      setNotes("");
-      setShowNew(false);
-      reloadTrips();
+    if (!u.user) {
+      setSaving(false);
+      return;
     }
+    const scrapTotal = validBars.reduce((s, b) => s + Number(b.weight), 0);
+    const { data: tripRow, error } = await supabase
+      .from("purity_trips")
+      .insert({
+        user_id: u.user.id,
+        name: name || null,
+        departure_date: departure,
+        scrap_weight: scrapTotal,
+        declared_purity: 999,
+        notes: notes || null,
+      })
+      .select()
+      .single();
+    if (error || !tripRow) {
+      setSaving(false);
+      return;
+    }
+    const piecesPayload = validBars.map((b) => ({
+      user_id: u.user!.id,
+      trip_id: tripRow.id,
+      weight_grams: Number(b.weight),
+      purity: b.purity === "" ? null : Number(b.purity),
+      label: b.label || null,
+      client_id: b.clientId || null,
+    }));
+    await supabase.from("purity_pieces").insert(piecesPayload);
+    setSaving(false);
+    resetForm();
+    setShowNew(false);
+    reloadTrips();
   }
 
   async function deleteTrip(id: string) {
@@ -280,7 +331,7 @@ function TripsTab({
       {showNew && (
         <form
           onSubmit={createTrip}
-          className="rounded-lg border border-border bg-card p-4 space-y-3"
+          className="rounded-lg border border-border bg-card p-4 space-y-4"
         >
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
@@ -291,23 +342,12 @@ function TripsTab({
                 placeholder="e.g. Algiers → Dubai #14"
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <Label>Departure (Algeria)</Label>
               <Input
                 type="date"
                 value={departure}
                 onChange={(e) => setDeparture(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Scrap weight (g)</Label>
-              <Input
-                type="number"
-                step="0.001"
-                value={scrap}
-                onChange={(e) => setScrap(e.target.value)}
-                placeholder="Total raw scrap"
                 required
               />
             </div>
@@ -319,12 +359,94 @@ function TripsTab({
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Gold bars
+              </Label>
+              <Button type="button" size="sm" variant="ghost" onClick={addRow}>
+                <Plus className="h-4 w-4 mr-1" /> Add bar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {bars.map((b, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-3">
+                    {i === 0 && <Label className="text-xs">Weight (g)</Label>}
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={b.weight}
+                      onChange={(e) => updateBar(i, { weight: e.target.value })}
+                      placeholder="0.000"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    {i === 0 && <Label className="text-xs">Purity ‰</Label>}
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={b.purity}
+                      onChange={(e) => updateBar(i, { purity: e.target.value })}
+                      placeholder="—"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    {i === 0 && <Label className="text-xs">Label</Label>}
+                    <Input
+                      value={b.label}
+                      onChange={(e) => updateBar(i, { label: e.target.value })}
+                      placeholder="#"
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    {i === 0 && <Label className="text-xs">Client</Label>}
+                    <select
+                      value={b.clientId}
+                      onChange={(e) => updateBar(i, { clientId: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                    >
+                      <option value="">—</option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeRow(i)}
+                      disabled={bars.length === 1}
+                      className="w-full text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
+              <span className="text-muted-foreground">Trip scrap weight (sum of bars)</span>
+              <span className="font-mono font-semibold">
+                {totalWeight.toFixed(3)} g
+              </span>
+            </div>
+          </div>
+
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setShowNew(false)}
+              onClick={() => {
+                resetForm();
+                setShowNew(false);
+              }}
             >
               Cancel
             </Button>
