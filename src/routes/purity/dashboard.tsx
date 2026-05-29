@@ -21,6 +21,7 @@ import {
   UserCircle,
   KeyRound,
   Link2,
+  Languages,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2047,6 +2048,27 @@ function ProfileTab({
   const [linkMsg, setLinkMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [linking, setLinking] = useState(false);
 
+  const [language, setLanguage] = useState<"en" | "ar" | "fr">(() => {
+    if (typeof window === "undefined") return "en";
+    const saved = window.localStorage.getItem("purity_lang");
+    return saved === "ar" || saved === "fr" ? saved : "en";
+  });
+
+  function applyLanguage(lang: "en" | "ar" | "fr") {
+    setLanguage(lang);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("purity_lang", lang);
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+  }, [language]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -2268,6 +2290,33 @@ function ProfileTab({
           <div className="text-xs text-muted-foreground">
             Other providers: {identities.filter((i) => i.provider !== "google" && i.provider !== "email").map((i) => i.provider).join(", ") || "none"}
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Languages className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Language</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { code: "en", label: "English" },
+            { code: "ar", label: "العربية" },
+            { code: "fr", label: "Français" },
+          ] as const).map((opt) => (
+            <Button
+              key={opt.code}
+              type="button"
+              size="sm"
+              variant={language === opt.code ? "default" : "outline"}
+              onClick={() => applyLanguage(opt.code)}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground">
+          Current: {language === "ar" ? "العربية (RTL)" : language === "fr" ? "Français" : "English"}
         </div>
       </div>
     </section>
