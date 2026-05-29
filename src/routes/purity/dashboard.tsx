@@ -993,7 +993,7 @@ export function BarsManager({
   return (
     <div className="space-y-3">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Bars
+        {t("trips.bars")}
       </div>
 
       <form onSubmit={addBar} className="grid grid-cols-12 gap-2 items-end">
