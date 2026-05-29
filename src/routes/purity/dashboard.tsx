@@ -181,7 +181,8 @@ function PurityDashboard() {
       .from("purity_pieces")
       .select("*")
       .eq("trip_id", tripId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     setPieces((p) => ({ ...p, [tripId]: (data ?? []) as unknown as Piece[] }));
   }
 
