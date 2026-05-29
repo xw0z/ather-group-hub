@@ -255,6 +255,7 @@ function PurityDashboard() {
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
         {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
+        {tab === "logs" && isAdmin && <LogsTab />}
       </main>
     </div>
   );
