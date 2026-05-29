@@ -751,6 +751,7 @@ export function TripHeaderEditor({
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    if (!confirm("Save changes to this trip?")) return;
     setSaving(true);
     await supabase
       .from("purity_trips")
