@@ -777,6 +777,11 @@ function TripHeaderEditor({
         receiver_company: receiver || null,
       })
       .eq("id", trip.id);
+    await logActivity("update", "trip", {
+      trip: tripDisplayName(trip),
+      arrival_date: arrival || null,
+      receiver_company: receiver || null,
+    }, trip.id);
     setSaving(false);
     await onChange();
   }
