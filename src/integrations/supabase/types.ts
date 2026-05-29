@@ -43,31 +43,34 @@ export type Database = {
       }
       purity_pieces: {
         Row: {
+          bafleh_purity: number | null
           client_id: string | null
           created_at: string
           id: string
+          initial_purity: number | null
           label: string | null
-          purity: number | null
           trip_id: string
           user_id: string
           weight_grams: number
         }
         Insert: {
+          bafleh_purity?: number | null
           client_id?: string | null
           created_at?: string
           id?: string
+          initial_purity?: number | null
           label?: string | null
-          purity?: number | null
           trip_id: string
           user_id: string
           weight_grams: number
         }
         Update: {
+          bafleh_purity?: number | null
           client_id?: string | null
           created_at?: string
           id?: string
+          initial_purity?: number | null
           label?: string | null
-          purity?: number | null
           trip_id?: string
           user_id?: string
           weight_grams?: number
