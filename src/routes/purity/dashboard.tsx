@@ -673,6 +673,7 @@ function TripHeaderEditor({
   onChange: () => Promise<void>;
 }) {
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
+  const [receiver, setReceiver] = useState(trip.receiver_company ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
@@ -682,6 +683,7 @@ function TripHeaderEditor({
       .from("purity_trips")
       .update({
         arrival_date: arrival || null,
+        receiver_company: receiver || null,
       })
       .eq("id", trip.id);
     setSaving(false);
@@ -701,7 +703,15 @@ function TripHeaderEditor({
           onChange={(e) => setArrival(e.target.value)}
         />
       </div>
-      <div className="flex justify-end">
+      <div>
+        <Label className="text-xs">Receiver company (Dubai)</Label>
+        <Input
+          value={receiver}
+          onChange={(e) => setReceiver(e.target.value)}
+          placeholder="e.g. Bafleh / Kaloti"
+        />
+      </div>
+      <div className="col-span-2 flex justify-end">
         <Button size="sm" disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </Button>
