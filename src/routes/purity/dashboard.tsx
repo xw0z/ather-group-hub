@@ -919,6 +919,11 @@ function BarsManager({
     }
     setSaving(false);
     if (!error) {
+      await logActivity("create", "bar", {
+        trip: tripDisplayName(trip),
+        weight_grams: Number(weight),
+        label: label || null,
+      }, trip.id);
       setWeight("");
       setBaflehPurity("");
       setLabel("");
@@ -931,6 +936,11 @@ function BarsManager({
       .from("purity_pieces")
       .update({ bafleh_purity: value === "" ? null : Number(value) })
       .eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "bafleh_purity",
+      value: value === "" ? null : Number(value),
+    }, id);
     await onChange();
   }
 
@@ -939,11 +949,21 @@ function BarsManager({
       .from("purity_pieces")
       .update({ initial_purity: value === "" ? null : Number(value) })
       .eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "initial_purity",
+      value: value === "" ? null : Number(value),
+    }, id);
     await onChange();
   }
 
   async function toggleChecked(id: string, next: boolean) {
     await supabase.from("purity_pieces").update({ checked: next }).eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "checked",
+      value: next,
+    }, id);
     await onChange();
   }
 
@@ -952,6 +972,12 @@ function BarsManager({
       .from("purity_pieces")
       .update({ client_id: value === "" ? null : value })
       .eq("id", id);
+    const supplier = clients.find((c) => c.id === value)?.name ?? null;
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "supplier",
+      value: supplier,
+    }, id);
     await onChange();
   }
 
@@ -965,6 +991,10 @@ function BarsManager({
       .from("purity_trips")
       .update({ scrap_weight: newScrap < 0 ? 0 : newScrap })
       .eq("id", trip.id);
+    await logActivity("delete", "bar", {
+      trip: tripDisplayName(trip),
+      weight_grams: Number(weightG),
+    }, id);
     await onChange();
   }
 
