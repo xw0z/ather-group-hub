@@ -75,9 +75,9 @@ function PurityLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} placeholder="you@ather.group" />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" type="text" autoComplete="username" value={username}
+                onChange={(e) => setUsername(e.target.value)} placeholder="your username" />
             </div>
 
             <div className="space-y-2">
