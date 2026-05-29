@@ -1336,7 +1336,7 @@ function ClientsTab({
   }
 
   async function deleteClient(id: string) {
-    if (!confirm("Delete this client? Their bars will become unassigned."))
+    if (!confirm("Delete this supplier? Their bars will become unassigned."))
       return;
     await supabase.from("purity_clients").delete().eq("id", id);
     await reload();
@@ -1344,7 +1344,7 @@ function ClientsTab({
 
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold">Clients</h2>
+      <h2 className="text-lg font-semibold">Suppliers</h2>
 
       <form
         onSubmit={addClient}
@@ -1370,14 +1370,14 @@ function ClientsTab({
         </div>
         <div className="flex justify-end">
           <Button size="sm" disabled={saving}>
-            <Plus className="h-4 w-4 mr-1" /> Add client
+            <Plus className="h-4 w-4 mr-1" /> Add supplier
           </Button>
         </div>
       </form>
 
       {clients.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
-          No clients yet.
+          No suppliers yet.
         </div>
       ) : (
         <div className="space-y-2">
