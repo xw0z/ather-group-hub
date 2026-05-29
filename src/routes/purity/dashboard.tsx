@@ -683,7 +683,7 @@ function TripCard({
             {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
             {trip.receiver_company ? ` · → ${trip.receiver_company}` : ""}
             {trip.scrap_weight != null && (
-              <> · Scrap {Number(trip.scrap_weight).toFixed(2)} g</>
+              <> · <span className="text-white font-bold">Scrap {Number(trip.scrap_weight).toFixed(2)} g</span></>
             )}{" "}
             · {pieces.length} bars
             {allPriced && (
