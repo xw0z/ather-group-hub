@@ -21,6 +21,7 @@ export const Route = createFileRoute("/purity/")({
 
 function PurityLoginPage() {
   const navigate = useNavigate();
+  const { t, dir } = useLang();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ function PurityLoginPage() {
     e.preventDefault();
     setError(null);
     if (!username || !password) {
-      setError("Enter your username and password.");
+      setError(t("login.enterCreds"));
       return;
     }
     setLoading(true);
@@ -49,40 +50,38 @@ function PurityLoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setError(err instanceof Error ? err.message : t("login.authFailed"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-6 py-16">
+    <main dir={dir} className="min-h-screen bg-background text-foreground flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-10">
           <div className="h-11 w-11 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
             <Scale className="h-5 w-5 text-ember" />
           </div>
           <div>
-            <p className="font-display text-xl tracking-tight">Purity</p>
-            <p className="text-xs text-muted-foreground">Gold bar purity tracking</p>
+            <p className="font-display text-xl tracking-tight">{t("app.name")}</p>
+            <p className="text-xs text-muted-foreground">{t("login.tag")}</p>
           </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-8">
-          <h1 className="font-display text-2xl mb-2">Sign in</h1>
-          <p className="text-sm text-muted-foreground mb-8">
-            Access is by invitation only. Contact the administrator if you need an account.
-          </p>
+          <h1 className="font-display text-2xl mb-2">{t("login.title")}</h1>
+          <p className="text-sm text-muted-foreground mb-8">{t("login.subtitle")}</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t("login.username")}</Label>
               <Input id="username" type="text" autoComplete="username" value={username}
-                onChange={(e) => setUsername(e.target.value)} placeholder="your username" />
+                onChange={(e) => setUsername(e.target.value)} placeholder={t("login.usernamePh")} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("login.password")}</Label>
               <Input id="password" type="password" autoComplete="current-password"
                 value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
             </div>
@@ -91,14 +90,12 @@ function PurityLoginPage() {
 
             <Button type="submit" disabled={loading}
               className="w-full bg-ember text-ember-foreground hover:bg-ember/90">
-              {loading ? "Please wait…" : "Sign in"}
+              {loading ? t("login.wait") : t("login.submit")}
             </Button>
           </form>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          Internal Ather Group tool · authorised personnel only
-        </p>
+        <p className="text-xs text-muted-foreground text-center mt-6">{t("login.footer")}</p>
       </div>
     </main>
   );
