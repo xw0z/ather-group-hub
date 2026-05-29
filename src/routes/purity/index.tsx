@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveUsernameToEmail } from "@/lib/auth-username.functions";
 
 export const Route = createFileRoute("/purity/")({
   head: () => ({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/purity/")({
 
 function PurityLoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +38,13 @@ function PurityLoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !password) {
-      setError("Enter your email and password.");
+    if (!username || !password) {
+      setError("Enter your username and password.");
       return;
     }
     setLoading(true);
     try {
+      const { email } = await resolveUsernameToEmail({ data: { username: username.trim() } });
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err) {
@@ -73,9 +75,9 @@ function PurityLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} placeholder="you@ather.group" />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" type="text" autoComplete="username" value={username}
+                onChange={(e) => setUsername(e.target.value)} placeholder="your username" />
             </div>
 
             <div className="space-y-2">
