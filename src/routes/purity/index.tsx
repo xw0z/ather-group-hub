@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveUsernameToEmail } from "@/lib/auth-username.functions";
+import { useLang } from "@/lib/purity-i18n";
 
 export const Route = createFileRoute("/purity/")({
   head: () => ({
