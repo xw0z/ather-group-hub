@@ -270,6 +270,7 @@ function TripsTab({
     new Date().toISOString().slice(0, 10),
   );
   const [notes, setNotes] = useState("");
+  const [receiverCompany, setReceiverCompany] = useState("");
   const [saving, setSaving] = useState(false);
 
   type DraftBar = {
