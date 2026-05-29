@@ -109,3 +109,50 @@ export const getCurrentPurityUser = createServerFn({ method: "GET" })
       isAdmin: username?.toLowerCase() === ADMIN_USERNAME,
     };
   });
+
+const updateProfileSchema = z.object({
+  username: z.string().trim().min(2).max(64).regex(/^[a-zA-Z0-9_.-]+$/, "Letters, numbers, . _ - only").optional(),
+  email: z.string().trim().email().max(255).optional().or(z.literal("")),
+});
+
+export const updatePurityProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => updateProfileSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const updates: { username?: string; email?: string | null } = {};
+
+    if (data.username !== undefined) {
+      const username = data.username.toLowerCase();
+      const { data: existing } = await supabaseAdmin
+        .from("purity_profiles")
+        .select("id")
+        .ilike("username", username)
+        .neq("id", context.userId)
+        .maybeSingle();
+      if (existing) throw new Error("Username already taken.");
+      updates.username = username;
+    }
+
+    if (data.email !== undefined) {
+      const email = data.email === "" ? null : data.email;
+      updates.email = email;
+      if (email) {
+        const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
+          context.userId,
+          { email, email_confirm: true },
+        );
+        if (authErr) throw new Error(authErr.message);
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabaseAdmin
+        .from("purity_profiles")
+        .update(updates)
+        .eq("id", context.userId);
+      if (error) throw new Error(error.message);
+    }
+
+    return { ok: true };
+  });
+
