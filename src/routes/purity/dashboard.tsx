@@ -2063,3 +2063,252 @@ function LogsTab() {
     </section>
   );
 }
+
+function ProfileTab({
+  email,
+  setEmail,
+}: {
+  email: string;
+  setEmail: (v: string) => void;
+}) {
+  const [username, setUsername] = useState("");
+  const [emailInput, setEmailInput] = useState(email);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [savingPwd, setSavingPwd] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const [identities, setIdentities] = useState<{ provider: string; id: string }[]>([]);
+  const [linkMsg, setLinkMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await getCurrentPurityUser();
+        setUsername(me.username ?? "");
+        if (me.email) setEmailInput(me.email);
+      } catch {
+        /* ignore */
+      }
+      const { data } = await supabase.auth.getUser();
+      const ids = (data.user?.identities ?? []).map((i) => ({
+        provider: i.provider,
+        id: i.identity_id ?? i.id,
+      }));
+      setIdentities(ids);
+    })();
+  }, []);
+
+  async function saveProfile(e: FormEvent) {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileMsg(null);
+    try {
+      await updatePurityProfile({
+        data: {
+          username: username.trim() || undefined,
+          email: emailInput.trim(),
+        },
+      });
+      setEmail(emailInput.trim());
+      await logActivity("update", "profile", { username, email: emailInput });
+      setProfileMsg({ type: "ok", text: "Profile saved." });
+    } catch (err) {
+      setProfileMsg({ type: "err", text: err instanceof Error ? err.message : "Failed to save." });
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function changePassword(e: FormEvent) {
+    e.preventDefault();
+    setPwdMsg(null);
+    if (newPwd.length < 6) {
+      setPwdMsg({ type: "err", text: "Password must be at least 6 characters." });
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdMsg({ type: "err", text: "Passwords do not match." });
+      return;
+    }
+    setSavingPwd(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const currentEmail = userData.user?.email;
+      if (currentEmail && currentPwd) {
+        const { error: signErr } = await supabase.auth.signInWithPassword({
+          email: currentEmail,
+          password: currentPwd,
+        });
+        if (signErr) throw new Error("Current password is incorrect.");
+      }
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      if (error) throw new Error(error.message);
+      await logActivity("update", "profile", { field: "password" });
+      setPwdMsg({ type: "ok", text: "Password updated." });
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+    } catch (err) {
+      setPwdMsg({ type: "err", text: err instanceof Error ? err.message : "Failed." });
+    } finally {
+      setSavingPwd(false);
+    }
+  }
+
+  async function linkGoogle() {
+    setLinkMsg(null);
+    setLinking(true);
+    try {
+      const { error } = await supabase.auth.linkIdentity({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/purity/dashboard` },
+      });
+      if (error) throw new Error(error.message);
+    } catch (err) {
+      setLinkMsg({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to start linking.",
+      });
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function unlinkProvider(provider: string) {
+    setLinkMsg(null);
+    try {
+      const { data } = await supabase.auth.getUserIdentities();
+      const identity = data?.identities?.find((i) => i.provider === provider);
+      if (!identity) return;
+      const { error } = await supabase.auth.unlinkIdentity(identity);
+      if (error) throw new Error(error.message);
+      setIdentities((prev) => prev.filter((i) => i.provider !== provider));
+      setLinkMsg({ type: "ok", text: `Unlinked ${provider}.` });
+    } catch (err) {
+      setLinkMsg({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to unlink.",
+      });
+    }
+  }
+
+  const hasGoogle = identities.some((i) => i.provider === "google");
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <UserCircle className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Profile details</h2>
+        </div>
+        <form onSubmit={saveProfile} className="space-y-3">
+          <div>
+            <Label className="text-xs">Username</Label>
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" />
+          </div>
+          <div>
+            <Label className="text-xs">Email</Label>
+            <Input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          {profileMsg && (
+            <div className={`text-xs ${profileMsg.type === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+              {profileMsg.text}
+            </div>
+          )}
+          <Button type="submit" size="sm" disabled={savingProfile}>
+            {savingProfile ? "Saving…" : "Save"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <KeyRound className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Change password</h2>
+        </div>
+        <form onSubmit={changePassword} className="space-y-3">
+          <div>
+            <Label className="text-xs">Current password</Label>
+            <Input
+              type="password"
+              value={currentPwd}
+              onChange={(e) => setCurrentPwd(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">New password</Label>
+            <Input
+              type="password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Confirm new password</Label>
+            <Input
+              type="password"
+              value={confirmPwd}
+              onChange={(e) => setConfirmPwd(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          {pwdMsg && (
+            <div className={`text-xs ${pwdMsg.type === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+              {pwdMsg.text}
+            </div>
+          )}
+          <Button type="submit" size="sm" disabled={savingPwd}>
+            {savingPwd ? "Updating…" : "Update password"}
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Link2 className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Linked accounts</h2>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2 rounded border border-border/60 px-3 py-2">
+            <div className="text-sm">
+              <div className="font-medium">Google</div>
+              <div className="text-xs text-muted-foreground">
+                {hasGoogle ? "Connected" : "Not connected"}
+              </div>
+            </div>
+            {hasGoogle ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => unlinkProvider("google")}>
+                Unlink
+              </Button>
+            ) : (
+              <Button type="button" size="sm" onClick={linkGoogle} disabled={linking}>
+                {linking ? "Opening…" : "Link Google"}
+              </Button>
+            )}
+          </div>
+          {linkMsg && (
+            <div className={`text-xs ${linkMsg.type === "ok" ? "text-emerald-500" : "text-destructive"}`}>
+              {linkMsg.text}
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            Other providers: {identities.filter((i) => i.provider !== "google" && i.provider !== "email").map((i) => i.provider).join(", ") || "none"}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
