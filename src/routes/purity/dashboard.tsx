@@ -306,6 +306,7 @@ function TripsTab({
 
   function resetForm() {
     setNotes("");
+    setReceiverCompany("");
     setBars([{ ...emptyBar }]);
   }
 
