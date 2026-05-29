@@ -657,6 +657,7 @@ function TripCard({
   pieces: Piece[];
   onDelete: () => void;
 }) {
+  const { t } = useLang();
   const totalPure = pieces.reduce(
     (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
     0,
