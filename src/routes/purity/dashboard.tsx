@@ -325,6 +325,7 @@ function TripsTab({
   reloadTrips: () => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const { t } = useLang();
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(trips.length / TRIPS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
