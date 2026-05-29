@@ -306,23 +306,27 @@ function TabBtn({
 
 /* -------------------- TRIPS -------------------- */
 
+const TRIPS_PER_PAGE = 10;
+
 function TripsTab({
   trips,
   clients,
   pieces,
-  openTrip,
-  setOpenTrip,
   reloadTrips,
-  reloadPieces,
 }: {
   trips: Trip[];
   clients: Client[];
   pieces: Record<string, Piece[]>;
-  openTrip: string | null;
-  setOpenTrip: (id: string | null) => void;
   reloadTrips: () => Promise<void>;
-  reloadPieces: (tripId: string) => Promise<void>;
 }) {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(trips.length / TRIPS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTrips = trips.slice(
+    (currentPage - 1) * TRIPS_PER_PAGE,
+    currentPage * TRIPS_PER_PAGE,
+  );
   const [showNew, setShowNew] = useState(false);
   const [departure, setDeparture] = useState(
     new Date().toISOString().slice(0, 10),
