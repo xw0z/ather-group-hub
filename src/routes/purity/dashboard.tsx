@@ -1031,7 +1031,7 @@ function ClientBreakdown({
 
   if (rows.length === 0) return null;
 
-  function downloadClientCsv(r: {
+  async function shareClientImage(r: {
     name: string;
     bars: Piece[];
     totalWeight: number;
@@ -1039,102 +1039,173 @@ function ClientBreakdown({
     totalLoss: number;
   }) {
     const tripName = tripDisplayName(trip);
-    const header = [
-      "Trip",
-      "Departure",
-      "Arrival",
-      "Client",
-      "Bar #",
-      "Weight (g)",
-      "Initial ‰",
-      "Bafleh ‰",
-      "Pure (g)",
-      "Loss (g)",
-      "Loss %",
+    const W = 1080;
+    const rowH = 64;
+    const headerH = 320;
+    const footerH = 180;
+    const tableHeadH = 56;
+    const H = headerH + tableHeadH + rowH * r.bars.length + footerH;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, "#0b0f1a");
+    bg.addColorStop(1, "#141a2b");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const gold = ctx.createLinearGradient(0, 0, W, 0);
+    gold.addColorStop(0, "#d4af37");
+    gold.addColorStop(1, "#f6e27a");
+    ctx.fillStyle = gold;
+    ctx.fillRect(0, 0, W, 8);
+
+    ctx.fillStyle = "#f6e27a";
+    ctx.font = "700 30px system-ui, -apple-system, Segoe UI, sans-serif";
+    ctx.fillText("GOLD PURITY REPORT", 48, 70);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 56px system-ui, sans-serif";
+    ctx.fillText(r.name, 48, 138);
+
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "400 24px system-ui, sans-serif";
+    ctx.fillText(
+      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}`,
+      48,
+      178,
+    );
+
+    const cardY = 210;
+    const cardH = 90;
+    const cardW = (W - 48 * 2 - 24 * 2) / 3;
+    const cards: { label: string; value: string; color: string }[] = [
+      { label: "BARS", value: String(r.bars.length), color: "#ffffff" },
+      { label: "WEIGHT (g)", value: r.totalWeight.toFixed(3), color: "#ffffff" },
+      {
+        label: "TOTAL LOSS (g)",
+        value: r.totalLoss.toFixed(3),
+        color: r.totalLoss === 0 ? "#34d399" : "#f87171",
+      },
     ];
-    const lines = [header.join(",")];
+    cards.forEach((c, i) => {
+      const x = 48 + i * (cardW + 24);
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      roundRect(ctx, x, cardY, cardW, cardH, 14);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(212,175,55,0.25)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "#9aa3b2";
+      ctx.font = "600 16px system-ui, sans-serif";
+      ctx.fillText(c.label, x + 18, cardY + 30);
+      ctx.fillStyle = c.color;
+      ctx.font = "700 32px system-ui, sans-serif";
+      ctx.fillText(c.value, x + 18, cardY + 70);
+    });
+
+    let y = headerH;
+    ctx.fillStyle = "rgba(212,175,55,0.1)";
+    ctx.fillRect(48, y, W - 96, tableHeadH);
+    ctx.fillStyle = "#d4af37";
+    ctx.font = "700 20px system-ui, sans-serif";
+    const cols = [
+      { label: "#", x: 70, align: "left" as const },
+      { label: "WEIGHT (g)", x: 260, align: "right" as const },
+      { label: "BAFLEH ‰", x: 520, align: "right" as const },
+      { label: "PURE (g)", x: 760, align: "right" as const },
+      { label: "LOSS (g)", x: W - 70, align: "right" as const },
+    ];
+    cols.forEach((c) => {
+      ctx.textAlign = c.align;
+      ctx.fillText(c.label, c.x, y + 36);
+    });
+    ctx.textAlign = "left";
+
+    y += tableHeadH;
     r.bars.forEach((b, i) => {
       const w = Number(b.weight_grams);
       const pure = pureGrams(w, b.bafleh_purity);
       const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity);
-      const lossPct = w > 0 ? (loss / w) * 100 : 0;
-      lines.push(
-        [
-          tripName,
-          trip.departure_date,
-          trip.arrival_date ?? "",
-          r.name,
-          b.label || i + 1,
-          w.toFixed(3),
-          b.initial_purity ?? 999,
-          b.bafleh_purity ?? "",
-          pure.toFixed(3),
-          loss.toFixed(3),
-          lossPct.toFixed(2),
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(","),
-      );
+
+      if (i % 2 === 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.02)";
+        ctx.fillRect(48, y, W - 96, rowH);
+      }
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "500 22px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(String(b.label || i + 1), 70, y + 40);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "600 22px ui-monospace, Menlo, Consolas, monospace";
+      ctx.textAlign = "right";
+      ctx.fillText(w.toFixed(3), 260, y + 40);
+      ctx.fillText(String(b.bafleh_purity ?? "—"), 520, y + 40);
+      ctx.fillText(pure.toFixed(3), 760, y + 40);
+
+      ctx.fillStyle = loss === 0 ? "#34d399" : "#f87171";
+      ctx.font = "700 22px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(loss.toFixed(3), W - 70, y + 40);
+
+      y += rowH;
     });
-    lines.push("");
-    lines.push(
-      [
-        "",
-        "",
-        "",
-        r.name,
-        "TOTAL",
-        r.totalWeight.toFixed(3),
-        "",
-        "",
-        r.totalPure.toFixed(3),
-        r.totalLoss.toFixed(3),
-        r.totalWeight > 0
-          ? ((r.totalLoss / r.totalWeight) * 100).toFixed(2)
-          : "0.00",
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(","),
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(212,175,55,0.15)";
+    roundRect(ctx, 48, y + 20, W - 96, 110, 16);
+    ctx.fill();
+    ctx.fillStyle = "#9aa3b2";
+    ctx.font = "600 18px system-ui, sans-serif";
+    ctx.fillText("AMOUNT TO COMPENSATE", 70, y + 55);
+    ctx.fillStyle = r.totalLoss === 0 ? "#34d399" : "#f6e27a";
+    ctx.font = "800 44px system-ui, sans-serif";
+    ctx.fillText(`${r.totalLoss.toFixed(3)} g of pure gold`, 70, y + 105);
+
+    ctx.fillStyle = "#5b6478";
+    ctx.font = "400 16px system-ui, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("Purity report", W - 48, H - 24);
+    ctx.textAlign = "left";
+
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/png"),
     );
-    const blob = new Blob(["\ufeff" + lines.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
+    if (!blob) return;
+    const fileName = `${tripName}_${r.name.replace(/\s+/g, "_")}.png`;
+    const file = new File([blob], fileName, { type: "image/png" });
+
+    const nav = navigator as Navigator & {
+      canShare?: (data: { files?: File[] }) => boolean;
+      share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+    };
+    if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({
+          files: [file],
+          title: `${r.name} — loss report`,
+          text: `${r.name}: ${r.totalLoss.toFixed(3)} g loss (${tripName})`,
+        });
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${tripName}_${r.name.replace(/\s+/g, "_")}.csv`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   }
 
-  return (
-    <div className="space-y-2">
-      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Loss per client
-      </div>
-      <div className="space-y-2">
-        {rows.map((r) => (
-          <div
-            key={r.name}
-            className="rounded-md border border-border bg-muted/30 p-3"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-medium truncate">{r.name}</div>
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="text-sm font-mono text-primary">
-                  {r.totalLoss.toFixed(3)} g loss
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() => downloadClientCsv(r)}
-                  title="Download CSV report for this client"
-                >
-                  <Download className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
