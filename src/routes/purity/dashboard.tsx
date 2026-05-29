@@ -819,22 +819,23 @@ export function TripTotals({
   totalPure: number;
   totalLoss: number;
 }) {
+  const { t } = useLang();
   const declaredPure =
     trip.scrap_weight != null
       ? (Number(trip.scrap_weight) * Number(trip.declared_purity)) / 1000
       : null;
   return (
     <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
-      <Stat label="Bars total weight" value={`${totalBarWeight.toFixed(3)} g`} />
-      <Stat label="Pure gold (Bafleh)" value={`${totalPure.toFixed(3)} g`} />
+      <Stat label={t("stat.barsTotal")} value={`${totalBarWeight.toFixed(3)} g`} />
+      <Stat label={t("stat.pureBafleh")} value={`${totalPure.toFixed(3)} g`} />
       {declaredPure != null && (
         <Stat
-          label={`Declared pure (scrap × ${trip.declared_purity}‰)`}
+          label={`${t("stat.declaredPure")} (× ${trip.declared_purity}‰)`}
           value={`${declaredPure.toFixed(3)} g`}
         />
       )}
       <Stat
-        label="Total loss"
+        label={t("stat.totalLoss")}
         value={`${totalLoss.toFixed(3)} g`}
         highlight
       />
