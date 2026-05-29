@@ -44,6 +44,7 @@ export type Database = {
       purity_pieces: {
         Row: {
           bafleh_purity: number | null
+          checked: boolean
           client_id: string | null
           created_at: string
           id: string
@@ -55,6 +56,7 @@ export type Database = {
         }
         Insert: {
           bafleh_purity?: number | null
+          checked?: boolean
           client_id?: string | null
           created_at?: string
           id?: string
@@ -66,6 +68,7 @@ export type Database = {
         }
         Update: {
           bafleh_purity?: number | null
+          checked?: boolean
           client_id?: string | null
           created_at?: string
           id?: string
@@ -100,6 +103,7 @@ export type Database = {
           declared_purity: number
           departure_date: string
           id: string
+          is_settled: boolean
           name: string | null
           notes: string | null
           receiver_company: string | null
@@ -113,6 +117,7 @@ export type Database = {
           declared_purity?: number
           departure_date: string
           id?: string
+          is_settled?: boolean
           name?: string | null
           notes?: string | null
           receiver_company?: string | null
@@ -126,6 +131,7 @@ export type Database = {
           declared_purity?: number
           departure_date?: string
           id?: string
+          is_settled?: boolean
           name?: string | null
           notes?: string | null
           receiver_company?: string | null
