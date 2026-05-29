@@ -574,15 +574,14 @@ function TripsTab({
             </div>
             <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
               <span className="text-muted-foreground">
-                Trip scrap weight (sum of bars)
+                {t("trips.scrapSum")}
               </span>
               <span className="font-mono font-semibold">
                 {totalWeight.toFixed(3)} g
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Tip: leave Bafleh ‰ empty if the lab report hasn't arrived yet —
-              you can fill it in later from the trip view.
+              {t("trips.tipBafleh")}
             </div>
           </div>
 
