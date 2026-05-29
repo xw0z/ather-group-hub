@@ -645,25 +645,13 @@ function TripsTab({
 
 function TripCard({
   trip,
-  clients,
   pieces,
-  open,
-  onToggle,
   onDelete,
-  onChange,
 }: {
   trip: Trip;
-  clients: Client[];
   pieces: Piece[];
-  open: boolean;
-  onToggle: () => void;
   onDelete: () => void;
-  onChange: () => Promise<void>;
 }) {
-  const totalBarWeight = pieces.reduce(
-    (s, p) => s + Number(p.weight_grams),
-    0,
-  );
   const totalPure = pieces.reduce(
     (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
     0,
@@ -682,27 +670,16 @@ function TripCard({
       ? "ready"
       : "pending";
 
-  async function toggleSettled(next: boolean) {
-    await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
-    await logActivity(next ? "settle" : "reopen", "trip", {
-      trip: tripDisplayName(trip),
-    }, trip.id);
-    await onChange();
-  }
-
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
+    <div className="rounded-lg border border-border bg-card overflow-hidden flex items-stretch">
+      <Link
+        to="/purity/trips/$tripId"
+        params={{ tripId: trip.id }}
+        className="flex-1 min-w-0 flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
       >
-        {open ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
-        )}
+        <ChevronRight className="h-4 w-4 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium truncate font-mono">
               {tripDisplayName(trip)}
             </span>
@@ -748,63 +725,14 @@ function TripCard({
             )}
           </div>
         </div>
+      </Link>
+      <button
+        onClick={onDelete}
+        className="px-3 text-muted-foreground hover:text-destructive border-l border-border"
+        aria-label="Delete trip"
+      >
+        <Trash2 className="h-4 w-4" />
       </button>
-
-      {open && (
-        <div className="border-t border-border p-4 space-y-4">
-          <TripHeaderEditor trip={trip} onChange={onChange} />
-          <BarsManager
-            trip={trip}
-            clients={clients}
-            pieces={pieces}
-            onChange={onChange}
-          />
-          {pieces.some((p) => p.bafleh_purity != null) && (
-            <TripTotals
-              trip={trip}
-              totalBarWeight={totalBarWeight}
-              totalPure={totalPure}
-              totalLoss={totalLoss}
-            />
-          )}
-          {pieces.some((p) => p.bafleh_purity != null) && (
-            <ClientBreakdown trip={trip} clients={clients} pieces={pieces} />
-          )}
-          <div className="rounded-md border border-border bg-muted/30 p-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs text-muted-foreground">
-              {pieces.filter((p) => p.checked).length}/{pieces.length} bars checked
-              {!allPriced && " · waiting Bafleh purity on some bars"}
-            </div>
-            {trip.is_settled ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => toggleSettled(false)}
-              >
-                Reopen trip
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={!(allPriced && allChecked)}
-                onClick={() => toggleSettled(true)}
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark as settled
-              </Button>
-            )}
-          </div>
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-1" /> Delete trip
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
