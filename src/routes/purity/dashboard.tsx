@@ -491,10 +491,10 @@ function TripsTab({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Gold bars (declared purity 999‰)
+                {t("trips.goldBars")}
               </Label>
               <Button type="button" size="sm" variant="ghost" onClick={addRow}>
-                <Plus className="h-4 w-4 mr-1" /> Add bar
+                <Plus className="h-4 w-4 mr-1" /> {t("trips.addBar")}
               </Button>
             </div>
             <div className="space-y-2">
