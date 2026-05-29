@@ -1948,3 +1948,96 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
     </section>
   );
 }
+
+function LogsTab() {
+  const [logs, setLogs] = useState<ActivityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  async function load() {
+    setLoading(true);
+    const rows = await loadActivity(500);
+    setLogs(rows);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return logs;
+    return logs.filter((l) => {
+      const blob = `${l.username} ${l.action} ${l.entity_type} ${JSON.stringify(l.details ?? {})}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }, [logs, query]);
+
+  function actionBadge(action: string) {
+    const map: Record<string, string> = {
+      create: "bg-emerald-500/15 text-emerald-600",
+      update: "bg-sky-500/15 text-sky-600",
+      delete: "bg-red-500/15 text-red-600",
+      settle: "bg-emerald-500/15 text-emerald-600",
+      reopen: "bg-amber-500/15 text-amber-600",
+    };
+    const cls = map[action] ?? "bg-muted text-muted-foreground";
+    return (
+      <span className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide ${cls}`}>
+        {action}
+      </span>
+    );
+  }
+
+  function summarize(l: ActivityRow): string {
+    const d = (l.details ?? {}) as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(d)) {
+      if (v == null || v === "") continue;
+      parts.push(`${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+    }
+    return parts.join(" · ");
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Activity log</h2>
+        <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+          {loading ? "Loading…" : "Refresh"}
+        </Button>
+      </div>
+      <Input
+        placeholder="Filter by user, action, entity…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {loading ? (
+        <div className="text-sm text-muted-foreground text-center py-10">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
+          No activity yet.
+        </div>
+      ) : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {filtered.map((l) => (
+            <li key={l.id} className="p-3 text-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                {actionBadge(l.action)}
+                <span className="font-medium">{l.username}</span>
+                <span className="text-muted-foreground">{l.action}d {l.entity_type}</span>
+                <span className="ml-auto text-[11px] text-muted-foreground font-mono">
+                  {new Date(l.created_at).toLocaleString()}
+                </span>
+              </div>
+              {summarize(l) && (
+                <div className="mt-1 text-xs text-muted-foreground break-words">{summarize(l)}</div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
