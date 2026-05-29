@@ -19,7 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { createPurityUser, listPurityUsers } from "@/lib/purity-users.functions";
+import {
+  createPurityUser,
+  deletePurityUser,
+  getCurrentPurityUser,
+  listPurityUsers,
+} from "@/lib/purity-users.functions";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
