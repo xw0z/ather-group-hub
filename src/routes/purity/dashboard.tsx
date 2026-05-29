@@ -629,10 +629,10 @@ function TripsTab({
             disabled={currentPage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            ← Prev
+            {t("app.prev")}
           </Button>
           <div className="text-xs text-muted-foreground">
-            Page {currentPage} of {totalPages} · {trips.length} trips
+            {t("app.page")} {currentPage} {t("app.of")} {totalPages} · {trips.length} {t("trips.tripsCount")}
           </div>
           <Button
             size="sm"
@@ -640,7 +640,7 @@ function TripsTab({
             disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            Next →
+            {t("app.next")}
           </Button>
         </div>
       )}
