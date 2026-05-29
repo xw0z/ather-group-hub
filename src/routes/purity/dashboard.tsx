@@ -877,6 +877,7 @@ export function BarsManager({
   pieces: Piece[];
   onChange: () => Promise<void>;
 }) {
+  const { t } = useLang();
   const [weight, setWeight] = useState("");
   const [initialPurity, setInitialPurity] = useState("999");
   const [baflehPurity, setBaflehPurity] = useState("");
