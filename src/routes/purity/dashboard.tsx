@@ -156,7 +156,8 @@ function PurityDashboard() {
     const { data } = await supabase
       .from("purity_trips")
       .select("*")
-      .order("departure_date", { ascending: false });
+      .order("departure_date", { ascending: false })
+      .order("created_at", { ascending: false });
     setTrips((data ?? []) as Trip[]);
   }
 
