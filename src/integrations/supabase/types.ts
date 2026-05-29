@@ -102,6 +102,7 @@ export type Database = {
           id: string
           name: string | null
           notes: string | null
+          receiver_company: string | null
           scrap_weight: number | null
           user_id: string
         }
@@ -114,6 +115,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          receiver_company?: string | null
           scrap_weight?: number | null
           user_id: string
         }
@@ -126,6 +128,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          receiver_company?: string | null
           scrap_weight?: number | null
           user_id?: string
         }
