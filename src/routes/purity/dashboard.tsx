@@ -44,6 +44,7 @@ type Trip = {
   declared_purity: number;
   scrap_weight: number | null;
   notes: string | null;
+  receiver_company: string | null;
   created_at: string;
 };
 
@@ -190,7 +191,7 @@ function PurityDashboard() {
             <Plane className="h-4 w-4 mr-1.5" /> Trips
           </TabBtn>
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <Users className="h-4 w-4 mr-1.5" /> Clients
+            <Users className="h-4 w-4 mr-1.5" /> Suppliers
           </TabBtn>
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> Search bar
@@ -269,6 +270,7 @@ function TripsTab({
     new Date().toISOString().slice(0, 10),
   );
   const [notes, setNotes] = useState("");
+  const [receiverCompany, setReceiverCompany] = useState("");
   const [saving, setSaving] = useState(false);
 
   type DraftBar = {
@@ -304,6 +306,7 @@ function TripsTab({
 
   function resetForm() {
     setNotes("");
+    setReceiverCompany("");
     setBars([{ ...emptyBar }]);
   }
 
@@ -330,6 +333,7 @@ function TripsTab({
         scrap_weight: scrapTotal,
         declared_purity: 999,
         notes: notes || null,
+        receiver_company: receiverCompany || null,
       })
       .select()
       .single();
@@ -388,6 +392,14 @@ function TripsTab({
               </div>
             </div>
             <div>
+              <Label>Receiver company (Dubai)</Label>
+              <Input
+                value={receiverCompany}
+                onChange={(e) => setReceiverCompany(e.target.value)}
+                placeholder="e.g. Bafleh / Kaloti"
+              />
+            </div>
+            <div className="col-span-2">
               <Label>Notes (optional)</Label>
               <Input
                 value={notes}
@@ -451,7 +463,7 @@ function TripsTab({
                     />
                   </div>
                   <div className="col-span-3">
-                    {i === 0 && <Label className="text-xs">Client</Label>}
+                    {i === 0 && <Label className="text-xs">Supplier</Label>}
                     <select
                       value={b.clientId}
                       onChange={(e) => updateBar(i, { clientId: e.target.value })}
@@ -602,6 +614,7 @@ function TripCard({
           <div className="text-xs text-muted-foreground truncate">
             Dep {trip.departure_date}
             {trip.arrival_date ? ` · Arr ${trip.arrival_date}` : ""}
+            {trip.receiver_company ? ` · → ${trip.receiver_company}` : ""}
             {trip.scrap_weight != null && (
               <> · Scrap {Number(trip.scrap_weight).toFixed(2)} g</>
             )}{" "}
@@ -660,6 +673,7 @@ function TripHeaderEditor({
   onChange: () => Promise<void>;
 }) {
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
+  const [receiver, setReceiver] = useState(trip.receiver_company ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
@@ -669,6 +683,7 @@ function TripHeaderEditor({
       .from("purity_trips")
       .update({
         arrival_date: arrival || null,
+        receiver_company: receiver || null,
       })
       .eq("id", trip.id);
     setSaving(false);
@@ -688,7 +703,15 @@ function TripHeaderEditor({
           onChange={(e) => setArrival(e.target.value)}
         />
       </div>
-      <div className="flex justify-end">
+      <div>
+        <Label className="text-xs">Receiver company (Dubai)</Label>
+        <Input
+          value={receiver}
+          onChange={(e) => setReceiver(e.target.value)}
+          placeholder="e.g. Bafleh / Kaloti"
+        />
+      </div>
+      <div className="col-span-2 flex justify-end">
         <Button size="sm" disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </Button>
@@ -879,7 +902,7 @@ function BarsManager({
           />
         </div>
         <div className="col-span-3">
-          <Label className="text-xs">Client</Label>
+          <Label className="text-xs">Supplier</Label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
@@ -914,7 +937,7 @@ function BarsManager({
                 <th className="text-right py-1.5 pr-2">Init ‰</th>
                 <th className="text-right py-1.5 pr-2">Bafleh ‰</th>
                 <th className="text-right py-1.5 pr-2">Pure</th>
-                <th className="text-left py-1.5 pr-2">Client</th>
+                <th className="text-left py-1.5 pr-2">Supplier</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
                 <th></th>
               </tr>
@@ -1091,7 +1114,7 @@ function ClientBreakdown({
     ctx.fillStyle = "#9aa3b2";
     ctx.font = "400 24px system-ui, sans-serif";
     ctx.fillText(
-      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}`,
+      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}${trip.receiver_company ? "  →  " + trip.receiver_company : ""}`,
       48,
       178,
     );
@@ -1226,7 +1249,7 @@ function ClientBreakdown({
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        Loss per client
+        Loss per supplier
       </div>
       <div className="space-y-2">
         {rows.map((r) => (
@@ -1313,7 +1336,7 @@ function ClientsTab({
   }
 
   async function deleteClient(id: string) {
-    if (!confirm("Delete this client? Their bars will become unassigned."))
+    if (!confirm("Delete this supplier? Their bars will become unassigned."))
       return;
     await supabase.from("purity_clients").delete().eq("id", id);
     await reload();
@@ -1321,7 +1344,7 @@ function ClientsTab({
 
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold">Clients</h2>
+      <h2 className="text-lg font-semibold">Suppliers</h2>
 
       <form
         onSubmit={addClient}
@@ -1347,14 +1370,14 @@ function ClientsTab({
         </div>
         <div className="flex justify-end">
           <Button size="sm" disabled={saving}>
-            <Plus className="h-4 w-4 mr-1" /> Add client
+            <Plus className="h-4 w-4 mr-1" /> Add supplier
           </Button>
         </div>
       </form>
 
       {clients.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
-          No clients yet.
+          No suppliers yet.
         </div>
       ) : (
         <div className="space-y-2">

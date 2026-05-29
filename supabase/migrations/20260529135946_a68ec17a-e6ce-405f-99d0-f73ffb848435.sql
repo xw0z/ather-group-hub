@@ -1,0 +1,1 @@
+ALTER TABLE public.purity_trips ADD COLUMN IF NOT EXISTS receiver_company text;
