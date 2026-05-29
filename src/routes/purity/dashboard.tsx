@@ -2056,26 +2056,8 @@ function ProfileTab({
   const [linkMsg, setLinkMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [linking, setLinking] = useState(false);
 
-  const [language, setLanguage] = useState<"en" | "ar" | "fr">(() => {
-    if (typeof window === "undefined") return "en";
-    const saved = window.localStorage.getItem("purity_lang");
-    return saved === "ar" || saved === "fr" ? saved : "en";
-  });
-
-  function applyLanguage(lang: "en" | "ar" | "fr") {
-    setLanguage(lang);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("purity_lang", lang);
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    }
-  }
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
-  }, [language]);
+  const { t, lang: language, setLang } = useLang();
+  const applyLanguage = (l: Lang) => setLang(l);
 
   useEffect(() => {
     (async () => {
