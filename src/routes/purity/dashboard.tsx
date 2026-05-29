@@ -167,7 +167,8 @@ function PurityDashboard() {
     const { data } = await supabase
       .from("purity_pieces")
       .select("*")
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     const grouped: Record<string, Piece[]> = {};
     for (const p of (data ?? []) as unknown as Piece[]) {
       (grouped[p.trip_id] ||= []).push(p);
