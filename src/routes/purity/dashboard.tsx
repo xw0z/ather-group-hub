@@ -501,7 +501,7 @@ function TripsTab({
               {bars.map((b, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
-                    {i === 0 && <Label className="text-xs">Weight (g)</Label>}
+                    {i === 0 && <Label className="text-xs">{t("trips.weight")}</Label>}
                     <Input
                       type="number"
                       step="0.001"
