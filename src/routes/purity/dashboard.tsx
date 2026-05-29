@@ -778,7 +778,7 @@ function TripCard({
 }
 
 
-function TripHeaderEditor({
+export function TripHeaderEditor({
   trip,
   onChange,
 }: {
@@ -840,7 +840,7 @@ function TripHeaderEditor({
   );
 }
 
-function TripTotals({
+export function TripTotals({
   trip,
   totalBarWeight,
   totalPure,
@@ -874,7 +874,7 @@ function TripTotals({
   );
 }
 
-function Stat({
+export function Stat({
   label,
   value,
   highlight,
@@ -897,7 +897,7 @@ function Stat({
   );
 }
 
-function BarsManager({
+export function BarsManager({
   trip,
   clients,
   pieces,
@@ -1214,7 +1214,7 @@ function BarsManager({
   );
 }
 
-function ClientBreakdown({
+export function ClientBreakdown({
   trip,
   clients,
   pieces,
