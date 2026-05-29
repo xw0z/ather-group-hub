@@ -333,6 +333,7 @@ function TripsTab({
         scrap_weight: scrapTotal,
         declared_purity: 999,
         notes: notes || null,
+        receiver_company: receiverCompany || null,
       })
       .select()
       .single();
