@@ -17,6 +17,7 @@ import {
   Pencil,
   Check,
   X,
+  FileClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ import {
   getCurrentPurityUser,
   listPurityUsers,
 } from "@/lib/purity-users.functions";
+import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
