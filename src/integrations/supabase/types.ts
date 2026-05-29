@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      purity_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       purity_clients: {
         Row: {
           created_at: string
