@@ -1619,7 +1619,7 @@ type PurityUser = {
   created_at: string;
 };
 
-function UsersTab() {
+function UsersTab({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<PurityUser[]>([]);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
