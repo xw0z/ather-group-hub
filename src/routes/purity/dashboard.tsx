@@ -751,13 +751,14 @@ export function TripHeaderEditor({
   trip: Trip;
   onChange: () => Promise<void>;
 }) {
+  const { t } = useLang();
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
   const [receiver, setReceiver] = useState(trip.receiver_company ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!confirm("Save changes to this trip?")) return;
+    if (!confirm(t("trips.confirmSave"))) return;
     setSaving(true);
     await supabase
       .from("purity_trips")
