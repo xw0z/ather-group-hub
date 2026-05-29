@@ -1472,29 +1472,115 @@ function ClientsTab({
       ) : (
         <div className="space-y-2">
           {clients.map((c) => (
-            <div
+            <SupplierRow
               key={c.id}
-              className="rounded-md border border-border bg-card p-3 flex items-center justify-between"
-            >
-              <div>
-                <div className="font-medium">{c.name}</div>
-                {(c.phone || c.notes) && (
-                  <div className="text-xs text-muted-foreground">
-                    {[c.phone, c.notes].filter(Boolean).join(" · ")}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => deleteClient(c.id)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+              client={c}
+              onDelete={() => deleteClient(c.id)}
+              onSaved={reload}
+            />
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function SupplierRow({
+  client,
+  onDelete,
+  onSaved,
+}: {
+  client: Client;
+  onDelete: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(client.name);
+  const [phone, setPhone] = useState(client.phone ?? "");
+  const [notes, setNotes] = useState(client.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!name.trim()) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("purity_clients")
+      .update({
+        name: name.trim(),
+        phone: phone || null,
+        notes: notes || null,
+      })
+      .eq("id", client.id);
+    setSaving(false);
+    if (!error) {
+      setEditing(false);
+      await onSaved();
+    }
+  }
+
+  function cancel() {
+    setName(client.name);
+    setPhone(client.phone ?? "");
+    setNotes(client.notes ?? "");
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-md border border-border bg-card p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2">
+            <Label className="text-xs">Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Phone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Notes</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={cancel} disabled={saving}>
+            <X className="h-4 w-4 mr-1" /> Cancel
+          </Button>
+          <Button size="sm" onClick={save} disabled={saving}>
+            <Check className="h-4 w-4 mr-1" /> Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
+      <div>
+        <div className="font-medium">{client.name}</div>
+        {(client.phone || client.notes) && (
+          <div className="text-xs text-muted-foreground">
+            {[client.phone, client.notes].filter(Boolean).join(" · ")}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setEditing(true)}
+          className="text-muted-foreground hover:text-foreground"
+          aria-label="Edit supplier"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-muted-foreground hover:text-destructive"
+          aria-label="Delete supplier"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 
