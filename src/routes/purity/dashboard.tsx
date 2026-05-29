@@ -106,6 +106,7 @@ function PurityDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [tab, setTab] = useState<"trips" | "clients" | "search" | "users">("trips");
 
@@ -123,6 +124,12 @@ function PurityDashboard() {
         return;
       }
       setEmail(data.session.user.email ?? "");
+      try {
+        const me = await getCurrentPurityUser();
+        if (!cancelled) setIsAdmin(me.isAdmin);
+      } catch {
+        /* ignore */
+      }
       await Promise.all([loadClients(), loadTrips(), loadAllPieces()]);
       setReady(true);
     });
