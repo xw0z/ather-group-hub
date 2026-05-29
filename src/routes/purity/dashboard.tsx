@@ -114,7 +114,7 @@ function PurityDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
-  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users">("trips");
+  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users" | "logs">("trips");
 
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
