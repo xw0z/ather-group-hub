@@ -1061,6 +1061,15 @@ function BarsManager({
                     <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
                       {hasBafleh ? loss.toFixed(3) : "—"}
                     </td>
+                    <td className="py-1.5 pr-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={p.checked}
+                        onChange={(e) => toggleChecked(p.id, e.target.checked)}
+                        className="h-4 w-4 accent-emerald-600 cursor-pointer"
+                        aria-label="Bar checked"
+                      />
+                    </td>
                     <td className="py-1.5 text-right">
                       <button
                         onClick={() => deleteBar(p.id, Number(p.weight_grams))}
