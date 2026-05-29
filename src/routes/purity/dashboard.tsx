@@ -983,7 +983,6 @@ function BarsManager({
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-center py-1.5 pr-2">✓</th>
                 <th className="text-left py-1.5 pr-2">#</th>
                 <th className="text-right py-1.5 pr-2">Weight</th>
                 <th className="text-right py-1.5 pr-2">Init ‰</th>
@@ -991,8 +990,10 @@ function BarsManager({
                 <th className="text-right py-1.5 pr-2">Pure</th>
                 <th className="text-left py-1.5 pr-2">Supplier</th>
                 <th className="text-right py-1.5 pr-2">Loss</th>
+                <th className="text-center py-1.5 pr-2">✓</th>
                 <th></th>
               </tr>
+
 
             </thead>
             <tbody>
