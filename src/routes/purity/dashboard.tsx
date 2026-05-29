@@ -796,6 +796,15 @@ function BarsManager({
     await onChange();
   }
 
+  async function updateInitialPurity(id: string, value: string) {
+    await supabase
+      .from("purity_pieces")
+      .update({ initial_purity: value === "" ? null : Number(value) })
+      .eq("id", id);
+    await onChange();
+  }
+
+
   async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
     const newScrap =
