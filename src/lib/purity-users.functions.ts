@@ -3,6 +3,20 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+const ADMIN_USERNAME = "admin";
+
+async function assertAdmin(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("purity_profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data || data.username?.toLowerCase() !== ADMIN_USERNAME) {
+    throw new Error("Only the admin can manage users.");
+  }
+}
+
 const createSchema = z.object({
   username: z.string().trim().min(2).max(64).regex(/^[a-zA-Z0-9_.-]+$/, "Letters, numbers, . _ - only"),
   email: z.string().trim().email().max(255).optional().or(z.literal("")).transform((v) => (v ? v : undefined)),
@@ -12,7 +26,8 @@ const createSchema = z.object({
 export const createPurityUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => createSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
     const username = data.username.toLowerCase();
 
     const { data: existing } = await supabaseAdmin
@@ -44,6 +59,28 @@ export const createPurityUser = createServerFn({ method: "POST" })
     return { ok: true, username };
   });
 
+export const deletePurityUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.id === context.userId) throw new Error("You cannot delete yourself.");
+
+    const { data: target } = await supabaseAdmin
+      .from("purity_profiles")
+      .select("username")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (target?.username?.toLowerCase() === ADMIN_USERNAME) {
+      throw new Error("The admin account cannot be deleted.");
+    }
+
+    await supabaseAdmin.from("purity_profiles").delete().eq("id", data.id);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const listPurityUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
@@ -53,4 +90,22 @@ export const listPurityUsers = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+export const getCurrentPurityUser = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("purity_profiles")
+      .select("id, username, email")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const username = data?.username ?? null;
+    return {
+      id: context.userId,
+      username,
+      email: data?.email ?? null,
+      isAdmin: username?.toLowerCase() === ADMIN_USERNAME,
+    };
   });

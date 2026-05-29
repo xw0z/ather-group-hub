@@ -19,7 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { createPurityUser, listPurityUsers } from "@/lib/purity-users.functions";
+import {
+  createPurityUser,
+  deletePurityUser,
+  getCurrentPurityUser,
+  listPurityUsers,
+} from "@/lib/purity-users.functions";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
@@ -101,6 +106,8 @@ function PurityDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   const [tab, setTab] = useState<"trips" | "clients" | "search" | "users">("trips");
 
@@ -118,6 +125,13 @@ function PurityDashboard() {
         return;
       }
       setEmail(data.session.user.email ?? "");
+      setCurrentUserId(data.session.user.id);
+      try {
+        const me = await getCurrentPurityUser();
+        if (!cancelled) setIsAdmin(me.isAdmin);
+      } catch {
+        /* ignore */
+      }
       await Promise.all([loadClients(), loadTrips(), loadAllPieces()]);
       setReady(true);
     });
@@ -202,9 +216,11 @@ function PurityDashboard() {
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> Search bar
           </TabBtn>
-          <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-            <UserPlus className="h-4 w-4 mr-1.5" /> Users
-          </TabBtn>
+          {isAdmin && (
+            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
+              <UserPlus className="h-4 w-4 mr-1.5" /> Users
+            </TabBtn>
+          )}
         </nav>
       </header>
 
@@ -227,7 +243,7 @@ function PurityDashboard() {
           <ClientsTab clients={clients} reload={loadClients} />
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
-        {tab === "users" && <UsersTab />}
+        {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
       </main>
     </div>
   );
@@ -1603,7 +1619,7 @@ type PurityUser = {
   created_at: string;
 };
 
-function UsersTab() {
+function UsersTab({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<PurityUser[]>([]);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -1710,19 +1726,46 @@ function UsersTab() {
           <p className="text-sm text-muted-foreground">No users yet.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {users.map((u) => (
-              <li key={u.id} className="py-2 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{u.username}</div>
-                  {u.email && (
-                    <div className="text-xs text-muted-foreground">{u.email}</div>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(u.created_at).toLocaleDateString()}
-                </div>
-              </li>
-            ))}
+            {users.map((u) => {
+              const isSelf = u.id === currentUserId;
+              const isAdminRow = u.username?.toLowerCase() === "admin";
+              const canDelete = !isSelf && !isAdminRow;
+              return (
+                <li key={u.id} className="py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{u.username}</div>
+                    {u.email && (
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </div>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm(`Delete user "${u.username}"? This cannot be undone.`)) return;
+                          setError(null);
+                          setOk(null);
+                          try {
+                            await deletePurityUser({ data: { id: u.id } });
+                            setOk(`User "${u.username}" deleted.`);
+                            await load();
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : "Failed to delete user.");
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
