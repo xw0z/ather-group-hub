@@ -17,6 +17,7 @@ import {
   Pencil,
   Check,
   X,
+  FileClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ import {
   getCurrentPurityUser,
   listPurityUsers,
 } from "@/lib/purity-users.functions";
+import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
@@ -112,7 +114,7 @@ function PurityDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
-  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users">("trips");
+  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users" | "logs">("trips");
 
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -225,6 +227,11 @@ function PurityDashboard() {
               <UserPlus className="h-4 w-4 mr-1.5" /> Users
             </TabBtn>
           )}
+          {isAdmin && (
+            <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
+              <FileClock className="h-4 w-4 mr-1.5" /> Logs
+            </TabBtn>
+          )}
         </nav>
       </header>
 
@@ -248,6 +255,7 @@ function PurityDashboard() {
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
         {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
+        {tab === "logs" && isAdmin && <LogsTab />}
       </main>
     </div>
   );
@@ -381,6 +389,12 @@ function TripsTab({
       client_id: b.clientId || null,
     }));
     await supabase.from("purity_pieces").insert(piecesPayload);
+    await logActivity("create", "trip", {
+      departure_date: departure,
+      bars: validBars.length,
+      scrap_weight: scrapTotal,
+      receiver_company: receiverCompany || null,
+    }, tripRow.id);
     setSaving(false);
     resetForm();
     setShowNew(false);
@@ -389,8 +403,13 @@ function TripsTab({
 
   async function deleteTrip(id: string) {
     if (!confirm("Delete this trip and all its bars?")) return;
+    const trip = trips.find((t) => t.id === id);
     await supabase.from("purity_pieces").delete().eq("trip_id", id);
     await supabase.from("purity_trips").delete().eq("id", id);
+    await logActivity("delete", "trip", {
+      departure_date: trip?.departure_date ?? null,
+      name: trip ? tripDisplayName(trip) : null,
+    }, id);
     reloadTrips();
   }
 
@@ -622,6 +641,9 @@ function TripCard({
 
   async function toggleSettled(next: boolean) {
     await supabase.from("purity_trips").update({ is_settled: next }).eq("id", trip.id);
+    await logActivity(next ? "settle" : "reopen", "trip", {
+      trip: tripDisplayName(trip),
+    }, trip.id);
     await onChange();
   }
 
@@ -755,6 +777,11 @@ function TripHeaderEditor({
         receiver_company: receiver || null,
       })
       .eq("id", trip.id);
+    await logActivity("update", "trip", {
+      trip: tripDisplayName(trip),
+      arrival_date: arrival || null,
+      receiver_company: receiver || null,
+    }, trip.id);
     setSaving(false);
     await onChange();
   }
@@ -892,6 +919,11 @@ function BarsManager({
     }
     setSaving(false);
     if (!error) {
+      await logActivity("create", "bar", {
+        trip: tripDisplayName(trip),
+        weight_grams: Number(weight),
+        label: label || null,
+      }, trip.id);
       setWeight("");
       setBaflehPurity("");
       setLabel("");
@@ -904,6 +936,11 @@ function BarsManager({
       .from("purity_pieces")
       .update({ bafleh_purity: value === "" ? null : Number(value) })
       .eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "bafleh_purity",
+      value: value === "" ? null : Number(value),
+    }, id);
     await onChange();
   }
 
@@ -912,11 +949,21 @@ function BarsManager({
       .from("purity_pieces")
       .update({ initial_purity: value === "" ? null : Number(value) })
       .eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "initial_purity",
+      value: value === "" ? null : Number(value),
+    }, id);
     await onChange();
   }
 
   async function toggleChecked(id: string, next: boolean) {
     await supabase.from("purity_pieces").update({ checked: next }).eq("id", id);
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "checked",
+      value: next,
+    }, id);
     await onChange();
   }
 
@@ -925,6 +972,12 @@ function BarsManager({
       .from("purity_pieces")
       .update({ client_id: value === "" ? null : value })
       .eq("id", id);
+    const supplier = clients.find((c) => c.id === value)?.name ?? null;
+    await logActivity("update", "bar", {
+      trip: tripDisplayName(trip),
+      field: "supplier",
+      value: supplier,
+    }, id);
     await onChange();
   }
 
@@ -938,6 +991,10 @@ function BarsManager({
       .from("purity_trips")
       .update({ scrap_weight: newScrap < 0 ? 0 : newScrap })
       .eq("id", trip.id);
+    await logActivity("delete", "bar", {
+      trip: tripDisplayName(trip),
+      weight_grams: Number(weightG),
+    }, id);
     await onChange();
   }
 
@@ -1439,6 +1496,7 @@ function ClientsTab({
     });
     setSaving(false);
     if (!error) {
+      await logActivity("create", "supplier", { name });
       setName("");
       setPhone("");
       setNotes("");
@@ -1449,7 +1507,9 @@ function ClientsTab({
   async function deleteClient(id: string) {
     if (!confirm("Delete this supplier? Their bars will become unassigned."))
       return;
+    const target = clients.find((c) => c.id === id);
     await supabase.from("purity_clients").delete().eq("id", id);
+    await logActivity("delete", "supplier", { name: target?.name ?? null }, id);
     await reload();
   }
 
@@ -1534,6 +1594,10 @@ function SupplierRow({
       .eq("id", client.id);
     setSaving(false);
     if (!error) {
+      await logActivity("update", "supplier", {
+        name: name.trim(),
+        phone: phone || null,
+      }, client.id);
       setEditing(false);
       await onSaved();
     }
@@ -1768,6 +1832,7 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
           password,
         },
       });
+      await logActivity("create", "user", { username: username.trim() });
       setOk(`User "${username.trim()}" created.`);
       setUsername("");
       setEmail("");
@@ -1862,6 +1927,7 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
                           setOk(null);
                           try {
                             await deletePurityUser({ data: { id: u.id } });
+                            await logActivity("delete", "user", { username: u.username }, u.id);
                             setOk(`User "${u.username}" deleted.`);
                             await load();
                           } catch (err) {
@@ -1879,6 +1945,99 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
           </ul>
         )}
       </div>
+    </section>
+  );
+}
+
+function LogsTab() {
+  const [logs, setLogs] = useState<ActivityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  async function load() {
+    setLoading(true);
+    const rows = await loadActivity(500);
+    setLogs(rows);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return logs;
+    return logs.filter((l) => {
+      const blob = `${l.username} ${l.action} ${l.entity_type} ${JSON.stringify(l.details ?? {})}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }, [logs, query]);
+
+  function actionBadge(action: string) {
+    const map: Record<string, string> = {
+      create: "bg-emerald-500/15 text-emerald-600",
+      update: "bg-sky-500/15 text-sky-600",
+      delete: "bg-red-500/15 text-red-600",
+      settle: "bg-emerald-500/15 text-emerald-600",
+      reopen: "bg-amber-500/15 text-amber-600",
+    };
+    const cls = map[action] ?? "bg-muted text-muted-foreground";
+    return (
+      <span className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide ${cls}`}>
+        {action}
+      </span>
+    );
+  }
+
+  function summarize(l: ActivityRow): string {
+    const d = (l.details ?? {}) as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(d)) {
+      if (v == null || v === "") continue;
+      parts.push(`${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+    }
+    return parts.join(" · ");
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Activity log</h2>
+        <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+          {loading ? "Loading…" : "Refresh"}
+        </Button>
+      </div>
+      <Input
+        placeholder="Filter by user, action, entity…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {loading ? (
+        <div className="text-sm text-muted-foreground text-center py-10">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
+          No activity yet.
+        </div>
+      ) : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {filtered.map((l) => (
+            <li key={l.id} className="p-3 text-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                {actionBadge(l.action)}
+                <span className="font-medium">{l.username}</span>
+                <span className="text-muted-foreground">{l.action}d {l.entity_type}</span>
+                <span className="ml-auto text-[11px] text-muted-foreground font-mono">
+                  {new Date(l.created_at).toLocaleString()}
+                </span>
+              </div>
+              {summarize(l) && (
+                <div className="mt-1 text-xs text-muted-foreground break-words">{summarize(l)}</div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
