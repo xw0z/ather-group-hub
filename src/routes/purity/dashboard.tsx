@@ -125,6 +125,7 @@ function PurityDashboard() {
         return;
       }
       setEmail(data.session.user.email ?? "");
+      setCurrentUserId(data.session.user.id);
       try {
         const me = await getCurrentPurityUser();
         if (!cancelled) setIsAdmin(me.isAdmin);
