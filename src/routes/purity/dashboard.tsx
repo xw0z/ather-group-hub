@@ -196,51 +196,53 @@ function PurityDashboard() {
     navigate({ to: "/purity", replace: true });
   }
 
+  const { t, dir } = useLang();
+
   if (!ready) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
-        Loading…
+      <div dir={dir} className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+        {t("app.loading")}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-popover text-popover-foreground">
+    <div dir={dir} className="min-h-screen bg-popover text-popover-foreground">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-sm font-semibold leading-none">Purity</div>
+              <div className="text-sm font-semibold leading-none">{t("app.name")}</div>
               <div className="text-[11px] text-muted-foreground">{email}</div>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-1" /> Sign out
+            <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
           </Button>
         </div>
         <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
           <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
-            <Plane className="h-4 w-4 mr-1.5" /> Trips
+            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")}
           </TabBtn>
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <Users className="h-4 w-4 mr-1.5" /> Suppliers
+            <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
           </TabBtn>
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
-            <Search className="h-4 w-4 mr-1.5" /> Search bar
+            <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
           </TabBtn>
           {isAdmin && (
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-              <UserPlus className="h-4 w-4 mr-1.5" /> Users
+              <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
             </TabBtn>
           )}
           {isAdmin && (
             <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
-              <FileClock className="h-4 w-4 mr-1.5" /> Logs
+              <FileClock className="h-4 w-4 mr-1.5" /> {t("tab.logs")}
             </TabBtn>
           )}
           <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
-            <UserCircle className="h-4 w-4 mr-1.5" /> Profile
+            <UserCircle className="h-4 w-4 mr-1.5" /> {t("tab.profile")}
           </TabBtn>
         </nav>
       </header>
@@ -269,13 +271,14 @@ function PurityDashboard() {
 }
 
 export function PurityFooter() {
+  const { t } = useLang();
   return (
     <footer className="border-t border-border/60 bg-background/80 mt-10">
       <div className="mx-auto max-w-3xl px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <Scale className="h-3.5 w-3.5 text-primary" />
-          <span className="font-semibold tracking-wide">PURITY</span>
-          <span>· Gold purity & loss tracker</span>
+          <span className="font-semibold tracking-wide">{t("app.name").toUpperCase()}</span>
+          <span>· {t("footer.tag")}</span>
         </div>
         <div>© {new Date().getFullYear()} Ather Group</div>
       </div>
