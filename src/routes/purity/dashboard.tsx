@@ -223,8 +223,9 @@ function PurityDashboard() {
         </div>
         <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
           <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
-            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")}
+            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")} ({trips.length})
           </TabBtn>
+
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
             <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
           </TabBtn>
