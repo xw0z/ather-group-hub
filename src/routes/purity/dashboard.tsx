@@ -909,7 +909,15 @@ export function BarsManager({
       label: label || null,
       client_id: clientId || null,
     });
-    // Note: trip scrap_weight is managed manually from the trip header editor.
+    // After adding a bar, recompute trip scrap = sum of all bar weights.
+    if (!error) {
+      const newScrap =
+        pieces.reduce((s, p) => s + Number(p.weight_grams), 0) + Number(weight);
+      await supabase
+        .from("purity_trips")
+        .update({ scrap_weight: newScrap })
+        .eq("id", trip.id);
+    }
     setSaving(false);
     if (!error) {
       await logActivity("create", "bar", {
