@@ -1954,6 +1954,8 @@ function LogsTab() {
   const [logs, setLogs] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   async function load() {
     setLoading(true);
@@ -1974,6 +1976,14 @@ function LogsTab() {
       return blob.includes(q);
     });
   }, [logs, query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, logs]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   function actionBadge(action: string) {
     const map: Record<string, string> = {
