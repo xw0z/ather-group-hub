@@ -986,6 +986,12 @@ export function BarsManager({
 
   async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
+    const newScrap =
+      pieces.reduce((s, p) => s + Number(p.weight_grams), 0) - Number(weightG);
+    await supabase
+      .from("purity_trips")
+      .update({ scrap_weight: newScrap < 0 ? 0 : newScrap })
+      .eq("id", trip.id);
     await logActivity("delete", "bar", {
       trip: tripDisplayName(trip),
       weight_grams: Number(weightG),
