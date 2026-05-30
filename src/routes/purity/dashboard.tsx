@@ -1954,6 +1954,8 @@ function LogsTab() {
   const [logs, setLogs] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   async function load() {
     setLoading(true);
@@ -1974,6 +1976,14 @@ function LogsTab() {
       return blob.includes(q);
     });
   }, [logs, query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, logs]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   function actionBadge(action: string) {
     const map: Record<string, string> = {
@@ -2021,23 +2031,38 @@ function LogsTab() {
           No activity yet.
         </div>
       ) : (
-        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-          {filtered.map((l) => (
-            <li key={l.id} className="p-3 text-sm">
-              <div className="flex items-center gap-2 flex-wrap">
-                {actionBadge(l.action)}
-                <span className="font-medium">{l.username}</span>
-                <span className="text-muted-foreground">{l.action}d {l.entity_type}</span>
-                <span className="ml-auto text-[11px] text-muted-foreground font-mono">
-                  {new Date(l.created_at).toLocaleString()}
-                </span>
-              </div>
-              {summarize(l) && (
-                <div className="mt-1 text-xs text-muted-foreground break-words">{summarize(l)}</div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+            {paged.map((l) => (
+              <li key={l.id} className="p-3 text-sm">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {actionBadge(l.action)}
+                  <span className="font-medium">{l.username}</span>
+                  <span className="text-muted-foreground">{l.action}d {l.entity_type}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground font-mono">
+                    {new Date(l.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {summarize(l) && (
+                  <div className="mt-1 text-xs text-muted-foreground break-words">{summarize(l)}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="text-muted-foreground">
+              Page {currentPage} of {totalPages} · {filtered.length} total
+            </span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1}>
+                Previous
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>
+                Next
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </section>
   );
