@@ -918,15 +918,7 @@ export function BarsManager({
       label: label || null,
       client_id: clientId || null,
     });
-    // After adding a bar, recompute trip scrap = sum of all bar weights.
-    if (!error) {
-      const newScrap =
-        pieces.reduce((s, p) => s + Number(p.weight_grams), 0) + Number(weight);
-      await supabase
-        .from("purity_trips")
-        .update({ scrap_weight: newScrap })
-        .eq("id", trip.id);
-    }
+    // Note: trip scrap_weight is managed manually from the trip header editor.
     setSaving(false);
     if (!error) {
       await logActivity("create", "bar", {
@@ -995,12 +987,6 @@ export function BarsManager({
 
   async function deleteBar(id: string, weightG: number) {
     await supabase.from("purity_pieces").delete().eq("id", id);
-    const newScrap =
-      pieces.reduce((s, p) => s + Number(p.weight_grams), 0) - Number(weightG);
-    await supabase
-      .from("purity_trips")
-      .update({ scrap_weight: newScrap < 0 ? 0 : newScrap })
-      .eq("id", trip.id);
     await logActivity("delete", "bar", {
       trip: tripDisplayName(trip),
       weight_grams: Number(weightG),
