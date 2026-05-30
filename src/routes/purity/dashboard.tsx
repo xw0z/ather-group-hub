@@ -703,14 +703,14 @@ function TripCard({
                 {allPriced ? t("status.awaitingCheck") : t("status.awaitingBafleh")}
               </span>
             )}
-            {pieces.length > 0 && (
+            {status !== "settled" && pieces.length > 0 && (
               allSuppliers ? (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600">
                   <CheckCircle2 className="h-3 w-3 mr-0.5" /> {t("status.suppliersDone")}
                 </span>
               ) : (
                 <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600">
-                  <AlertCircle className="h-3 w-3 mr-0.5" /> {t("status.missingSupplier")}
+                  <AlertCircle className="h-3 w-3 mr-0.5" /> {t("status.missingSupplier")} ({pieces.filter((p) => p.client_id == null).length})
                 </span>
               )
             )}
