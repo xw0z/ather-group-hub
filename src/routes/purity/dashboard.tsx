@@ -1479,7 +1479,6 @@ function ClientsTab({
   reload: () => Promise<void>;
 }) {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -1492,14 +1491,13 @@ function ClientsTab({
     const { error } = await supabase.from("purity_clients").insert({
       user_id: u.user.id,
       name,
-      phone: phone || null,
+      phone: null,
       notes: notes || null,
     });
     setSaving(false);
     if (!error) {
       await logActivity("create", "supplier", { name });
       setName("");
-      setPhone("");
       setNotes("");
       await reload();
     }
@@ -1523,8 +1521,8 @@ function ClientsTab({
         className="rounded-lg border border-border bg-card p-4 space-y-3"
       >
         <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <Label>Name</Label>
+          <div>
+            <Label>Code</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1532,11 +1530,7 @@ function ClientsTab({
             />
           </div>
           <div>
-            <Label>Phone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div>
-            <Label>Notes</Label>
+            <Label>Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         </div>
@@ -1546,6 +1540,7 @@ function ClientsTab({
           </Button>
         </div>
       </form>
+
 
       {clients.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-10 border border-dashed border-border rounded-lg">
