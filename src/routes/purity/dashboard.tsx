@@ -754,9 +754,6 @@ export function TripHeaderEditor({
   const { t } = useLang();
   const [arrival, setArrival] = useState(trip.arrival_date ?? "");
   const [receiver, setReceiver] = useState(trip.receiver_company ?? "");
-  const [scrap, setScrap] = useState(
-    trip.scrap_weight != null ? String(trip.scrap_weight) : "",
-  );
   const [saving, setSaving] = useState(false);
 
   async function save(e: FormEvent) {
@@ -768,18 +765,19 @@ export function TripHeaderEditor({
       .update({
         arrival_date: arrival || null,
         receiver_company: receiver || null,
-        scrap_weight: scrap === "" ? null : Number(scrap),
       })
       .eq("id", trip.id);
     await logActivity("update", "trip", {
       trip: tripDisplayName(trip),
       arrival_date: arrival || null,
       receiver_company: receiver || null,
-      scrap_weight: scrap === "" ? null : Number(scrap),
     }, trip.id);
     setSaving(false);
     await onChange();
   }
+
+  const scrapDisplay =
+    trip.scrap_weight != null ? Number(trip.scrap_weight).toFixed(2) : "—";
 
   return (
     <form
@@ -806,16 +804,9 @@ export function TripHeaderEditor({
       </div>
       <div className="flex-1 min-w-0">
         <Label className="text-xs block mb-1">{t("trips.scrapSum")}</Label>
-        <Input
-          type="number"
-          step="0.001"
-          min="0"
-          inputMode="decimal"
-          value={scrap}
-          onChange={(e) => setScrap(e.target.value)}
-          placeholder="0.000"
-          className="w-full"
-        />
+        <div className="h-9 px-3 flex items-center rounded-md border border-input bg-muted/40 font-mono text-sm">
+          {scrapDisplay} g
+        </div>
       </div>
       <div className="flex justify-end">
         <Button size="sm" disabled={saving}>
