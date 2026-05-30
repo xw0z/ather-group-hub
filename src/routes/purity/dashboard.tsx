@@ -1735,9 +1735,11 @@ function SearchTab({
               const trip = trips.find((t) => t.id === p.trip_id);
               const client = clients.find((c) => c.id === p.client_id);
               return (
-                <div
+                <Link
                   key={p.id}
-                  className="rounded-md border border-border bg-card p-3"
+                  to="/purity/trips/$tripId"
+                  params={{ tripId: p.trip_id }}
+                  className="block rounded-md border border-border bg-card p-3 hover:bg-accent/40 transition-colors"
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -1766,8 +1768,9 @@ function SearchTab({
 
                     </div>
                   </div>
-                </div>
+                </Link>
               );
+
             })
           )}
         </div>
