@@ -223,8 +223,9 @@ function PurityDashboard() {
         </div>
         <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
           <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
-            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")}
+            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")} ({trips.length})
           </TabBtn>
+
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
             <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
           </TabBtn>
@@ -1734,9 +1735,11 @@ function SearchTab({
               const trip = trips.find((t) => t.id === p.trip_id);
               const client = clients.find((c) => c.id === p.client_id);
               return (
-                <div
+                <Link
                   key={p.id}
-                  className="rounded-md border border-border bg-card p-3"
+                  to="/purity/trips/$tripId"
+                  params={{ tripId: p.trip_id }}
+                  className="block rounded-md border border-border bg-card p-3 hover:bg-accent/40 transition-colors"
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -1765,8 +1768,9 @@ function SearchTab({
 
                     </div>
                   </div>
-                </div>
+                </Link>
               );
+
             })
           )}
         </div>
