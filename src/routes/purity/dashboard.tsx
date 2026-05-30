@@ -577,7 +577,7 @@ function TripsTab({
                 {t("trips.scrapSum")}
               </span>
               <span className="font-mono font-semibold">
-                {totalWeight.toFixed(3)} g
+                {totalWeight.toFixed(2)} g
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground">
@@ -844,17 +844,17 @@ export function TripTotals({
       : null;
   return (
     <div className="rounded-md border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
-      <Stat label={t("stat.barsTotal")} value={`${totalBarWeight.toFixed(3)} g`} />
-      <Stat label={t("stat.pureBafleh")} value={`${totalPure.toFixed(3)} g`} />
+      <Stat label={t("stat.barsTotal")} value={`${totalBarWeight.toFixed(2)} g`} />
+      <Stat label={t("stat.pureBafleh")} value={`${totalPure.toFixed(2)} g`} />
       {declaredPure != null && (
         <Stat
           label={`${t("stat.declaredPure")} (× ${trip.declared_purity}‰)`}
-          value={`${declaredPure.toFixed(3)} g`}
+          value={`${declaredPure.toFixed(2)} g`}
         />
       )}
       <Stat
         label={t("stat.totalLoss")}
-        value={`${totalLoss.toFixed(3)} g`}
+        value={`${totalLoss.toFixed(2)} g`}
         highlight
       />
     </div>
@@ -1106,7 +1106,7 @@ export function BarsManager({
 
 
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {Number(p.weight_grams).toFixed(3)}
+                      {Number(p.weight_grams).toFixed(2)}
                     </td>
                     <td className="py-1.5 pr-2 text-right">
                       <input
@@ -1140,7 +1140,7 @@ export function BarsManager({
                       />
                     </td>
                     <td className="py-1.5 pr-2 text-right font-mono">
-                      {hasBafleh ? pure.toFixed(3) : "—"}
+                      {hasBafleh ? pure.toFixed(2) : "—"}
                     </td>
                     <td className="py-1.5 pr-2 max-w-[140px]">
                       <select
@@ -1158,7 +1158,7 @@ export function BarsManager({
                       </select>
                     </td>
                     <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
-                      {hasBafleh ? loss.toFixed(3) : "—"}
+                      {hasBafleh ? loss.toFixed(2) : "—"}
                     </td>
                     <td className="py-1.5 pr-2 text-center">
                       <input
@@ -1288,10 +1288,10 @@ export function ClientBreakdown({
     const cardW = (W - 48 * 2 - 24 * 2) / 3;
     const cards: { label: string; value: string; color: string }[] = [
       { label: "BARS", value: String(r.bars.length), color: "#ffffff" },
-      { label: "WEIGHT (g)", value: r.totalWeight.toFixed(3), color: "#ffffff" },
+      { label: "WEIGHT (g)", value: r.totalWeight.toFixed(2), color: "#ffffff" },
       {
         label: "TOTAL LOSS (g)",
-        value: r.totalLoss.toFixed(3),
+        value: r.totalLoss.toFixed(2),
         color: r.totalLoss === 0 ? "#34d399" : "#f87171",
       },
     ];
@@ -1349,13 +1349,13 @@ export function ClientBreakdown({
       ctx.fillStyle = "#ffffff";
       ctx.font = "600 22px ui-monospace, Menlo, Consolas, monospace";
       ctx.textAlign = "right";
-      ctx.fillText(w.toFixed(3), 260, y + 40);
+      ctx.fillText(w.toFixed(2), 260, y + 40);
       ctx.fillText(String(b.bafleh_purity ?? "—"), 520, y + 40);
-      ctx.fillText(pure.toFixed(3), 760, y + 40);
+      ctx.fillText(pure.toFixed(2), 760, y + 40);
 
       ctx.fillStyle = loss === 0 ? "#34d399" : "#f87171";
       ctx.font = "700 22px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText(loss.toFixed(3), W - 70, y + 40);
+      ctx.fillText(loss.toFixed(2), W - 70, y + 40);
 
       y += rowH;
     });
@@ -1369,7 +1369,7 @@ export function ClientBreakdown({
     ctx.fillText("AMOUNT TO COMPENSATE", 70, y + 55);
     ctx.fillStyle = r.totalLoss === 0 ? "#34d399" : "#f6e27a";
     ctx.font = "800 44px system-ui, sans-serif";
-    ctx.fillText(`${r.totalLoss.toFixed(3)} g of pure gold`, 70, y + 105);
+    ctx.fillText(`${r.totalLoss.toFixed(2)} g of pure gold`, 70, y + 105);
 
     ctx.fillStyle = "#5b6478";
     ctx.font = "400 16px system-ui, sans-serif";
@@ -1393,7 +1393,7 @@ export function ClientBreakdown({
         await nav.share({
           files: [file],
           title: `${r.name} — loss report`,
-          text: `${r.name}: ${r.totalLoss.toFixed(3)} g loss (${tripName})`,
+          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss (${tripName})`,
         });
         return;
       } catch {
@@ -1429,7 +1429,7 @@ export function ClientBreakdown({
                     r.totalLoss === 0 ? "text-emerald-600" : "text-red-600"
                   }`}
                 >
-                  {r.totalLoss.toFixed(3)} g loss
+                  {r.totalLoss.toFixed(2)} g loss
                 </div>
                 <Button
                   type="button"
@@ -1444,15 +1444,15 @@ export function ClientBreakdown({
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {r.bars.length} bars · {r.totalWeight.toFixed(3)} g ·{" "}
-              {r.totalPure.toFixed(3)} g pure
+              {r.bars.length} bars · {r.totalWeight.toFixed(2)} g ·{" "}
+              {r.totalPure.toFixed(2)} g pure
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
               Bars:{" "}
               {r.bars
                 .map(
                   (b) =>
-                    `${Number(b.weight_grams).toFixed(3)}g @ ${b.bafleh_purity}‰`,
+                    `${Number(b.weight_grams).toFixed(2)}g @ ${b.bafleh_purity}‰`,
                 )
                 .join(", ")}
             </div>
@@ -1747,7 +1747,7 @@ function SearchTab({
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="font-medium font-mono">
-                        {Number(p.weight_grams).toFixed(3)} g
+                        {Number(p.weight_grams).toFixed(2)} g
                         {p.bafleh_purity != null && (
                           <span className="text-muted-foreground font-normal">
                             {" "}
