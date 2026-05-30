@@ -1757,11 +1757,12 @@ function SearchTab({
                       <div className="font-medium text-primary">
                         {client?.name ?? "Unassigned"}
                       </div>
-                      {client?.phone && (
+                      {client?.notes && (
                         <div className="text-xs text-muted-foreground">
-                          {client.phone}
+                          {client.notes}
                         </div>
                       )}
+
                     </div>
                   </div>
                 </div>
