@@ -92,7 +92,7 @@ export function SwapTab() {
       notes: notes.trim() || null,
     });
     if (!error) {
-      await logActivity("swap_created", "swap", null, {
+      await logActivity("swap_created", "swap", {
         client: clientName.trim(),
         usd: usdNum,
         rate: rateNum,
