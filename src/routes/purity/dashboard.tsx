@@ -22,9 +22,7 @@ import {
   KeyRound,
   Link2,
   Languages,
-  DollarSign,
 } from "lucide-react";
-import { SwapTab } from "./SwapTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,7 +120,7 @@ function PurityDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
-  const [tab, setTab] = useState<"trips" | "clients" | "search" | "swap" | "users" | "logs" | "profile">("trips");
+  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users" | "logs" | "profile">("trips");
 
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -234,9 +232,6 @@ function PurityDashboard() {
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
           </TabBtn>
-          <TabBtn active={tab === "swap"} onClick={() => setTab("swap")}>
-            <DollarSign className="h-4 w-4 mr-1.5" /> Swap
-          </TabBtn>
           {isAdmin && (
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
               <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
@@ -266,7 +261,7 @@ function PurityDashboard() {
           <ClientsTab clients={clients} reload={loadClients} />
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
-        {tab === "swap" && <SwapTab />}
+        
         {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
         {tab === "logs" && isAdmin && <LogsTab />}
         {tab === "profile" && <ProfileTab email={email} setEmail={setEmail} /> }

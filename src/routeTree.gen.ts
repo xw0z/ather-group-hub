@@ -13,7 +13,9 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SwapIndexRouteImport } from './routes/swap/index'
 import { Route as PurityIndexRouteImport } from './routes/purity/index'
+import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
 import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
 
@@ -37,9 +39,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SwapIndexRoute = SwapIndexRouteImport.update({
+  id: '/swap/',
+  path: '/swap/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PurityIndexRoute = PurityIndexRouteImport.update({
   id: '/purity/',
   path: '/purity/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SwapDashboardRoute = SwapDashboardRouteImport.update({
+  id: '/swap/dashboard',
+  path: '/swap/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PurityDashboardRoute = PurityDashboardRouteImport.update({
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
+  '/swap/dashboard': typeof SwapDashboardRoute
   '/purity/': typeof PurityIndexRoute
+  '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
+  '/swap/dashboard': typeof SwapDashboardRoute
   '/purity': typeof PurityIndexRoute
+  '/swap': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRoutesById {
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/purity/dashboard': typeof PurityDashboardRoute
+  '/swap/dashboard': typeof SwapDashboardRoute
   '/purity/': typeof PurityIndexRoute
+  '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
 }
 export interface FileRouteTypes {
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/purity/dashboard'
+    | '/swap/dashboard'
     | '/purity/'
+    | '/swap/'
     | '/purity/trips/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -98,7 +118,9 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/purity/dashboard'
+    | '/swap/dashboard'
     | '/purity'
+    | '/swap'
     | '/purity/trips/$tripId'
   id:
     | '__root__'
@@ -107,7 +129,9 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/purity/dashboard'
+    | '/swap/dashboard'
     | '/purity/'
+    | '/swap/'
     | '/purity/trips/$tripId'
   fileRoutesById: FileRoutesById
 }
@@ -117,7 +141,9 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   ContactRoute: typeof ContactRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
+  SwapDashboardRoute: typeof SwapDashboardRoute
   PurityIndexRoute: typeof PurityIndexRoute
+  SwapIndexRoute: typeof SwapIndexRoute
   PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
 }
 
@@ -151,11 +177,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/swap/': {
+      id: '/swap/'
+      path: '/swap'
+      fullPath: '/swap/'
+      preLoaderRoute: typeof SwapIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/purity/': {
       id: '/purity/'
       path: '/purity'
       fullPath: '/purity/'
       preLoaderRoute: typeof PurityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/swap/dashboard': {
+      id: '/swap/dashboard'
+      path: '/swap/dashboard'
+      fullPath: '/swap/dashboard'
+      preLoaderRoute: typeof SwapDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/purity/dashboard': {
@@ -181,7 +221,9 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   ContactRoute: ContactRoute,
   PurityDashboardRoute: PurityDashboardRoute,
+  SwapDashboardRoute: SwapDashboardRoute,
   PurityIndexRoute: PurityIndexRoute,
+  SwapIndexRoute: SwapIndexRoute,
   PurityTripsTripIdRoute: PurityTripsTripIdRoute,
 }
 export const routeTree = rootRouteImport

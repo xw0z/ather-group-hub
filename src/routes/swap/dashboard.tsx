@@ -1,12 +1,38 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2, DollarSign, Pencil, Check, X } from "lucide-react";
+import {
+  DollarSign,
+  Plus,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  LogOut,
+  UserPlus,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { logActivity } from "@/lib/purity-activity";
+import {
+  createSwapUser,
+  deleteSwapUser,
+  getCurrentSwapUser,
+  listSwapUsers,
+} from "@/lib/swap-users.functions";
 
-export type SwapEntry = {
+export const Route = createFileRoute("/swap/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Swap — Dashboard" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+  component: SwapDashboard,
+});
+
+type SwapEntry = {
   id: string;
   user_id: string;
   client_name: string;
@@ -18,30 +44,147 @@ export type SwapEntry = {
   created_at: string;
 };
 
+type SwapUser = {
+  id: string;
+  username: string;
+  email: string | null;
+  is_admin: boolean;
+  created_at: string;
+};
+
 const DEFAULT_RATE = 5.4;
 
 function daysBetween(start: string, end: string | null): number {
   const s = new Date(start);
   const e = end ? new Date(end) : new Date();
   const ms = e.getTime() - s.getTime();
-  const d = Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
-  return d;
+  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
-
 function dailyFee(usd: number, rate: number): number {
   return (Number(usd) * (Number(rate) / 100)) / 365;
 }
-
 function fmt(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function SwapTab() {
+function SwapDashboard() {
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [username, setUsername] = useState<string>("");
+  const [tab, setTab] = useState<"calculator" | "users">("calculator");
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate({ to: "/swap", replace: true });
+        return;
+      }
+      try {
+        const me = await getCurrentSwapUser();
+        if (cancelled) return;
+        if (!me.isSwapUser) {
+          await supabase.auth.signOut();
+          navigate({ to: "/swap", replace: true });
+          return;
+        }
+        setIsAdmin(me.isAdmin);
+        setUsername(me.username ?? "");
+        setReady(true);
+      } catch {
+        navigate({ to: "/swap", replace: true });
+      }
+    };
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/swap", replace: true });
+  };
+
+  if (!ready) {
+    return (
+      <main className="min-h-screen bg-background text-foreground grid place-items-center">
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </main>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border/60 bg-card/60 sticky top-0 z-10">
+        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-md bg-primary/15 border border-primary/40 grid place-items-center">
+              <DollarSign className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Swap</p>
+              <p className="text-[11px] text-muted-foreground">
+                {username}
+                {isAdmin && " · admin"}
+              </p>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={signOut}>
+            <LogOut className="h-4 w-4 mr-1" /> Sign out
+          </Button>
+        </div>
+        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
+          <TabBtn active={tab === "calculator"} onClick={() => setTab("calculator")}>
+            <DollarSign className="h-4 w-4 mr-1.5" /> Calculator
+          </TabBtn>
+          {isAdmin && (
+            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
+              <UserPlus className="h-4 w-4 mr-1.5" /> Users
+            </TabBtn>
+          )}
+        </nav>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
+        {tab === "calculator" && <CalculatorTab />}
+        {tab === "users" && isAdmin && <UsersTab />}
+      </main>
+    </div>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+        active
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CalculatorTab() {
   const [entries, setEntries] = useState<SwapEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
-  // form state
+  // form
   const [clientName, setClientName] = useState("");
   const [usd, setUsd] = useState("");
   const [rate, setRate] = useState(String(DEFAULT_RATE));
@@ -49,11 +192,11 @@ export function SwapTab() {
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
 
-  // edit state
+  // edit
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editEnd, setEditEnd] = useState("");
-  const [editRate, setEditRate] = useState("");
   const [editUsd, setEditUsd] = useState("");
+  const [editRate, setEditRate] = useState("");
+  const [editEnd, setEditEnd] = useState("");
 
   // quick calculator
   const [calcUsd, setCalcUsd] = useState("");
@@ -62,11 +205,11 @@ export function SwapTab() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("purity_swaps")
+    const { data } = await supabase
+      .from("swap_entries")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error && data) setEntries(data as SwapEntry[]);
+    setEntries((data as SwapEntry[]) ?? []);
     setLoading(false);
   }
 
@@ -82,7 +225,7 @@ export function SwapTab() {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) return;
-    const { error } = await supabase.from("purity_swaps").insert({
+    const { error } = await supabase.from("swap_entries").insert({
       user_id: uid,
       client_name: clientName.trim(),
       usd_amount: usdNum,
@@ -92,11 +235,6 @@ export function SwapTab() {
       notes: notes.trim() || null,
     });
     if (!error) {
-      await logActivity("swap_created", "swap", {
-        client: clientName.trim(),
-        usd: usdNum,
-        rate: rateNum,
-      });
       setClientName("");
       setUsd("");
       setRate(String(DEFAULT_RATE));
@@ -109,41 +247,27 @@ export function SwapTab() {
 
   async function remove(id: string, name: string) {
     if (!confirm(`Delete swap entry for ${name}?`)) return;
-    const { error } = await supabase.from("purity_swaps").delete().eq("id", id);
-    if (!error) {
-      await logActivity("swap_deleted", "swap", { client: name }, id);
-      load();
-    }
+    await supabase.from("swap_entries").delete().eq("id", id);
+    load();
   }
 
   function startEdit(en: SwapEntry) {
     setEditingId(en.id);
-    setEditEnd(en.end_date ?? "");
-    setEditRate(String(en.annual_rate));
     setEditUsd(String(en.usd_amount));
+    setEditRate(String(en.annual_rate));
+    setEditEnd(en.end_date ?? "");
   }
 
   async function saveEdit(id: string) {
     const usdNum = parseFloat(editUsd);
     const rateNum = parseFloat(editRate);
     if (isNaN(usdNum) || isNaN(rateNum)) return;
-    const { error } = await supabase
-      .from("purity_swaps")
-      .update({
-        usd_amount: usdNum,
-        annual_rate: rateNum,
-        end_date: editEnd || null,
-      })
+    await supabase
+      .from("swap_entries")
+      .update({ usd_amount: usdNum, annual_rate: rateNum, end_date: editEnd || null })
       .eq("id", id);
-    if (!error) {
-      await logActivity("swap_updated", "swap", {
-        usd: usdNum,
-        rate: rateNum,
-        end_date: editEnd || null,
-      }, id);
-      setEditingId(null);
-      load();
-    }
+    setEditingId(null);
+    load();
   }
 
   const calc = useMemo(() => {
@@ -167,7 +291,6 @@ export function SwapTab() {
 
   return (
     <div className="space-y-5">
-      {/* Quick calculator */}
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-primary" /> Quick swap calculator
@@ -212,9 +335,11 @@ export function SwapTab() {
             <div className="font-semibold">${fmt(calc.total)}</div>
           </div>
         </div>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Formula: USD × rate%/yr ÷ 365 × days
+        </p>
       </section>
 
-      {/* Saved entries header */}
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -393,9 +518,7 @@ export function SwapTab() {
                   )}
 
                   {en.notes && (
-                    <div className="text-[11px] text-muted-foreground mt-2">
-                      {en.notes}
-                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-2">{en.notes}</div>
                   )}
                 </li>
               );
@@ -407,25 +530,164 @@ export function SwapTab() {
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
+function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div
       className={`rounded-md px-2 py-1.5 ${
         accent ? "bg-primary/10 text-primary" : "bg-muted/40"
       }`}
     >
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
+  );
+}
+
+function UsersTab() {
+  const [users, setUsers] = useState<SwapUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [makeAdmin, setMakeAdmin] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await listSwapUsers();
+      setUsers(data as SwapUser[]);
+      const { data: auth } = await supabase.auth.getUser();
+      setCurrentUserId(auth.user?.id ?? "");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load users.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function add(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      await createSwapUser({
+        data: { username, password, email, is_admin: makeAdmin },
+      });
+      setUsername("");
+      setPassword("");
+      setEmail("");
+      setMakeAdmin(false);
+      setShowForm(false);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create user.");
+    }
+  }
+
+  async function remove(id: string, name: string) {
+    if (!confirm(`Delete user ${name}?`)) return;
+    try {
+      await deleteSwapUser({ data: { id } });
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete user.");
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold">Swap users</h2>
+        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+          <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "Add user"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={add}
+          className="grid grid-cols-2 gap-2 mb-4 p-3 rounded-md bg-muted/30"
+        >
+          <div>
+            <Label className="text-xs">Username</Label>
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} required />
+          </div>
+          <div>
+            <Label className="text-xs">Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Email (optional)</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <label className="col-span-2 flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={makeAdmin}
+              onChange={(e) => setMakeAdmin(e.target.checked)}
+            />
+            Make admin
+          </label>
+          <div className="col-span-2">
+            <Button type="submit" className="w-full">
+              Create user
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {error && (
+        <p className="text-sm text-destructive mb-2" role="alert">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        <ul className="space-y-2">
+          {users.map((u) => (
+            <li
+              key={u.id}
+              className="flex items-center justify-between rounded-md border border-border/60 p-3 bg-background"
+            >
+              <div className="min-w-0">
+                <div className="font-medium flex items-center gap-2">
+                  {u.username}
+                  {u.is_admin && (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      <ShieldCheck className="h-3 w-3" /> admin
+                    </span>
+                  )}
+                </div>
+                {u.email && (
+                  <div className="text-[11px] text-muted-foreground">{u.email}</div>
+                )}
+              </div>
+              {u.id !== currentUserId && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => remove(u.id, u.username)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
