@@ -232,9 +232,6 @@ function PurityDashboard() {
           <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
             <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
           </TabBtn>
-          <TabBtn active={tab === "swap"} onClick={() => setTab("swap")}>
-            <DollarSign className="h-4 w-4 mr-1.5" /> Swap
-          </TabBtn>
           {isAdmin && (
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
               <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
