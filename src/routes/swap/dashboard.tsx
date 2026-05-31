@@ -10,6 +10,11 @@ import {
   LogOut,
   UserPlus,
   ShieldCheck,
+  Home,
+  Users as UsersIcon,
+  ScrollText,
+  UserCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +26,16 @@ import {
   getCurrentSwapUser,
   listSwapUsers,
 } from "@/lib/swap-users.functions";
+import {
+  computeSwapFeesNow,
+  createSwapClient,
+  deleteSwapClient,
+  listSwapActivityLog,
+  listSwapClients,
+  listTodaySwapFees,
+  updateSwapClient,
+} from "@/lib/swap-clients.functions";
+import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 
 export const Route = createFileRoute("/swap/dashboard")({
   head: () => ({
@@ -32,18 +47,6 @@ export const Route = createFileRoute("/swap/dashboard")({
   component: SwapDashboard,
 });
 
-type SwapEntry = {
-  id: string;
-  user_id: string;
-  client_name: string;
-  usd_amount: number;
-  annual_rate: number;
-  start_date: string;
-  end_date: string | null;
-  notes: string | null;
-  created_at: string;
-};
-
 type SwapUser = {
   id: string;
   username: string;
@@ -52,27 +55,41 @@ type SwapUser = {
   created_at: string;
 };
 
-const DEFAULT_RATE = 5.4;
+type SwapClient = {
+  id: string;
+  code: string;
+  usd_balance: number;
+  annual_rate: number;
+  notes: string | null;
+  created_at: string;
+};
 
-function daysBetween(start: string, end: string | null): number {
-  const s = new Date(start);
-  const e = end ? new Date(end) : new Date();
-  const ms = e.getTime() - s.getTime();
-  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+type ActivityRow = {
+  id: string;
+  user_id: string;
+  username: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  details: unknown;
+  created_at: string;
+};
+
+function fmt(n: number, d = 2): string {
+  return Number(n).toLocaleString(undefined, {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  });
 }
-function dailyFee(usd: number, rate: number): number {
-  return (Number(usd) * (Number(rate) / 100)) / 365;
-}
-function fmt(n: number): string {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+
+type Tab = "home" | "clients" | "profile" | "users" | "logs";
 
 function SwapDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
-  const [tab, setTab] = useState<"calculator" | "users">("calculator");
+  const [tab, setTab] = useState<Tab>("home");
 
   useEffect(() => {
     let cancelled = false;
@@ -136,21 +153,35 @@ function SwapDashboard() {
             <LogOut className="h-4 w-4 mr-1" /> Sign out
           </Button>
         </div>
-        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
-          <TabBtn active={tab === "calculator"} onClick={() => setTab("calculator")}>
-            <DollarSign className="h-4 w-4 mr-1.5" /> Calculator
+        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm overflow-x-auto">
+          <TabBtn active={tab === "home"} onClick={() => setTab("home")}>
+            <Home className="h-4 w-4 mr-1.5" /> Home
+          </TabBtn>
+          <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
+            <UsersIcon className="h-4 w-4 mr-1.5" /> Clients
+          </TabBtn>
+          <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
+            <UserCircle className="h-4 w-4 mr-1.5" /> Profile
           </TabBtn>
           {isAdmin && (
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
               <UserPlus className="h-4 w-4 mr-1.5" /> Users
             </TabBtn>
           )}
+          {isAdmin && (
+            <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
+              <ScrollText className="h-4 w-4 mr-1.5" /> Logs
+            </TabBtn>
+          )}
         </nav>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
-        {tab === "calculator" && <CalculatorTab />}
+        {tab === "home" && <HomeTab isAdmin={isAdmin} />}
+        {tab === "clients" && <ClientsTab />}
+        {tab === "profile" && <ProfileTab username={username} />}
         {tab === "users" && isAdmin && <UsersTab />}
+        {tab === "logs" && isAdmin && <LogsTab />}
       </main>
     </div>
   );
@@ -168,7 +199,7 @@ function TabBtn({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+      className={`inline-flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
         active
           ? "bg-primary/10 text-primary font-medium"
           : "text-muted-foreground hover:text-foreground"
@@ -179,354 +210,365 @@ function TabBtn({
   );
 }
 
-function CalculatorTab() {
-  const [entries, setEntries] = useState<SwapEntry[]>([]);
+/* ----------------------------- HOME ----------------------------- */
+
+function HomeTab({ isAdmin }: { isAdmin: boolean }) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-
-  // form
-  const [clientName, setClientName] = useState("");
-  const [usd, setUsd] = useState("");
-  const [rate, setRate] = useState(String(DEFAULT_RATE));
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState("");
-  const [notes, setNotes] = useState("");
-
-  // edit
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editUsd, setEditUsd] = useState("");
-  const [editRate, setEditRate] = useState("");
-  const [editEnd, setEditEnd] = useState("");
-
-  // quick calculator
-  const [calcUsd, setCalcUsd] = useState("");
-  const [calcRate, setCalcRate] = useState(String(DEFAULT_RATE));
-  const [calcDays, setCalcDays] = useState("1");
+  const [running, setRunning] = useState(false);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from("swap_entries")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setEntries((data as SwapEntry[]) ?? []);
-    setLoading(false);
+    try {
+      const r = await listTodaySwapFees();
+      setData(r);
+    } finally {
+      setLoading(false);
+    }
   }
-
   useEffect(() => {
     load();
   }, []);
 
-  async function addEntry(e: FormEvent) {
+  async function runNow() {
+    setRunning(true);
+    try {
+      await computeSwapFeesNow();
+      await load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  const totalLive = useMemo(
+    () => data?.rows.reduce((s, r) => s + r.live_daily_fee, 0) ?? 0,
+    [data],
+  );
+  const totalToday = useMemo(
+    () => data?.rows.reduce((s, r) => s + (r.today_fee ?? 0), 0) ?? 0,
+    [data],
+  );
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {data?.lastXauPrice
+                ? `XAUUSD ${fmt(data.lastXauPrice)} · last snapshot ${data.lastXauDate}`
+                : "No gold price snapshot yet."}
+            </p>
+          </div>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={runNow} disabled={running}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${running ? "animate-spin" : ""}`} />
+              {running ? "Running…" : "Run now"}
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total today (snapshot)</div>
+            <div className="font-semibold">${fmt(totalToday)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total live (current balances)</div>
+            <div className="font-semibold">${fmt(totalLive)}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Per-client daily fees</h3>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : !data || data.rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No clients yet — add one in the Clients tab.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {data.rows.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-md border border-border/60 p-3 bg-background"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{r.code}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      ${fmt(r.usd_balance)} · {fmt(r.annual_rate)}%/yr
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">${fmt(r.live_daily_fee)}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {r.today_fee !== null
+                        ? `today snap $${fmt(r.today_fee)}`
+                        : r.last_fee !== null
+                          ? `last ${r.last_fee_date} $${fmt(r.last_fee)}`
+                          : "no snapshot yet"}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Formula: USD balance × annual rate% ÷ 365. A nightly job (21:00 UTC) snapshots the
+          XAUUSD price and computes each client&apos;s daily fee.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/* ---------------------------- CLIENTS ---------------------------- */
+
+function ClientsTab() {
+  const [clients, setClients] = useState<SwapClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [code, setCode] = useState("");
+  const [balance, setBalance] = useState("");
+  const [rate, setRate] = useState("5.4");
+  const [notes, setNotes] = useState("");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editBalance, setEditBalance] = useState("");
+  const [editRate, setEditRate] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await listSwapClients();
+      setClients(data as SwapClient[]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function add(e: FormEvent) {
     e.preventDefault();
-    const usdNum = parseFloat(usd);
-    const rateNum = parseFloat(rate);
-    if (!clientName.trim() || isNaN(usdNum) || usdNum <= 0 || isNaN(rateNum)) return;
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user?.id;
-    if (!uid) return;
-    const { error } = await supabase.from("swap_entries").insert({
-      user_id: uid,
-      client_name: clientName.trim(),
-      usd_amount: usdNum,
-      annual_rate: rateNum,
-      start_date: startDate,
-      end_date: endDate || null,
-      notes: notes.trim() || null,
-    });
-    if (!error) {
-      setClientName("");
-      setUsd("");
-      setRate(String(DEFAULT_RATE));
-      setEndDate("");
+    setError(null);
+    try {
+      await createSwapClient({
+        data: {
+          code: code.trim(),
+          usd_balance: parseFloat(balance) || 0,
+          annual_rate: parseFloat(rate) || 5.4,
+          notes: notes.trim() || null,
+        },
+      });
+      setCode("");
+      setBalance("");
+      setRate("5.4");
       setNotes("");
       setShowForm(false);
       load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create.");
     }
   }
 
-  async function remove(id: string, name: string) {
-    if (!confirm(`Delete swap entry for ${name}?`)) return;
-    await supabase.from("swap_entries").delete().eq("id", id);
-    load();
-  }
-
-  function startEdit(en: SwapEntry) {
-    setEditingId(en.id);
-    setEditUsd(String(en.usd_amount));
-    setEditRate(String(en.annual_rate));
-    setEditEnd(en.end_date ?? "");
+  function startEdit(c: SwapClient) {
+    setEditingId(c.id);
+    setEditCode(c.code);
+    setEditBalance(String(c.usd_balance));
+    setEditRate(String(c.annual_rate));
   }
 
   async function saveEdit(id: string) {
-    const usdNum = parseFloat(editUsd);
-    const rateNum = parseFloat(editRate);
-    if (isNaN(usdNum) || isNaN(rateNum)) return;
-    await supabase
-      .from("swap_entries")
-      .update({ usd_amount: usdNum, annual_rate: rateNum, end_date: editEnd || null })
-      .eq("id", id);
-    setEditingId(null);
-    load();
+    try {
+      await updateSwapClient({
+        data: {
+          id,
+          code: editCode.trim(),
+          usd_balance: parseFloat(editBalance) || 0,
+          annual_rate: parseFloat(editRate) || 5.4,
+        },
+      });
+      setEditingId(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save.");
+    }
   }
 
-  const calc = useMemo(() => {
-    const u = parseFloat(calcUsd) || 0;
-    const r = parseFloat(calcRate) || 0;
-    const d = parseInt(calcDays) || 0;
-    const daily = dailyFee(u, r);
-    return { daily, total: daily * d };
-  }, [calcUsd, calcRate, calcDays]);
-
-  const totals = useMemo(() => {
-    let totalUsd = 0;
-    let totalFee = 0;
-    for (const e of entries) {
-      const days = daysBetween(e.start_date, e.end_date);
-      totalUsd += Number(e.usd_amount);
-      totalFee += dailyFee(Number(e.usd_amount), Number(e.annual_rate)) * days;
+  async function remove(id: string, codeStr: string) {
+    if (!confirm(`Delete client ${codeStr}?`)) return;
+    try {
+      await deleteSwapClient({ data: { id } });
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete.");
     }
-    return { totalUsd, totalFee };
-  }, [entries]);
+  }
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-xl border border-border/60 bg-card p-4">
-        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" /> Quick swap calculator
-        </h2>
-        <div className="grid grid-cols-3 gap-2">
+    <section className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold">Clients</h2>
+        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+          <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "New client"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={add} className="grid grid-cols-2 gap-2 mb-4 p-3 rounded-md bg-muted/30">
+          <div className="col-span-2">
+            <Label className="text-xs">Client code</Label>
+            <Input value={code} onChange={(e) => setCode(e.target.value)} required />
+          </div>
           <div>
-            <Label className="text-xs">USD</Label>
+            <Label className="text-xs">Current USD balance</Label>
             <Input
               type="number"
               inputMode="decimal"
-              value={calcUsd}
-              onChange={(e) => setCalcUsd(e.target.value)}
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
               placeholder="0.00"
+              required
             />
           </div>
           <div>
-            <Label className="text-xs">Rate %/yr</Label>
+            <Label className="text-xs">Annual rate %</Label>
             <Input
               type="number"
               inputMode="decimal"
-              value={calcRate}
-              onChange={(e) => setCalcRate(e.target.value)}
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
             />
           </div>
-          <div>
-            <Label className="text-xs">Days</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={calcDays}
-              onChange={(e) => setCalcDays(e.target.value)}
-            />
+          <div className="col-span-2">
+            <Label className="text-xs">Notes</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-md bg-muted/40 px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">Daily fee</div>
-            <div className="font-semibold">${fmt(calc.daily)}</div>
+          <div className="col-span-2">
+            <Button type="submit" className="w-full">
+              Save client
+            </Button>
           </div>
-          <div className="rounded-md bg-muted/40 px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">Total fee</div>
-            <div className="font-semibold">${fmt(calc.total)}</div>
-          </div>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          Formula: USD × rate%/yr ÷ 365 × days
+        </form>
+      )}
+
+      {error && (
+        <p className="text-sm text-destructive mb-2" role="alert">
+          {error}
         </p>
-      </section>
+      )}
 
-      <section className="rounded-xl border border-border/60 bg-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-sm font-semibold">Saved swap entries</h2>
-            <p className="text-[11px] text-muted-foreground">
-              {entries.length} entries · Total USD ${fmt(totals.totalUsd)} · Total fees $
-              {fmt(totals.totalFee)}
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-            <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "New"}
-          </Button>
-        </div>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : clients.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No clients yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {clients.map((c) => {
+            const isEditing = editingId === c.id;
+            return (
+              <li
+                key={c.id}
+                className="rounded-md border border-border/60 p-3 bg-background"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  {isEditing ? (
+                    <Input
+                      value={editCode}
+                      onChange={(e) => setEditCode(e.target.value)}
+                      className="max-w-[160px]"
+                    />
+                  ) : (
+                    <div className="font-medium">{c.code}</div>
+                  )}
+                  <div className="flex gap-1">
+                    {isEditing ? (
+                      <>
+                        <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setEditingId(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => remove(c.id, c.code)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-        {showForm && (
-          <form
-            onSubmit={addEntry}
-            className="grid grid-cols-2 gap-2 mb-4 p-3 rounded-md bg-muted/30"
-          >
-            <div className="col-span-2">
-              <Label className="text-xs">Client name</Label>
-              <Input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Client"
-                required
-              />
-            </div>
-            <div>
-              <Label className="text-xs">USD retrieved</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={usd}
-                onChange={(e) => setUsd(e.target.value)}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Annual rate %</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Start date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label className="text-xs">End date (optional)</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Notes</Label>
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
-            <div className="col-span-2">
-              <Button type="submit" className="w-full">
-                Save entry
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No swap entries yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {entries.map((en) => {
-              const days = daysBetween(en.start_date, en.end_date);
-              const daily = dailyFee(Number(en.usd_amount), Number(en.annual_rate));
-              const total = daily * days;
-              const isEditing = editingId === en.id;
-              return (
-                <li
-                  key={en.id}
-                  className="rounded-md border border-border/60 p-3 bg-background"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{en.client_name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {en.start_date} → {en.end_date ?? "today"} · {days} day
-                        {days !== 1 ? "s" : ""}
-                      </div>
+                {isEditing ? (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <Label className="text-xs">USD balance</Label>
+                      <Input
+                        type="number"
+                        value={editBalance}
+                        onChange={(e) => setEditBalance(e.target.value)}
+                      />
                     </div>
-                    <div className="flex gap-1">
-                      {isEditing ? (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => saveEdit(en.id)}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditingId(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => startEdit(en)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => remove(en.id, en.client_name)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </>
-                      )}
+                    <div>
+                      <Label className="text-xs">Rate %</Label>
+                      <Input
+                        type="number"
+                        value={editRate}
+                        onChange={(e) => setEditRate(e.target.value)}
+                      />
                     </div>
                   </div>
-
-                  {isEditing ? (
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      <div>
-                        <Label className="text-xs">USD</Label>
-                        <Input
-                          type="number"
-                          value={editUsd}
-                          onChange={(e) => setEditUsd(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Rate %</Label>
-                        <Input
-                          type="number"
-                          value={editRate}
-                          onChange={(e) => setEditRate(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">End date</Label>
-                        <Input
-                          type="date"
-                          value={editEnd}
-                          onChange={(e) => setEditEnd(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2 mt-2 text-xs">
-                      <Stat label="USD" value={`$${fmt(Number(en.usd_amount))}`} />
-                      <Stat label="Rate" value={`${Number(en.annual_rate).toFixed(2)}%`} />
-                      <Stat label="Daily" value={`$${fmt(daily)}`} />
-                      <Stat label="Total" value={`$${fmt(total)}`} accent />
-                    </div>
-                  )}
-
-                  {en.notes && (
-                    <div className="text-[11px] text-muted-foreground mt-2">{en.notes}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-    </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                    <Stat label="USD balance" value={`$${fmt(Number(c.usd_balance))}`} />
+                    <Stat label="Rate" value={`${fmt(Number(c.annual_rate))}%`} />
+                    <Stat
+                      label="Daily fee"
+                      value={`$${fmt(
+                        (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365,
+                      )}`}
+                      accent
+                    />
+                  </div>
+                )}
+                {c.notes && (
+                  <div className="text-[11px] text-muted-foreground mt-2">{c.notes}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -542,6 +584,74 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
     </div>
   );
 }
+
+/* ---------------------------- PROFILE ---------------------------- */
+
+function ProfileTab({ username }: { username: string }) {
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    setErr(null);
+    if (pwd.length < 6) return setErr("Password must be at least 6 characters.");
+    if (pwd !== pwd2) return setErr("Passwords don't match.");
+    setSaving(true);
+    try {
+      await updateSwapOwnPassword({ data: { password: pwd } });
+      setPwd("");
+      setPwd2("");
+      setMsg("Password updated.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
+      <div>
+        <h2 className="text-sm font-semibold">Profile</h2>
+        <p className="text-[11px] text-muted-foreground">
+          Signed in as <span className="font-mono">{username}</span>
+        </p>
+      </div>
+
+      <form onSubmit={save} className="space-y-3 max-w-sm">
+        <div>
+          <Label className="text-xs">New password</Label>
+          <Input
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            placeholder="••••••••"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Confirm new password</Label>
+          <Input
+            type="password"
+            value={pwd2}
+            onChange={(e) => setPwd2(e.target.value)}
+            placeholder="••••••••"
+          />
+        </div>
+        {err && <p className="text-sm text-destructive">{err}</p>}
+        {msg && <p className="text-sm text-primary">{msg}</p>}
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Change password"}
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+/* ----------------------------- USERS ----------------------------- */
 
 function UsersTab() {
   const [users, setUsers] = useState<SwapUser[]>([]);
@@ -683,6 +793,69 @@ function UsersTab() {
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------ LOGS ------------------------------ */
+
+function LogsTab() {
+  const [rows, setRows] = useState<ActivityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await listSwapActivityLog();
+      setRows(data as ActivityRow[]);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold">Activity log</h2>
+        <Button size="sm" variant="outline" onClick={load}>
+          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+        </Button>
+      </div>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No activity yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li
+              key={r.id}
+              className="rounded-md border border-border/60 p-3 bg-background text-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="font-medium">{r.username}</span>{" "}
+                  <span className="text-muted-foreground">{r.action}</span>
+                  {r.entity_type && (
+                    <span className="text-muted-foreground"> · {r.entity_type}</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  {new Date(r.created_at).toLocaleString()}
+                </div>
+              </div>
+              {r.details && (
+                <pre className="text-[11px] text-muted-foreground mt-1 whitespace-pre-wrap break-all">
+                  {JSON.stringify(r.details)}
+                </pre>
               )}
             </li>
           ))}
