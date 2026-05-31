@@ -852,11 +852,11 @@ function LogsTab() {
                   {new Date(r.created_at).toLocaleString()}
                 </div>
               </div>
-              {r.details && (
+              {r.details ? (
                 <pre className="text-[11px] text-muted-foreground mt-1 whitespace-pre-wrap break-all">
                   {JSON.stringify(r.details)}
                 </pre>
-              )}
+              ) : null}
             </li>
           ))}
         </ul>
