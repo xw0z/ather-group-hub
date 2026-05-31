@@ -149,42 +149,6 @@ export type Database = {
         }
         Relationships: []
       }
-      purity_swaps: {
-        Row: {
-          annual_rate: number
-          client_name: string
-          created_at: string
-          end_date: string | null
-          id: string
-          notes: string | null
-          start_date: string
-          usd_amount: number
-          user_id: string
-        }
-        Insert: {
-          annual_rate?: number
-          client_name: string
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          notes?: string | null
-          start_date?: string
-          usd_amount: number
-          user_id: string
-        }
-        Update: {
-          annual_rate?: number
-          client_name?: string
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          notes?: string | null
-          start_date?: string
-          usd_amount?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       purity_trips: {
         Row: {
           actual_purity: number | null
@@ -230,12 +194,72 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_entries: {
+        Row: {
+          annual_rate: number
+          client_name: string
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          start_date: string
+          usd_amount: number
+          user_id: string
+        }
+        Insert: {
+          annual_rate?: number
+          client_name: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string
+          usd_amount: number
+          user_id: string
+        }
+        Update: {
+          annual_rate?: number
+          client_name?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string
+          usd_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      swap_profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_admin: boolean
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          is_admin?: boolean
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_admin?: boolean
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_swap_user: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
