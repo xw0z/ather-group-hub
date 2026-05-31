@@ -266,6 +266,7 @@ function PurityDashboard() {
           <ClientsTab clients={clients} reload={loadClients} />
         )}
         {tab === "search" && <SearchTab clients={clients} trips={trips} />}
+        {tab === "swap" && <SwapTab />}
         {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
         {tab === "logs" && isAdmin && <LogsTab />}
         {tab === "profile" && <ProfileTab email={email} setEmail={setEmail} /> }
