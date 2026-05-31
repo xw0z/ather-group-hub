@@ -14,12 +14,14 @@ async function getUsername(userId: string): Promise<string> {
   return data?.username ?? "unknown";
 }
 
+type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
+
 async function logActivity(
   userId: string,
   action: string,
   entity_type: string | null,
   entity_id: string | null,
-  details: Record<string, unknown> | null,
+  details: Record<string, Json> | null,
 ) {
   const username = await getUsername(userId);
   await supabaseAdmin.from("swap_activity_log").insert({
@@ -28,7 +30,7 @@ async function logActivity(
     action,
     entity_type,
     entity_id,
-    details,
+    details: details as Json,
   });
 }
 
@@ -90,7 +92,12 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      code?: string;
+      usd_balance?: number;
+      annual_rate?: number;
+      notes?: string | null;
+    } = {};
     if (data.code !== undefined) patch.code = data.code.trim();
     if (data.usd_balance !== undefined) patch.usd_balance = data.usd_balance;
     if (data.annual_rate !== undefined) patch.annual_rate = data.annual_rate;
@@ -102,7 +109,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await logActivity(context.userId, "client_updated", "client", row.id, patch);
+    await logActivity(context.userId, "client_updated", "client", row.id, patch as Record<string, Json>);
     return row;
   });
 
