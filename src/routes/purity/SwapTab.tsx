@@ -111,7 +111,7 @@ export function SwapTab() {
     if (!confirm(`Delete swap entry for ${name}?`)) return;
     const { error } = await supabase.from("purity_swaps").delete().eq("id", id);
     if (!error) {
-      await logActivity("swap_deleted", "swap", id, { client: name });
+      await logActivity("swap_deleted", "swap", { client: name }, id);
       load();
     }
   }
