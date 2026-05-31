@@ -22,9 +22,7 @@ import {
   KeyRound,
   Link2,
   Languages,
-  DollarSign,
 } from "lucide-react";
-import { SwapTab } from "./SwapTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
