@@ -125,7 +125,7 @@ export const deleteSwapClient = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("swap_clients").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     await logActivity(context.userId, "client_deleted", "client", data.id, {
-      code: row?.code,
+      code: row?.code ?? null,
     });
     return { ok: true };
   });
