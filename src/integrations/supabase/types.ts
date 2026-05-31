@@ -194,6 +194,113 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      swap_clients: {
+        Row: {
+          annual_rate: number
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          updated_at: string
+          usd_balance: number
+        }
+        Insert: {
+          annual_rate?: number
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          usd_balance?: number
+        }
+        Update: {
+          annual_rate?: number
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          usd_balance?: number
+        }
+        Relationships: []
+      }
+      swap_daily_fees: {
+        Row: {
+          annual_rate: number
+          client_id: string
+          created_at: string
+          daily_fee: number
+          fee_date: string
+          id: string
+          usd_balance: number
+          xauusd_price: number | null
+        }
+        Insert: {
+          annual_rate: number
+          client_id: string
+          created_at?: string
+          daily_fee: number
+          fee_date: string
+          id?: string
+          usd_balance: number
+          xauusd_price?: number | null
+        }
+        Update: {
+          annual_rate?: number
+          client_id?: string
+          created_at?: string
+          daily_fee?: number
+          fee_date?: string
+          id?: string
+          usd_balance?: number
+          xauusd_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_daily_fees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "swap_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_entries: {
         Row: {
           annual_rate: number
