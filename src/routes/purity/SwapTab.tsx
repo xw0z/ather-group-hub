@@ -136,11 +136,11 @@ export function SwapTab() {
       })
       .eq("id", id);
     if (!error) {
-      await logActivity("swap_updated", "swap", id, {
+      await logActivity("swap_updated", "swap", {
         usd: usdNum,
         rate: rateNum,
         end_date: editEnd || null,
-      });
+      }, id);
       setEditingId(null);
       load();
     }
