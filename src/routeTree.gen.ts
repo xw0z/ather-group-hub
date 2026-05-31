@@ -18,6 +18,7 @@ import { Route as PurityIndexRouteImport } from './routes/purity/index'
 import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
 import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
+import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
 
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
@@ -64,6 +65,12 @@ const PurityTripsTripIdRoute = PurityTripsTripIdRouteImport.update({
   path: '/purity/trips/$tripId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSwapDailyFeesRoute =
+  ApiPublicHooksSwapDailyFeesRouteImport.update({
+    id: '/api/public/hooks/swap-daily-fees',
+    path: '/api/public/hooks/swap-daily-fees',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/purity': typeof PurityIndexRoute
   '/swap': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/purity/'
     | '/swap/'
     | '/purity/trips/$tripId'
+    | '/api/public/hooks/swap-daily-fees'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/purity'
     | '/swap'
     | '/purity/trips/$tripId'
+    | '/api/public/hooks/swap-daily-fees'
   id:
     | '__root__'
     | '/'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
     | '/purity/'
     | '/swap/'
     | '/purity/trips/$tripId'
+    | '/api/public/hooks/swap-daily-fees'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +158,7 @@ export interface RootRouteChildren {
   PurityIndexRoute: typeof PurityIndexRoute
   SwapIndexRoute: typeof SwapIndexRoute
   PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
+  ApiPublicHooksSwapDailyFeesRoute: typeof ApiPublicHooksSwapDailyFeesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurityTripsTripIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/swap-daily-fees': {
+      id: '/api/public/hooks/swap-daily-fees'
+      path: '/api/public/hooks/swap-daily-fees'
+      fullPath: '/api/public/hooks/swap-daily-fees'
+      preLoaderRoute: typeof ApiPublicHooksSwapDailyFeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +246,7 @@ const rootRouteChildren: RootRouteChildren = {
   PurityIndexRoute: PurityIndexRoute,
   SwapIndexRoute: SwapIndexRoute,
   PurityTripsTripIdRoute: PurityTripsTripIdRoute,
+  ApiPublicHooksSwapDailyFeesRoute: ApiPublicHooksSwapDailyFeesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
