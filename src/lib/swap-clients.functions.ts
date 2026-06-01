@@ -325,8 +325,14 @@ async function sendDailyWhatsAppStatements(
   if (!lovableKey || !twilioKey || !fromRaw || !toRaw) {
     return { sent: 0, failed: 0, skipped: "missing twilio/whatsapp env vars" };
   }
-  const from = fromRaw.startsWith("whatsapp:") ? fromRaw : `whatsapp:${fromRaw}`;
-  const to = toRaw.startsWith("whatsapp:") ? toRaw : `whatsapp:${toRaw}`;
+  // Strip spaces, dashes, parens from the raw number, keep leading +
+  const normalize = (raw: string) => {
+    const trimmed = raw.trim().replace(/^whatsapp:/i, "");
+    const cleaned = trimmed.replace(/[^\d+]/g, "");
+    return `whatsapp:${cleaned}`;
+  };
+  const from = normalize(fromRaw);
+  const to = normalize(toRaw);
 
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
