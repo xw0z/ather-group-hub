@@ -16,6 +16,14 @@ async function getUsername(userId: string): Promise<string> {
 
 type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
+// Forex/CFD swap rollover multipliers by weekday (UTC).
+// Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+// Wednesday charges 3 days to cover the weekend; Sat/Sun = 0.
+const SWAP_DAY_MULTIPLIERS = [0, 1, 1, 3, 1, 1, 0] as const;
+export function swapDayMultiplier(date: Date = new Date()): number {
+  return SWAP_DAY_MULTIPLIERS[date.getUTCDay()];
+}
+
 async function logActivity(
   userId: string,
   action: string,
