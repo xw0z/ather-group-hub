@@ -131,13 +131,15 @@ function TripDetailPage() {
   }
 
   const totalBarWeight = pieces.reduce((s, p) => s + Number(p.weight_grams), 0);
+  const fmtForPiece = (p: typeof pieces[number]) =>
+    (clients.find((c) => c.id === p.client_id)?.purity_format as "3" | "4" | undefined) ?? "3";
   const totalPure = pieces.reduce(
-    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
+    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity, fmtForPiece(p)),
     0,
   );
   const totalLoss = pieces.reduce(
     (s, p) =>
-      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity),
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity, fmtForPiece(p)),
     0,
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
