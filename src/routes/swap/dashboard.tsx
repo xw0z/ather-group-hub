@@ -182,6 +182,7 @@ function SwapDashboard() {
         {tab === "users" && isAdmin && <UsersTab />}
         {tab === "logs" && isAdmin && <LogsTab />}
       </main>
+      <SwapFooter />
     </div>
   );
 }
