@@ -1678,6 +1678,9 @@ function SupplierRow({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(client.name);
   const [notes, setNotes] = useState(client.notes ?? "");
+  const [purityFormat, setPurityFormat] = useState<PurityFormat>(
+    (client.purity_format as PurityFormat) ?? "3",
+  );
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -1689,12 +1692,14 @@ function SupplierRow({
         name: name.trim(),
         phone: null,
         notes: notes || null,
+        purity_format: purityFormat,
       })
       .eq("id", client.id);
     setSaving(false);
     if (!error) {
       await logActivity("update", "supplier", {
         name: name.trim(),
+        purity_format: purityFormat,
       }, client.id);
       setEditing(false);
       await onSaved();
@@ -1704,6 +1709,7 @@ function SupplierRow({
   function cancel() {
     setName(client.name);
     setNotes(client.notes ?? "");
+    setPurityFormat((client.purity_format as PurityFormat) ?? "3");
     setEditing(false);
   }
 
@@ -1718,6 +1724,31 @@ function SupplierRow({
           <div>
             <Label className="text-xs">Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Purity Format</Label>
+          <div className="flex gap-4 mt-1">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name={`edit-fmt-${client.id}`}
+                value="3"
+                checked={purityFormat === "3"}
+                onChange={() => setPurityFormat("3")}
+              />
+              3 digits (999)
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name={`edit-fmt-${client.id}`}
+                value="4"
+                checked={purityFormat === "4"}
+                onChange={() => setPurityFormat("4")}
+              />
+              4 digits / decimal (999.9)
+            </label>
           </div>
         </div>
         <div className="flex justify-end gap-2">
@@ -1735,7 +1766,18 @@ function SupplierRow({
   return (
     <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
       <div>
-        <div className="font-medium">{client.name}</div>
+        <div className="font-medium flex items-center gap-2">
+          {client.name}
+          <span
+            className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+              client.purity_format === "4"
+                ? "bg-sky-500/15 text-sky-600"
+                : "bg-amber-500/15 text-amber-600"
+            }`}
+          >
+            {client.purity_format === "4" ? "4-digit · 999.9" : "3-digit · 999"}
+          </span>
+        </div>
         {client.notes && (
           <div className="text-xs text-muted-foreground">
             {client.notes}
