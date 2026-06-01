@@ -60,6 +60,8 @@ type SwapClient = {
   code: string;
   usd_balance: number;
   annual_rate: number;
+  short_annual_rate: number;
+  position_type: "long" | "short";
   notes: string | null;
   created_at: string;
 };
