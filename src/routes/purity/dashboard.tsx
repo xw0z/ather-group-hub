@@ -47,11 +47,14 @@ export const Route = createFileRoute("/purity/dashboard")({
   component: PurityDashboard,
 });
 
+export type PurityFormat = "3" | "4";
+
 export type Client = {
   id: string;
   name: string;
   phone: string | null;
   notes: string | null;
+  purity_format: PurityFormat;
 };
 
 export type Trip = {
@@ -79,15 +82,49 @@ export type Piece = {
   created_at: string;
 };
 
-// Pure gold content of a bar (grams) using Bafleh (lab) purity
-export function pureGrams(weight: number, purity: number | null) {
-  if (purity == null) return 0;
-  return (Number(weight) * Number(purity)) / 1000;
+// Divisor to convert a stored purity number to a 0..1 fraction.
+// 3-digit format (e.g. 999)   -> /1000  -> 0.999
+// 4-digit format (e.g. 999.9) -> /10000 -> 0.9999
+export function purityDivisor(format: PurityFormat | null | undefined) {
+  return format === "4" ? 10000 : 1000;
 }
-// Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
-export function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+
+export function formatPurityLabel(format: PurityFormat | null | undefined) {
+  return format === "4" ? "4-digit (999.9)" : "3-digit (999)";
+}
+
+// Format a purity number for display in supplier's format
+export function formatPurityValue(
+  value: number | null,
+  format: PurityFormat | null | undefined,
+) {
+  if (value == null) return "—";
+  return format === "4"
+    ? Number(value).toFixed(1)
+    : String(Math.round(Number(value)));
+}
+
+// Pure gold (g) using bafleh purity, normalized by supplier format
+export function pureGrams(
+  weight: number,
+  purity: number | null,
+  format: PurityFormat | null | undefined = "3",
+) {
+  if (purity == null) return 0;
+  return Number(weight) * (Number(purity) / purityDivisor(format));
+}
+// Loss per bar (g) using normalized fractions for declared & bafleh
+export function lossGrams(
+  weight: number,
+  declared: number,
+  baflehPurity: number | null,
+  baflehFormat: PurityFormat | null | undefined = "3",
+  declaredFormat: PurityFormat = "3",
+) {
   if (baflehPurity == null) return 0;
-  return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
+  const declaredFrac = Number(declared) / purityDivisor(declaredFormat);
+  const baflehFrac = Number(baflehPurity) / purityDivisor(baflehFormat);
+  return Number(weight) * (declaredFrac - baflehFrac);
 }
 
 export function tripDisplayName(trip: Trip) {
