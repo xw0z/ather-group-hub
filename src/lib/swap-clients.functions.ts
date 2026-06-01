@@ -215,7 +215,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
 
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .select("id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate")
+      .select("id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, created_at")
       .eq("client_id", data.id)
       .order("fee_date", { ascending: false })
       .limit(365);
@@ -236,6 +236,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         daily_fee: Number(f.daily_fee),
         usd_balance: Number(f.usd_balance),
         annual_rate: Number(f.annual_rate),
+        created_at: f.created_at,
       })),
     };
   });
