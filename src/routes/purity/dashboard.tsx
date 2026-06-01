@@ -537,7 +537,13 @@ function TripsTab({
               </Button>
             </div>
             <div className="space-y-2">
-              {bars.map((b, i) => (
+              {bars.map((b, i) => {
+                const supplierFmt: PurityFormat =
+                  (clients.find((c) => c.id === b.clientId)?.purity_format as PurityFormat | undefined) ?? "3";
+                const stepAttr = supplierFmt === "4" ? "0.1" : "1";
+                const maxAttr = supplierFmt === "4" ? "999.9" : "999";
+                const placeholderInit = supplierFmt === "4" ? "999.9" : "999";
+                return (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
                     {i === 0 && <Label className="text-xs">{t("trips.weight")}</Label>}
@@ -553,19 +559,23 @@ function TripsTab({
                     {i === 0 && <Label className="text-xs">{t("trips.initial")}</Label>}
                     <Input
                       type="number"
-                      step="0.01"
+                      step={stepAttr}
+                      min="0"
+                      max={maxAttr}
                       value={b.initialPurity}
                       onChange={(e) =>
                         updateBar(i, { initialPurity: e.target.value })
                       }
-                      placeholder="999"
+                      placeholder={placeholderInit}
                     />
                   </div>
                   <div className="col-span-2">
                     {i === 0 && <Label className="text-xs">{t("trips.bafleh")}</Label>}
                     <Input
                       type="number"
-                      step="0.01"
+                      step={stepAttr}
+                      min="0"
+                      max={maxAttr}
                       value={b.baflehPurity}
                       onChange={(e) =>
                         updateBar(i, { baflehPurity: e.target.value })
@@ -591,10 +601,15 @@ function TripsTab({
                       <option value="" className="bg-popover text-popover-foreground">—</option>
                       {clients.map((c) => (
                         <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                          {c.name}{c.notes ? ` (${c.notes})` : ""}
+                          {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
                         </option>
                       ))}
                     </select>
+                    {b.clientId && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatPurityLabel(supplierFmt)}
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-1">
                     <Button
