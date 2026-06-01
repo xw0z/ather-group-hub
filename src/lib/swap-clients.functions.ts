@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
+const positionTypeRule = z.enum(["long", "short"]);
 
 async function getUsername(userId: string): Promise<string> {
   const { data } = await supabaseAdmin
@@ -22,6 +23,17 @@ type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 const SWAP_DAY_MULTIPLIERS = [0, 1, 1, 3, 1, 1, 0] as const;
 export function swapDayMultiplier(date: Date = new Date()): number {
   return SWAP_DAY_MULTIPLIERS[date.getUTCDay()];
+}
+
+// Effective annual rate for a client given their position type.
+function effectiveAnnualRate(c: {
+  position_type: string | null;
+  annual_rate: number | string;
+  short_annual_rate: number | string | null;
+}): number {
+  return (c.position_type ?? "long") === "short"
+    ? Number(c.short_annual_rate ?? 0)
+    : Number(c.annual_rate);
 }
 
 async function logActivity(
@@ -47,7 +59,9 @@ export const listSwapClients = createServerFn({ method: "GET" })
   .handler(async () => {
     const { data, error } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate, notes, created_by, created_at, updated_at")
+      .select(
+        "id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes, created_by, created_at, updated_at",
+      )
       .order("code", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -61,6 +75,8 @@ export const createSwapClient = createServerFn({ method: "POST" })
         code: codeRule,
         usd_balance: z.number().finite().min(0).max(1e12),
         annual_rate: z.number().finite().min(0).max(100).optional(),
+        short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
       .parse(d),
@@ -72,6 +88,8 @@ export const createSwapClient = createServerFn({ method: "POST" })
         code: data.code.trim(),
         usd_balance: data.usd_balance,
         annual_rate: data.annual_rate ?? 5.4,
+        short_annual_rate: data.short_annual_rate ?? 2.5,
+        position_type: data.position_type ?? "long",
         notes: data.notes ?? null,
         created_by: context.userId,
       })
@@ -82,6 +100,8 @@ export const createSwapClient = createServerFn({ method: "POST" })
       code: row.code,
       usd_balance: row.usd_balance,
       annual_rate: row.annual_rate,
+      short_annual_rate: row.short_annual_rate,
+      position_type: row.position_type,
     });
     return row;
   });
@@ -95,6 +115,8 @@ export const updateSwapClient = createServerFn({ method: "POST" })
         code: codeRule.optional(),
         usd_balance: z.number().finite().min(0).max(1e12).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
+        short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
       .parse(d),
@@ -104,11 +126,15 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       code?: string;
       usd_balance?: number;
       annual_rate?: number;
+      short_annual_rate?: number;
+      position_type?: "long" | "short";
       notes?: string | null;
     } = {};
     if (data.code !== undefined) patch.code = data.code.trim();
     if (data.usd_balance !== undefined) patch.usd_balance = data.usd_balance;
     if (data.annual_rate !== undefined) patch.annual_rate = data.annual_rate;
+    if (data.short_annual_rate !== undefined) patch.short_annual_rate = data.short_annual_rate;
+    if (data.position_type !== undefined) patch.position_type = data.position_type;
     if (data.notes !== undefined) patch.notes = data.notes;
     const { data: row, error } = await supabaseAdmin
       .from("swap_clients")
@@ -154,16 +180,15 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     const today = new Date().toISOString().slice(0, 10);
-    // most recent fee row per client (today preferred, else latest)
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate, notes")
+      .select("id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes")
       .order("code");
     if (cErr) throw new Error(cErr.message);
 
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .select("client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate")
+      .select("client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type")
       .order("fee_date", { ascending: false });
     if (fErr) throw new Error(fErr.message);
 
@@ -194,14 +219,19 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
       rows: (clients ?? []).map((c) => {
         const t = todayByClient.get(c.id);
         const l = latestByClient.get(c.id);
-        const baseDaily = (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365;
+        const positionType = (c.position_type ?? "long") as "long" | "short";
+        const effRate = effectiveAnnualRate(c);
+        const baseDaily = (Number(c.usd_balance) * effRate) / 100 / 365;
         const liveDaily = baseDaily * todayMultiplier;
         return {
           id: c.id,
           code: c.code,
           notes: c.notes ?? null,
+          position_type: positionType,
           usd_balance: Number(c.usd_balance),
           annual_rate: Number(c.annual_rate),
+          short_annual_rate: Number(c.short_annual_rate ?? 0),
+          effective_annual_rate: effRate,
           today_fee: t ? Number(t.daily_fee) : null,
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
           last_fee: l ? Number(l.daily_fee) : null,
@@ -219,7 +249,9 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { data: client, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate, notes, created_at")
+      .select(
+        "id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes, created_at",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -227,7 +259,9 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
 
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .select("id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, created_at")
+      .select(
+        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at",
+      )
       .eq("client_id", data.id)
       .order("fee_date", { ascending: false })
       .limit(365);
@@ -238,8 +272,10 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         id: client.id,
         code: client.code,
         notes: client.notes ?? null,
+        position_type: (client.position_type ?? "long") as "long" | "short",
         usd_balance: Number(client.usd_balance),
         annual_rate: Number(client.annual_rate),
+        short_annual_rate: Number(client.short_annual_rate ?? 0),
       },
       fees: (fees ?? []).map((f) => ({
         id: f.id,
@@ -248,6 +284,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         daily_fee: Number(f.daily_fee),
         usd_balance: Number(f.usd_balance),
         annual_rate: Number(f.annual_rate),
+        position_type: (f.position_type ?? "long") as "long" | "short",
         created_at: f.created_at,
       })),
     };
@@ -286,21 +323,25 @@ export async function runDailyFeeJob() {
   const today = new Date().toISOString().slice(0, 10);
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
-    .select("id, usd_balance, annual_rate");
+    .select("id, usd_balance, annual_rate, short_annual_rate, position_type");
   if (error) throw new Error(error.message);
 
   const nowIso = new Date().toISOString();
   const multiplier = swapDayMultiplier(new Date());
-  const rows = (clients ?? []).map((c) => ({
-    client_id: c.id,
-    fee_date: today,
-    xauusd_price: xauusd,
-    usd_balance: Number(c.usd_balance),
-    annual_rate: Number(c.annual_rate),
-    daily_fee:
-      ((Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365) * multiplier,
-    created_at: nowIso,
-  }));
+  const rows = (clients ?? []).map((c) => {
+    const positionType = (c.position_type ?? "long") as "long" | "short";
+    const effRate = effectiveAnnualRate(c);
+    return {
+      client_id: c.id,
+      fee_date: today,
+      xauusd_price: xauusd,
+      usd_balance: Number(c.usd_balance),
+      annual_rate: effRate,
+      position_type: positionType,
+      daily_fee: ((Number(c.usd_balance) * effRate) / 100 / 365) * multiplier,
+      created_at: nowIso,
+    };
+  });
 
   if (rows.length > 0) {
     const { error: upErr } = await supabaseAdmin
@@ -309,7 +350,6 @@ export async function runDailyFeeJob() {
     if (upErr) throw new Error(upErr.message);
   }
 
-  // Send one WhatsApp message per client to the admin number (best-effort).
   let whatsapp: { sent: number; failed: number; skipped?: string } = { sent: 0, failed: 0 };
   try {
     whatsapp = await sendDailyWhatsAppStatements(today);
@@ -341,7 +381,6 @@ async function sendDailyWhatsAppStatements(
   if (!lovableKey || !twilioKey || !fromRaw || !toRaw) {
     return { sent: 0, failed: 0, skipped: "missing twilio/whatsapp env vars" };
   }
-  // Strip spaces, dashes, parens from the raw number, keep leading +
   const normalize = (raw: string) => {
     const trimmed = raw.trim().replace(/^whatsapp:/i, "");
     const cleaned = trimmed.replace(/[^\d+]/g, "");
@@ -358,7 +397,7 @@ async function sendDailyWhatsAppStatements(
 
   const { data: fees, error: fErr } = await supabaseAdmin
     .from("swap_daily_fees")
-    .select("client_id, xauusd_price, daily_fee, usd_balance, annual_rate, created_at")
+    .select("client_id, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at")
     .eq("fee_date", feeDate);
   if (fErr) throw new Error(fErr.message);
   const byClient = new Map<string, (typeof fees)[number]>();
@@ -372,15 +411,21 @@ async function sendDailyWhatsAppStatements(
     if (!f) continue;
     const xau =
       f.xauusd_price !== null && f.xauusd_price !== undefined ? Number(f.xauusd_price) : null;
+    const isShort = (f.position_type ?? "long") === "short";
+    const amountLabel = isShort ? "Swap benefit credited" : "Swap fee";
+    const amountFmt = isShort
+      ? `*+$${fmtNum(Number(f.daily_fee))}*`
+      : `*-$${fmtNum(Number(f.daily_fee))}*`;
     const body =
       `Swap Statement — ${feeDate}\n` +
       `Client: ${c.code}\n` +
+      `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
       `Snapshot: ${snapshot}` +
       (xau !== null ? ` · XAUUSD $${fmtNum(xau)}` : "") +
       `\n\n` +
       `Balance: $${fmtNum(Number(f.usd_balance))}\n` +
       `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
-      `Swap fee: *-$${fmtNum(Number(f.daily_fee))}*`;
+      `${amountLabel}: ${amountFmt}`;
 
     try {
       const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {

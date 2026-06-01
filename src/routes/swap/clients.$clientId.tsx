@@ -51,16 +51,22 @@ function buildMessage(
   dailyFee: number,
   rate: number,
   xauusd: number | null,
+  positionType: "long" | "short",
 ): string {
+  const isShort = positionType === "short";
+  const amountLine = isShort
+    ? `Swap benefit credited: *+$${fmt(dailyFee)}*`
+    : `Swap fee: *-$${fmt(dailyFee)}*`;
   return (
     `Swap Statement — ${feeDate}\n` +
     `Client: ${code}\n` +
+    `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
     `Snapshot: ${fmtSnapshot(snapshotAt)}` +
     (xauusd !== null ? ` · XAUUSD $${fmt(xauusd)}` : "") +
     `\n\n` +
     `Balance: $${fmt(balance)}\n` +
     `Rate: ${fmt(rate)}% p.a.\n` +
-    `Swap fee: *-$${fmt(dailyFee)}*`
+    amountLine
   );
 }
 
@@ -161,14 +167,27 @@ function SwapClientDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <div className="text-right min-w-0">
-            <p className="text-sm font-semibold truncate">
-              {c.code}
+            <p className="text-sm font-semibold truncate flex items-center gap-2 justify-end">
+              <span>{c.code}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded ${
+                  c.position_type === "short"
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : "bg-primary/10 text-primary"
+                }`}
+              >
+                {c.position_type === "short" ? "Short / Sell" : "Long / Buy"}
+              </span>
               {c.notes ? (
                 <span className="text-muted-foreground font-normal"> ({c.notes})</span>
               ) : null}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              ${fmt(c.usd_balance)} · {fmt(c.annual_rate)}%/yr
+              ${fmt(c.usd_balance)} ·{" "}
+              {fmt(
+                c.position_type === "short" ? c.short_annual_rate : c.annual_rate,
+              )}
+              %/yr {c.position_type === "short" ? "(benefit)" : "(fee)"}
             </p>
           </div>
         </div>
@@ -176,7 +195,9 @@ function SwapClientDetail() {
 
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-4">
         <section className="rounded-xl border border-border/60 bg-card p-4">
-          <h2 className="text-sm font-semibold mb-3">Daily swap fees</h2>
+          <h2 className="text-sm font-semibold mb-3">
+            {c.position_type === "short" ? "Daily swap benefits" : "Daily swap fees"}
+          </h2>
           {data.fees.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No daily snapshots yet. Run the nightly job or use “Run now” on Home.
@@ -184,6 +205,7 @@ function SwapClientDetail() {
           ) : (
             <ul className="space-y-2">
               {data.fees.map((f) => {
+                const isShort = (f.position_type ?? "long") === "short";
                 const msg = buildMessage(
                   c.code,
                   c.notes,
@@ -193,6 +215,7 @@ function SwapClientDetail() {
                   f.daily_fee,
                   f.annual_rate,
                   f.xauusd_price,
+                  isShort ? "short" : "long",
                 );
                 return (
                   <li
@@ -201,17 +224,34 @@ function SwapClientDetail() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-medium">{f.fee_date}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          <span>{f.fee_date}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              isShort
+                                ? "bg-emerald-500/15 text-emerald-500"
+                                : "bg-primary/10 text-primary"
+                            }`}
+                          >
+                            {isShort ? "Short / Sell" : "Long / Buy"}
+                          </span>
+                        </div>
                         <div className="text-[11px] text-muted-foreground">
                           Snapshot: {fmtSnapshot(f.created_at)}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
-                          Balance credited ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
+                          Balance ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
                           {f.xauusd_price ? ` · XAUUSD $${fmt(f.xauusd_price)}` : ""}
                         </div>
                         <div className="text-sm mt-1">
-                          Fee debited:{" "}
-                          <span className="font-semibold">${fmt(f.daily_fee)}</span>
+                          {isShort ? "Benefit credited: " : "Fee charged: "}
+                          <span
+                            className={`font-semibold ${
+                              isShort ? "text-emerald-500" : ""
+                            }`}
+                          >
+                            {isShort ? "+" : "-"}${fmt(f.daily_fee)}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-1 shrink-0">

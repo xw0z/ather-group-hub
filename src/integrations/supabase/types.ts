@@ -235,6 +235,8 @@ export type Database = {
           created_by: string
           id: string
           notes: string | null
+          position_type: string
+          short_annual_rate: number
           updated_at: string
           usd_balance: number
         }
@@ -245,6 +247,8 @@ export type Database = {
           created_by: string
           id?: string
           notes?: string | null
+          position_type?: string
+          short_annual_rate?: number
           updated_at?: string
           usd_balance?: number
         }
@@ -255,6 +259,8 @@ export type Database = {
           created_by?: string
           id?: string
           notes?: string | null
+          position_type?: string
+          short_annual_rate?: number
           updated_at?: string
           usd_balance?: number
         }
@@ -268,6 +274,7 @@ export type Database = {
           daily_fee: number
           fee_date: string
           id: string
+          position_type: string
           usd_balance: number
           xauusd_price: number | null
         }
@@ -278,6 +285,7 @@ export type Database = {
           daily_fee: number
           fee_date: string
           id?: string
+          position_type?: string
           usd_balance: number
           xauusd_price?: number | null
         }
@@ -288,6 +296,7 @@ export type Database = {
           daily_fee?: number
           fee_date?: string
           id?: string
+          position_type?: string
           usd_balance?: number
           xauusd_price?: number | null
         }
