@@ -83,10 +83,11 @@ export type Piece = {
 };
 
 // Divisor to convert a stored purity number to a 0..1 fraction.
-// 3-digit format (e.g. 999)   -> /1000  -> 0.999
-// 4-digit format (e.g. 999.9) -> /10000 -> 0.9999
-export function purityDivisor(format: PurityFormat | null | undefined) {
-  return format === "4" ? 10000 : 1000;
+// Both formats divide by 1000 — the "4-digit" format just allows one decimal.
+// 3-digit (e.g. 999)   -> 999 / 1000   = 0.999
+// 4-digit (e.g. 999.9) -> 999.9 / 1000 = 0.9999
+export function purityDivisor(_format: PurityFormat | null | undefined) {
+  return 1000;
 }
 
 export function formatPurityLabel(format: PurityFormat | null | undefined) {
