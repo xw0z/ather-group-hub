@@ -1556,6 +1556,7 @@ function ClientsTab({
 }) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
+  const [purityFormat, setPurityFormat] = useState<PurityFormat>("3");
   const [saving, setSaving] = useState(false);
 
   async function addClient(e: FormEvent) {
@@ -1569,12 +1570,14 @@ function ClientsTab({
       name,
       phone: null,
       notes: notes || null,
+      purity_format: purityFormat,
     });
     setSaving(false);
     if (!error) {
-      await logActivity("create", "supplier", { name });
+      await logActivity("create", "supplier", { name, purity_format: purityFormat });
       setName("");
       setNotes("");
+      setPurityFormat("3");
       await reload();
     }
   }
@@ -1608,6 +1611,31 @@ function ClientsTab({
           <div>
             <Label>Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <Label>Purity Format <span className="text-destructive">*</span></Label>
+          <div className="flex gap-4 mt-1.5">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="add-purity-format"
+                value="3"
+                checked={purityFormat === "3"}
+                onChange={() => setPurityFormat("3")}
+              />
+              3 digits (e.g. 999)
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="add-purity-format"
+                value="4"
+                checked={purityFormat === "4"}
+                onChange={() => setPurityFormat("4")}
+              />
+              4 digits / decimal (e.g. 999.9)
+            </label>
           </div>
         </div>
         <div className="flex justify-end">
