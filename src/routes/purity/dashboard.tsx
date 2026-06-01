@@ -1280,13 +1280,16 @@ export function ClientBreakdown({
         totalPure: 0,
         totalLoss: 0,
       };
+      const supplierFmt: PurityFormat =
+        (clients.find((c) => c.id === p.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
       row.bars.push(p);
       row.totalWeight += Number(p.weight_grams);
-      row.totalPure += pureGrams(Number(p.weight_grams), p.bafleh_purity);
+      row.totalPure += pureGrams(Number(p.weight_grams), p.bafleh_purity, supplierFmt);
       row.totalLoss += lossGrams(
         Number(p.weight_grams),
         trip.declared_purity,
         p.bafleh_purity,
+        supplierFmt,
       );
       map.set(key, row);
     }
