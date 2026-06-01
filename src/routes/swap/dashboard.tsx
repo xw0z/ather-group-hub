@@ -27,7 +27,7 @@ import {
   listSwapUsers,
 } from "@/lib/swap-users.functions";
 import {
-  computeSwapFeesNow,
+  
   createSwapClient,
   deleteSwapClient,
   listSwapActivityLog,
@@ -212,11 +212,10 @@ function TabBtn({
 
 /* ----------------------------- HOME ----------------------------- */
 
-function HomeTab({ isAdmin }: { isAdmin: boolean }) {
+function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
   const navigate = useNavigate();
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -231,18 +230,6 @@ function HomeTab({ isAdmin }: { isAdmin: boolean }) {
     load();
   }, []);
 
-  async function runNow() {
-    setRunning(true);
-    try {
-      await computeSwapFeesNow();
-      await load();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setRunning(false);
-    }
-  }
-
   const totalLive = useMemo(
     () => data?.rows.reduce((s, r) => s + r.live_daily_fee, 0) ?? 0,
     [data],
@@ -255,24 +242,17 @@ function HomeTab({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-4">
       <section className="rounded-xl border border-border/60 bg-card p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
-            </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {data?.lastXauPrice
-                ? `XAUUSD ${fmt(data.lastXauPrice)} · last snapshot ${data.lastXauDate}`
-                : "No gold price snapshot yet."}
-            </p>
-          </div>
-          {isAdmin && (
-            <Button size="sm" variant="outline" onClick={runNow} disabled={running}>
-              <RefreshCw className={`h-4 w-4 mr-1 ${running ? "animate-spin" : ""}`} />
-              {running ? "Running…" : "Run now"}
-            </Button>
-          )}
+        <div>
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
+          </h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {data?.lastXauPrice
+              ? `XAUUSD ${fmt(data.lastXauPrice)} · last snapshot ${data.lastXauDate}`
+              : "No gold price snapshot yet."}
+          </p>
         </div>
+
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-md bg-muted/40 px-3 py-2">
