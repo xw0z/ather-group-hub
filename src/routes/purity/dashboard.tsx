@@ -84,10 +84,20 @@ export function pureGrams(weight: number, purity: number | null) {
   if (purity == null) return 0;
   return (Number(weight) * Number(purity)) / 1000;
 }
-// Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
-export function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+// Loss per bar (grams) = weight * (initial purity - bafleh purity) / 1000
+// Falls back to declared trip purity if the bar has no initial purity recorded.
+export function lossGrams(
+  weight: number,
+  initialOrDeclared: number,
+  baflehPurity: number | null,
+  initialPurity?: number | null,
+) {
   if (baflehPurity == null) return 0;
-  return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
+  const initial =
+    initialPurity != null && !Number.isNaN(Number(initialPurity))
+      ? Number(initialPurity)
+      : Number(initialOrDeclared);
+  return (Number(weight) * (initial - Number(baflehPurity))) / 1000;
 }
 
 export function tripDisplayName(trip: Trip) {
