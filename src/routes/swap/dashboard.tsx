@@ -450,7 +450,7 @@ function ClientsTab() {
             />
           </div>
           <div className="col-span-2">
-            <Label className="text-xs">Notes</Label>
+            <Label className="text-xs">Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
           <div className="col-span-2">
