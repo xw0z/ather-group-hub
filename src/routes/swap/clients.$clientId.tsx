@@ -51,16 +51,22 @@ function buildMessage(
   dailyFee: number,
   rate: number,
   xauusd: number | null,
+  positionType: "long" | "short",
 ): string {
+  const isShort = positionType === "short";
+  const amountLine = isShort
+    ? `Swap benefit credited: *+$${fmt(dailyFee)}*`
+    : `Swap fee: *-$${fmt(dailyFee)}*`;
   return (
     `Swap Statement — ${feeDate}\n` +
     `Client: ${code}\n` +
+    `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
     `Snapshot: ${fmtSnapshot(snapshotAt)}` +
     (xauusd !== null ? ` · XAUUSD $${fmt(xauusd)}` : "") +
     `\n\n` +
     `Balance: $${fmt(balance)}\n` +
     `Rate: ${fmt(rate)}% p.a.\n` +
-    `Swap fee: *-$${fmt(dailyFee)}*`
+    amountLine
   );
 }
 
