@@ -43,7 +43,7 @@ function fmtSnapshot(iso: string): string {
 
 function buildMessage(
   code: string,
-  notes: string | null,
+  _notes: string | null,
   feeDate: string,
   snapshotAt: string,
   balance: number,
@@ -51,9 +51,8 @@ function buildMessage(
   rate: number,
   xauusd: number | null,
 ): string {
-  const who = notes ? `${code} (${notes})` : code;
   return (
-    `Dear client ${who},\n` +
+    `Dear client ${code},\n` +
     `Daily swap statement — ${feeDate}\n` +
     `Snapshot taken: ${fmtSnapshot(snapshotAt)}\n` +
     (xauusd !== null ? `Gold price (XAUUSD) at snapshot: $${fmt(xauusd)}\n` : "") +
