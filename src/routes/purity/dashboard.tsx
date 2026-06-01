@@ -1059,6 +1059,12 @@ export function BarsManager({
     await onChange();
   }
 
+  const formAddFmt: PurityFormat =
+    (clients.find((c) => c.id === clientId)?.purity_format as PurityFormat | undefined) ?? "3";
+  const formAddStep = formAddFmt === "4" ? "0.1" : "1";
+  const formAddMax = formAddFmt === "4" ? "999.9" : "999";
+  const formAddPh = formAddFmt === "4" ? "999.9" : "999";
+
   return (
     <div className="space-y-3">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1080,17 +1086,21 @@ export function BarsManager({
           <Label className="text-xs">{t("trips.initial")}</Label>
           <Input
             type="number"
-            step="0.01"
+            step={formAddStep}
+            min="0"
+            max={formAddMax}
             value={initialPurity}
             onChange={(e) => setInitialPurity(e.target.value)}
-            placeholder="999"
+            placeholder={formAddPh}
           />
         </div>
         <div className="col-span-2">
           <Label className="text-xs">{t("trips.bafleh")}</Label>
           <Input
             type="number"
-            step="0.01"
+            step={formAddStep}
+            min="0"
+            max={formAddMax}
             value={baflehPurity}
             onChange={(e) => setBaflehPurity(e.target.value)}
             placeholder="—"
@@ -1114,10 +1124,15 @@ export function BarsManager({
             <option value="" className="bg-popover text-popover-foreground">—</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                {c.name}{c.notes ? ` (${c.notes})` : ""}
+                {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
               </option>
             ))}
           </select>
+          {clientId && (
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              {formatPurityLabel(formAddFmt)}
+            </div>
+          )}
         </div>
         <div className="col-span-1">
           <Button size="sm" className="w-full" disabled={saving}>
