@@ -360,13 +360,13 @@ async function sendDailyWhatsAppStatements(
       f.xauusd_price !== null && f.xauusd_price !== undefined ? Number(f.xauusd_price) : null;
     const body =
       `Swap Statement — ${feeDate}\n` +
-      `Client: ${c.code}${c.notes ? ` (${c.notes})` : ""}\n` +
+      `Client: ${c.code}\n` +
       `Snapshot: ${snapshot}` +
       (xau !== null ? ` · XAUUSD $${fmtNum(xau)}` : "") +
       `\n\n` +
       `Balance: $${fmtNum(Number(f.usd_balance))}\n` +
       `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
-      `Swap fee: -$${fmtNum(Number(f.daily_fee))}`;
+      `Swap fee: *-$${fmtNum(Number(f.daily_fee))}*`;
 
     try {
       const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
