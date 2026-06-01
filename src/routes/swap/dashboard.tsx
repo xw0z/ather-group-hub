@@ -14,7 +14,6 @@ import {
   Users as UsersIcon,
   ScrollText,
   UserCircle,
-  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
