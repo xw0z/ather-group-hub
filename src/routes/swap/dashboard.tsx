@@ -296,31 +296,42 @@ function HomeTab({ isAdmin }: { isAdmin: boolean }) {
         ) : (
           <ul className="space-y-2">
             {data.rows.map((r) => (
-              <li
-                key={r.id}
-                className="rounded-md border border-border/60 p-3 bg-background"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-medium">{r.code}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      ${fmt(r.usd_balance)} · {fmt(r.annual_rate)}%/yr
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate({ to: "/swap/clients/$clientId", params: { clientId: r.id } })
+                  }
+                  className="w-full text-left rounded-md border border-border/60 p-3 bg-background hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">
+                        {r.code}
+                        {r.notes ? (
+                          <span className="text-muted-foreground font-normal"> ({r.notes})</span>
+                        ) : null}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        ${fmt(r.usd_balance)} · {fmt(r.annual_rate)}%/yr
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold">${fmt(r.live_daily_fee)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {r.today_fee !== null
+                          ? `today snap $${fmt(r.today_fee)}`
+                          : r.last_fee !== null
+                            ? `last ${r.last_fee_date} $${fmt(r.last_fee)}`
+                            : "no snapshot yet"}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold">${fmt(r.live_daily_fee)}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {r.today_fee !== null
-                        ? `today snap $${fmt(r.today_fee)}`
-                        : r.last_fee !== null
-                          ? `last ${r.last_fee_date} $${fmt(r.last_fee)}`
-                          : "no snapshot yet"}
-                    </div>
-                  </div>
-                </div>
+                </button>
               </li>
             ))}
           </ul>
+
         )}
         <p className="text-[11px] text-muted-foreground mt-3">
           Formula: USD balance × annual rate% ÷ 365. A nightly job (21:00 UTC) snapshots the
