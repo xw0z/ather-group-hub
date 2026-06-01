@@ -1162,12 +1162,14 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right">
                       <input
                         type="number"
-                        step="0.01"
-                        defaultValue={p.initial_purity ?? 999}
+                        step={fmt === "4" ? "0.1" : "1"}
+                        min="0"
+                        max={fmt === "4" ? "999.9" : "999"}
+                        defaultValue={p.initial_purity ?? (fmt === "4" ? 999.9 : 999)}
                         disabled={p.checked}
                         onBlur={(e) => {
                           const v = e.target.value;
-                          if (v !== (p.initial_purity?.toString() ?? "999")) {
+                          if (v !== (p.initial_purity?.toString() ?? (fmt === "4" ? "999.9" : "999"))) {
                             updateInitialPurity(p.id, v);
                           }
                         }}
@@ -1177,7 +1179,9 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right">
                       <input
                         type="number"
-                        step="0.01"
+                        step={fmt === "4" ? "0.1" : "1"}
+                        min="0"
+                        max={fmt === "4" ? "999.9" : "999"}
                         defaultValue={p.bafleh_purity ?? ""}
                         disabled={p.checked}
                         onBlur={(e) => {
@@ -1193,7 +1197,7 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {hasBafleh ? pure.toFixed(2) : "—"}
                     </td>
-                    <td className="py-1.5 pr-2 max-w-[140px]">
+                    <td className="py-1.5 pr-2 max-w-[160px]">
                       <select
                         value={p.client_id ?? ""}
                         disabled={p.checked}
@@ -1203,10 +1207,15 @@ export function BarsManager({
                         <option value="" className="bg-popover text-popover-foreground">—</option>
                         {clients.map((c) => (
                           <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                            {c.name}{c.notes ? ` (${c.notes})` : ""}
+                            {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
                           </option>
                         ))}
                       </select>
+                      {client && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatPurityLabel(client.purity_format)}
+                        </div>
+                      )}
                     </td>
                     <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
                       {hasBafleh ? loss.toFixed(2) : "—"}
