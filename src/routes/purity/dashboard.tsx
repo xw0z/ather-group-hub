@@ -624,7 +624,8 @@ function TripsTab({
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
               <span className="text-muted-foreground">
