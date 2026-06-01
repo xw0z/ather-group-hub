@@ -52,15 +52,14 @@ function buildMessage(
   xauusd: number | null,
 ): string {
   return (
-    `Dear client ${code},\n` +
-    `Daily swap statement — ${feeDate}\n` +
-    `Snapshot taken: ${fmtSnapshot(snapshotAt)}\n` +
-    (xauusd !== null ? `Gold price (XAUUSD) at snapshot: $${fmt(xauusd)}\n` : "") +
-    `\n` +
-    `Balance credited to you from us: $${fmt(balance)}\n` +
-    `Annual rate: ${fmt(rate)}%\n` +
-    `Swap fee debited today: $${fmt(dailyFee)}\n\n` +
-    `Thank you.`
+    `Swap Statement — ${feeDate}\n` +
+    `Client: ${code}\n` +
+    `Snapshot: ${fmtSnapshot(snapshotAt)}` +
+    (xauusd !== null ? ` · XAUUSD $${fmt(xauusd)}` : "") +
+    `\n\n` +
+    `Balance: $${fmt(balance)}\n` +
+    `Rate: ${fmt(rate)}% p.a.\n` +
+    `Swap fee: -$${fmt(dailyFee)}`
   );
 }
 
