@@ -25,19 +25,40 @@ function fmt(n: number, d = 2): string {
 
 type History = Awaited<ReturnType<typeof getSwapClientHistory>>;
 
+function fmtSnapshot(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function buildMessage(
   code: string,
   notes: string | null,
   feeDate: string,
+  snapshotAt: string,
   balance: number,
   dailyFee: number,
   rate: number,
+  xauusd: number | null,
 ): string {
   const who = notes ? `${code} (${notes})` : code;
   return (
     `Dear client ${who},\n` +
-    `Daily swap statement — ${feeDate}\n\n` +
-    `USD balance: $${fmt(balance)}\n` +
+    `Daily swap statement — ${feeDate}\n` +
+    `Snapshot taken: ${fmtSnapshot(snapshotAt)}\n` +
+    (xauusd !== null ? `Gold price (XAUUSD) at snapshot: $${fmt(xauusd)}\n` : "") +
+    `\n` +
+    `Balance credited to you from us: $${fmt(balance)}\n` +
     `Annual rate: ${fmt(rate)}%\n` +
     `Swap fee debited today: $${fmt(dailyFee)}\n\n` +
     `Thank you.`
