@@ -691,20 +691,24 @@ function TripsTab({
 function TripCard({
   trip,
   pieces,
+  clients,
   onDelete,
 }: {
   trip: Trip;
   pieces: Piece[];
+  clients: Client[];
   onDelete: () => void;
 }) {
   const { t } = useLang();
+  const fmtFor = (p: Piece): PurityFormat =>
+    (clients.find((c) => c.id === p.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
   const totalPure = pieces.reduce(
-    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
+    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity, fmtFor(p)),
     0,
   );
   const totalLoss = pieces.reduce(
     (s, p) =>
-      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity),
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity, fmtFor(p)),
     0,
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
