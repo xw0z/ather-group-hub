@@ -370,12 +370,16 @@ function ClientsTab() {
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [rate, setRate] = useState("5.4");
+  const [shortRate, setShortRate] = useState("2.5");
+  const [positionType, setPositionType] = useState<"long" | "short">("long");
   const [notes, setNotes] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editBalance, setEditBalance] = useState("");
   const [editRate, setEditRate] = useState("");
+  const [editShortRate, setEditShortRate] = useState("");
+  const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
 
   async function load() {
     setLoading(true);
@@ -401,12 +405,16 @@ function ClientsTab() {
           code: code.trim(),
           usd_balance: parseFloat(balance) || 0,
           annual_rate: parseFloat(rate) || 5.4,
+          short_annual_rate: parseFloat(shortRate) || 2.5,
+          position_type: positionType,
           notes: notes.trim() || null,
         },
       });
       setCode("");
       setBalance("");
       setRate("5.4");
+      setShortRate("2.5");
+      setPositionType("long");
       setNotes("");
       setShowForm(false);
       load();
@@ -420,6 +428,8 @@ function ClientsTab() {
     setEditCode(c.code);
     setEditBalance(String(c.usd_balance));
     setEditRate(String(c.annual_rate));
+    setEditShortRate(String(c.short_annual_rate ?? 2.5));
+    setEditPositionType((c.position_type ?? "long") as "long" | "short");
   }
 
   async function saveEdit(id: string) {
@@ -430,6 +440,8 @@ function ClientsTab() {
           code: editCode.trim(),
           usd_balance: parseFloat(editBalance) || 0,
           annual_rate: parseFloat(editRate) || 5.4,
+          short_annual_rate: parseFloat(editShortRate) || 2.5,
+          position_type: editPositionType,
         },
       });
       setEditingId(null);
