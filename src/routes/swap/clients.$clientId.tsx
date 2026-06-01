@@ -25,19 +25,40 @@ function fmt(n: number, d = 2): string {
 
 type History = Awaited<ReturnType<typeof getSwapClientHistory>>;
 
+function fmtSnapshot(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function buildMessage(
   code: string,
   notes: string | null,
   feeDate: string,
+  snapshotAt: string,
   balance: number,
   dailyFee: number,
   rate: number,
+  xauusd: number | null,
 ): string {
   const who = notes ? `${code} (${notes})` : code;
   return (
     `Dear client ${who},\n` +
-    `Daily swap statement — ${feeDate}\n\n` +
-    `USD balance: $${fmt(balance)}\n` +
+    `Daily swap statement — ${feeDate}\n` +
+    `Snapshot taken: ${fmtSnapshot(snapshotAt)}\n` +
+    (xauusd !== null ? `Gold price (XAUUSD) at snapshot: $${fmt(xauusd)}\n` : "") +
+    `\n` +
+    `Balance credited to you from us: $${fmt(balance)}\n` +
     `Annual rate: ${fmt(rate)}%\n` +
     `Swap fee debited today: $${fmt(dailyFee)}\n\n` +
     `Thank you.`
@@ -168,9 +189,11 @@ function SwapClientDetail() {
                   c.code,
                   c.notes,
                   f.fee_date,
+                  f.created_at,
                   f.usd_balance,
                   f.daily_fee,
                   f.annual_rate,
+                  f.xauusd_price,
                 );
                 return (
                   <li
@@ -181,8 +204,11 @@ function SwapClientDetail() {
                       <div className="min-w-0">
                         <div className="font-medium">{f.fee_date}</div>
                         <div className="text-[11px] text-muted-foreground">
-                          Balance ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
-                          {f.xauusd_price ? ` · XAUUSD ${fmt(f.xauusd_price)}` : ""}
+                          Snapshot: {fmtSnapshot(f.created_at)}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Balance credited ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
+                          {f.xauusd_price ? ` · XAUUSD $${fmt(f.xauusd_price)}` : ""}
                         </div>
                         <div className="text-sm mt-1">
                           Fee debited:{" "}
