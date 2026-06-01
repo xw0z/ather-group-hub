@@ -476,6 +476,33 @@ function ClientsTab() {
             <Label className="text-xs">Client code</Label>
             <Input value={code} onChange={(e) => setCode(e.target.value)} required />
           </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Position type</Label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => setPositionType("long")}
+                className={`text-xs rounded-md border px-3 py-2 ${
+                  positionType === "long"
+                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    : "border-border/60 text-muted-foreground"
+                }`}
+              >
+                Long / Buy (fee)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPositionType("short")}
+                className={`text-xs rounded-md border px-3 py-2 ${
+                  positionType === "short"
+                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-medium"
+                    : "border-border/60 text-muted-foreground"
+                }`}
+              >
+                Short / Sell (benefit)
+              </button>
+            </div>
+          </div>
           <div>
             <Label className="text-xs">Current USD balance</Label>
             <Input
@@ -488,12 +515,18 @@ function ClientsTab() {
             />
           </div>
           <div>
-            <Label className="text-xs">Annual rate %</Label>
+            <Label className="text-xs">
+              {positionType === "short" ? "Short benefit rate %/yr" : "Long fee rate %/yr"}
+            </Label>
             <Input
               type="number"
               inputMode="decimal"
-              value={rate}
-              onChange={(e) => setRate(e.target.value)}
+              value={positionType === "short" ? shortRate : rate}
+              onChange={(e) =>
+                positionType === "short"
+                  ? setShortRate(e.target.value)
+                  : setRate(e.target.value)
+              }
             />
           </div>
           <div className="col-span-2">
