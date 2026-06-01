@@ -59,7 +59,7 @@ function buildMessage(
     `\n\n` +
     `Balance: $${fmt(balance)}\n` +
     `Rate: ${fmt(rate)}% p.a.\n` +
-    `Swap fee: -$${fmt(dailyFee)}`
+    `Swap fee: *-$${fmt(dailyFee)}*`
   );
 }
 
