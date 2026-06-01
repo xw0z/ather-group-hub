@@ -320,7 +320,7 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
                       <div className="text-right shrink-0">
                         <div
                           className={`font-semibold ${
-                            isShort ? "text-red-600" : ""
+                            isShort ? "text-red-600" : "text-green-600"
                           }`}
                         >
                           {isShort ? "+" : ""}${fmt(r.live_daily_fee)}
