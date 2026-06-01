@@ -1135,11 +1135,13 @@ export function BarsManager({
             <tbody>
               {pieces.map((p, i) => {
                 const client = clients.find((c) => c.id === p.client_id);
-                const pure = pureGrams(Number(p.weight_grams), p.bafleh_purity);
+                const fmt: PurityFormat = (client?.purity_format as PurityFormat | undefined) ?? "3";
+                const pure = pureGrams(Number(p.weight_grams), p.bafleh_purity, fmt);
                 const loss = lossGrams(
                   Number(p.weight_grams),
                   trip.declared_purity,
                   p.bafleh_purity,
+                  fmt,
                 );
                 const hasBafleh = p.bafleh_purity != null;
                 const lossColor = hasBafleh
