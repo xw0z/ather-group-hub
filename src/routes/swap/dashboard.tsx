@@ -234,8 +234,22 @@ function HomeTab({ isAdmin }: { isAdmin: boolean }) {
   async function runNow() {
     setRunning(true);
     try {
-      await computeSwapFeesNow();
+      const r = (await computeSwapFeesNow()) as {
+        date: string;
+        xauusd: number;
+        count: number;
+        whatsapp?: { sent: number; failed: number; skipped?: string };
+      };
       await load();
+      const w = r.whatsapp;
+      const waLine = w
+        ? w.skipped
+          ? `WhatsApp skipped: ${w.skipped}`
+          : `WhatsApp: ${w.sent} sent, ${w.failed} failed`
+        : "WhatsApp: n/a";
+      alert(
+        `Snapshot saved for ${r.date}\nXAUUSD ${r.xauusd}\n${r.count} clients\n${waLine}`,
+      );
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed");
     } finally {
