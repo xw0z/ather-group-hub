@@ -655,6 +655,7 @@ function TripsTab({
             key={trip.id}
             trip={trip}
             pieces={pieces[trip.id] ?? []}
+            clients={clients}
             onDelete={() => deleteTrip(trip.id)}
           />
         ))}
