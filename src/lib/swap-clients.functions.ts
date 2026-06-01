@@ -149,7 +149,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
     // most recent fee row per client (today preferred, else latest)
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate")
+      .select("id, code, usd_balance, annual_rate, notes")
       .order("code");
     if (cErr) throw new Error(cErr.message);
 
