@@ -79,10 +79,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPurity = pathname.startsWith("/purity");
+  const isSwap = pathname.startsWith("/swap");
+  const hideChrome = isPurity || isSwap;
   return (
     <QueryClientProvider client={queryClient}>
-      {!isPurity && <SiteHeader />}
-      <main className={isPurity ? "" : "pt-20"}>
+      {!hideChrome && <SiteHeader />}
+      <main className={hideChrome ? "" : "pt-20"}>
         {isPurity ? (
           <PurityLanguageProvider>
             <Outlet />
@@ -91,8 +93,8 @@ function RootComponent() {
           <Outlet />
         )}
       </main>
-      {!isPurity && <SiteFooter />}
-      {!isPurity && <WhatsAppButton />}
+      {!hideChrome && <SiteFooter />}
+      {!hideChrome && <WhatsAppButton />}
     </QueryClientProvider>
   );
 }
