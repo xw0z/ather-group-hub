@@ -185,14 +185,17 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
       }
     }
 
+    const todayMultiplier = swapDayMultiplier(new Date());
     return {
       today,
+      todayMultiplier,
       lastXauPrice,
       lastXauDate,
       rows: (clients ?? []).map((c) => {
         const t = todayByClient.get(c.id);
         const l = latestByClient.get(c.id);
-        const liveDaily = (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365;
+        const baseDaily = (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365;
+        const liveDaily = baseDaily * todayMultiplier;
         return {
           id: c.id,
           code: c.code,
@@ -203,6 +206,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
           last_fee: l ? Number(l.daily_fee) : null,
           last_fee_date: l?.fee_date ?? null,
+          base_daily_fee: baseDaily,
           live_daily_fee: liveDaily,
         };
       }),
