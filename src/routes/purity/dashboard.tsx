@@ -47,11 +47,14 @@ export const Route = createFileRoute("/purity/dashboard")({
   component: PurityDashboard,
 });
 
+export type PurityFormat = "3" | "4";
+
 export type Client = {
   id: string;
   name: string;
   phone: string | null;
   notes: string | null;
+  purity_format: PurityFormat;
 };
 
 export type Trip = {
@@ -79,15 +82,49 @@ export type Piece = {
   created_at: string;
 };
 
-// Pure gold content of a bar (grams) using Bafleh (lab) purity
-export function pureGrams(weight: number, purity: number | null) {
-  if (purity == null) return 0;
-  return (Number(weight) * Number(purity)) / 1000;
+// Divisor to convert a stored purity number to a 0..1 fraction.
+// 3-digit format (e.g. 999)   -> /1000  -> 0.999
+// 4-digit format (e.g. 999.9) -> /10000 -> 0.9999
+export function purityDivisor(format: PurityFormat | null | undefined) {
+  return format === "4" ? 10000 : 1000;
 }
-// Loss per bar (grams) = weight * (declared 999 - bafleh) / 1000
-export function lossGrams(weight: number, declared: number, baflehPurity: number | null) {
+
+export function formatPurityLabel(format: PurityFormat | null | undefined) {
+  return format === "4" ? "4-digit (999.9)" : "3-digit (999)";
+}
+
+// Format a purity number for display in supplier's format
+export function formatPurityValue(
+  value: number | null,
+  format: PurityFormat | null | undefined,
+) {
+  if (value == null) return "—";
+  return format === "4"
+    ? Number(value).toFixed(1)
+    : String(Math.round(Number(value)));
+}
+
+// Pure gold (g) using bafleh purity, normalized by supplier format
+export function pureGrams(
+  weight: number,
+  purity: number | null,
+  format: PurityFormat | null | undefined = "3",
+) {
+  if (purity == null) return 0;
+  return Number(weight) * (Number(purity) / purityDivisor(format));
+}
+// Loss per bar (g) using normalized fractions for declared & bafleh
+export function lossGrams(
+  weight: number,
+  declared: number,
+  baflehPurity: number | null,
+  baflehFormat: PurityFormat | null | undefined = "3",
+  declaredFormat: PurityFormat = "3",
+) {
   if (baflehPurity == null) return 0;
-  return (Number(weight) * (Number(declared) - Number(baflehPurity))) / 1000;
+  const declaredFrac = Number(declared) / purityDivisor(declaredFormat);
+  const baflehFrac = Number(baflehPurity) / purityDivisor(baflehFormat);
+  return Number(weight) * (declaredFrac - baflehFrac);
 }
 
 export function tripDisplayName(trip: Trip) {
@@ -500,7 +537,13 @@ function TripsTab({
               </Button>
             </div>
             <div className="space-y-2">
-              {bars.map((b, i) => (
+              {bars.map((b, i) => {
+                const supplierFmt: PurityFormat =
+                  (clients.find((c) => c.id === b.clientId)?.purity_format as PurityFormat | undefined) ?? "3";
+                const stepAttr = supplierFmt === "4" ? "0.1" : "1";
+                const maxAttr = supplierFmt === "4" ? "999.9" : "999";
+                const placeholderInit = supplierFmt === "4" ? "999.9" : "999";
+                return (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
                   <div className="col-span-3">
                     {i === 0 && <Label className="text-xs">{t("trips.weight")}</Label>}
@@ -516,19 +559,23 @@ function TripsTab({
                     {i === 0 && <Label className="text-xs">{t("trips.initial")}</Label>}
                     <Input
                       type="number"
-                      step="0.01"
+                      step={stepAttr}
+                      min="0"
+                      max={maxAttr}
                       value={b.initialPurity}
                       onChange={(e) =>
                         updateBar(i, { initialPurity: e.target.value })
                       }
-                      placeholder="999"
+                      placeholder={placeholderInit}
                     />
                   </div>
                   <div className="col-span-2">
                     {i === 0 && <Label className="text-xs">{t("trips.bafleh")}</Label>}
                     <Input
                       type="number"
-                      step="0.01"
+                      step={stepAttr}
+                      min="0"
+                      max={maxAttr}
                       value={b.baflehPurity}
                       onChange={(e) =>
                         updateBar(i, { baflehPurity: e.target.value })
@@ -554,10 +601,15 @@ function TripsTab({
                       <option value="" className="bg-popover text-popover-foreground">—</option>
                       {clients.map((c) => (
                         <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                          {c.name}{c.notes ? ` (${c.notes})` : ""}
+                          {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
                         </option>
                       ))}
                     </select>
+                    {b.clientId && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatPurityLabel(supplierFmt)}
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-1">
                     <Button
@@ -572,7 +624,8 @@ function TripsTab({
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="rounded-md bg-muted/40 px-3 py-2 text-sm flex items-center justify-between">
               <span className="text-muted-foreground">
@@ -618,6 +671,7 @@ function TripsTab({
             key={trip.id}
             trip={trip}
             pieces={pieces[trip.id] ?? []}
+            clients={clients}
             onDelete={() => deleteTrip(trip.id)}
           />
         ))}
@@ -653,20 +707,24 @@ function TripsTab({
 function TripCard({
   trip,
   pieces,
+  clients,
   onDelete,
 }: {
   trip: Trip;
   pieces: Piece[];
+  clients: Client[];
   onDelete: () => void;
 }) {
   const { t } = useLang();
+  const fmtFor = (p: Piece): PurityFormat =>
+    (clients.find((c) => c.id === p.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
   const totalPure = pieces.reduce(
-    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity),
+    (s, p) => s + pureGrams(Number(p.weight_grams), p.bafleh_purity, fmtFor(p)),
     0,
   );
   const totalLoss = pieces.reduce(
     (s, p) =>
-      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity),
+      s + lossGrams(Number(p.weight_grams), trip.declared_purity, p.bafleh_purity, fmtFor(p)),
     0,
   );
   const allPriced = pieces.length > 0 && pieces.every((p) => p.bafleh_purity != null);
@@ -1001,6 +1059,12 @@ export function BarsManager({
     await onChange();
   }
 
+  const formAddFmt: PurityFormat =
+    (clients.find((c) => c.id === clientId)?.purity_format as PurityFormat | undefined) ?? "3";
+  const formAddStep = formAddFmt === "4" ? "0.1" : "1";
+  const formAddMax = formAddFmt === "4" ? "999.9" : "999";
+  const formAddPh = formAddFmt === "4" ? "999.9" : "999";
+
   return (
     <div className="space-y-3">
       <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1022,17 +1086,21 @@ export function BarsManager({
           <Label className="text-xs">{t("trips.initial")}</Label>
           <Input
             type="number"
-            step="0.01"
+            step={formAddStep}
+            min="0"
+            max={formAddMax}
             value={initialPurity}
             onChange={(e) => setInitialPurity(e.target.value)}
-            placeholder="999"
+            placeholder={formAddPh}
           />
         </div>
         <div className="col-span-2">
           <Label className="text-xs">{t("trips.bafleh")}</Label>
           <Input
             type="number"
-            step="0.01"
+            step={formAddStep}
+            min="0"
+            max={formAddMax}
             value={baflehPurity}
             onChange={(e) => setBaflehPurity(e.target.value)}
             placeholder="—"
@@ -1056,10 +1124,15 @@ export function BarsManager({
             <option value="" className="bg-popover text-popover-foreground">—</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                {c.name}{c.notes ? ` (${c.notes})` : ""}
+                {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
               </option>
             ))}
           </select>
+          {clientId && (
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              {formatPurityLabel(formAddFmt)}
+            </div>
+          )}
         </div>
         <div className="col-span-1">
           <Button size="sm" className="w-full" disabled={saving}>
@@ -1093,11 +1166,13 @@ export function BarsManager({
             <tbody>
               {pieces.map((p, i) => {
                 const client = clients.find((c) => c.id === p.client_id);
-                const pure = pureGrams(Number(p.weight_grams), p.bafleh_purity);
+                const fmt: PurityFormat = (client?.purity_format as PurityFormat | undefined) ?? "3";
+                const pure = pureGrams(Number(p.weight_grams), p.bafleh_purity, fmt);
                 const loss = lossGrams(
                   Number(p.weight_grams),
                   trip.declared_purity,
                   p.bafleh_purity,
+                  fmt,
                 );
                 const hasBafleh = p.bafleh_purity != null;
                 const lossColor = hasBafleh
@@ -1118,12 +1193,14 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right">
                       <input
                         type="number"
-                        step="0.01"
-                        defaultValue={p.initial_purity ?? 999}
+                        step={fmt === "4" ? "0.1" : "1"}
+                        min="0"
+                        max={fmt === "4" ? "999.9" : "999"}
+                        defaultValue={p.initial_purity ?? (fmt === "4" ? 999.9 : 999)}
                         disabled={p.checked}
                         onBlur={(e) => {
                           const v = e.target.value;
-                          if (v !== (p.initial_purity?.toString() ?? "999")) {
+                          if (v !== (p.initial_purity?.toString() ?? (fmt === "4" ? "999.9" : "999"))) {
                             updateInitialPurity(p.id, v);
                           }
                         }}
@@ -1133,7 +1210,9 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right">
                       <input
                         type="number"
-                        step="0.01"
+                        step={fmt === "4" ? "0.1" : "1"}
+                        min="0"
+                        max={fmt === "4" ? "999.9" : "999"}
                         defaultValue={p.bafleh_purity ?? ""}
                         disabled={p.checked}
                         onBlur={(e) => {
@@ -1149,7 +1228,7 @@ export function BarsManager({
                     <td className="py-1.5 pr-2 text-right font-mono">
                       {hasBafleh ? pure.toFixed(2) : "—"}
                     </td>
-                    <td className="py-1.5 pr-2 max-w-[140px]">
+                    <td className="py-1.5 pr-2 max-w-[160px]">
                       <select
                         value={p.client_id ?? ""}
                         disabled={p.checked}
@@ -1159,10 +1238,15 @@ export function BarsManager({
                         <option value="" className="bg-popover text-popover-foreground">—</option>
                         {clients.map((c) => (
                           <option key={c.id} value={c.id} className="bg-popover text-popover-foreground">
-                            {c.name}{c.notes ? ` (${c.notes})` : ""}
+                            {c.name} [{c.purity_format === "4" ? "4d" : "3d"}]{c.notes ? ` (${c.notes})` : ""}
                           </option>
                         ))}
                       </select>
+                      {client && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatPurityLabel(client.purity_format)}
+                        </div>
+                      )}
                     </td>
                     <td className={`py-1.5 pr-2 text-right font-mono font-semibold ${lossColor}`}>
                       {hasBafleh ? loss.toFixed(2) : "—"}
@@ -1227,13 +1311,16 @@ export function ClientBreakdown({
         totalPure: 0,
         totalLoss: 0,
       };
+      const supplierFmt: PurityFormat =
+        (clients.find((c) => c.id === p.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
       row.bars.push(p);
       row.totalWeight += Number(p.weight_grams);
-      row.totalPure += pureGrams(Number(p.weight_grams), p.bafleh_purity);
+      row.totalPure += pureGrams(Number(p.weight_grams), p.bafleh_purity, supplierFmt);
       row.totalLoss += lossGrams(
         Number(p.weight_grams),
         trip.declared_purity,
         p.bafleh_purity,
+        supplierFmt,
       );
       map.set(key, row);
     }
@@ -1340,8 +1427,10 @@ export function ClientBreakdown({
     y += tableHeadH;
     r.bars.forEach((b, i) => {
       const w = Number(b.weight_grams);
-      const pure = pureGrams(w, b.bafleh_purity);
-      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity);
+      const supplierFmt: PurityFormat =
+        (clients.find((c) => c.id === b.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
+      const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
+      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
 
       if (i % 2 === 0) {
         ctx.fillStyle = "rgba(255,255,255,0.02)";
@@ -1357,7 +1446,7 @@ export function ClientBreakdown({
       ctx.font = "600 22px ui-monospace, Menlo, Consolas, monospace";
       ctx.textAlign = "right";
       ctx.fillText(w.toFixed(2), 260, y + 40);
-      ctx.fillText(String(b.bafleh_purity ?? "—"), 520, y + 40);
+      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), 520, y + 40);
       ctx.fillText(pure.toFixed(2), 760, y + 40);
 
       ctx.fillStyle = loss === 0 ? "#34d399" : "#f87171";
@@ -1482,6 +1571,7 @@ function ClientsTab({
 }) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
+  const [purityFormat, setPurityFormat] = useState<PurityFormat>("3");
   const [saving, setSaving] = useState(false);
 
   async function addClient(e: FormEvent) {
@@ -1495,12 +1585,14 @@ function ClientsTab({
       name,
       phone: null,
       notes: notes || null,
+      purity_format: purityFormat,
     });
     setSaving(false);
     if (!error) {
-      await logActivity("create", "supplier", { name });
+      await logActivity("create", "supplier", { name, purity_format: purityFormat });
       setName("");
       setNotes("");
+      setPurityFormat("3");
       await reload();
     }
   }
@@ -1534,6 +1626,31 @@ function ClientsTab({
           <div>
             <Label>Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <Label>Purity Format <span className="text-destructive">*</span></Label>
+          <div className="flex gap-4 mt-1.5">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="add-purity-format"
+                value="3"
+                checked={purityFormat === "3"}
+                onChange={() => setPurityFormat("3")}
+              />
+              3 digits (e.g. 999)
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name="add-purity-format"
+                value="4"
+                checked={purityFormat === "4"}
+                onChange={() => setPurityFormat("4")}
+              />
+              4 digits / decimal (e.g. 999.9)
+            </label>
           </div>
         </div>
         <div className="flex justify-end">
@@ -1576,6 +1693,9 @@ function SupplierRow({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(client.name);
   const [notes, setNotes] = useState(client.notes ?? "");
+  const [purityFormat, setPurityFormat] = useState<PurityFormat>(
+    (client.purity_format as PurityFormat) ?? "3",
+  );
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -1587,12 +1707,14 @@ function SupplierRow({
         name: name.trim(),
         phone: null,
         notes: notes || null,
+        purity_format: purityFormat,
       })
       .eq("id", client.id);
     setSaving(false);
     if (!error) {
       await logActivity("update", "supplier", {
         name: name.trim(),
+        purity_format: purityFormat,
       }, client.id);
       setEditing(false);
       await onSaved();
@@ -1602,6 +1724,7 @@ function SupplierRow({
   function cancel() {
     setName(client.name);
     setNotes(client.notes ?? "");
+    setPurityFormat((client.purity_format as PurityFormat) ?? "3");
     setEditing(false);
   }
 
@@ -1616,6 +1739,31 @@ function SupplierRow({
           <div>
             <Label className="text-xs">Name</Label>
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Purity Format</Label>
+          <div className="flex gap-4 mt-1">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name={`edit-fmt-${client.id}`}
+                value="3"
+                checked={purityFormat === "3"}
+                onChange={() => setPurityFormat("3")}
+              />
+              3 digits (999)
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="radio"
+                name={`edit-fmt-${client.id}`}
+                value="4"
+                checked={purityFormat === "4"}
+                onChange={() => setPurityFormat("4")}
+              />
+              4 digits / decimal (999.9)
+            </label>
           </div>
         </div>
         <div className="flex justify-end gap-2">
@@ -1633,7 +1781,18 @@ function SupplierRow({
   return (
     <div className="rounded-md border border-border bg-card p-3 flex items-center justify-between">
       <div>
-        <div className="font-medium">{client.name}</div>
+        <div className="font-medium flex items-center gap-2">
+          {client.name}
+          <span
+            className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+              client.purity_format === "4"
+                ? "bg-sky-500/15 text-sky-600"
+                : "bg-amber-500/15 text-amber-600"
+            }`}
+          >
+            {client.purity_format === "4" ? "4-digit · 999.9" : "3-digit · 999"}
+          </span>
+        </div>
         {client.notes && (
           <div className="text-xs text-muted-foreground">
             {client.notes}
