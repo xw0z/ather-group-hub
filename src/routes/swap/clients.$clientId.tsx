@@ -189,9 +189,11 @@ function SwapClientDetail() {
                   c.code,
                   c.notes,
                   f.fee_date,
+                  f.created_at,
                   f.usd_balance,
                   f.daily_fee,
                   f.annual_rate,
+                  f.xauusd_price,
                 );
                 return (
                   <li
@@ -202,8 +204,11 @@ function SwapClientDetail() {
                       <div className="min-w-0">
                         <div className="font-medium">{f.fee_date}</div>
                         <div className="text-[11px] text-muted-foreground">
-                          Balance ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
-                          {f.xauusd_price ? ` · XAUUSD ${fmt(f.xauusd_price)}` : ""}
+                          Snapshot: {fmtSnapshot(f.created_at)}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Balance credited ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
+                          {f.xauusd_price ? ` · XAUUSD $${fmt(f.xauusd_price)}` : ""}
                         </div>
                         <div className="text-sm mt-1">
                           Fee debited:{" "}
