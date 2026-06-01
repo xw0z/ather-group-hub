@@ -188,6 +188,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         return {
           id: c.id,
           code: c.code,
+          notes: c.notes ?? null,
           usd_balance: Number(c.usd_balance),
           annual_rate: Number(c.annual_rate),
           today_fee: t ? Number(t.daily_fee) : null,
