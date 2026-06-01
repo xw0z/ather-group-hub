@@ -290,13 +290,15 @@ export async function runDailyFeeJob() {
   if (error) throw new Error(error.message);
 
   const nowIso = new Date().toISOString();
+  const multiplier = swapDayMultiplier(new Date());
   const rows = (clients ?? []).map((c) => ({
     client_id: c.id,
     fee_date: today,
     xauusd_price: xauusd,
     usd_balance: Number(c.usd_balance),
     annual_rate: Number(c.annual_rate),
-    daily_fee: (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365,
+    daily_fee:
+      ((Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365) * multiplier,
     created_at: nowIso,
   }));
 
