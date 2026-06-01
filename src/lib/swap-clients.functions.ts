@@ -277,6 +277,7 @@ export async function runDailyFeeJob() {
     .select("id, usd_balance, annual_rate");
   if (error) throw new Error(error.message);
 
+  const nowIso = new Date().toISOString();
   const rows = (clients ?? []).map((c) => ({
     client_id: c.id,
     fee_date: today,
@@ -284,6 +285,7 @@ export async function runDailyFeeJob() {
     usd_balance: Number(c.usd_balance),
     annual_rate: Number(c.annual_rate),
     daily_fee: (Number(c.usd_balance) * Number(c.annual_rate)) / 100 / 365,
+    created_at: nowIso,
   }));
 
   if (rows.length > 0) {
