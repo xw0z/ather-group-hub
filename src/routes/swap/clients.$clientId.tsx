@@ -172,8 +172,8 @@ function SwapClientDetail() {
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded ${
                   c.position_type === "short"
-                    ? "bg-emerald-500/15 text-emerald-500"
-                    : "bg-primary/10 text-primary"
+                    ? "bg-red-500/15 text-red-600"
+                    : "bg-green-500/15 text-green-600"
                 }`}
               >
                 {c.position_type === "short" ? "Short / Sell" : "Long / Buy"}
@@ -229,8 +229,8 @@ function SwapClientDetail() {
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded ${
                               isShort
-                                ? "bg-emerald-500/15 text-emerald-500"
-                                : "bg-primary/10 text-primary"
+                                ? "bg-red-500/15 text-red-600"
+                                : "bg-green-500/15 text-green-600"
                             }`}
                           >
                             {isShort ? "Short / Sell" : "Long / Buy"}
@@ -247,7 +247,7 @@ function SwapClientDetail() {
                           {isShort ? "Benefit credited: " : "Fee charged: "}
                           <span
                             className={`font-semibold ${
-                              isShort ? "text-emerald-500" : ""
+                              isShort ? "text-red-600" : "text-green-600"
                             }`}
                           >
                             {isShort ? "+" : "-"}${fmt(f.daily_fee)}

@@ -204,7 +204,7 @@ function TabBtn({
       onClick={onClick}
       className={`inline-flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
         active
-          ? "bg-primary/10 text-primary font-medium"
+          ? "bg-green-500/15 text-green-600 font-medium"
           : "text-muted-foreground hover:text-foreground"
       }`}
     >
@@ -300,8 +300,8 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded ${
                               isShort
-                                ? "bg-emerald-500/15 text-emerald-500"
-                                : "bg-primary/10 text-primary"
+                                ? "bg-red-500/15 text-red-600"
+                                : "bg-green-500/15 text-green-600"
                             }`}
                           >
                             {isShort ? "Short / Sell" : "Long / Buy"}
@@ -320,7 +320,7 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
                       <div className="text-right shrink-0">
                         <div
                           className={`font-semibold ${
-                            isShort ? "text-emerald-500" : ""
+                            isShort ? "text-red-600" : "text-green-600"
                           }`}
                         >
                           {isShort ? "+" : ""}${fmt(r.live_daily_fee)}
@@ -484,7 +484,7 @@ function ClientsTab() {
                 onClick={() => setPositionType("long")}
                 className={`text-xs rounded-md border px-3 py-2 ${
                   positionType === "long"
-                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    ? "border-primary bg-green-500/15 text-green-600 font-medium"
                     : "border-border/60 text-muted-foreground"
                 }`}
               >
@@ -495,7 +495,7 @@ function ClientsTab() {
                 onClick={() => setPositionType("short")}
                 className={`text-xs rounded-md border px-3 py-2 ${
                   positionType === "short"
-                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-medium"
+                    ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
                     : "border-border/60 text-muted-foreground"
                 }`}
               >
@@ -611,7 +611,7 @@ function ClientsTab() {
                           onClick={() => setEditPositionType("long")}
                           className={`text-xs rounded-md border px-3 py-2 ${
                             editPositionType === "long"
-                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              ? "border-primary bg-green-500/15 text-green-600 font-medium"
                               : "border-border/60 text-muted-foreground"
                           }`}
                         >
@@ -622,7 +622,7 @@ function ClientsTab() {
                           onClick={() => setEditPositionType("short")}
                           className={`text-xs rounded-md border px-3 py-2 ${
                             editPositionType === "short"
-                              ? "border-emerald-500 bg-emerald-500/10 text-emerald-500 font-medium"
+                              ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
                               : "border-border/60 text-muted-foreground"
                           }`}
                         >
@@ -667,8 +667,8 @@ function ClientsTab() {
                         <span
                           className={`text-[10px] px-1.5 py-0.5 rounded ${
                             isShort
-                              ? "bg-emerald-500/15 text-emerald-500"
-                              : "bg-primary/10 text-primary"
+                              ? "bg-red-500/15 text-red-600"
+                              : "bg-green-500/15 text-green-600"
                           }`}
                         >
                           {isShort ? "Short / Sell" : "Long / Buy"}
@@ -705,7 +705,7 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   return (
     <div
       className={`rounded-md px-2 py-1.5 ${
-        accent ? "bg-primary/10 text-primary" : "bg-muted/40"
+        accent ? "bg-green-500/15 text-green-600" : "bg-muted/40"
       }`}
     >
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -905,7 +905,7 @@ function UsersTab() {
                 <div className="font-medium flex items-center gap-2">
                   {u.username}
                   {u.is_admin && (
-                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">
                       <ShieldCheck className="h-3 w-3" /> admin
                     </span>
                   )}
