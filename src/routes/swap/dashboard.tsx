@@ -35,6 +35,7 @@ import {
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
+import { SwapFooter } from "@/components/SwapFooter";
 
 export const Route = createFileRoute("/swap/dashboard")({
   head: () => ({
@@ -182,6 +183,7 @@ function SwapDashboard() {
         {tab === "users" && isAdmin && <UsersTab />}
         {tab === "logs" && isAdmin && <LogsTab />}
       </main>
+      <SwapFooter />
     </div>
   );
 }

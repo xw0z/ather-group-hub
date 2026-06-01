@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentSwapUser } from "@/lib/swap-users.functions";
 import { getSwapClientHistory } from "@/lib/swap-clients.functions";
+import { SwapFooter } from "@/components/SwapFooter";
 
 export const Route = createFileRoute("/swap/clients/$clientId")({
   head: () => ({
@@ -238,6 +239,7 @@ function SwapClientDetail() {
           )}
         </section>
       </main>
+      <SwapFooter />
     </div>
   );
 }
