@@ -1396,8 +1396,10 @@ export function ClientBreakdown({
     y += tableHeadH;
     r.bars.forEach((b, i) => {
       const w = Number(b.weight_grams);
-      const pure = pureGrams(w, b.bafleh_purity);
-      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity);
+      const supplierFmt: PurityFormat =
+        (clients.find((c) => c.id === b.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
+      const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
+      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
 
       if (i % 2 === 0) {
         ctx.fillStyle = "rgba(255,255,255,0.02)";
@@ -1413,7 +1415,7 @@ export function ClientBreakdown({
       ctx.font = "600 22px ui-monospace, Menlo, Consolas, monospace";
       ctx.textAlign = "right";
       ctx.fillText(w.toFixed(2), 260, y + 40);
-      ctx.fillText(String(b.bafleh_purity ?? "—"), 520, y + 40);
+      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), 520, y + 40);
       ctx.fillText(pure.toFixed(2), 760, y + 40);
 
       ctx.fillStyle = loss === 0 ? "#34d399" : "#f87171";
