@@ -149,7 +149,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
     // most recent fee row per client (today preferred, else latest)
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate")
+      .select("id, code, usd_balance, annual_rate, notes")
       .order("code");
     if (cErr) throw new Error(cErr.message);
 
@@ -188,6 +188,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         return {
           id: c.id,
           code: c.code,
+          notes: c.notes ?? null,
           usd_balance: Number(c.usd_balance),
           annual_rate: Number(c.annual_rate),
           today_fee: t ? Number(t.daily_fee) : null,
@@ -197,6 +198,45 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           live_daily_fee: liveDaily,
         };
       }),
+    };
+  });
+
+export const getSwapClientHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: client, error: cErr } = await supabaseAdmin
+      .from("swap_clients")
+      .select("id, code, usd_balance, annual_rate, notes, created_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!client) throw new Error("Client not found");
+
+    const { data: fees, error: fErr } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate")
+      .eq("client_id", data.id)
+      .order("fee_date", { ascending: false })
+      .limit(365);
+    if (fErr) throw new Error(fErr.message);
+
+    return {
+      client: {
+        id: client.id,
+        code: client.code,
+        notes: client.notes ?? null,
+        usd_balance: Number(client.usd_balance),
+        annual_rate: Number(client.annual_rate),
+      },
+      fees: (fees ?? []).map((f) => ({
+        id: f.id,
+        fee_date: f.fee_date,
+        xauusd_price: f.xauusd_price !== null ? Number(f.xauusd_price) : null,
+        daily_fee: Number(f.daily_fee),
+        usd_balance: Number(f.usd_balance),
+        annual_rate: Number(f.annual_rate),
+      })),
     };
   });
 

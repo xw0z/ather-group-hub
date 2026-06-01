@@ -17,6 +17,7 @@ import { Route as SwapIndexRouteImport } from './routes/swap/index'
 import { Route as PurityIndexRouteImport } from './routes/purity/index'
 import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
+import { Route as SwapClientsClientIdRouteImport } from './routes/swap/clients.$clientId'
 import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
 
@@ -60,6 +61,11 @@ const PurityDashboardRoute = PurityDashboardRouteImport.update({
   path: '/purity/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SwapClientsClientIdRoute = SwapClientsClientIdRouteImport.update({
+  id: '/swap/clients/$clientId',
+  path: '/swap/clients/$clientId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PurityTripsTripIdRoute = PurityTripsTripIdRouteImport.update({
   id: '/purity/trips/$tripId',
   path: '/purity/trips/$tripId',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesByTo {
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/purity': typeof PurityIndexRoute
   '/swap': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesById {
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
+  '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRouteTypes {
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/purity/'
     | '/swap/'
     | '/purity/trips/$tripId'
+    | '/swap/clients/$clientId'
     | '/api/public/hooks/swap-daily-fees'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/purity'
     | '/swap'
     | '/purity/trips/$tripId'
+    | '/swap/clients/$clientId'
     | '/api/public/hooks/swap-daily-fees'
   id:
     | '__root__'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/purity/'
     | '/swap/'
     | '/purity/trips/$tripId'
+    | '/swap/clients/$clientId'
     | '/api/public/hooks/swap-daily-fees'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   PurityIndexRoute: typeof PurityIndexRoute
   SwapIndexRoute: typeof SwapIndexRoute
   PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
+  SwapClientsClientIdRoute: typeof SwapClientsClientIdRoute
   ApiPublicHooksSwapDailyFeesRoute: typeof ApiPublicHooksSwapDailyFeesRoute
 }
 
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurityDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/swap/clients/$clientId': {
+      id: '/swap/clients/$clientId'
+      path: '/swap/clients/$clientId'
+      fullPath: '/swap/clients/$clientId'
+      preLoaderRoute: typeof SwapClientsClientIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/purity/trips/$tripId': {
       id: '/purity/trips/$tripId'
       path: '/purity/trips/$tripId'
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   PurityIndexRoute: PurityIndexRoute,
   SwapIndexRoute: SwapIndexRoute,
   PurityTripsTripIdRoute: PurityTripsTripIdRoute,
+  SwapClientsClientIdRoute: SwapClientsClientIdRoute,
   ApiPublicHooksSwapDailyFeesRoute: ApiPublicHooksSwapDailyFeesRoute,
 }
 export const routeTree = rootRouteImport
