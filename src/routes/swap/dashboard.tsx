@@ -279,41 +279,66 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
           </p>
         ) : (
           <ul className="space-y-2">
-            {data.rows.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate({ to: "/swap/clients/$clientId", params: { clientId: r.id } })
-                  }
-                  className="w-full text-left rounded-md border border-border/60 p-3 bg-background hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">
-                        {r.code}
-                        {r.notes ? (
-                          <span className="text-muted-foreground font-normal"> ({r.notes})</span>
-                        ) : null}
+            {data.rows.map((r) => {
+              const isShort = r.position_type === "short";
+              const amountLabel = isShort ? "Benefit today" : "Fee today";
+              const snapPrefix = isShort ? "today benefit" : "today fee";
+              const lastPrefix = isShort ? "last benefit" : "last fee";
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate({ to: "/swap/clients/$clientId", params: { clientId: r.id } })
+                    }
+                    className="w-full text-left rounded-md border border-border/60 p-3 bg-background hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate flex items-center gap-2">
+                          <span>{r.code}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              isShort
+                                ? "bg-emerald-500/15 text-emerald-500"
+                                : "bg-primary/10 text-primary"
+                            }`}
+                          >
+                            {isShort ? "Short / Sell" : "Long / Buy"}
+                          </span>
+                          {r.notes ? (
+                            <span className="text-muted-foreground font-normal truncate">
+                              ({r.notes})
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          ${fmt(r.usd_balance)} · {fmt(r.effective_annual_rate)}%/yr{" "}
+                          {isShort ? "(benefit)" : "(fee)"}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        ${fmt(r.usd_balance)} · {fmt(r.annual_rate)}%/yr
+                      <div className="text-right shrink-0">
+                        <div
+                          className={`font-semibold ${
+                            isShort ? "text-emerald-500" : ""
+                          }`}
+                        >
+                          {isShort ? "+" : ""}${fmt(r.live_daily_fee)}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {amountLabel}:{" "}
+                          {r.today_fee !== null
+                            ? `${snapPrefix} $${fmt(r.today_fee)}`
+                            : r.last_fee !== null
+                              ? `${lastPrefix} ${r.last_fee_date} $${fmt(r.last_fee)}`
+                              : "no snapshot yet"}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="font-semibold">${fmt(r.live_daily_fee)}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {r.today_fee !== null
-                          ? `today snap $${fmt(r.today_fee)}`
-                          : r.last_fee !== null
-                            ? `last ${r.last_fee_date} $${fmt(r.last_fee)}`
-                            : "no snapshot yet"}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
 
         )}
