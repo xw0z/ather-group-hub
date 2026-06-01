@@ -292,5 +292,95 @@ export async function runDailyFeeJob() {
       .upsert(rows, { onConflict: "client_id,fee_date" });
     if (upErr) throw new Error(upErr.message);
   }
-  return { date: today, xauusd, count: rows.length };
+
+  // Send one WhatsApp message per client to the admin number (best-effort).
+  let whatsapp: { sent: number; failed: number; skipped?: string } = { sent: 0, failed: 0 };
+  try {
+    whatsapp = await sendDailyWhatsAppStatements(today);
+  } catch (e) {
+    whatsapp = {
+      sent: 0,
+      failed: 0,
+      skipped: e instanceof Error ? e.message : "whatsapp send failed",
+    };
+  }
+
+  return { date: today, xauusd, count: rows.length, whatsapp };
+}
+
+function fmtNum(n: number, d = 2): string {
+  return Number(n).toLocaleString("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  });
+}
+
+async function sendDailyWhatsAppStatements(
+  feeDate: string,
+): Promise<{ sent: number; failed: number; skipped?: string }> {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const twilioKey = process.env.TWILIO_API_KEY;
+  const fromRaw = process.env.TWILIO_WHATSAPP_FROM;
+  const toRaw = process.env.ADMIN_WHATSAPP_TO;
+  if (!lovableKey || !twilioKey || !fromRaw || !toRaw) {
+    return { sent: 0, failed: 0, skipped: "missing twilio/whatsapp env vars" };
+  }
+  const from = fromRaw.startsWith("whatsapp:") ? fromRaw : `whatsapp:${fromRaw}`;
+  const to = toRaw.startsWith("whatsapp:") ? toRaw : `whatsapp:${toRaw}`;
+
+  const { data: clients, error } = await supabaseAdmin
+    .from("swap_clients")
+    .select("id, code, notes")
+    .order("code", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  const { data: fees, error: fErr } = await supabaseAdmin
+    .from("swap_daily_fees")
+    .select("client_id, xauusd_price, daily_fee, usd_balance, annual_rate, created_at")
+    .eq("fee_date", feeDate);
+  if (fErr) throw new Error(fErr.message);
+  const byClient = new Map<string, (typeof fees)[number]>();
+  for (const f of fees ?? []) byClient.set(f.client_id, f);
+
+  const snapshot = new Date().toUTCString();
+  let sent = 0;
+  let failed = 0;
+  for (const c of clients ?? []) {
+    const f = byClient.get(c.id);
+    if (!f) continue;
+    const xau =
+      f.xauusd_price !== null && f.xauusd_price !== undefined ? Number(f.xauusd_price) : null;
+    const body =
+      `Swap Statement — ${feeDate}\n` +
+      `Client: ${c.code}${c.notes ? ` (${c.notes})` : ""}\n` +
+      `Snapshot: ${snapshot}` +
+      (xau !== null ? ` · XAUUSD $${fmtNum(xau)}` : "") +
+      `\n\n` +
+      `Balance: $${fmtNum(Number(f.usd_balance))}\n` +
+      `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
+      `Swap fee: -$${fmtNum(Number(f.daily_fee))}`;
+
+    try {
+      const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": twilioKey,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ To: to, From: from, Body: body }),
+      });
+      if (res.ok) sent++;
+      else {
+        failed++;
+        console.error(
+          `Twilio send failed for ${c.code}: ${res.status} ${await res.text().catch(() => "")}`,
+        );
+      }
+    } catch (e) {
+      failed++;
+      console.error(`Twilio send error for ${c.code}:`, e);
+    }
+  }
+  return { sent, failed };
 }
