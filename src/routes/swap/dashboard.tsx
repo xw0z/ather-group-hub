@@ -343,10 +343,11 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
 
         )}
         <p className="text-[11px] text-muted-foreground mt-3">
-          Formula: USD balance × annual rate% ÷ 365 × day multiplier. Mon/Tue/Thu/Fri = 1 day,
-          Wednesday = 3 days (covers the weekend in advance), Sat/Sun = 0. No additional swap
-          is charged on Saturday or Sunday. A nightly job (21:00 UTC) snapshots the XAUUSD
-          price and computes each client&apos;s fee.
+          Formula: USD balance × annual rate% ÷ 365 × day multiplier. Long positions are
+          charged a fee using the long annual rate; Short positions receive a benefit credit
+          using the short annual benefit rate. Mon/Tue/Thu/Fri = 1 day, Wednesday = 3 days
+          (covers the weekend in advance), Sat/Sun = 0. No additional swap is charged or
+          credited on Saturday or Sunday.
           {data ? (
             <>
               {" "}Today&apos;s multiplier: <span className="font-medium">{data.todayMultiplier}×</span>.
