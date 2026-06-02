@@ -1,6 +1,7 @@
 import { useEffect, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import atherLogoAsset from "@/assets/ather-logo.asset.json";
+import goldBarsImg from "@/assets/gold-bars-stack.png";
 
 export type PurityReportBar = {
   index: number;
@@ -567,50 +568,23 @@ function TrendDownIcon() {
   );
 }
 
-/* Premium realistic gold bars stack — for compensation section */
+/* Premium realistic gold bars stack — photographic bullion image */
 function GoldBarsStack({ width }: { width: number }) {
   return (
-    <svg viewBox="0 0 220 180" width={width} height={width * (180 / 220)}>
-      <defs>
-        <linearGradient id="gsTop" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff4b8" />
-          <stop offset="100%" stopColor="#e3c258" />
-        </linearGradient>
-        <linearGradient id="gsFace" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbe892" />
-          <stop offset="45%" stopColor="#d4ad28" />
-          <stop offset="100%" stopColor="#7a5f15" />
-        </linearGradient>
-        <linearGradient id="gsSide" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#b8901a" />
-          <stop offset="100%" stopColor="#7a5f15" />
-        </linearGradient>
-        <filter id="gsShadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.25" />
-        </filter>
-      </defs>
-
-      <g filter="url(#gsShadow)">
-        {/* back-left bar */}
-        <polygon points="14,76 96,76 108,64 26,64" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="0.9" />
-        <rect x="14" y="76" width="82" height="34" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="0.9" />
-        <polygon points="96,76 96,110 108,98 108,64" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="0.9" />
-        <text x="55" y="98" textAnchor="middle" fill="#5a4310" fontSize="9" fontWeight="700" fontFamily="serif">999.9</text>
-
-        {/* back-right bar */}
-        <polygon points="112,76 194,76 206,64 124,64" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="0.9" />
-        <rect x="112" y="76" width="82" height="34" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="0.9" />
-        <polygon points="194,76 194,110 206,98 206,64" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="0.9" />
-        <text x="153" y="98" textAnchor="middle" fill="#5a4310" fontSize="9" fontWeight="700" fontFamily="serif">ATHER</text>
-
-        {/* front bar */}
-        <polygon points="44,118 166,118 180,104 58,104" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="1" />
-        <rect x="44" y="118" width="122" height="42" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="1" />
-        <polygon points="166,118 166,160 180,146 180,104" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="1" />
-        <text x="105" y="138" textAnchor="middle" fill="#5a4310" fontSize="12" fontWeight="700" fontFamily="serif">ATHER</text>
-        <text x="105" y="152" textAnchor="middle" fill="#5a4310" fontSize="8" fontWeight="600" fontFamily="serif">FINE GOLD 999.9</text>
-      </g>
-    </svg>
+    <img
+      src={goldBarsImg}
+      alt="Gold bullion bars"
+      width={width}
+      height={width}
+      crossOrigin="anonymous"
+      style={{
+        width,
+        height: "auto",
+        display: "block",
+        objectFit: "contain",
+        filter: "drop-shadow(0 18px 22px rgba(120,85,10,0.35))",
+      }}
+    />
   );
 }
 
