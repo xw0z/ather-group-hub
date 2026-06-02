@@ -1397,6 +1397,403 @@ export function ClientBreakdown({
 
   if (rows.length === 0) return null;
 
+  async function shareClientPDF(r: {
+    name: string;
+    bars: Piece[];
+    totalWeight: number;
+    totalPure: number;
+    totalLoss: number;
+  }) {
+    // True vector A4 PDF — selectable text, vector shapes, embedded fonts.
+    // Built-in PostScript fonts: helvetica (sans), times (serif), courier (mono).
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+      compress: true,
+    });
+
+    // Palette (RGB)
+    const GOLD: [number, number, number] = [201, 162, 39];
+    const GOLD_DEEP: [number, number, number] = [184, 145, 30];
+    const GOLD_SOFT: [number, number, number] = [232, 210, 122];
+    const CREAM: [number, number, number] = [255, 252, 244];
+    const CREAM_ALT: [number, number, number] = [250, 244, 226];
+    const INK: [number, number, number] = [17, 24, 39];
+    const CHARCOAL: [number, number, number] = [31, 41, 55];
+    const MUTED: [number, number, number] = [107, 114, 128];
+    const SUBTLE: [number, number, number] = [156, 163, 175];
+    const HAIRLINE: [number, number, number] = [239, 230, 203];
+    const RED: [number, number, number] = [192, 57, 43];
+    const GREEN: [number, number, number] = [4, 120, 87];
+
+    const W = 210;
+    const H = 297;
+    const OUTER = 6;
+    const PAD = 12;
+
+    // Derived identifiers (same logic as PNG)
+    const dep = trip.departure_date || "";
+    const depCompact = dep.replace(/-/g, "");
+    const hash = Math.abs(
+      Array.from(r.name + dep + trip.id).reduce(
+        (a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0,
+        0,
+      ),
+    );
+    const clientCode = (r.name || "—").toString();
+    const reportSerial = String(hash % 10000).padStart(4, "0");
+    const reportId = `RP-${depCompact || "00000000"}-${reportSerial}`;
+    const now = new Date();
+    const pad2 = (n: number) => String(n).padStart(2, "0");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const reportDate = `${pad2(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    const gstMs = now.getTime() + (now.getTimezoneOffset() + 240) * 60000;
+    const gst = new Date(gstMs);
+    let hh = gst.getHours();
+    const mm = pad2(gst.getMinutes());
+    const ampm = hh >= 12 ? "PM" : "AM";
+    hh = hh % 12 || 12;
+    const reportTime = `${hh}:${mm} ${ampm} (GST)`;
+
+    // Background cream
+    doc.setFillColor(...CREAM);
+    doc.rect(0, 0, W, H, "F");
+
+    // Outer gold rounded border (double)
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(OUTER, OUTER, W - OUTER * 2, H - OUTER * 2, 3, 3, "S");
+    doc.setDrawColor(...GOLD_SOFT);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(OUTER + 1.2, OUTER + 1.2, W - (OUTER + 1.2) * 2, H - (OUTER + 1.2) * 2, 2.4, 2.4, "S");
+
+    // ===== TOP BAND =====
+    // Logo (PNG, top-left). Vector PDFs commonly embed raster logos — text stays vector/selectable.
+    try {
+      const logoUrl = atherLogoAsset.url as string;
+      const blob = await fetch(logoUrl).then((res) => res.blob());
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+      // Probe dimensions to keep aspect ratio
+      const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.width, h: img.height });
+        img.onerror = () => resolve({ w: 1, h: 1 });
+        img.src = dataUrl;
+      });
+      const logoH = 16;
+      const logoW = (dims.w / dims.h) * logoH;
+      doc.addImage(dataUrl, "PNG", PAD, OUTER + 4, logoW, logoH, undefined, "FAST");
+    } catch {
+      /* logo optional */
+    }
+
+    // Taglines under logo
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...GOLD_DEEP);
+    doc.text("GOLD & PRECIOUS METALS", PAD, OUTER + 26);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...MUTED);
+    doc.text("TRUST  •  INTEGRITY  •  EXCELLENCE", PAD, OUTER + 30);
+
+    // Center title — vector serif
+    doc.setFont("times", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...GOLD_DEEP);
+    doc.text("GOLD  PURITY  REPORT", W / 2, OUTER + 14, { align: "center" });
+    // ornament
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.3);
+    doc.line(W / 2 - 30, OUTER + 18, W / 2 - 4, OUTER + 18);
+    doc.line(W / 2 + 4, OUTER + 18, W / 2 + 30, OUTER + 18);
+    doc.setFillColor(...GOLD);
+    doc.triangle(W / 2, OUTER + 16.5, W / 2 + 2, OUTER + 18, W / 2, OUTER + 19.5, "F");
+    doc.triangle(W / 2, OUTER + 16.5, W / 2 - 2, OUTER + 18, W / 2, OUTER + 19.5, "F");
+
+    // UAE flag (top-right) — vector
+    const flagX = W - PAD - 32;
+    const flagY = OUTER + 6;
+    const flagW = 32;
+    const flagH = 20;
+    const hoist = 10;
+    doc.setFillColor(206, 17, 38);
+    doc.rect(flagX, flagY, hoist, flagH, "F");
+    doc.setFillColor(0, 151, 57);
+    doc.rect(flagX + hoist, flagY, flagW - hoist, flagH / 3, "F");
+    doc.setFillColor(255, 255, 255);
+    doc.rect(flagX + hoist, flagY + flagH / 3, flagW - hoist, flagH / 3, "F");
+    doc.setFillColor(0, 0, 0);
+    doc.rect(flagX + hoist, flagY + (2 * flagH) / 3, flagW - hoist, flagH / 3, "F");
+    doc.setDrawColor(...HAIRLINE);
+    doc.setLineWidth(0.1);
+    doc.rect(flagX, flagY, flagW, flagH, "S");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...CHARCOAL);
+    doc.text("Dubai, United Arab Emirates", flagX + flagW / 2, flagY + flagH + 4, { align: "center" });
+
+    // ===== CLIENT CODE BLOCK =====
+    let cursorY = OUTER + 36;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text("CLIENT CODE", PAD + 4, cursorY + 4);
+    doc.setFont("times", "bold");
+    doc.setFontSize(56);
+    doc.setTextColor(...INK);
+    doc.text(clientCode, PAD + 4, cursorY + 24);
+
+    // Right meta column
+    const metaX = W - PAD - 4;
+    const metaLabel = (label: string, value: string, y: number) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(...MUTED);
+      doc.text(label, metaX, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...CHARCOAL);
+      doc.text(value, metaX, y + 4, { align: "right" });
+    };
+    metaLabel("REPORT ID", reportId, cursorY + 2);
+    metaLabel("DATE", reportDate, cursorY + 11);
+    metaLabel("TIME", reportTime, cursorY + 20);
+
+    cursorY += 32;
+
+    // ===== SUMMARY CARDS =====
+    const cardGap = 4;
+    const cardW = (W - PAD * 2 - cardGap * 2) / 3;
+    const cardH = 22;
+    const cards: Array<{ label: string; value: string; color: [number, number, number] }> = [
+      { label: "BARS", value: String(r.bars.length), color: INK },
+      {
+        label: "TOTAL WEIGHT (g)",
+        value: r.totalWeight.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        color: INK,
+      },
+      {
+        label: "TOTAL LOSS (g)",
+        value: r.totalLoss.toFixed(2),
+        color: r.totalLoss === 0 ? GREEN : RED,
+      },
+    ];
+    cards.forEach((c, i) => {
+      const x = PAD + i * (cardW + cardGap);
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(...HAIRLINE);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(x, cursorY, cardW, cardH, 2, 2, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...MUTED);
+      doc.text(c.label, x + 4, cursorY + 7);
+      doc.setFont("times", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(...c.color);
+      doc.text(c.value, x + 4, cursorY + 18);
+    });
+    cursorY += cardH + 6;
+
+    // ===== TABLE =====
+    const tableHeadH = 8;
+    const rowH = 7;
+    const colNum = PAD + 4;
+    const colWeight = PAD + 56;
+    const colBafleh = PAD + 100;
+    const colPure = PAD + 142;
+    const colLoss = W - PAD - 4;
+
+    doc.setFillColor(...GOLD_DEEP);
+    doc.roundedRect(PAD, cursorY, W - PAD * 2, tableHeadH, 1, 1, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text("#", colNum, cursorY + 5.5);
+    doc.text("WEIGHT (g)", colWeight, cursorY + 5.5, { align: "right" });
+    doc.text("BAFLEH ‰", colBafleh, cursorY + 5.5, { align: "right" });
+    doc.text("PURE (g)", colPure, cursorY + 5.5, { align: "right" });
+    doc.text("LOSS (g)", colLoss, cursorY + 5.5, { align: "right" });
+
+    let ry = cursorY + tableHeadH;
+    r.bars.forEach((b, i) => {
+      const w = Number(b.weight_grams);
+      const supplierFmt: PurityFormat =
+        (clients.find((c) => c.id === b.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
+      const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
+      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
+
+      if (i % 2 === 1) {
+        doc.setFillColor(...CREAM_ALT);
+        doc.rect(PAD, ry, W - PAD * 2, rowH, "F");
+      }
+      doc.setDrawColor(...HAIRLINE);
+      doc.setLineWidth(0.1);
+      doc.line(PAD, ry + rowH, W - PAD, ry + rowH);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...INK);
+      doc.text(String(b.label || i + 1), colNum, ry + 5);
+
+      doc.setFont("courier", "normal");
+      doc.setFontSize(9);
+      doc.text(w.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colWeight, ry + 5, { align: "right" });
+      doc.text(formatPurityValue(b.bafleh_purity, supplierFmt), colBafleh, ry + 5, { align: "right" });
+      doc.text(pure.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colPure, ry + 5, { align: "right" });
+
+      doc.setFont("courier", "bold");
+      doc.setTextColor(...(loss === 0 ? GREEN : RED));
+      doc.text(loss.toFixed(2), colLoss, ry + 5, { align: "right" });
+      ry += rowH;
+    });
+    cursorY = ry + 6;
+
+    // ===== COMPENSATION STRIP =====
+    const compH = 28;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(PAD, cursorY, W - PAD * 2, compH, 3, 3, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("AMOUNT TO COMPENSATE", W / 2, cursorY + 9, { align: "center" });
+    doc.setFont("times", "bold");
+    doc.setFontSize(26);
+    doc.setTextColor(...(r.totalLoss === 0 ? GREEN : GOLD_DEEP));
+    doc.text(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, cursorY + 22, { align: "center" });
+    cursorY += compH + 6;
+
+    // ===== VERIFICATION ROW =====
+    const verifyH = 30;
+    // QR placeholder (vector squares from hash) — same pseudo pattern as PNG
+    const qrSize = 26;
+    const qrX = PAD + 2;
+    const qrY = cursorY + 2;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, "F");
+    const qrCells = 21;
+    const cell = qrSize / qrCells;
+    let seed = hash >>> 0;
+    const rng = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0xffffffff;
+    };
+    doc.setFillColor(...INK);
+    for (let y0 = 0; y0 < qrCells; y0++) {
+      for (let x0 = 0; x0 < qrCells; x0++) {
+        if (rng() > 0.5) {
+          doc.rect(qrX + x0 * cell, qrY + y0 * cell, cell + 0.05, cell + 0.05, "F");
+        }
+      }
+    }
+    // Finder patterns
+    const finder = (fx: number, fy: number) => {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(fx, fy, cell * 7, cell * 7, "F");
+      doc.setFillColor(...INK);
+      doc.rect(fx, fy, cell * 7, cell * 7, "F");
+      doc.setFillColor(255, 255, 255);
+      doc.rect(fx + cell, fy + cell, cell * 5, cell * 5, "F");
+      doc.setFillColor(...INK);
+      doc.rect(fx + cell * 2, fy + cell * 2, cell * 3, cell * 3, "F");
+    };
+    finder(qrX, qrY);
+    finder(qrX + cell * 14, qrY);
+    finder(qrX, qrY + cell * 14);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...GOLD_DEEP);
+    doc.text("Verify this report", qrX + qrSize + 6, cursorY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("Scan the QR code to verify", qrX + qrSize + 6, cursorY + 14);
+    doc.text("the authenticity of this report.", qrX + qrSize + 6, cursorY + 18);
+
+    // Signature (right)
+    const sigX = W - PAD - 70;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...CHARCOAL);
+    doc.text("AUTHORIZED SIGNATURE", sigX, cursorY + 6);
+    doc.setDrawColor(...INK);
+    doc.setLineWidth(0.6);
+    doc.lines(
+      [
+        [10, -4],
+        [12, 6],
+        [16, -4],
+        [14, 2],
+      ],
+      sigX + 4,
+      cursorY + 16,
+    );
+    doc.setDrawColor(...HAIRLINE);
+    doc.setLineWidth(0.2);
+    doc.line(sigX, cursorY + 22, sigX + 66, cursorY + 22);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("Quality Assurance Manager", sigX, cursorY + 26);
+
+    cursorY += verifyH + 4;
+
+    // ===== DISCLAIMER =====
+    const discH = 14;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...HAIRLINE);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(PAD, cursorY, W - PAD * 2, discH, 2, 2, "FD");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...CHARCOAL);
+    doc.text(
+      "This report was generated from laboratory purity measurements and is intended for commercial reconciliation purposes.",
+      W / 2,
+      cursorY + 9,
+      { align: "center", maxWidth: W - PAD * 2 - 8 },
+    );
+
+    // ===== FOOTER =====
+    const footerY = H - OUTER - 12;
+    doc.setDrawColor(...HAIRLINE);
+    doc.setLineWidth(0.2);
+    doc.line(PAD, footerY - 2, W - PAD, footerY - 2);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text("Generated by", PAD, footerY + 3);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...GOLD_DEEP);
+    doc.text("ATHER", PAD + 14, footerY + 3);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...MUTED);
+    doc.text("Gold & Precious Metals · Generated in Dubai, UAE", PAD, footerY + 7);
+    doc.setFontSize(7);
+    doc.setTextColor(...SUBTLE);
+    doc.text(`Verification ID: ${reportId}`, W - PAD, footerY + 7, { align: "right" });
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...CHARCOAL);
+    doc.text("Dubai, United Arab Emirates", W - PAD, footerY + 3, { align: "right" });
+
+    // Save
+    const fileName = `Gold-Purity-Report_${clientCode}_${reportSerial}.pdf`;
+    doc.save(fileName);
+  }
+
+
+
   async function shareClientImage(r: {
     name: string;
     bars: Piece[];
