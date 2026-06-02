@@ -62,14 +62,6 @@ async function waitForFonts() {
 
 /* ---------- Inline SVG assets ---------- */
 
-const UAEFlag = () => (
-  <svg viewBox="0 0 60 30" style={{ width: 210, height: 105, marginBottom: 18, display: "inline-block" }}>
-    <rect width="15" height="30" fill="#ce1126" />
-    <rect x="15" width="45" height="10" fill="#00732f" />
-    <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
-    <rect x="15" y="20" width="45" height="10" fill="#000000" />
-  </svg>
-);
 
 /** Deterministic pseudo-QR built from the report id hash. Pure SVG, no network. */
 function PseudoQR({ seed, size = 180 }: { seed: string; size?: number }) {
