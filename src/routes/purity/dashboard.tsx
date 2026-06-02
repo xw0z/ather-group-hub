@@ -1552,11 +1552,24 @@ export function ClientBreakdown({
     ctx.fillText("UNITED ARAB EMIRATES", flagX + flagW / 2, flagY + flagH + 28);
     ctx.textAlign = "left";
 
-    // ===== BIG NUMBER + META =====
+    // ===== CLIENT CODE + META =====
+    // Small luxury label above the big code
     const bnY = topBandH + 30;
-    ctx.fillStyle = INK;
-    ctx.font = "800 200px Georgia, 'Times New Roman', serif";
-    ctx.fillText(bigNumber, PAD + 10, bnY + 150);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = `600 22px ${FONT_UI}`;
+    ctx.textAlign = "left";
+    ctx.fillText("CLIENT CODE", PAD + 14, bnY + 28);
+    // Hairline under label
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(PAD + 14, bnY + 42);
+    ctx.lineTo(PAD + 14 + 180, bnY + 42);
+    ctx.stroke();
+    // The prominent number = supplier code (client.name)
+    ctx.fillStyle = "#1E2430";
+    ctx.font = `400 220px ${FONT_DISPLAY}`;
+    ctx.fillText(clientCode, PAD + 10, bnY + 210);
 
     // Right meta column (Date / Time / ID)
     const metaX = W - PAD - 540;
@@ -1568,7 +1581,7 @@ export function ClientBreakdown({
       ctx.arc(metaIconCol + 22, cy, 26, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = GOLD;
-      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.font = `700 26px ${FONT_UI}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(glyph, metaIconCol + 22, cy + 1);
@@ -1584,10 +1597,10 @@ export function ClientBreakdown({
       const cy = topBandH + 30 + i * 76 + 26;
       drawMetaIcon(cy, m.glyph);
       ctx.fillStyle = MUTED;
-      ctx.font = "500 20px system-ui, sans-serif";
-      ctx.fillText(m.label, metaLabelCol, cy - 6);
+      ctx.font = `500 18px ${FONT_UI}`;
+      ctx.fillText(m.label.toUpperCase(), metaLabelCol, cy - 6);
       ctx.fillStyle = CHARCOAL;
-      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.font = `600 24px ${FONT_UI}`;
       ctx.fillText(m.value, metaLabelCol, cy + 26);
     });
 
