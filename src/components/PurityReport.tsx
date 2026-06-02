@@ -150,7 +150,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         {/* Left: brand, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 285, height: "auto" }} />
+          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 245, height: "auto" }} />
           <div style={{ marginTop: 24, fontSize: 30, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
             GOLD &amp; PRECIOUS METALS
           </div>
@@ -164,11 +164,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: 156,
+              fontSize: 140,
               letterSpacing: 6,
               color: "#B88A18",
               margin: "10px 0 18px",
               fontWeight: 700,
+              whiteSpace: "nowrap",
             }}
           >
             GOLD PURITY REPORT
@@ -182,21 +183,21 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
         {/* Right: flag, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 285, height: 192, display: "block" }}>
+          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 245, height: 165, display: "block" }}>
             <rect width="15" height="30" fill="#ce1126" />
             <rect x="15" width="45" height="10" fill="#00732f" />
             <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
             <rect x="15" y="20" width="45" height="10" fill="#000000" />
           </svg>
-          <div style={{ marginTop: 20, fontSize: 39, color: "#444444", fontWeight: 500, textAlign: "center" }}>
+          <div style={{ marginTop: 20, fontSize: 36, color: "#444444", fontWeight: 500, textAlign: "center" }}>
             Dubai, United Arab Emirates
           </div>
         </div>
 
       </header>
 
-      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right) */}
-      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 80, alignItems: "start" }}>
+      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
+      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
         <div>
           <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
             CLIENT CODE
@@ -213,14 +214,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           >
             {data.clientCode}
           </div>
-
-          <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
-            {data.tripCode} • {data.depositCode}
-          </div>
         </div>
 
-        {/* Right: Report meta under flag */}
-        <div style={{ display: "grid", gap: 36, paddingTop: 20 }}>
+        {/* Right: Report meta aligned to right edge under flag */}
+        <div style={{ display: "grid", gap: 36, paddingTop: 20, justifySelf: "end" }}>
           <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
           <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
           <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
@@ -336,7 +333,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"Cormorant Garamond", serif',
-              fontSize: 210,
+              fontSize: 231,
               color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
@@ -629,7 +626,9 @@ function SummaryCard({
           fontSize: 96,
           fontWeight: 800,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          textAlign: "right",
+          textAlign: "center",
+          display: "block",
+          width: "100%",
           fontFamily: '"DM Serif Display", serif',
           letterSpacing: 1,
         }}
