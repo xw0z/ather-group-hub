@@ -1338,90 +1338,186 @@ export function ClientBreakdown({
     totalLoss: number;
   }) {
     const tripName = tripDisplayName(trip);
-    const W = 1080;
-    const rowH = 64;
-    const headerH = 320;
-    const footerH = 180;
-    const tableHeadH = 56;
-    const H = headerH + tableHeadH + rowH * r.bars.length + footerH;
+    // High-res canvas (>2000px wide) — premium light theme
+    const W = 2160;
+    const PAD = 96;
+    const rowH = 110;
+    const headerH = 640;
+    const compH = 360;
+    const footerH = 260;
+    const tableHeadH = 96;
+    const H = headerH + tableHeadH + rowH * r.bars.length + compH + footerH;
+
+    // Palette
+    const GOLD = "#C9A227";
+    const GOLD_SOFT = "#E8D27A";
+    const GOLD_TINT = "rgba(201,162,39,0.08)";
+    const CHARCOAL = "#1F2937";
+    const MUTED = "#6B7280";
+    const SUBTLE = "#9CA3AF";
+    const BORDER = "#E5E7EB";
+    const ROW_ALT = "#FAF7EC";
+    const RED = "#B91C1C";
+    const GREEN = "#047857";
+    const BG = "#FFFDF7";
 
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, "#0b0f1a");
-    bg.addColorStop(1, "#141a2b");
-    ctx.fillStyle = bg;
+    // Background
+    ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
 
-    const gold = ctx.createLinearGradient(0, 0, W, 0);
-    gold.addColorStop(0, "#d4af37");
-    gold.addColorStop(1, "#f6e27a");
-    ctx.fillStyle = gold;
-    ctx.fillRect(0, 0, W, 8);
+    // Watermark
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    ctx.fillStyle = GOLD;
+    ctx.font = "800 320px Georgia, 'Times New Roman', serif";
+    ctx.textAlign = "center";
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(-Math.PI / 8);
+    ctx.fillText("ATHER", 0, 0);
+    ctx.restore();
 
-    ctx.fillStyle = "#f6e27a";
-    ctx.font = "700 30px system-ui, -apple-system, Segoe UI, sans-serif";
-    ctx.fillText("GOLD PURITY REPORT", 48, 70);
+    // Top gold bar
+    const goldBar = ctx.createLinearGradient(0, 0, W, 0);
+    goldBar.addColorStop(0, GOLD);
+    goldBar.addColorStop(0.5, GOLD_SOFT);
+    goldBar.addColorStop(1, GOLD);
+    ctx.fillStyle = goldBar;
+    ctx.fillRect(0, 0, W, 12);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 56px system-ui, sans-serif";
-    ctx.fillText(r.name, 48, 138);
+    // Report ID
+    const reportId =
+      `RPT-${(trip.departure_date || "").replace(/-/g, "")}-` +
+      `${(r.name.replace(/\s+/g, "").slice(0, 4) || "CLNT").toUpperCase()}-` +
+      `${Math.abs(
+        Array.from(tripName + r.name).reduce((a, c) => a + c.charCodeAt(0), 0),
+      )
+        .toString(36)
+        .toUpperCase()
+        .slice(0, 5)}`;
+    const now = new Date();
+    const generatedAt = now.toLocaleString();
 
-    ctx.fillStyle = "#9aa3b2";
-    ctx.font = "400 24px system-ui, sans-serif";
+    // Brand header
+    ctx.textAlign = "left";
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "800 44px Georgia, 'Times New Roman', serif";
+    ctx.fillText("ATHER", PAD, 100);
+    ctx.fillStyle = GOLD;
+    ctx.font = "600 22px system-ui, -apple-system, 'Segoe UI', sans-serif";
+    ctx.fillText("BEFLAH REPORTS · BULLION RECONCILIATION", PAD, 138);
+
+    // Right side: report id + date
+    ctx.textAlign = "right";
+    ctx.fillStyle = MUTED;
+    ctx.font = "500 22px system-ui, sans-serif";
+    ctx.fillText("REPORT №", W - PAD, 80);
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "800 38px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText(reportId, W - PAD, 128);
+    ctx.fillStyle = SUBTLE;
+    ctx.font = "400 20px system-ui, sans-serif";
+    ctx.fillText(`Generated ${generatedAt}`, W - PAD, 160);
+    ctx.textAlign = "left";
+
+    // Hairline
+    ctx.fillStyle = BORDER;
+    ctx.fillRect(PAD, 188, W - PAD * 2, 1);
+
+    // Title block
+    ctx.fillStyle = MUTED;
+    ctx.font = "600 22px system-ui, sans-serif";
+    ctx.fillText("GOLD PURITY REPORT", PAD, 238);
+
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "800 84px Georgia, 'Times New Roman', serif";
+    ctx.fillText(r.name, PAD, 322);
+
+    ctx.fillStyle = MUTED;
+    ctx.font = "400 26px system-ui, sans-serif";
     ctx.fillText(
-      `${tripName}  ·  Dep ${trip.departure_date}${trip.arrival_date ? "  ·  Arr " + trip.arrival_date : ""}${trip.receiver_company ? "  →  " + trip.receiver_company : ""}`,
-      48,
-      178,
+      `${tripName}  ·  Departure ${trip.departure_date}${trip.arrival_date ? "  ·  Arrival " + trip.arrival_date : ""}${trip.receiver_company ? "  →  " + trip.receiver_company : ""}`,
+      PAD,
+      368,
     );
 
-    const cardY = 210;
-    const cardH = 90;
-    const cardW = (W - 48 * 2 - 24 * 2) / 3;
-    const cards: { label: string; value: string; color: string }[] = [
-      { label: "BARS", value: String(r.bars.length), color: "#ffffff" },
-      { label: "WEIGHT (g)", value: r.totalWeight.toFixed(2), color: "#ffffff" },
+    // Summary cards (3)
+    const cardY = 420;
+    const cardH = 180;
+    const gap = 32;
+    const cardW = (W - PAD * 2 - gap * 2) / 3;
+    const cards: {
+      label: string;
+      value: string;
+      icon: string;
+      valueColor: string;
+    }[] = [
+      { label: "NUMBER OF BARS", value: String(r.bars.length), icon: "▮▮▮", valueColor: CHARCOAL },
+      { label: "TOTAL WEIGHT (g)", value: r.totalWeight.toFixed(2), icon: "⚖", valueColor: CHARCOAL },
       {
         label: "TOTAL LOSS (g)",
         value: r.totalLoss.toFixed(2),
-        color: r.totalLoss === 0 ? "#34d399" : "#f87171",
+        icon: "▼",
+        valueColor: r.totalLoss === 0 ? GREEN : RED,
       },
     ];
     cards.forEach((c, i) => {
-      const x = 48 + i * (cardW + 24);
-      ctx.fillStyle = "rgba(255,255,255,0.05)";
-      roundRect(ctx, x, cardY, cardW, cardH, 14);
+      const x = PAD + i * (cardW + gap);
+      // shadow
+      ctx.save();
+      ctx.shadowColor = "rgba(31,41,55,0.10)";
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = "#FFFFFF";
+      roundRect(ctx, x, cardY, cardW, cardH, 20);
       ctx.fill();
-      ctx.strokeStyle = "rgba(212,175,55,0.25)";
+      ctx.restore();
+      // border
+      ctx.strokeStyle = BORDER;
       ctx.lineWidth = 1;
+      roundRect(ctx, x, cardY, cardW, cardH, 20);
       ctx.stroke();
 
-      ctx.fillStyle = "#9aa3b2";
-      ctx.font = "600 16px system-ui, sans-serif";
-      ctx.fillText(c.label, x + 18, cardY + 30);
-      ctx.fillStyle = c.color;
-      ctx.font = "700 32px system-ui, sans-serif";
-      ctx.fillText(c.value, x + 18, cardY + 70);
+      // icon chip
+      ctx.fillStyle = GOLD_TINT;
+      roundRect(ctx, x + 32, cardY + 32, 64, 64, 14);
+      ctx.fill();
+      ctx.fillStyle = GOLD;
+      ctx.font = "700 28px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(c.icon, x + 64, cardY + 74);
+      ctx.textAlign = "left";
+
+      ctx.fillStyle = MUTED;
+      ctx.font = "600 20px system-ui, sans-serif";
+      ctx.fillText(c.label, x + 116, cardY + 62);
+      ctx.fillStyle = c.valueColor;
+      ctx.font = "800 56px Georgia, 'Times New Roman', serif";
+      ctx.fillText(c.value, x + 116, cardY + 128);
     });
 
+    // Table
     let y = headerH;
-    ctx.fillStyle = "rgba(212,175,55,0.1)";
-    ctx.fillRect(48, y, W - 96, tableHeadH);
-    ctx.fillStyle = "#d4af37";
-    ctx.font = "700 20px system-ui, sans-serif";
+    // Header
+    ctx.fillStyle = GOLD;
+    roundRect(ctx, PAD, y, W - PAD * 2, tableHeadH, 10);
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "700 24px system-ui, sans-serif";
     const cols = [
-      { label: "#", x: 70, align: "left" as const },
-      { label: "WEIGHT (g)", x: 260, align: "right" as const },
-      { label: "BAFLEH ‰", x: 520, align: "right" as const },
-      { label: "PURE (g)", x: 760, align: "right" as const },
-      { label: "LOSS (g)", x: W - 70, align: "right" as const },
+      { label: "#", x: PAD + 32, align: "left" as const },
+      { label: "WEIGHT (g)", x: PAD + 620, align: "right" as const },
+      { label: "BAFLEH ‰", x: PAD + 1080, align: "right" as const },
+      { label: "PURE (g)", x: PAD + 1500, align: "right" as const },
+      { label: "LOSS (g)", x: W - PAD - 32, align: "right" as const },
     ];
     cols.forEach((c) => {
       ctx.textAlign = c.align;
-      ctx.fillText(c.label, c.x, y + 36);
+      ctx.fillText(c.label, c.x, y + 60);
     });
     ctx.textAlign = "left";
 
@@ -1433,45 +1529,113 @@ export function ClientBreakdown({
       const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
       const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
 
-      if (i % 2 === 0) {
-        ctx.fillStyle = "rgba(255,255,255,0.02)";
-        ctx.fillRect(48, y, W - 96, rowH);
+      if (i % 2 === 1) {
+        ctx.fillStyle = ROW_ALT;
+        ctx.fillRect(PAD, y, W - PAD * 2, rowH);
       }
+      // row hairline
+      ctx.fillStyle = BORDER;
+      ctx.fillRect(PAD, y + rowH - 1, W - PAD * 2, 1);
 
-      ctx.fillStyle = "#cbd5e1";
-      ctx.font = "500 22px system-ui, sans-serif";
+      ctx.fillStyle = CHARCOAL;
+      ctx.font = "600 26px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(String(b.label || i + 1), 70, y + 40);
+      ctx.fillText(String(b.label || i + 1), PAD + 32, y + rowH / 2 + 10);
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "600 22px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillStyle = CHARCOAL;
+      ctx.font = "500 26px ui-monospace, Menlo, Consolas, monospace";
       ctx.textAlign = "right";
-      ctx.fillText(w.toFixed(2), 260, y + 40);
-      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), 520, y + 40);
-      ctx.fillText(pure.toFixed(2), 760, y + 40);
+      ctx.fillText(w.toFixed(2), PAD + 620, y + rowH / 2 + 10);
+      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), PAD + 1080, y + rowH / 2 + 10);
+      ctx.fillText(pure.toFixed(2), PAD + 1500, y + rowH / 2 + 10);
 
-      ctx.fillStyle = loss === 0 ? "#34d399" : "#f87171";
-      ctx.font = "700 22px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText(loss.toFixed(2), W - 70, y + 40);
+      ctx.fillStyle = loss === 0 ? GREEN : RED;
+      ctx.font = "800 26px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(loss.toFixed(2), W - PAD - 32, y + rowH / 2 + 10);
 
       y += rowH;
     });
-
     ctx.textAlign = "left";
-    ctx.fillStyle = "rgba(212,175,55,0.15)";
-    roundRect(ctx, 48, y + 20, W - 96, 110, 16);
-    ctx.fill();
-    ctx.fillStyle = "#9aa3b2";
-    ctx.font = "600 18px system-ui, sans-serif";
-    ctx.fillText("AMOUNT TO COMPENSATE", 70, y + 55);
-    ctx.fillStyle = r.totalLoss === 0 ? "#34d399" : "#f6e27a";
-    ctx.font = "800 44px system-ui, sans-serif";
-    ctx.fillText(`${r.totalLoss.toFixed(2)} g of pure gold`, 70, y + 105);
 
-    ctx.fillStyle = "#5b6478";
-    ctx.font = "400 16px system-ui, sans-serif";
+    // Outer table border
+    ctx.strokeStyle = BORDER;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(PAD, headerH, W - PAD * 2, tableHeadH + rowH * r.bars.length);
+
+    // Compensation section — centerpiece
+    const compY = y + 56;
+    const compW = W - PAD * 2 - 200;
+    const compX = (W - compW) / 2;
+    // soft shadow + gold border card
+    ctx.save();
+    ctx.shadowColor = "rgba(201,162,39,0.18)";
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = "#FFFFFF";
+    roundRect(ctx, compX, compY, compW, 240, 24);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 3;
+    roundRect(ctx, compX, compY, compW, 240, 24);
+    ctx.stroke();
+
+    // gold bar icon (left)
+    ctx.fillStyle = GOLD;
+    roundRect(ctx, compX + 48, compY + 90, 100, 60, 8);
+    ctx.fill();
+    ctx.fillStyle = GOLD_SOFT;
+    ctx.fillRect(compX + 60, compY + 100, 76, 6);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = MUTED;
+    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 70);
+
+    ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD;
+    ctx.font = "800 110px Georgia, 'Times New Roman', serif";
+    ctx.fillText(`${r.totalLoss.toFixed(2)} g`, W / 2, compY + 170);
+
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "500 26px system-ui, sans-serif";
+    ctx.fillText("of pure gold", W / 2, compY + 210);
+    ctx.textAlign = "left";
+
+    // Footer: disclaimer + signature + verification id
+    const footY = compY + 280;
+    ctx.fillStyle = BORDER;
+    ctx.fillRect(PAD, footY, W - PAD * 2, 1);
+
+    ctx.fillStyle = MUTED;
+    ctx.font = "italic 20px Georgia, serif";
+    wrapText(
+      ctx,
+      "This report was generated from laboratory purity measurements and is intended for commercial reconciliation purposes.",
+      PAD,
+      footY + 40,
+      W - PAD * 2 - 480,
+      28,
+    );
+
+    // Signature box
+    ctx.strokeStyle = BORDER;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(W - PAD - 440, footY + 24, 440, 110);
+    ctx.fillStyle = SUBTLE;
+    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.fillText("Authorized Signature", W - PAD - 430, footY + 124);
+    ctx.fillStyle = GOLD;
+    ctx.font = "italic 28px Georgia, serif";
+    ctx.fillText("Ather Bullion", W - PAD - 420, footY + 90);
+
+    // Verification id + footer brand
+    ctx.fillStyle = SUBTLE;
+    ctx.font = "500 18px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText(`Verification ID: ${reportId}`, PAD, H - 60);
     ctx.textAlign = "right";
-    ctx.fillText("Purity report", W - 48, H - 24);
+    ctx.fillStyle = GOLD;
+    ctx.font = "700 18px system-ui, sans-serif";
+    ctx.fillText("Generated by ATHER (BEFLAH Reports)", W - PAD, H - 60);
     ctx.textAlign = "left";
 
     const blob: Blob | null = await new Promise((resolve) =>
