@@ -2552,6 +2552,17 @@ export function ClientBreakdown({
                 >
                   <Share2 className="h-3.5 w-3.5" />
                 </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => shareClientPDF(r)}
+                  title="Download vector PDF (print quality)"
+                >
+                  <FileClock className="h-3.5 w-3.5" />
+                </Button>
+
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
