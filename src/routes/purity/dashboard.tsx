@@ -176,6 +176,47 @@ export function wrapText(
   if (line) ctx.fillText(line, x, cy);
 }
 
+// Lazily inject luxury Google Fonts used by the canvas report and wait until
+// they are ready so the first render isn't a fallback font.
+let _reportFontsLoaded: Promise<void> | null = null;
+export function ensureReportFonts(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  if (_reportFontsLoaded) return _reportFontsLoaded;
+  _reportFontsLoaded = (async () => {
+    const id = "ather-report-fonts";
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2" +
+        "?family=Cinzel:wght@600;700;800" +
+        "&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display" +
+        "&family=Inter:wght@400;500;600;700;800&display=swap";
+      document.head.appendChild(link);
+    }
+    const fontsToLoad = [
+      "700 64px 'Cinzel'",
+      "400 220px 'DM Serif Display'",
+      "700 110px 'Cormorant Garamond'",
+      "600 24px 'Inter'",
+      "700 28px 'Inter'",
+    ];
+    try {
+      const fontSet = (document as Document & { fonts?: { load: (f: string) => Promise<unknown>; ready: Promise<unknown> } }).fonts;
+      if (fontSet && typeof fontSet.load === "function") {
+        await Promise.all(fontsToLoad.map((f) => fontSet.load(f)));
+        await fontSet.ready;
+      }
+    } catch {
+      /* non-fatal – fall back to system fonts */
+    }
+  })();
+  return _reportFontsLoaded;
+}
+
+
+
 
 function PurityDashboard() {
   const navigate = useNavigate();
@@ -1383,6 +1424,9 @@ export function ClientBreakdown({
     const RED = "#C0392B";
     const GREEN = "#047857";
 
+    // Load luxury fonts (Cinzel, DM Serif Display, Cormorant Garamond, Inter)
+    await ensureReportFonts();
+
     // Derived identifiers
     const dep = trip.departure_date || "";
     const depCompact = dep.replace(/-/g, "");
@@ -1392,8 +1436,11 @@ export function ClientBreakdown({
         0,
       ),
     );
-    const bigNumber = String(3000 + (hash % 7000)); // 4-digit prominent number
-    const reportId = `RP-${dep || "0000-00-00"}-${bigNumber}`;
+    // CLIENT CODE — the prominent number is the supplier's code (stored in client.name).
+    // The Report ID is a separate identifier and must never replace the client code.
+    const clientCode = (r.name || "—").toString();
+    const reportSerial = String(hash % 10000).padStart(4, "0");
+    const reportId = `RP-${depCompact || "00000000"}-${reportSerial}`;
     const now = new Date();
     const pad2 = (n: number) => String(n).padStart(2, "0");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1406,6 +1453,11 @@ export function ClientBreakdown({
     const ampm = hh >= 12 ? "PM" : "AM";
     hh = hh % 12 || 12;
     const reportTime = `${hh}:${mm} ${ampm} (GST)`;
+
+    // Font shorthands
+    const FONT_TITLE = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
+    const FONT_DISPLAY = "'DM Serif Display', 'Cormorant Garamond', Georgia, serif";
+    const FONT_UI = "'Inter', system-ui, -apple-system, sans-serif";
 
     // Layout
     const topBandH = 380;
@@ -1479,18 +1531,20 @@ export function ClientBreakdown({
     }
     // Taglines under logo
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 22px system-ui, -apple-system, 'Segoe UI', sans-serif";
+    ctx.font = `700 22px ${FONT_UI}`;
     ctx.textAlign = "left";
-    ctx.fillText("GOLD & PRECIOUS METALS", logoX, logoY + logoBoxH + 34);
+    ctx.fillText("GOLD & PRECIOUS METALS", logoX, logoY + logoBoxH + 38);
     ctx.fillStyle = MUTED;
-    ctx.font = "600 16px system-ui, sans-serif";
-    ctx.fillText("TRUST  •  INTEGRITY  •  EXCELLENCE", logoX, logoY + logoBoxH + 62);
+    ctx.font = `500 15px ${FONT_UI}`;
+    ctx.fillText("TRUST  •  INTEGRITY  •  EXCELLENCE", logoX, logoY + logoBoxH + 66);
 
-    // Center title
+    // Center title — luxury Cinzel
     ctx.textAlign = "center";
-    ctx.fillStyle = GOLD;
-    ctx.font = "800 64px Georgia, 'Times New Roman', serif";
-    ctx.fillText("GOLD PURITY REPORT", W / 2, OUTER + 110);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = `700 62px ${FONT_TITLE}`;
+    // letter-spacing emulation via spaced text
+    const titleText = "GOLD  PURITY  REPORT";
+    ctx.fillText(titleText, W / 2, OUTER + 110);
     // ornament
     const ornY = OUTER + 140;
     ctx.strokeStyle = GOLD;
@@ -1534,16 +1588,29 @@ export function ClientBreakdown({
     ctx.lineWidth = 1;
     ctx.strokeRect(flagX, flagY, flagW, flagH);
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "600 18px system-ui, sans-serif";
+    ctx.font = "600 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("UNITED ARAB EMIRATES", flagX + flagW / 2, flagY + flagH + 28);
     ctx.textAlign = "left";
 
-    // ===== BIG NUMBER + META =====
+    // ===== CLIENT CODE + META =====
+    // Small luxury label above the big code
     const bnY = topBandH + 30;
-    ctx.fillStyle = INK;
-    ctx.font = "800 200px Georgia, 'Times New Roman', serif";
-    ctx.fillText(bigNumber, PAD + 10, bnY + 150);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = `600 22px ${FONT_UI}`;
+    ctx.textAlign = "left";
+    ctx.fillText("CLIENT CODE", PAD + 14, bnY + 28);
+    // Hairline under label
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(PAD + 14, bnY + 42);
+    ctx.lineTo(PAD + 14 + 180, bnY + 42);
+    ctx.stroke();
+    // The prominent number = supplier code (client.name)
+    ctx.fillStyle = "#1E2430";
+    ctx.font = `400 220px ${FONT_DISPLAY}`;
+    ctx.fillText(clientCode, PAD + 10, bnY + 210);
 
     // Right meta column (Date / Time / ID)
     const metaX = W - PAD - 540;
@@ -1555,7 +1622,7 @@ export function ClientBreakdown({
       ctx.arc(metaIconCol + 22, cy, 26, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = GOLD;
-      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.font = `700 26px ${FONT_UI}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(glyph, metaIconCol + 22, cy + 1);
@@ -1571,10 +1638,10 @@ export function ClientBreakdown({
       const cy = topBandH + 30 + i * 76 + 26;
       drawMetaIcon(cy, m.glyph);
       ctx.fillStyle = MUTED;
-      ctx.font = "500 20px system-ui, sans-serif";
-      ctx.fillText(m.label, metaLabelCol, cy - 6);
+      ctx.font = `500 18px ${FONT_UI}`;
+      ctx.fillText(m.label.toUpperCase(), metaLabelCol, cy - 6);
       ctx.fillStyle = CHARCOAL;
-      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.font = `600 24px ${FONT_UI}`;
       ctx.fillText(m.value, metaLabelCol, cy + 26);
     });
 
@@ -1666,11 +1733,11 @@ export function ClientBreakdown({
       c.draw(iconCx, iconCy);
 
       ctx.fillStyle = MUTED;
-      ctx.font = "600 22px system-ui, sans-serif";
+      ctx.font = "600 22px 'Inter', system-ui, -apple-system, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText(c.label, x + 180, cardsY + 80);
       ctx.fillStyle = c.valueColor;
-      ctx.font = "800 58px Georgia, 'Times New Roman', serif";
+      ctx.font = "800 58px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
       ctx.fillText(c.value, x + 180, cardsY + 152);
     });
 
@@ -1680,7 +1747,7 @@ export function ClientBreakdown({
     roundRect(ctx, PAD, tableY, W - PAD * 2, tableHeadH, 8);
     ctx.fill();
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
     const colNum = PAD + 50;
     const colWeight = PAD + 360;
     const colBafleh = PAD + 770;
@@ -1711,7 +1778,7 @@ export function ClientBreakdown({
       ctx.fillRect(PAD, ry + rowH - 1, W - PAD * 2, 1);
 
       ctx.fillStyle = INK;
-      ctx.font = "600 28px system-ui, sans-serif";
+      ctx.font = "600 28px 'Inter', system-ui, -apple-system, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText(String(b.label || i + 1), colNum, ry + rowH / 2 + 10);
 
@@ -1771,10 +1838,10 @@ export function ClientBreakdown({
     // Center text
     ctx.textAlign = "center";
     ctx.fillStyle = MUTED;
-    ctx.font = "600 26px system-ui, sans-serif";
+    ctx.font = "600 26px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 90);
     ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD_DEEP;
-    ctx.font = "800 110px Georgia, 'Times New Roman', serif";
+    ctx.font = "800 110px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
     ctx.fillText(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, compY + 200);
     // mini ornament
     ctx.strokeStyle = GOLD;
@@ -1833,11 +1900,11 @@ export function ClientBreakdown({
     ctx.restore();
     // stars
     ctx.fillStyle = GOLD;
-    ctx.font = "700 16px system-ui, sans-serif";
+    ctx.font = "700 16px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("★ ★ ★", medCx, medCy - 36);
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 14px system-ui, sans-serif";
+    ctx.font = "700 14px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("QUALITY &", medCx, medCy + 36);
     ctx.fillText("TRUST", medCx, medCy + 52);
     ctx.textAlign = "left";
@@ -1883,10 +1950,10 @@ export function ClientBreakdown({
 
     // Verify text (next to QR)
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Verify this report", qrX + qrSize + 28, verifyY + 50);
     ctx.fillStyle = MUTED;
-    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Scan the QR code to verify", qrX + qrSize + 28, verifyY + 84);
     ctx.fillText("the authenticity of this report.", qrX + qrSize + 28, verifyY + 108);
 
@@ -1921,10 +1988,10 @@ export function ClientBreakdown({
     ctx.stroke();
 
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("VERIFIED & CERTIFIED", vx + 90, verifyY + 56);
     ctx.fillStyle = MUTED;
-    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("This report is generated from", vx + 90, verifyY + 90);
     ctx.fillText("laboratory purity measurements.", vx + 90, verifyY + 114);
 
@@ -1938,7 +2005,7 @@ export function ClientBreakdown({
     // Right: signature
     const sx = PAD + colW * 2 + 40;
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("AUTHORIZED SIGNATURE", sx, verifyY + 40);
     // signature script line
     ctx.strokeStyle = INK;
@@ -1955,7 +2022,7 @@ export function ClientBreakdown({
     ctx.lineTo(sx + 360, verifyY + 130);
     ctx.stroke();
     ctx.fillStyle = MUTED;
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Quality Assurance Manager", sx, verifyY + 156);
 
     // ===== DISCLAIMER PILL =====
@@ -1976,7 +2043,7 @@ export function ClientBreakdown({
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 22px system-ui, sans-serif";
+    ctx.font = "500 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText(
       "This report was generated from laboratory purity measurements",
       PAD + 110,
@@ -1996,20 +2063,20 @@ export function ClientBreakdown({
     ctx.stroke();
     // left: generated by Ather
     ctx.fillStyle = MUTED;
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("Generated by", PAD, bottomY + 18);
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 20px system-ui, sans-serif";
+    ctx.font = "700 20px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("ATHER", PAD + 130, bottomY + 18);
     ctx.fillStyle = MUTED;
-    ctx.font = "500 16px system-ui, sans-serif";
+    ctx.font = "500 16px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Gold & Precious Metals · Dubai, United Arab Emirates", PAD, bottomY + 46);
 
     // right: location + verification ID
     ctx.textAlign = "right";
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.font = "500 20px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Dubai, United Arab Emirates", W - PAD, bottomY + 22);
     ctx.fillStyle = SUBTLE;
     ctx.font = "500 16px ui-monospace, Menlo, Consolas, monospace";
@@ -2020,7 +2087,7 @@ export function ClientBreakdown({
       canvas.toBlob((b) => resolve(b), "image/png"),
     );
     if (!blob) return;
-    const fileName = `${reportId}_${r.name.replace(/\s+/g, "_")}.png`;
+    const fileName = `Gold-Purity-Report_${clientCode}_${reportSerial}.png`;
     const file = new File([blob], fileName, { type: "image/png" });
 
     const nav = navigator as Navigator & {
@@ -2031,8 +2098,8 @@ export function ClientBreakdown({
       try {
         await nav.share({
           files: [file],
-          title: `${r.name} — Gold Purity Report`,
-          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss · ${reportId}`,
+          title: `Gold Purity Report — Client ${clientCode}`,
+          text: `Client ${clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${reportId}`,
         });
         return;
       } catch {
