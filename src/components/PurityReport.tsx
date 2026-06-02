@@ -396,7 +396,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         <div>
           <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
-            <PseudoQR seed={data.reportId} size={120} />
+            <PseudoQR seed={data.reportId} size={160} />
             <div>
               <strong style={vStrong}>VERIFY THIS REPORT</strong>
               <p style={vText}>Scan the QR code to verify the authenticity of this report.</p>
