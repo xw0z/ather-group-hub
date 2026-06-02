@@ -189,10 +189,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         </div>
       </header>
 
-      {/* TOP INFO */}
+      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right) */}
       <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 80, alignItems: "start" }}>
         <div>
-          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2 }}>
+          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
             CLIENT CODE
           </div>
           <div
@@ -210,38 +210,13 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
             {data.tripCode} • {data.depositCode}
           </div>
-
-          {/* Meta rows with gold icons */}
-          <div style={{ marginTop: 70, display: "grid", gap: 36, maxWidth: 900 }}>
-            <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
-            <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
-            <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
-          </div>
         </div>
 
-        {/* Right ornamental panel */}
-        <div
-          style={{
-            borderLeft: "4px solid #c9a227",
-            paddingLeft: 70,
-            paddingTop: 30,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 30,
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontFamily: "Cinzel, serif", fontSize: 36, color: "#9a7b1f", letterSpacing: 4 }}>
-            CERTIFICATE OF
-          </div>
-          <div style={{ fontFamily: "Cinzel, serif", fontSize: 60, color: "#b88a18", letterSpacing: 6, fontWeight: 700 }}>
-            PURITY
-          </div>
-          <div style={{ width: "60%", height: 2, background: "linear-gradient(90deg, transparent, #c9a227, transparent)" }} />
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 38, color: "#555", fontStyle: "italic", lineHeight: 1.4 }}>
-            Issued for commercial<br />reconciliation of bullion
-          </div>
+        {/* Right: Report meta under flag */}
+        <div style={{ display: "grid", gap: 36, paddingTop: 20 }}>
+          <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
+          <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
+          <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
         </div>
       </section>
 
