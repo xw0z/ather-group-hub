@@ -1492,18 +1492,20 @@ export function ClientBreakdown({
     }
     // Taglines under logo
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 22px system-ui, -apple-system, 'Segoe UI', sans-serif";
+    ctx.font = `700 22px ${FONT_UI}`;
     ctx.textAlign = "left";
-    ctx.fillText("GOLD & PRECIOUS METALS", logoX, logoY + logoBoxH + 34);
+    ctx.fillText("GOLD & PRECIOUS METALS", logoX, logoY + logoBoxH + 38);
     ctx.fillStyle = MUTED;
-    ctx.font = "600 16px system-ui, sans-serif";
-    ctx.fillText("TRUST  •  INTEGRITY  •  EXCELLENCE", logoX, logoY + logoBoxH + 62);
+    ctx.font = `500 15px ${FONT_UI}`;
+    ctx.fillText("TRUST  •  INTEGRITY  •  EXCELLENCE", logoX, logoY + logoBoxH + 66);
 
-    // Center title
+    // Center title — luxury Cinzel
     ctx.textAlign = "center";
-    ctx.fillStyle = GOLD;
-    ctx.font = "800 64px Georgia, 'Times New Roman', serif";
-    ctx.fillText("GOLD PURITY REPORT", W / 2, OUTER + 110);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = `700 62px ${FONT_TITLE}`;
+    // letter-spacing emulation via spaced text
+    const titleText = "GOLD  PURITY  REPORT";
+    ctx.fillText(titleText, W / 2, OUTER + 110);
     // ornament
     const ornY = OUTER + 140;
     ctx.strokeStyle = GOLD;
