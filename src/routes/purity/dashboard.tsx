@@ -192,6 +192,7 @@ export function ensureReportFonts(): Promise<void> {
         "https://fonts.googleapis.com/css2" +
         "?family=Cinzel:wght@600;700;800" +
         "&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display" +
+        "&family=Great+Vibes" +
         "&family=Inter:wght@400;500;600;700;800&display=swap";
       document.head.appendChild(link);
     }
@@ -199,6 +200,7 @@ export function ensureReportFonts(): Promise<void> {
       "700 64px 'Cinzel'",
       "400 220px 'DM Serif Display'",
       "700 110px 'Cormorant Garamond'",
+      "400 60px 'Great Vibes'",
       "600 24px 'Inter'",
       "700 28px 'Inter'",
     ];
