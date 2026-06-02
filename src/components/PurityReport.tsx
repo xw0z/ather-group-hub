@@ -189,10 +189,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         </div>
       </header>
 
-      {/* TOP INFO */}
+      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right) */}
       <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 80, alignItems: "start" }}>
         <div>
-          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2 }}>
+          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
             CLIENT CODE
           </div>
           <div
@@ -210,38 +210,13 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
             {data.tripCode} • {data.depositCode}
           </div>
-
-          {/* Meta rows with gold icons */}
-          <div style={{ marginTop: 70, display: "grid", gap: 36, maxWidth: 900 }}>
-            <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
-            <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
-            <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
-          </div>
         </div>
 
-        {/* Right ornamental panel */}
-        <div
-          style={{
-            borderLeft: "4px solid #c9a227",
-            paddingLeft: 70,
-            paddingTop: 30,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 30,
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontFamily: "Cinzel, serif", fontSize: 36, color: "#9a7b1f", letterSpacing: 4 }}>
-            CERTIFICATE OF
-          </div>
-          <div style={{ fontFamily: "Cinzel, serif", fontSize: 60, color: "#b88a18", letterSpacing: 6, fontWeight: 700 }}>
-            PURITY
-          </div>
-          <div style={{ width: "60%", height: 2, background: "linear-gradient(90deg, transparent, #c9a227, transparent)" }} />
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 38, color: "#555", fontStyle: "italic", lineHeight: 1.4 }}>
-            Issued for commercial<br />reconciliation of bullion
-          </div>
+        {/* Right: Report meta under flag */}
+        <div style={{ display: "grid", gap: 36, paddingTop: 20 }}>
+          <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
+          <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
+          <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
         </div>
       </section>
 
@@ -493,191 +468,209 @@ function MetaRow({
   );
 }
 
-const ICON_GOLD = "#b88a18";
+const ICON_GOLD = "#c9a227";
+const ICON_RED = "#d33c2d";
 
+/* Lucide: calendar-days */
 function CalendarIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={46} height={46} fill="none" stroke={ICON_GOLD} strokeWidth={1.8}>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 9h18M8 3v4M16 3v4" />
+    <svg viewBox="0 0 24 24" width={66} height={66} fill="none" stroke={ICON_GOLD} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2v4M16 2v4" />
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
     </svg>
   );
 }
 
+/* Lucide: clock */
 function ClockIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={46} height={46} fill="none" stroke={ICON_GOLD} strokeWidth={1.8}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" width={66} height={66} fill="none" stroke={ICON_GOLD} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }
 
+/* Lucide: shield-check */
 function ShieldIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={46} height={46} fill="none" stroke={ICON_GOLD} strokeWidth={1.8}>
-      <path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z" />
-      <path d="M9 12l2 2 4-4" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" width={66} height={66} fill="none" stroke={ICON_GOLD} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }
 
+/* Gold bars — premium 3D stack */
 function BarsIcon() {
   return (
-    <svg viewBox="0 0 100 100" width={110} height={110}>
+    <svg viewBox="0 0 120 120" width={110} height={110}>
       <defs>
-        <linearGradient id="gbar1" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#f7df95" />
-          <stop offset="50%" stopColor="#d4ad28" />
-          <stop offset="100%" stopColor="#9a7b1f" />
-        </linearGradient>
-      </defs>
-      {/* back bar */}
-      <polygon points="30,55 70,55 78,48 38,48" fill="#e9c75a" />
-      <rect x="30" y="55" width="40" height="14" fill="url(#gbar1)" stroke="#8a6c14" strokeWidth="0.6" />
-      {/* middle */}
-      <polygon points="22,72 72,72 80,65 30,65" fill="#f0d572" />
-      <rect x="22" y="72" width="50" height="16" fill="url(#gbar1)" stroke="#8a6c14" strokeWidth="0.6" />
-      {/* front (offset) */}
-      <polygon points="40,40 70,40 76,34 46,34" fill="#f4dc88" />
-      <rect x="40" y="40" width="30" height="12" fill="url(#gbar1)" stroke="#8a6c14" strokeWidth="0.6" />
-    </svg>
-  );
-}
-
-function ScaleIcon() {
-  return (
-    <svg viewBox="0 0 100 100" width={110} height={110}>
-      <defs>
-        <linearGradient id="gscale" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f0cf5a" />
-          <stop offset="100%" stopColor="#b88a18" />
-        </linearGradient>
-      </defs>
-      <rect x="46" y="20" width="8" height="60" rx="2" fill="url(#gscale)" />
-      <rect x="32" y="78" width="36" height="6" rx="2" fill="url(#gscale)" />
-      <circle cx="50" cy="20" r="5" fill="#b88a18" />
-      <line x1="50" y1="25" x2="22" y2="40" stroke="#b88a18" strokeWidth="1.5" />
-      <line x1="50" y1="25" x2="78" y2="40" stroke="#b88a18" strokeWidth="1.5" />
-      <path d="M12 42 L32 42 L28 56 L16 56 Z" fill="url(#gscale)" stroke="#8a6c14" strokeWidth="0.6" />
-      <path d="M68 42 L88 42 L84 56 L72 56 Z" fill="url(#gscale)" stroke="#8a6c14" strokeWidth="0.6" />
-    </svg>
-  );
-}
-
-function TrendDownIcon() {
-  return (
-    <svg viewBox="0 0 100 100" width={110} height={110} fill="none">
-      <polyline points="10,25 35,50 55,40 90,80" stroke="#d33c2d" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" />
-      <polygon points="90,80 76,78 86,68" fill="#d33c2d" />
-      <line x1="10" y1="90" x2="92" y2="90" stroke="#d33c2d" strokeWidth="2" opacity="0.4" />
-      <line x1="10" y1="10" x2="10" y2="90" stroke="#d33c2d" strokeWidth="2" opacity="0.4" />
-    </svg>
-  );
-}
-
-function GoldBarsStack({ width }: { width: number }) {
-  return (
-    <svg viewBox="0 0 200 160" width={width} height={width * 0.8}>
-      <defs>
-        <linearGradient id="gstack" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbe892" />
-          <stop offset="45%" stopColor="#d4ad28" />
-          <stop offset="100%" stopColor="#8a6c14" />
-        </linearGradient>
-        <linearGradient id="gtop" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="gbarTop" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#fff1ad" />
           <stop offset="100%" stopColor="#e0bf4a" />
         </linearGradient>
+        <linearGradient id="gbarFace" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbe892" />
+          <stop offset="50%" stopColor="#d4ad28" />
+          <stop offset="100%" stopColor="#8a6c14" />
+        </linearGradient>
       </defs>
-      {/* bar back-left */}
+      {/* back row left */}
       <g>
-        <polygon points="20,90 90,90 100,78 30,78" fill="url(#gtop)" stroke="#8a6c14" strokeWidth="0.8" />
-        <rect x="20" y="90" width="70" height="28" fill="url(#gstack)" stroke="#7a5f15" strokeWidth="0.8" />
-        <polygon points="90,90 90,118 100,106 100,78" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.8" />
-        <text x="55" y="108" textAnchor="middle" fill="#7a5f15" fontSize="8" fontWeight="700" fontFamily="serif">999.9</text>
+        <polygon points="14,58 56,58 64,50 22,50" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
+        <rect x="14" y="58" width="42" height="20" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
+        <polygon points="56,58 56,78 64,70 64,50" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
       </g>
-      {/* bar back-right */}
+      {/* back row right */}
       <g>
-        <polygon points="100,90 170,90 180,78 110,78" fill="url(#gtop)" stroke="#8a6c14" strokeWidth="0.8" />
-        <rect x="100" y="90" width="70" height="28" fill="url(#gstack)" stroke="#7a5f15" strokeWidth="0.8" />
-        <polygon points="170,90 170,118 180,106 180,78" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.8" />
-        <text x="135" y="108" textAnchor="middle" fill="#7a5f15" fontSize="8" fontWeight="700" fontFamily="serif">ATHER</text>
+        <polygon points="60,58 102,58 110,50 68,50" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
+        <rect x="60" y="58" width="42" height="20" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
+        <polygon points="102,58 102,78 110,70 110,50" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
       </g>
-      {/* bar front */}
+      {/* front bar */}
       <g>
-        <polygon points="55,118 145,118 158,104 68,104" fill="url(#gtop)" stroke="#8a6c14" strokeWidth="0.8" />
-        <rect x="55" y="118" width="90" height="34" fill="url(#gstack)" stroke="#7a5f15" strokeWidth="0.8" />
-        <polygon points="145,118 145,152 158,138 158,104" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.8" />
-        <text x="100" y="132" textAnchor="middle" fill="#7a5f15" fontSize="9" fontWeight="700" fontFamily="serif">ATHER</text>
-        <text x="100" y="144" textAnchor="middle" fill="#7a5f15" fontSize="7" fontWeight="600" fontFamily="serif">FINE GOLD 999.9</text>
+        <polygon points="32,82 90,82 100,72 42,72" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
+        <rect x="32" y="82" width="58" height="24" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
+        <polygon points="90,82 90,106 100,96 100,72" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
+        <text x="61" y="98" textAnchor="middle" fill="#6a4f10" fontSize="8" fontWeight="700" fontFamily="serif">999.9</text>
       </g>
     </svg>
   );
 }
 
+/* Lucide: scale (gold) */
+function ScaleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width={110} height={110} fill="none" stroke={ICON_GOLD} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="M7 21h10" />
+      <path d="M12 3v18" />
+      <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+    </svg>
+  );
+}
+
+/* Lucide: chart-no-axes-combined (red) */
+function TrendDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width={110} height={110} fill="none" stroke={ICON_RED} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 16v5" />
+      <path d="M16 14v7" />
+      <path d="M20 10v11" />
+      <path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15" />
+      <path d="M4 18v3" />
+      <path d="M8 14v7" />
+    </svg>
+  );
+}
+
+/* Premium realistic gold bars stack — for compensation section */
+function GoldBarsStack({ width }: { width: number }) {
+  return (
+    <svg viewBox="0 0 220 180" width={width} height={width * (180 / 220)}>
+      <defs>
+        <linearGradient id="gsTop" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff4b8" />
+          <stop offset="100%" stopColor="#e3c258" />
+        </linearGradient>
+        <linearGradient id="gsFace" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbe892" />
+          <stop offset="45%" stopColor="#d4ad28" />
+          <stop offset="100%" stopColor="#7a5f15" />
+        </linearGradient>
+        <linearGradient id="gsSide" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#b8901a" />
+          <stop offset="100%" stopColor="#7a5f15" />
+        </linearGradient>
+        <filter id="gsShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.25" />
+        </filter>
+      </defs>
+
+      <g filter="url(#gsShadow)">
+        {/* back-left bar */}
+        <polygon points="14,76 96,76 108,64 26,64" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="0.9" />
+        <rect x="14" y="76" width="82" height="34" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="0.9" />
+        <polygon points="96,76 96,110 108,98 108,64" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="0.9" />
+        <text x="55" y="98" textAnchor="middle" fill="#5a4310" fontSize="9" fontWeight="700" fontFamily="serif">999.9</text>
+
+        {/* back-right bar */}
+        <polygon points="112,76 194,76 206,64 124,64" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="0.9" />
+        <rect x="112" y="76" width="82" height="34" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="0.9" />
+        <polygon points="194,76 194,110 206,98 206,64" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="0.9" />
+        <text x="153" y="98" textAnchor="middle" fill="#5a4310" fontSize="9" fontWeight="700" fontFamily="serif">ATHER</text>
+
+        {/* front bar */}
+        <polygon points="44,118 166,118 180,104 58,104" fill="url(#gsTop)" stroke="#6a4f10" strokeWidth="1" />
+        <rect x="44" y="118" width="122" height="42" fill="url(#gsFace)" stroke="#6a4f10" strokeWidth="1" />
+        <polygon points="166,118 166,160 180,146 180,104" fill="url(#gsSide)" stroke="#6a4f10" strokeWidth="1" />
+        <text x="105" y="138" textAnchor="middle" fill="#5a4310" fontSize="12" fontWeight="700" fontFamily="serif">ATHER</text>
+        <text x="105" y="152" textAnchor="middle" fill="#5a4310" fontSize="8" fontWeight="600" fontFamily="serif">FINE GOLD 999.9</text>
+      </g>
+    </svg>
+  );
+}
+
+/* Refinery certification seal — double ring, laurels, stars, QUALITY & TRUST */
 function QualitySeal() {
-  const size = 330;
+  const size = 345; // ~115px at 3x scale
   const c = size / 2;
-  // laurel positions
-  const laurels = Array.from({ length: 7 });
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
       <defs>
-        <radialGradient id="sealBg" cx="0.5" cy="0.4" r="0.7">
-          <stop offset="0%" stopColor="#fff5cf" />
-          <stop offset="60%" stopColor="#e7c357" />
+        <radialGradient id="sealBg2" cx="0.5" cy="0.4" r="0.7">
+          <stop offset="0%" stopColor="#fff7d6" />
+          <stop offset="55%" stopColor="#ecc960" />
           <stop offset="100%" stopColor="#8a6c14" />
         </radialGradient>
-        <linearGradient id="sealRing" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f4dc88" />
-          <stop offset="100%" stopColor="#8a6c14" />
+        <linearGradient id="sealRing2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbe88f" />
+          <stop offset="50%" stopColor="#c9a227" />
+          <stop offset="100%" stopColor="#7a5f15" />
         </linearGradient>
+        <filter id="sealShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" floodOpacity="0.28" />
+        </filter>
       </defs>
 
-      {/* Laurel leaves around outer */}
-      {laurels.map((_, i) => {
-        const angleL = 180 + (i * 18);
-        const angleR = 360 - (i * 18);
-        return (
-          <g key={i}>
-            <ellipse
-              cx={c + Math.cos((angleL * Math.PI) / 180) * (c - 14)}
-              cy={c + Math.sin((angleL * Math.PI) / 180) * (c - 14)}
-              rx="14" ry="6"
-              fill="#9a7b1f" opacity="0.85"
-              transform={`rotate(${angleL + 90} ${c + Math.cos((angleL * Math.PI) / 180) * (c - 14)} ${c + Math.sin((angleL * Math.PI) / 180) * (c - 14)})`}
-            />
-            <ellipse
-              cx={c + Math.cos((angleR * Math.PI) / 180) * (c - 14)}
-              cy={c + Math.sin((angleR * Math.PI) / 180) * (c - 14)}
-              rx="14" ry="6"
-              fill="#9a7b1f" opacity="0.85"
-              transform={`rotate(${angleR + 90} ${c + Math.cos((angleR * Math.PI) / 180) * (c - 14)} ${c + Math.sin((angleR * Math.PI) / 180) * (c - 14)})`}
-            />
-          </g>
-        );
-      })}
+      {/* drop shadow + outer ring */}
+      <g filter="url(#sealShadow)">
+        <circle cx={c} cy={c} r={c - 12} fill="url(#sealRing2)" stroke="#6a4f10" strokeWidth="2" />
+      </g>
+      {/* inner ring (creates the double-ring look) */}
+      <circle cx={c} cy={c} r={c - 28} fill="none" stroke="#7a5f15" strokeWidth="1.5" />
+      {/* inner medallion */}
+      <circle cx={c} cy={c} r={c - 40} fill="url(#sealBg2)" stroke="#7a5f15" strokeWidth="1.5" />
 
-      {/* shadow */}
-      <circle cx={c} cy={c + 6} r={c - 24} fill="#000" opacity="0.12" />
-      {/* outer ring */}
-      <circle cx={c} cy={c} r={c - 26} fill="url(#sealRing)" stroke="#7a5f15" strokeWidth="2" />
-      {/* inner ring */}
-      <circle cx={c} cy={c} r={c - 44} fill="url(#sealBg)" stroke="#7a5f15" strokeWidth="1.5" />
-      {/* decorative stars around inner ring */}
-      {Array.from({ length: 12 }).map((_, i) => {
-        const a = (i * 30 * Math.PI) / 180;
-        const r = c - 35;
+      {/* small decorative dots around inner ring */}
+      {Array.from({ length: 24 }).map((_, i) => {
+        const a = (i * 15 * Math.PI) / 180;
+        const r = c - 34;
         const x = c + Math.cos(a) * r;
         const y = c + Math.sin(a) * r;
-        return <text key={i} x={x} y={y + 4} textAnchor="middle" fontSize="14" fill="#7a5f15">★</text>;
+        return <circle key={i} cx={x} cy={y} r={1.6} fill="#7a5f15" />;
       })}
-      {/* center content */}
-      <text x={c} y={c - 50} textAnchor="middle" fill="#7a5f15" fontSize="26" fontFamily="serif" fontWeight="700">★ ★ ★</text>
-      <text x={c} y={c - 6} textAnchor="middle" fill="#1c2431" fontSize="36" fontWeight="800" fontFamily="serif" letterSpacing="2">QUALITY</text>
-      <text x={c} y={c + 24} textAnchor="middle" fill="#7a5f15" fontSize="22" fontStyle="italic" fontFamily="serif">&amp;</text>
-      <text x={c} y={c + 56} textAnchor="middle" fill="#1c2431" fontSize="36" fontWeight="800" fontFamily="serif" letterSpacing="2">TRUST</text>
+
+      {/* 3 stars at the top */}
+      <g fill="#7a5f15">
+        <text x={c - 38} y={c - 60} textAnchor="middle" fontSize="28" fontFamily="serif">★</text>
+        <text x={c} y={c - 64} textAnchor="middle" fontSize="34" fontFamily="serif">★</text>
+        <text x={c + 38} y={c - 60} textAnchor="middle" fontSize="28" fontFamily="serif">★</text>
+      </g>
+
+      {/* center text */}
+      <text x={c} y={c - 6} textAnchor="middle" fill="#1c2431" fontSize="38" fontWeight="800" fontFamily="serif" letterSpacing="3">QUALITY</text>
+      <text x={c} y={c + 26} textAnchor="middle" fill="#7a5f15" fontSize="26" fontStyle="italic" fontFamily="serif">&amp;</text>
+      <text x={c} y={c + 60} textAnchor="middle" fill="#1c2431" fontSize="38" fontWeight="800" fontFamily="serif" letterSpacing="3">TRUST</text>
+
+      {/* small laurel sprigs left/right at bottom */}
+      <g stroke="#7a5f15" strokeWidth="1.2" fill="none" opacity="0.85">
+        <path d={`M ${c - 60} ${c + 90} Q ${c - 40} ${c + 110} ${c - 20} ${c + 95}`} />
+        <path d={`M ${c + 60} ${c + 90} Q ${c + 40} ${c + 110} ${c + 20} ${c + 95}`} />
+      </g>
     </svg>
   );
 }
