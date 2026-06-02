@@ -468,8 +468,10 @@ function MetaRow({
   );
 }
 
-const ICON_GOLD = "#b88a18";
+const ICON_GOLD = "#c9a227";
+const ICON_RED = "#d33c2d";
 
+/* Lucide: calendar-days */
 function CalendarIcon() {
   return (
     <svg viewBox="0 0 24 24" width={46} height={46} fill="none" stroke={ICON_GOLD} strokeWidth={1.8}>
