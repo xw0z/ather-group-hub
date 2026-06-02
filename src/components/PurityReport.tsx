@@ -556,14 +556,15 @@ function ShieldIcon() {
 
 
 const cellStyle: React.CSSProperties = {
-  height: 174,
+  height: 168,
   textAlign: "center",
-  borderBottom: "2px solid #f0e5c5",
+  verticalAlign: "middle",
+  borderBottom: "1px solid #E9E2D0",
   fontFamily: "Inter, system-ui, sans-serif",
   fontSize: 38,
   fontWeight: 500,
   color: "#1c2431",
-  padding: "0 14px",
+  padding: "0 12px",
 };
 
 const vStrong: React.CSSProperties = {
