@@ -227,15 +227,17 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
       {/* SUMMARY CARDS */}
       <section style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 48, marginTop: 110 }}>
-        <SummaryCard icon={<BarsIcon />} label="BARS" value={String(data.barsCount)} />
-        <SummaryCard icon={<ScaleIcon />} label="TOTAL WEIGHT (g)" value={data.totalWeight} />
+        <SummaryCard icon={<AssetIcon src={goldBarsImg} alt="Bars" />} iconBg="#FFF7DF" label="BARS" value={String(data.barsCount)} />
+        <SummaryCard icon={<AssetIcon src={scaleImg} alt="Scale" />} iconBg="#FFF7DF" label="TOTAL WEIGHT (g)" value={data.totalWeight} />
         <SummaryCard
-          icon={<TrendDownIcon />}
+          icon={<AssetIcon src={lossImg} alt="Loss" />}
+          iconBg="#FFF0F0"
           label="TOTAL LOSS (g)"
           value={data.totalLoss}
           variant={data.totalLossClass}
         />
       </section>
+
 
       {/* TABLE */}
       <table
