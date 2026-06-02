@@ -164,11 +164,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: 156,
+              fontSize: 140,
               letterSpacing: 6,
               color: "#B88A18",
               margin: "10px 0 18px",
               fontWeight: 700,
+              whiteSpace: "nowrap",
             }}
           >
             GOLD PURITY REPORT
@@ -182,13 +183,13 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
         {/* Right: flag, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 285, height: 192, display: "block" }}>
+          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 245, height: 165, display: "block" }}>
             <rect width="15" height="30" fill="#ce1126" />
             <rect x="15" width="45" height="10" fill="#00732f" />
             <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
             <rect x="15" y="20" width="45" height="10" fill="#000000" />
           </svg>
-          <div style={{ marginTop: 20, fontSize: 39, color: "#444444", fontWeight: 500, textAlign: "center" }}>
+          <div style={{ marginTop: 20, fontSize: 36, color: "#444444", fontWeight: 500, textAlign: "center" }}>
             Dubai, United Arab Emirates
           </div>
         </div>
