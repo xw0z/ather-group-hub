@@ -203,11 +203,10 @@ export function ensureReportFonts(): Promise<void> {
       "700 28px 'Inter'",
     ];
     try {
-      // @ts-expect-error – FontFaceSet is well-supported in modern browsers
-      if (document.fonts && document.fonts.load) {
-        await Promise.all(fontsToLoad.map((f) => document.fonts.load(f)));
-        // @ts-expect-error – ready is available alongside load
-        await document.fonts.ready;
+      const fontSet = (document as Document & { fonts?: { load: (f: string) => Promise<unknown>; ready: Promise<unknown> } }).fonts;
+      if (fontSet && typeof fontSet.load === "function") {
+        await Promise.all(fontsToLoad.map((f) => fontSet.load(f)));
+        await fontSet.ready;
       }
     } catch {
       /* non-fatal – fall back to system fonts */
