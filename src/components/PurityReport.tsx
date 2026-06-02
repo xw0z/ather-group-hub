@@ -150,25 +150,29 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             gap: 40,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
-            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto" }} />
-            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
-              GOLD &amp; PRECIOUS METALS
-            </div>
-            <div style={{ marginTop: 12, fontSize: 16, letterSpacing: 3, color: "#9a7b1f", fontWeight: 600 }}>
-              TRUST • INTEGRITY • EXCELLENCE
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ width: 172, textAlign: "center" }}>
+              <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
+              <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
+                GOLD &amp; PRECIOUS METALS
+              </div>
+              <div style={{ marginTop: 12, fontSize: 16, letterSpacing: 3, color: "#9a7b1f", fontWeight: 600 }}>
+                TRUST • INTEGRITY • EXCELLENCE
+              </div>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", textAlign: "right" }}>
-            <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block" }}>
-              <rect width="15" height="30" fill="#ce1126" />
-              <rect x="15" width="45" height="10" fill="#00732f" />
-              <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
-              <rect x="15" y="20" width="45" height="10" fill="#000000" />
-            </svg>
-            <div style={{ marginTop: 16, fontSize: 27, color: "#444444", fontWeight: 500 }}>
-              Dubai, United Arab Emirates
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ width: 172, textAlign: "center" }}>
+              <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block" }}>
+                <rect width="15" height="30" fill="#ce1126" />
+                <rect x="15" width="45" height="10" fill="#00732f" />
+                <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
+                <rect x="15" y="20" width="45" height="10" fill="#000000" />
+              </svg>
+              <div style={{ marginTop: 16, fontSize: 27, color: "#444444", fontWeight: 500 }}>
+                Dubai, United Arab Emirates
+              </div>
             </div>
           </div>
         </div>
