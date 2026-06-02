@@ -501,7 +501,7 @@ function MetaRow({
 }
 
 const ICON_GOLD = "#c9a227";
-const ICON_RED = "#d33c2d";
+
 
 /* Lucide: calendar-days */
 function CalendarIcon() {
