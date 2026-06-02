@@ -353,10 +353,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <img
             src={badgeImg}
             alt="Quality & Trust"
-            width={360}
+            width={396}
             crossOrigin="anonymous"
             style={{
-              width: 360,
+              width: 396,
               height: "auto",
               display: "block",
               objectFit: "contain",
