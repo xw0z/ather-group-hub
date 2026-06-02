@@ -2032,7 +2032,7 @@ export function ClientBreakdown({
       canvas.toBlob((b) => resolve(b), "image/png"),
     );
     if (!blob) return;
-    const fileName = `${tripName}_${r.name.replace(/\s+/g, "_")}.png`;
+    const fileName = `${reportId}_${r.name.replace(/\s+/g, "_")}.png`;
     const file = new File([blob], fileName, { type: "image/png" });
 
     const nav = navigator as Navigator & {
@@ -2043,8 +2043,8 @@ export function ClientBreakdown({
       try {
         await nav.share({
           files: [file],
-          title: `${r.name} — loss report`,
-          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss (${tripName})`,
+          title: `${r.name} — Gold Purity Report`,
+          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss · ${reportId}`,
         });
         return;
       } catch {
