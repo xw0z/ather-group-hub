@@ -196,8 +196,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
       </header>
 
-      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
-      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
+      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (far right, under flag) */}
+      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
             CLIENT CODE
@@ -205,7 +205,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"DM Serif Display", serif',
-              fontSize: 204,
+              fontSize: 210,
               lineHeight: 0.95,
               marginTop: 18,
               color: "#1C2431",
@@ -216,8 +216,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           </div>
         </div>
 
-        {/* Right: Report meta aligned to right edge under flag */}
-        <div style={{ display: "grid", gap: 36, paddingTop: 20, justifySelf: "end" }}>
+        {/* Right: Report meta — pushed to far right edge, evenly spaced */}
+        <div style={{ display: "grid", gap: 44, justifySelf: "end", justifyItems: "end" }}>
           <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
           <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
           <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
