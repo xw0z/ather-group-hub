@@ -1478,10 +1478,18 @@ export function ClientBreakdown({
     const bottomY = disclaimerY + disclaimerH + 40;
     const H = bottomY + 90 + OUTER;
 
+    // Render at 2× the logical layout to produce a sharp 4000px-wide PNG
+    // (crisp at 300%+ zoom and on WhatsApp re-compression).
+    const SCALE = 2;
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
     const ctx = canvas.getContext("2d")!;
+    ctx.scale(SCALE, SCALE);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    // Improve typography rendering on canvas
+    (ctx as CanvasRenderingContext2D & { textRendering?: string }).textRendering = "geometricPrecision";
 
     // Preload Ather logo
     const logoImg = await new Promise<HTMLImageElement | null>((resolve) => {
