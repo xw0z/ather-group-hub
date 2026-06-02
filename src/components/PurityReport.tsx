@@ -132,7 +132,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         padding: 110,
         background: "linear-gradient(180deg, #fffdf8 0%, #f7f2e8 100%)",
         color: "#1c2431",
-        border: "6px solid #c9a227",
+        border: "6px solid #C79A19",
         borderRadius: 36,
         boxSizing: "border-box",
         fontFamily: "Inter, system-ui, sans-serif",
@@ -150,11 +150,11 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         {/* Left: brand, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 420, height: "auto" }} />
-          <div style={{ marginTop: 24, fontSize: 36, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
+          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 285, height: "auto" }} />
+          <div style={{ marginTop: 24, fontSize: 30, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
             GOLD &amp; PRECIOUS METALS
           </div>
-          <div style={{ marginTop: 24, fontSize: 24, letterSpacing: 4, color: "#9a7b1f", fontWeight: 600 }}>
+          <div style={{ marginTop: 18, fontSize: 22, letterSpacing: 4, color: "#9a7b1f", fontWeight: 600 }}>
             TRUST • INTEGRITY • EXCELLENCE
           </div>
         </div>
@@ -164,34 +164,35 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: 110,
+              fontSize: 156,
               letterSpacing: 6,
-              color: "#b88a18",
+              color: "#B88A18",
               margin: "10px 0 18px",
               fontWeight: 700,
             }}
           >
             GOLD PURITY REPORT
           </h1>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, color: "#c9a227", fontSize: 30 }}>
-            <span style={{ width: 120, height: 2, background: "#c9a227" }} />
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, color: "#C79A19", fontSize: 30 }}>
+            <span style={{ width: 120, height: 2, background: "#C79A19" }} />
             ◆
-            <span style={{ width: 120, height: 2, background: "#c9a227" }} />
+            <span style={{ width: 120, height: 2, background: "#C79A19" }} />
           </div>
         </div>
 
         {/* Right: flag, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <svg viewBox="0 0 60 30" style={{ width: 360, height: 180, display: "block" }}>
+          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 285, height: 192, display: "block" }}>
             <rect width="15" height="30" fill="#ce1126" />
             <rect x="15" width="45" height="10" fill="#00732f" />
             <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
             <rect x="15" y="20" width="45" height="10" fill="#000000" />
           </svg>
-          <div style={{ marginTop: 24, fontSize: 42, color: "#444444", fontWeight: 500 }}>
+          <div style={{ marginTop: 20, fontSize: 39, color: "#444444", fontWeight: 500, textAlign: "center" }}>
             Dubai, United Arab Emirates
           </div>
         </div>
+
       </header>
 
       {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right) */}
@@ -203,15 +204,16 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"DM Serif Display", serif',
-              fontSize: 210,
+              fontSize: 204,
               lineHeight: 0.95,
               marginTop: 18,
-              color: "#1c2431",
+              color: "#1C2431",
               fontWeight: 400,
             }}
           >
             {data.clientCode}
           </div>
+
           <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
             {data.tripCode} • {data.depositCode}
           </div>
@@ -259,15 +261,16 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               <th
                 key={h}
                 style={{
-                  background: "linear-gradient(180deg, #d4ad28 0%, #b8901a 100%)",
+                  background: "#C79A19",
                   color: "white",
                   height: 120,
                   fontSize: 36,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   letterSpacing: 1.5,
                   textAlign: "center",
                   borderBottom: "3px solid #9a7b1f",
                 }}
+
               >
                 {h}
               </th>
@@ -300,7 +303,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         style={{
           marginTop: 100,
           minHeight: 380,
-          border: "4px solid #c9a227",
+          border: "4px solid #C79A19",
           borderRadius: 30,
           background: "linear-gradient(135deg, #fffdf8 0%, #faf1d6 100%)",
           display: "grid",
@@ -333,8 +336,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"Cormorant Garamond", serif',
-              fontSize: 216,
-              color: "#b88a18",
+              fontSize: 210,
+              color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
@@ -342,8 +345,9 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             }}
           >
             {data.totalLoss}
-            <span style={{ fontSize: 90, marginLeft: 18, color: "#9a7b1f" }}>g</span>
+            <span style={{ fontSize: 90, marginLeft: 18, color: "#B88A18" }}>g</span>
           </div>
+
           <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic" }}>
             of Pure Gold
           </div>
@@ -373,7 +377,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           gridTemplateColumns: "1fr 1fr 1fr",
           gap: 60,
           marginTop: 90,
-          borderTop: "3px solid #c9a227",
+          borderTop: "3px solid #C79A19",
           paddingTop: 60,
         }}
       >
@@ -430,7 +434,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       </div>
 
       {/* FOOTER */}
-      <div style={{ marginTop: 70, height: 2, background: "linear-gradient(90deg, transparent, #c9a227, transparent)" }} />
+      <div style={{ marginTop: 70, height: 2, background: "linear-gradient(90deg, transparent, #C79A19, transparent)" }} />
       <footer
         style={{
           marginTop: 35,
@@ -500,7 +504,7 @@ function MetaRow({
   );
 }
 
-const ICON_GOLD = "#c9a227";
+const ICON_GOLD = "#C79A19";
 
 
 /* Lucide: calendar-days */
