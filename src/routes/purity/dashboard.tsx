@@ -1995,9 +1995,9 @@ export function ClientBreakdown({
     ctx.lineWidth = 1;
     ctx.strokeRect(flagX, flagY, flagW, flagH);
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "600 18px 'Inter', system-ui, -apple-system, sans-serif";
+    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("UNITED ARAB EMIRATES", flagX + flagW / 2, flagY + flagH + 28);
+    ctx.fillText("Dubai, United Arab Emirates", flagX + flagW / 2, flagY + flagH + 28);
     ctx.textAlign = "left";
 
     // ===== CLIENT CODE + META =====
