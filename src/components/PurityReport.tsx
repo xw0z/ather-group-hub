@@ -164,7 +164,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             <h1
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: 140,
+                fontSize: 119,
                 letterSpacing: 6,
                 color: "#B88A18",
                 margin: "0 0 18px",
@@ -175,9 +175,9 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               GOLD PURITY REPORT
             </h1>
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, color: "#C79A19", fontSize: 30 }}>
-              <span style={{ width: 120, height: 2, background: "#C79A19" }} />
+              <span style={{ width: 120, height: 3, background: "#C79A19" }} />
               ◆
-              <span style={{ width: 120, height: 2, background: "#C79A19" }} />
+              <span style={{ width: 120, height: 3, background: "#C79A19" }} />
             </div>
           </div>
 
