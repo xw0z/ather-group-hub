@@ -224,8 +224,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         </div>
       </section>
 
-      {/* SUMMARY CARDS */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 48, marginTop: 110 }}>
+      {/* SUMMARY CARDS — strict equal grid, icon/label/value centered */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 48, marginTop: 110 }}>
         <SummaryCard icon={<AssetIcon src={goldBarsImg} alt="Bars" />} iconBg="#FFF7DF" label="BARS" value={String(data.barsCount)} />
         <SummaryCard icon={<AssetIcon src={scaleImg} alt="Scale" />} iconBg="#FFF7DF" label="TOTAL WEIGHT (g)" value={data.totalWeight} />
         <SummaryCard
@@ -315,10 +315,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <img
             src={goldBarsImg}
             alt="Gold bullion bars"
-            width={510}
+            width={561}
             crossOrigin="anonymous"
             style={{
-              width: 510,
+              width: 561,
               height: "auto",
               display: "block",
               objectFit: "contain",
@@ -333,7 +333,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"Cormorant Garamond", serif',
-              fontSize: 231,
+              fontSize: 254,
               color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
@@ -353,10 +353,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <img
             src={badgeImg}
             alt="Quality & Trust"
-            width={360}
+            width={396}
             crossOrigin="anonymous"
             style={{
-              width: 360,
+              width: 396,
               height: "auto",
               display: "block",
               objectFit: "contain",
@@ -380,7 +380,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         <div>
           <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
-            <PseudoQR seed={data.reportId} size={200} />
+            <PseudoQR seed={data.reportId} size={240} />
             <div>
               <strong style={vStrong}>VERIFY THIS REPORT</strong>
               <p style={vText}>Scan the QR code to verify the authenticity of this report.</p>
@@ -539,7 +539,7 @@ function ShieldIcon() {
 
 
 const cellStyle: React.CSSProperties = {
-  height: 110,
+  height: 174,
   textAlign: "center",
   borderBottom: "2px solid #f0e5c5",
   fontFamily: "Inter, system-ui, sans-serif",
@@ -592,45 +592,43 @@ function SummaryCard({
   return (
     <div
       style={{
-        minHeight: 390,
+        minHeight: 540,
         background: "#ffffff",
         border: "2px solid #eadfbd",
         borderRadius: 54,
         boxShadow: "0 25px 70px rgba(0,0,0,0.08)",
-        padding: 50,
+        padding: 72,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
         justifyContent: "space-between",
+        textAlign: "center",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-        <div
-          style={{
-            width: 240,
-            height: 240,
-            borderRadius: "50%",
-            background: iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <span style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</span>
+      <div
+        style={{
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background: iconBg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
       </div>
+      <div style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</div>
       <strong
         style={{
-          fontSize: 96,
+          fontSize: 126,
           fontWeight: 800,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          textAlign: "center",
-          display: "block",
-          width: "100%",
-          fontFamily: '"DM Serif Display", serif',
+          fontFamily: "Inter, system-ui, sans-serif",
           letterSpacing: 1,
+          lineHeight: 1,
         }}
       >
         {value}
