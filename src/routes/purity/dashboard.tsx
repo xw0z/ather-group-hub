@@ -1457,9 +1457,7 @@ export function ClientBreakdown({
     // Font shorthands
     const FONT_TITLE = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
     const FONT_DISPLAY = "'DM Serif Display', 'Cormorant Garamond', Georgia, serif";
-    const FONT_LUX = "'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
-    const FONT_UI = "'Inter', 'Manrope', 'Inter', system-ui, -apple-system, sans-serif";
-    const FONT_MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
+    const FONT_UI = "'Inter', system-ui, -apple-system, sans-serif";
 
     // Layout
     const topBandH = 380;
