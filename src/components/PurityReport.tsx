@@ -114,7 +114,7 @@ function PseudoQR({ seed, size = 180 }: { seed: string; size?: number }) {
     }
   }
   return (
-    <svg viewBox={`0 0 ${N} ${N}`} style={{ width: size, height: size, display: "block" }}>
+    <svg viewBox={`0 0 ${N} ${N}`} width={size} height={size} preserveAspectRatio="xMidYMid meet" style={{ width: size, height: size, minWidth: size, minHeight: size, aspectRatio: "1 / 1", display: "block", flexShrink: 0 }}>
       <rect width={N} height={N} fill="#fff" />
       {cells}
     </svg>
@@ -396,7 +396,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         <div>
           <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
-            <PseudoQR seed={data.reportId} size={120} />
+            <PseudoQR seed={data.reportId} size={160} />
             <div>
               <strong style={vStrong}>VERIFY THIS REPORT</strong>
               <p style={vText}>Scan the QR code to verify the authenticity of this report.</p>
