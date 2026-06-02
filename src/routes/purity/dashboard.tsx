@@ -1399,43 +1399,13 @@ export function ClientBreakdown({
 
   if (rows.length === 0) return null;
 
-  async function shareClientPDF(r: {
+  function buildReportData(r: {
     name: string;
     bars: Piece[];
     totalWeight: number;
     totalPure: number;
     totalLoss: number;
   }) {
-    // True vector A4 PDF — selectable text, vector shapes, embedded fonts.
-    // Built-in PostScript fonts: helvetica (sans), times (serif), courier (mono).
-    const { jsPDF } = await import("jspdf");
-    const doc = new jsPDF({
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-      compress: true,
-    });
-
-    // Palette (RGB)
-    const GOLD: [number, number, number] = [201, 162, 39];
-    const GOLD_DEEP: [number, number, number] = [184, 145, 30];
-    const GOLD_SOFT: [number, number, number] = [232, 210, 122];
-    const CREAM: [number, number, number] = [249, 247, 241];
-    const CREAM_ALT: [number, number, number] = [247, 243, 234];
-    const INK: [number, number, number] = [17, 24, 39];
-    const CHARCOAL: [number, number, number] = [31, 41, 55];
-    const MUTED: [number, number, number] = [107, 114, 128];
-    const SUBTLE: [number, number, number] = [156, 163, 175];
-    const HAIRLINE: [number, number, number] = [239, 230, 203];
-    const RED: [number, number, number] = [192, 57, 43];
-    const GREEN: [number, number, number] = [4, 120, 87];
-
-    const W = 210;
-    const H = 297;
-    const OUTER = 6;
-    const PAD = 12;
-
-    // Derived identifiers (same logic as PNG)
     const dep = trip.departure_date || "";
     const depCompact = dep.replace(/-/g, "");
     const hash = Math.abs(
@@ -1444,9 +1414,12 @@ export function ClientBreakdown({
         0,
       ),
     );
-    const clientCode = (r.name || "—").toString();
     const reportSerial = String(hash % 10000).padStart(4, "0");
     const reportId = `RP-${depCompact || "00000000"}-${reportSerial}`;
+    const depositCode = `DEP-${reportSerial}`;
+    const tripCode = `TRIP_${dep}`;
+    const clientCode = (r.name || "—").toString();
+
     const now = new Date();
     const pad2 = (n: number) => String(n).padStart(2, "0");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1459,342 +1432,39 @@ export function ClientBreakdown({
     hh = hh % 12 || 12;
     const reportTime = `${hh}:${mm} ${ampm} (GST)`;
 
-    // Background cream
-    doc.setFillColor(...CREAM);
-    doc.rect(0, 0, W, H, "F");
+    const supplier = clients.find((c) => c.name === r.name);
+    const fmt: PurityFormat = (supplier?.purity_format as PurityFormat | undefined) ?? "3";
 
-    // Outer gold rounded border (double)
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.6);
-    doc.roundedRect(OUTER, OUTER, W - OUTER * 2, H - OUTER * 2, 3, 3, "S");
-    doc.setDrawColor(...GOLD_SOFT);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(OUTER + 1.2, OUTER + 1.2, W - (OUTER + 1.2) * 2, H - (OUTER + 1.2) * 2, 2.4, 2.4, "S");
-
-    // ===== TOP BAND =====
-    // Logo (PNG, top-left). Vector PDFs commonly embed raster logos — text stays vector/selectable.
-    try {
-      const logoUrl = atherLogoAsset.url as string;
-      const blob = await fetch(logoUrl).then((res) => res.blob());
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result as string);
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-      });
-      // Probe dimensions to keep aspect ratio
-      const dims = await new Promise<{ w: number; h: number }>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve({ w: img.width, h: img.height });
-        img.onerror = () => resolve({ w: 1, h: 1 });
-        img.src = dataUrl;
-      });
-      const logoH = 16;
-      const logoW = (dims.w / dims.h) * logoH;
-      doc.addImage(dataUrl, "PNG", PAD, OUTER + 4, logoW, logoH, undefined, "FAST");
-    } catch {
-      /* logo optional */
-    }
-
-    // Taglines under logo
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...GOLD_DEEP);
-    doc.text("GOLD & PRECIOUS METALS", PAD, OUTER + 26);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...MUTED);
-    doc.text("TRUST  •  INTEGRITY  •  EXCELLENCE", PAD, OUTER + 30);
-
-    // Center title — vector serif
-    doc.setFont("times", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(...GOLD_DEEP);
-    doc.text("GOLD  PURITY  REPORT", W / 2, OUTER + 14, { align: "center" });
-    // ornament
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.3);
-    doc.line(W / 2 - 30, OUTER + 18, W / 2 - 4, OUTER + 18);
-    doc.line(W / 2 + 4, OUTER + 18, W / 2 + 30, OUTER + 18);
-    doc.setFillColor(...GOLD);
-    doc.triangle(W / 2, OUTER + 16.5, W / 2 + 2, OUTER + 18, W / 2, OUTER + 19.5, "F");
-    doc.triangle(W / 2, OUTER + 16.5, W / 2 - 2, OUTER + 18, W / 2, OUTER + 19.5, "F");
-
-    // UAE flag (top-right) — vector
-    const flagX = W - PAD - 32;
-    const flagY = OUTER + 6;
-    const flagW = 32;
-    const flagH = 20;
-    const hoist = 10;
-    doc.setFillColor(206, 17, 38);
-    doc.rect(flagX, flagY, hoist, flagH, "F");
-    doc.setFillColor(0, 151, 57);
-    doc.rect(flagX + hoist, flagY, flagW - hoist, flagH / 3, "F");
-    doc.setFillColor(255, 255, 255);
-    doc.rect(flagX + hoist, flagY + flagH / 3, flagW - hoist, flagH / 3, "F");
-    doc.setFillColor(0, 0, 0);
-    doc.rect(flagX + hoist, flagY + (2 * flagH) / 3, flagW - hoist, flagH / 3, "F");
-    doc.setDrawColor(...HAIRLINE);
-    doc.setLineWidth(0.1);
-    doc.rect(flagX, flagY, flagW, flagH, "S");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...CHARCOAL);
-    doc.text("Dubai, United Arab Emirates", flagX + flagW / 2, flagY + flagH + 4, { align: "center" });
-
-    // ===== CLIENT CODE BLOCK =====
-    let cursorY = OUTER + 36;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.text("CLIENT CODE", PAD + 4, cursorY + 4);
-    doc.setFont("times", "bold");
-    doc.setFontSize(56);
-    doc.setTextColor(...INK);
-    doc.text(clientCode, PAD + 4, cursorY + 24);
-
-    // Right meta column
-    const metaX = W - PAD - 4;
-    const metaLabel = (label: string, value: string, y: number) => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.setTextColor(...MUTED);
-      doc.text(label, metaX, y, { align: "right" });
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(...CHARCOAL);
-      doc.text(value, metaX, y + 4, { align: "right" });
-    };
-    metaLabel("REPORT ID", reportId, cursorY + 2);
-    metaLabel("DATE", reportDate, cursorY + 11);
-    metaLabel("TIME", reportTime, cursorY + 20);
-
-    cursorY += 32;
-
-    // ===== SUMMARY CARDS =====
-    const cardGap = 4;
-    const cardW = (W - PAD * 2 - cardGap * 2) / 3;
-    const cardH = 22;
-    const cards: Array<{ label: string; value: string; color: [number, number, number] }> = [
-      { label: "BARS", value: String(r.bars.length), color: INK },
-      {
-        label: "TOTAL WEIGHT (g)",
-        value: r.totalWeight.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        color: INK,
-      },
-      {
-        label: "TOTAL LOSS (g)",
-        value: r.totalLoss.toFixed(2),
-        color: r.totalLoss === 0 ? GREEN : RED,
-      },
-    ];
-    cards.forEach((c, i) => {
-      const x = PAD + i * (cardW + cardGap);
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(...HAIRLINE);
-      doc.setLineWidth(0.2);
-      doc.roundedRect(x, cursorY, cardW, cardH, 2, 2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      doc.setTextColor(...MUTED);
-      doc.text(c.label, x + 4, cursorY + 7);
-      doc.setFont("times", "bold");
-      doc.setFontSize(18);
-      doc.setTextColor(...c.color);
-      doc.text(c.value, x + 4, cursorY + 18);
-    });
-    cursorY += cardH + 6;
-
-    // ===== TABLE =====
-    const tableHeadH = 8;
-    const rowH = 7;
-    const colNum = PAD + 4;
-    const colWeight = PAD + 56;
-    const colBafleh = PAD + 100;
-    const colPure = PAD + 142;
-    const colLoss = W - PAD - 4;
-
-    doc.setFillColor(...GOLD_DEEP);
-    doc.roundedRect(PAD, cursorY, W - PAD * 2, tableHeadH, 1, 1, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text("#", colNum, cursorY + 5.5);
-    doc.text("WEIGHT (g)", colWeight, cursorY + 5.5, { align: "right" });
-    doc.text("BAFLEH ‰", colBafleh, cursorY + 5.5, { align: "right" });
-    doc.text("PURE (g)", colPure, cursorY + 5.5, { align: "right" });
-    doc.text("LOSS (g)", colLoss, cursorY + 5.5, { align: "right" });
-
-    let ry = cursorY + tableHeadH;
-    r.bars.forEach((b, i) => {
+    const bars = r.bars.map((b, i) => {
       const w = Number(b.weight_grams);
-      const supplierFmt: PurityFormat =
-        (clients.find((c) => c.id === b.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
-      const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
-      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
-
-      if (i % 2 === 1) {
-        doc.setFillColor(...CREAM_ALT);
-        doc.rect(PAD, ry, W - PAD * 2, rowH, "F");
-      }
-      doc.setDrawColor(...HAIRLINE);
-      doc.setLineWidth(0.1);
-      doc.line(PAD, ry + rowH, W - PAD, ry + rowH);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...INK);
-      doc.text(String(b.label || i + 1), colNum, ry + 5);
-
-      doc.setFont("courier", "normal");
-      doc.setFontSize(9);
-      doc.text(w.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colWeight, ry + 5, { align: "right" });
-      doc.text(formatPurityValue(b.bafleh_purity, supplierFmt), colBafleh, ry + 5, { align: "right" });
-      doc.text(pure.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colPure, ry + 5, { align: "right" });
-
-      doc.setFont("courier", "bold");
-      doc.setTextColor(...(loss === 0 ? GREEN : RED));
-      doc.text(loss.toFixed(2), colLoss, ry + 5, { align: "right" });
-      ry += rowH;
+      const pure = pureGrams(w, b.bafleh_purity, fmt);
+      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, fmt);
+      return {
+        index: i + 1,
+        weight: w.toFixed(2),
+        purity: formatPurityValue(b.bafleh_purity, fmt),
+        pure: pure.toFixed(2),
+        loss: loss.toFixed(2),
+        lossClass: (loss > 0 ? "red" : loss < 0 ? "green" : "") as "red" | "green" | "",
+      };
     });
-    cursorY = ry + 6;
 
-    // ===== COMPENSATION STRIP =====
-    const compH = 28;
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.6);
-    doc.roundedRect(PAD, cursorY, W - PAD * 2, compH, 3, 3, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text("AMOUNT TO COMPENSATE", W / 2, cursorY + 9, { align: "center" });
-    doc.setFont("times", "bold");
-    doc.setFontSize(26);
-    doc.setTextColor(...(r.totalLoss === 0 ? GREEN : GOLD_DEEP));
-    doc.text(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, cursorY + 22, { align: "center" });
-    cursorY += compH + 6;
-
-    // ===== VERIFICATION ROW =====
-    const verifyH = 30;
-    // QR placeholder (vector squares from hash) — same pseudo pattern as PNG
-    const qrSize = 26;
-    const qrX = PAD + 2;
-    const qrY = cursorY + 2;
-    doc.setFillColor(255, 255, 255);
-    doc.rect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, "F");
-    const qrCells = 21;
-    const cell = qrSize / qrCells;
-    let seed = hash >>> 0;
-    const rng = () => {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      return seed / 0xffffffff;
+    return {
+      clientCode,
+      tripCode,
+      depositCode,
+      reportDate,
+      reportTime,
+      reportId,
+      reportSerial,
+      barsCount: r.bars.length,
+      totalWeight: r.totalWeight.toFixed(2),
+      totalLoss: r.totalLoss.toFixed(2),
+      totalLossClass: (r.totalLoss > 0 ? "red" : "green") as "red" | "green",
+      bars,
+      signatureName: "Ather Quality",
     };
-    doc.setFillColor(...INK);
-    for (let y0 = 0; y0 < qrCells; y0++) {
-      for (let x0 = 0; x0 < qrCells; x0++) {
-        if (rng() > 0.5) {
-          doc.rect(qrX + x0 * cell, qrY + y0 * cell, cell + 0.05, cell + 0.05, "F");
-        }
-      }
-    }
-    // Finder patterns
-    const finder = (fx: number, fy: number) => {
-      doc.setFillColor(255, 255, 255);
-      doc.rect(fx, fy, cell * 7, cell * 7, "F");
-      doc.setFillColor(...INK);
-      doc.rect(fx, fy, cell * 7, cell * 7, "F");
-      doc.setFillColor(255, 255, 255);
-      doc.rect(fx + cell, fy + cell, cell * 5, cell * 5, "F");
-      doc.setFillColor(...INK);
-      doc.rect(fx + cell * 2, fy + cell * 2, cell * 3, cell * 3, "F");
-    };
-    finder(qrX, qrY);
-    finder(qrX + cell * 14, qrY);
-    finder(qrX, qrY + cell * 14);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...GOLD_DEEP);
-    doc.text("Verify this report", qrX + qrSize + 6, cursorY + 8);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text("Scan the QR code to verify", qrX + qrSize + 6, cursorY + 14);
-    doc.text("the authenticity of this report.", qrX + qrSize + 6, cursorY + 18);
-
-    // Signature (right)
-    const sigX = W - PAD - 70;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...CHARCOAL);
-    doc.text("AUTHORIZED SIGNATURE", sigX, cursorY + 6);
-    doc.setDrawColor(...INK);
-    doc.setLineWidth(0.6);
-    doc.lines(
-      [
-        [10, -4],
-        [12, 6],
-        [16, -4],
-        [14, 2],
-      ],
-      sigX + 4,
-      cursorY + 16,
-    );
-    doc.setDrawColor(...HAIRLINE);
-    doc.setLineWidth(0.2);
-    doc.line(sigX, cursorY + 22, sigX + 66, cursorY + 22);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text("Quality Assurance Manager", sigX, cursorY + 26);
-
-    cursorY += verifyH + 4;
-
-    // ===== DISCLAIMER =====
-    const discH = 14;
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...HAIRLINE);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(PAD, cursorY, W - PAD * 2, discH, 2, 2, "FD");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...CHARCOAL);
-    doc.text(
-      "This report was generated from laboratory purity measurements and is intended for commercial reconciliation purposes.",
-      W / 2,
-      cursorY + 9,
-      { align: "center", maxWidth: W - PAD * 2 - 8 },
-    );
-
-    // ===== FOOTER =====
-    const footerY = H - OUTER - 12;
-    doc.setDrawColor(...HAIRLINE);
-    doc.setLineWidth(0.2);
-    doc.line(PAD, footerY - 2, W - PAD, footerY - 2);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.text("Generated by", PAD, footerY + 3);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...GOLD_DEEP);
-    doc.text("ATHER", PAD + 14, footerY + 3);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...MUTED);
-    doc.text("Gold & Precious Metals · Generated in Dubai, UAE", PAD, footerY + 7);
-    doc.setFontSize(7);
-    doc.setTextColor(...SUBTLE);
-    doc.text(`Verification ID: ${reportId}`, W - PAD, footerY + 7, { align: "right" });
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...CHARCOAL);
-    doc.text("Dubai, United Arab Emirates", W - PAD, footerY + 3, { align: "right" });
-
-    // Save
-    const fileName = `Gold-Purity-Report_${clientCode}_${reportSerial}.pdf`;
-    doc.save(fileName);
   }
-
-
 
   async function shareClientImage(r: {
     name: string;
@@ -1803,717 +1473,41 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    // ===== Portrait premium report (matches uploaded design) =====
-    const W = 2000;
-    const OUTER = 36;
-    const PAD = 80;
-
-    // Palette
-    const GOLD = "#C9A227";
-    const GOLD_DEEP = "#B8911E";
-    const GOLD_SOFT = "#E8D27A";
-    const GOLD_TINT = "rgba(201,162,39,0.08)";
-    const CREAM = "#F9F7F1";
-    const CREAM_ALT = "#F7F3EA";
-    const CHARCOAL = "#1F2937";
-    const INK = "#111827";
-    const MUTED = "#6B7280";
-    const SUBTLE = "#9CA3AF";
-    const HAIRLINE = "#EFE6CB";
-    const RED = "#C0392B";
-    const GREEN = "#047857";
-
-    // Load luxury fonts (Cinzel, DM Serif Display, Cormorant Garamond, Inter)
-    await ensureReportFonts();
-
-    // Derived identifiers
-    const dep = trip.departure_date || "";
-    const depCompact = dep.replace(/-/g, "");
-    const hash = Math.abs(
-      Array.from(r.name + dep + trip.id).reduce(
-        (a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0,
-        0,
-      ),
-    );
-    // CLIENT CODE — the prominent number is the supplier's code (stored in client.name).
-    // The Report ID is a separate identifier and must never replace the client code.
-    const clientCode = (r.name || "—").toString();
-    const reportSerial = String(hash % 10000).padStart(4, "0");
-    const reportId = `RP-${depCompact || "00000000"}-${reportSerial}`;
-    const now = new Date();
-    const pad2 = (n: number) => String(n).padStart(2, "0");
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const reportDate = `${pad2(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
-    // GST = UTC+4
-    const gstMs = now.getTime() + (now.getTimezoneOffset() + 240) * 60000;
-    const gst = new Date(gstMs);
-    let hh = gst.getHours();
-    const mm = pad2(gst.getMinutes());
-    const ampm = hh >= 12 ? "PM" : "AM";
-    hh = hh % 12 || 12;
-    const reportTime = `${hh}:${mm} ${ampm} (GST)`;
-
-    // Font shorthands
-    const FONT_TITLE = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
-    const FONT_DISPLAY = "'DM Serif Display', 'Cormorant Garamond', Georgia, serif";
-    const FONT_UI = "'Inter', system-ui, -apple-system, sans-serif";
-
-    // Layout
-    const topBandH = 380;
-    const numberBlockH = 260;
-    const cardsY = topBandH + numberBlockH;
-    const cardH = 220;
-    const cardsBlockH = cardH + 50;
-    const tableY = cardsY + cardsBlockH;
-    const tableHeadH = 90;
-    const rowH = 120;
-    const tableBottom = tableY + tableHeadH + rowH * r.bars.length;
-    const compY = tableBottom + 50;
-    const compH = 280;
-    const verifyY = compY + compH + 50;
-    const verifyH = 200;
-    const disclaimerY = verifyY + verifyH + 30;
-    const disclaimerH = 110;
-    const bottomY = disclaimerY + disclaimerH + 40;
-    const H = bottomY + 90 + OUTER;
-
-    // Render at 2× the logical layout to produce a sharp 4000px-wide PNG
-    // (crisp at 300%+ zoom and on WhatsApp re-compression).
-    const SCALE = 2;
-    const canvas = document.createElement("canvas");
-    canvas.width = W * SCALE;
-    canvas.height = H * SCALE;
-    const ctx = canvas.getContext("2d")!;
-    ctx.scale(SCALE, SCALE);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    // Improve typography rendering on canvas
-    (ctx as CanvasRenderingContext2D & { textRendering?: string }).textRendering = "geometricPrecision";
-
-    // Preload Ather logo
-    const logoImg = await new Promise<HTMLImageElement | null>((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = atherLogoAsset.url;
-    });
-
-    // Background cream
-    ctx.fillStyle = CREAM;
-    ctx.fillRect(0, 0, W, H);
-
-    // Subtle Ather logo watermark at 2% opacity (center)
-    if (logoImg) {
-      ctx.save();
-      ctx.globalAlpha = 0.02;
-      const wmSize = Math.min(W, H) * 0.55;
-      const ratio = logoImg.width / logoImg.height;
-      const wmW = wmSize;
-      const wmH = wmSize / ratio;
-      ctx.drawImage(logoImg, (W - wmW) / 2, (H - wmH) / 2, wmW, wmH);
-      ctx.restore();
+    const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+    const data = buildReportData(r);
+    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+    // We rendered at intrinsic 2480px wide × scale 2 ≈ 4960px → resample to ~3500px wide PNG
+    const TARGET_W = 3500;
+    const ratio = TARGET_W / canvas.width;
+    const out = document.createElement("canvas");
+    out.width = TARGET_W;
+    out.height = Math.round(canvas.height * ratio);
+    const octx = out.getContext("2d");
+    if (octx) {
+      octx.imageSmoothingEnabled = true;
+      octx.imageSmoothingQuality = "high";
+      octx.drawImage(canvas, 0, 0, out.width, out.height);
     }
-
-    // Outer gold rounded border
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 3;
-    roundRect(ctx, OUTER, OUTER, W - OUTER * 2, H - OUTER * 2, 28);
-    ctx.stroke();
-    ctx.strokeStyle = GOLD_SOFT;
-    ctx.lineWidth = 1;
-    roundRect(ctx, OUTER + 6, OUTER + 6, W - (OUTER + 6) * 2, H - (OUTER + 6) * 2, 22);
-    ctx.stroke();
-
-    // ===== TOP BAND =====
-    // Ather logo (top-left, image only, no wordmark)
-    const logoX = PAD + 10;
-    const logoY = OUTER + 40;
-    const logoBoxH = 160;
-    if (logoImg) {
-      const ratio = logoImg.width / logoImg.height;
-      const drawH = logoBoxH;
-      const drawW = drawH * ratio;
-      ctx.drawImage(logoImg, logoX, logoY, drawW, drawH);
-    }
-    // Taglines under logo
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = `700 22px ${FONT_UI}`;
-    ctx.textAlign = "left";
-    ctx.fillText("GOLD & PRECIOUS METALS", logoX, logoY + logoBoxH + 38);
-    ctx.fillStyle = MUTED;
-    ctx.font = `500 15px ${FONT_UI}`;
-    ctx.fillText("TRUST  •  INTEGRITY  •  EXCELLENCE", logoX, logoY + logoBoxH + 66);
-
-    // Center title — luxury Cinzel
-    ctx.textAlign = "center";
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = `700 62px ${FONT_TITLE}`;
-    // letter-spacing emulation via spaced text
-    const titleText = "GOLD  PURITY  REPORT";
-    ctx.fillText(titleText, W / 2, OUTER + 110);
-    // ornament
-    const ornY = OUTER + 140;
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 180, ornY);
-    ctx.lineTo(W / 2 - 20, ornY);
-    ctx.moveTo(W / 2 + 20, ornY);
-    ctx.lineTo(W / 2 + 180, ornY);
-    ctx.stroke();
-    ctx.fillStyle = GOLD;
-    ctx.beginPath();
-    ctx.moveTo(W / 2, ornY - 8);
-    ctx.lineTo(W / 2 + 10, ornY);
-    ctx.lineTo(W / 2, ornY + 8);
-    ctx.lineTo(W / 2 - 10, ornY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.textAlign = "left";
-
-    // UAE flag + label (top-right)
-    const flagX = W - PAD - 200;
-    const flagY = OUTER + 50;
-    const flagW = 200;
-    const flagH = 130;
-    // Red hoist
-    const hoist = 60;
-    ctx.fillStyle = "#CE1126";
-    ctx.fillRect(flagX, flagY, hoist, flagH);
-    // Green
-    ctx.fillStyle = "#009739";
-    ctx.fillRect(flagX + hoist, flagY, flagW - hoist, flagH / 3);
-    // White
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(flagX + hoist, flagY + flagH / 3, flagW - hoist, flagH / 3);
-    // Black
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(flagX + hoist, flagY + (2 * flagH) / 3, flagW - hoist, flagH / 3);
-    // Frame
-    ctx.strokeStyle = HAIRLINE;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(flagX, flagY, flagW, flagH);
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Dubai, United Arab Emirates", flagX + flagW / 2, flagY + flagH + 28);
-    ctx.textAlign = "left";
-
-    // ===== CLIENT CODE + META =====
-    // Small luxury label above the big code
-    const bnY = topBandH + 30;
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = `600 22px ${FONT_UI}`;
-    ctx.textAlign = "left";
-    ctx.fillText("CLIENT CODE", PAD + 14, bnY + 28);
-    // Hairline under label
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(PAD + 14, bnY + 42);
-    ctx.lineTo(PAD + 14 + 180, bnY + 42);
-    ctx.stroke();
-    // The prominent number = supplier code (client.name)
-    ctx.fillStyle = "#1E2430";
-    ctx.font = `400 220px ${FONT_DISPLAY}`;
-    ctx.fillText(clientCode, PAD + 10, bnY + 210);
-
-    // Right meta column (Date / Time / ID)
-    const metaX = W - PAD - 540;
-    const metaIconCol = metaX;
-    const metaLabelCol = metaX + 80;
-    const drawMetaIcon = (cy: number, glyph: string) => {
-      ctx.fillStyle = GOLD_TINT;
-      ctx.beginPath();
-      ctx.arc(metaIconCol + 22, cy, 26, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = GOLD;
-      ctx.font = `700 26px ${FONT_UI}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(glyph, metaIconCol + 22, cy + 1);
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-    };
-    const metaRows: { glyph: string; label: string; value: string }[] = [
-      { glyph: "▦", label: "Report Date", value: reportDate },
-      { glyph: "◷", label: "Report Time", value: reportTime },
-      { glyph: "❖", label: "Report ID", value: reportId },
-    ];
-    metaRows.forEach((m, i) => {
-      const cy = topBandH + 30 + i * 76 + 26;
-      drawMetaIcon(cy, m.glyph);
-      ctx.fillStyle = MUTED;
-      ctx.font = `500 18px ${FONT_UI}`;
-      ctx.fillText(m.label.toUpperCase(), metaLabelCol, cy - 6);
-      ctx.fillStyle = CHARCOAL;
-      ctx.font = `600 24px ${FONT_UI}`;
-      ctx.fillText(m.value, metaLabelCol, cy + 26);
-    });
-
-    // ===== SUMMARY CARDS =====
-    const gap = 30;
-    const cardW = (W - PAD * 2 - gap * 2) / 3;
-    type Card = { label: string; value: string; valueColor: string; iconBg: string; iconColor: string; draw: (cx: number, cy: number) => void };
-    const drawBarsIcon = (cx: number, cy: number) => {
-      // small stack of gold bars
-      ctx.fillStyle = GOLD_SOFT;
-      ctx.fillRect(cx - 38, cy - 4, 54, 18);
-      ctx.fillStyle = GOLD;
-      ctx.fillRect(cx - 30, cy - 22, 54, 18);
-      ctx.fillStyle = GOLD_DEEP;
-      ctx.fillRect(cx - 22, cy - 40, 54, 18);
-    };
-    const drawScaleIcon = (cx: number, cy: number) => {
-      ctx.strokeStyle = GOLD;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(cx - 36, cy + 20);
-      ctx.lineTo(cx + 36, cy + 20);
-      ctx.moveTo(cx, cy + 20);
-      ctx.lineTo(cx, cy - 28);
-      ctx.moveTo(cx - 30, cy - 28);
-      ctx.lineTo(cx + 30, cy - 28);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx - 30, cy - 28);
-      ctx.lineTo(cx - 48, cy + 4);
-      ctx.lineTo(cx - 12, cy + 4);
-      ctx.closePath();
-      ctx.moveTo(cx + 30, cy - 28);
-      ctx.lineTo(cx + 12, cy + 4);
-      ctx.lineTo(cx + 48, cy + 4);
-      ctx.closePath();
-      ctx.fillStyle = GOLD_TINT;
-      ctx.fill();
-      ctx.stroke();
-    };
-    const drawLossIcon = (cx: number, cy: number) => {
-      ctx.strokeStyle = RED;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(cx - 36, cy - 24);
-      ctx.lineTo(cx - 12, cy);
-      ctx.lineTo(cx + 6, cy - 14);
-      ctx.lineTo(cx + 32, cy + 18);
-      ctx.stroke();
-      // arrow head
-      ctx.beginPath();
-      ctx.moveTo(cx + 32, cy + 18);
-      ctx.lineTo(cx + 14, cy + 18);
-      ctx.lineTo(cx + 32, cy);
-      ctx.closePath();
-      ctx.fillStyle = RED;
-      ctx.fill();
-    };
-    const cards: Card[] = [
-      { label: "BARS", value: String(r.bars.length), valueColor: INK,
-        iconBg: GOLD_TINT, iconColor: GOLD, draw: drawBarsIcon },
-      { label: "TOTAL WEIGHT (g)", value: r.totalWeight.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), valueColor: INK,
-        iconBg: GOLD_TINT, iconColor: GOLD, draw: drawScaleIcon },
-      { label: "TOTAL LOSS (g)", value: r.totalLoss.toFixed(2), valueColor: r.totalLoss === 0 ? GREEN : RED,
-        iconBg: "rgba(192,57,43,0.08)", iconColor: RED, draw: drawLossIcon },
-    ];
-    cards.forEach((c, i) => {
-      const x = PAD + i * (cardW + gap);
-      ctx.save();
-      ctx.shadowColor = "rgba(31,41,55,0.08)";
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 6;
-      ctx.fillStyle = "#FFFFFF";
-      roundRect(ctx, x, cardsY, cardW, cardH, 20);
-      ctx.fill();
-      ctx.restore();
-      ctx.strokeStyle = HAIRLINE;
-      ctx.lineWidth = 1;
-      roundRect(ctx, x, cardsY, cardW, cardH, 20);
-      ctx.stroke();
-
-      // icon circle
-      const iconCx = x + 90;
-      const iconCy = cardsY + cardH / 2;
-      ctx.fillStyle = c.iconBg;
-      ctx.beginPath();
-      ctx.arc(iconCx, iconCy, 60, 0, Math.PI * 2);
-      ctx.fill();
-      c.draw(iconCx, iconCy);
-
-      ctx.fillStyle = MUTED;
-      ctx.font = "600 22px 'Inter', system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(c.label, x + 180, cardsY + 80);
-      ctx.fillStyle = c.valueColor;
-      ctx.font = "800 58px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
-      ctx.fillText(c.value, x + 180, cardsY + 152);
-    });
-
-    // ===== TABLE =====
-    // Header (gold)
-    ctx.fillStyle = GOLD_DEEP;
-    roundRect(ctx, PAD, tableY, W - PAD * 2, tableHeadH, 8);
-    ctx.fill();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
-    const colNum = PAD + 50;
-    const colWeight = PAD + 360;
-    const colBafleh = PAD + 770;
-    const colPure = PAD + 1180;
-    const colLoss = W - PAD - 50;
-    ctx.textAlign = "left";
-    ctx.fillText("#", colNum, tableY + tableHeadH / 2 + 9);
-    ctx.textAlign = "left";
-    ctx.fillText("WEIGHT (g)", PAD + 220, tableY + tableHeadH / 2 + 9);
-    ctx.fillText("BAFLEH ‰", PAD + 630, tableY + tableHeadH / 2 + 9);
-    ctx.fillText("PURE (g)", PAD + 1040, tableY + tableHeadH / 2 + 9);
-    ctx.textAlign = "right";
-    ctx.fillText("LOSS (g)", colLoss, tableY + tableHeadH / 2 + 9);
-    ctx.textAlign = "left";
-
-    // Body
-    let ry = tableY + tableHeadH;
-    r.bars.forEach((b, i) => {
-      const w = Number(b.weight_grams);
-      const supplierFmt: PurityFormat =
-        (clients.find((c) => c.id === b.client_id)?.purity_format as PurityFormat | undefined) ?? "3";
-      const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
-      const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
-
-      ctx.fillStyle = i % 2 === 0 ? "#FFFFFF" : CREAM_ALT;
-      ctx.fillRect(PAD, ry, W - PAD * 2, rowH);
-      ctx.fillStyle = HAIRLINE;
-      ctx.fillRect(PAD, ry + rowH - 1, W - PAD * 2, 1);
-
-      ctx.fillStyle = INK;
-      ctx.font = "600 28px 'Inter', system-ui, -apple-system, sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(String(b.label || i + 1), colNum, ry + rowH / 2 + 10);
-
-      ctx.font = "500 28px ui-monospace, Menlo, Consolas, monospace";
-      ctx.textAlign = "right";
-      ctx.fillStyle = INK;
-      ctx.fillText(w.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colWeight, ry + rowH / 2 + 10);
-      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), colBafleh, ry + rowH / 2 + 10);
-      ctx.fillText(pure.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colPure, ry + rowH / 2 + 10);
-
-      ctx.fillStyle = loss === 0 ? GREEN : RED;
-      ctx.font = "700 28px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText(loss.toFixed(2), colLoss, ry + rowH / 2 + 10);
-      ry += rowH;
-    });
-    ctx.textAlign = "left";
-
-    // ===== COMPENSATION STRIP =====
-    ctx.save();
-    ctx.shadowColor = "rgba(201,162,39,0.25)";
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = "#FFFFFF";
-    roundRect(ctx, PAD, compY, W - PAD * 2, compH, 22);
-    ctx.fill();
-    ctx.restore();
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 2.5;
-    roundRect(ctx, PAD, compY, W - PAD * 2, compH, 22);
-    ctx.stroke();
-
-    // Gold bars cluster (left)
-    const gbX = PAD + 100;
-    const gbY = compY + compH / 2;
-    const drawBar = (x: number, y: number, w0: number, h0: number) => {
-      const g = ctx.createLinearGradient(x, y, x, y + h0);
-      g.addColorStop(0, GOLD_SOFT);
-      g.addColorStop(0.5, GOLD);
-      g.addColorStop(1, GOLD_DEEP);
-      ctx.fillStyle = g;
-      // trapezoid bar (slight)
-      ctx.beginPath();
-      ctx.moveTo(x + 10, y);
-      ctx.lineTo(x + w0 - 10, y);
-      ctx.lineTo(x + w0, y + h0);
-      ctx.lineTo(x, y + h0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = GOLD_DEEP;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    };
-    drawBar(gbX - 60, gbY - 10, 140, 50);
-    drawBar(gbX - 30, gbY - 60, 140, 50);
-    drawBar(gbX + 10, gbY - 30, 140, 50);
-
-    // Center text
-    ctx.textAlign = "center";
-    ctx.fillStyle = MUTED;
-    ctx.font = "600 26px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 90);
-    ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD_DEEP;
-    ctx.font = "800 110px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
-    ctx.fillText(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, compY + 200);
-    // mini ornament
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 90, compY + 230);
-    ctx.lineTo(W / 2 - 12, compY + 230);
-    ctx.moveTo(W / 2 + 12, compY + 230);
-    ctx.lineTo(W / 2 + 90, compY + 230);
-    ctx.stroke();
-    ctx.fillStyle = GOLD;
-    ctx.beginPath();
-    ctx.arc(W / 2, compY + 230, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.textAlign = "left";
-
-    // Quality & Trust medal (right)
-    const medCx = W - PAD - 130;
-    const medCy = compY + compH / 2;
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 3;
-    // laurel arcs
-    ctx.beginPath();
-    ctx.arc(medCx, medCy, 70, Math.PI * 0.6, Math.PI * 1.4);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(medCx, medCy, 70, -Math.PI * 0.4, Math.PI * 0.4);
-    ctx.stroke();
-    // small leaves
-    for (let i = 0; i < 8; i++) {
-      const a = Math.PI * 0.65 + (i * Math.PI * 0.7) / 8;
-      const lx = medCx + Math.cos(a) * 70;
-      const ly = medCy + Math.sin(a) * 70;
-      ctx.beginPath();
-      ctx.ellipse(lx, ly, 8, 3, a, 0, Math.PI * 2);
-      ctx.fillStyle = GOLD;
-      ctx.fill();
-      const a2 = -Math.PI * 0.35 + (i * Math.PI * 0.7) / 8;
-      const lx2 = medCx + Math.cos(a2) * 70;
-      const ly2 = medCy + Math.sin(a2) * 70;
-      ctx.beginPath();
-      ctx.ellipse(lx2, ly2, 8, 3, a2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // diamond
-    ctx.save();
-    ctx.translate(medCx, medCy - 8);
-    ctx.fillStyle = GOLD;
-    ctx.beginPath();
-    ctx.moveTo(0, -20);
-    ctx.lineTo(18, -4);
-    ctx.lineTo(0, 22);
-    ctx.lineTo(-18, -4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-    // stars
-    ctx.fillStyle = GOLD;
-    ctx.font = "700 16px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("★ ★ ★", medCx, medCy - 36);
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 14px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("QUALITY &", medCx, medCy + 36);
-    ctx.fillText("TRUST", medCx, medCy + 52);
-    ctx.textAlign = "left";
-
-    // ===== VERIFY ROW (QR, verified, signature) =====
-    const colW = (W - PAD * 2) / 3;
-
-    // QR code (pseudo pattern from hash)
-    const qrSize = 130;
-    const qrX = PAD + 10;
-    const qrY = verifyY + 10;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
-    ctx.fillStyle = INK;
-    const qrCells = 21;
-    const cell = qrSize / qrCells;
-    let seed = hash >>> 0;
-    const rng = () => {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      return seed / 0xffffffff;
-    };
-    for (let y0 = 0; y0 < qrCells; y0++) {
-      for (let x0 = 0; x0 < qrCells; x0++) {
-        if (rng() > 0.5) {
-          ctx.fillRect(qrX + x0 * cell, qrY + y0 * cell, cell + 0.5, cell + 0.5);
-        }
-      }
-    }
-    // finder patterns (3 corners)
-    const finder = (fx: number, fy: number) => {
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(fx, fy, cell * 7, cell * 7);
-      ctx.fillStyle = INK;
-      ctx.fillRect(fx, fy, cell * 7, cell * 7);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(fx + cell, fy + cell, cell * 5, cell * 5);
-      ctx.fillStyle = INK;
-      ctx.fillRect(fx + cell * 2, fy + cell * 2, cell * 3, cell * 3);
-    };
-    finder(qrX, qrY);
-    finder(qrX + cell * 14, qrY);
-    finder(qrX, qrY + cell * 14);
-
-    // Verify text (next to QR)
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Verify this report", qrX + qrSize + 28, verifyY + 50);
-    ctx.fillStyle = MUTED;
-    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Scan the QR code to verify", qrX + qrSize + 28, verifyY + 84);
-    ctx.fillText("the authenticity of this report.", qrX + qrSize + 28, verifyY + 108);
-
-    // Divider
-    ctx.strokeStyle = HAIRLINE;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PAD + colW, verifyY + 20);
-    ctx.lineTo(PAD + colW, verifyY + verifyH - 20);
-    ctx.stroke();
-
-    // Middle: verified shield
-    const vx = PAD + colW + 40;
-    // shield icon
-    ctx.fillStyle = GOLD_TINT;
-    ctx.beginPath();
-    ctx.moveTo(vx, verifyY + 30);
-    ctx.lineTo(vx + 60, verifyY + 30);
-    ctx.lineTo(vx + 60, verifyY + 80);
-    ctx.quadraticCurveTo(vx + 30, verifyY + 120, vx, verifyY + 80);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.strokeStyle = GOLD_DEEP;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(vx + 14, verifyY + 70);
-    ctx.lineTo(vx + 26, verifyY + 84);
-    ctx.lineTo(vx + 48, verifyY + 56);
-    ctx.stroke();
-
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("VERIFIED & CERTIFIED", vx + 90, verifyY + 56);
-    ctx.fillStyle = MUTED;
-    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("This report is generated from", vx + 90, verifyY + 90);
-    ctx.fillText("laboratory purity measurements.", vx + 90, verifyY + 114);
-
-    // Divider 2
-    ctx.strokeStyle = HAIRLINE;
-    ctx.beginPath();
-    ctx.moveTo(PAD + colW * 2, verifyY + 20);
-    ctx.lineTo(PAD + colW * 2, verifyY + verifyH - 20);
-    ctx.stroke();
-
-    // Right: signature
-    const sx = PAD + colW * 2 + 40;
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("AUTHORIZED SIGNATURE", sx, verifyY + 40);
-    // signature in Great Vibes script
-    ctx.fillStyle = INK;
-    ctx.font = "400 64px 'Great Vibes', 'Brush Script MT', cursive";
-    ctx.fillText("Ather Quality", sx + 10, verifyY + 100);
-    ctx.strokeStyle = HAIRLINE;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(sx, verifyY + 130);
-    ctx.lineTo(sx + 360, verifyY + 130);
-    ctx.stroke();
-    ctx.fillStyle = MUTED;
-    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Authorized by Ather Quality Department", sx, verifyY + 156);
-
-    // ===== DISCLAIMER PILL =====
-    ctx.fillStyle = "#FFFFFF";
-    roundRect(ctx, PAD, disclaimerY, W - PAD * 2, disclaimerH, 14);
-    ctx.fill();
-    ctx.strokeStyle = HAIRLINE;
-    ctx.lineWidth = 1;
-    roundRect(ctx, PAD, disclaimerY, W - PAD * 2, disclaimerH, 14);
-    ctx.stroke();
-    // shield glyph
-    ctx.fillStyle = GOLD;
-    ctx.beginPath();
-    ctx.moveTo(PAD + 40, disclaimerY + 30);
-    ctx.lineTo(PAD + 80, disclaimerY + 30);
-    ctx.lineTo(PAD + 80, disclaimerY + 65);
-    ctx.quadraticCurveTo(PAD + 60, disclaimerY + 92, PAD + 40, disclaimerY + 65);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 22px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText(
-      "This report was generated from laboratory purity measurements",
-      PAD + 110,
-      disclaimerY + 50,
-    );
-    ctx.fillText(
-      "and is intended for commercial reconciliation purposes.",
-      PAD + 110,
-      disclaimerY + 80,
-    );
-
-    // ===== BOTTOM CREDITS =====
-    ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(PAD, bottomY - 10);
-    ctx.lineTo(W - PAD, bottomY - 10);
-    ctx.stroke();
-    // left: generated by Ather Gold & Precious Metals
-    ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 20px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("Generated by Ather Gold & Precious Metals", PAD, bottomY + 22);
-    ctx.fillStyle = MUTED;
-    ctx.font = "500 15px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Premium bullion reconciliation report", PAD, bottomY + 50);
-
-    // center: report verification id
-    ctx.textAlign = "center";
-    ctx.fillStyle = MUTED;
-    ctx.font = "500 14px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("REPORT VERIFICATION ID", W / 2, bottomY + 22);
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "600 18px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText(reportId, W / 2, bottomY + 50);
-
-    // right: location
-    ctx.textAlign = "right";
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "600 20px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Dubai, United Arab Emirates", W - PAD, bottomY + 22);
-    ctx.fillStyle = SUBTLE;
-    ctx.font = "500 15px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Ather Gold & Precious Metals · UAE", W - PAD, bottomY + 50);
-    ctx.textAlign = "left";
-
     const blob: Blob | null = await new Promise((resolve) =>
-      canvas.toBlob((b) => resolve(b), "image/png"),
+      (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
     );
     if (!blob) return;
-    const fileName = `Gold-Purity-Report_${clientCode}_${reportSerial}.png`;
+    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
     const file = new File([blob], fileName, { type: "image/png" });
-
     const nav = navigator as Navigator & {
-      canShare?: (data: { files?: File[] }) => boolean;
-      share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+      canShare?: (d: { files?: File[] }) => boolean;
+      share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
     };
     if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
       try {
         await nav.share({
           files: [file],
-          title: `Gold Purity Report — Client ${clientCode}`,
-          text: `Client ${clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${reportId}`,
+          title: `Gold Purity Report — Client ${data.clientCode}`,
+          text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
         });
         return;
       } catch {
-        /* fall through */
+        /* fall through to download */
       }
     }
     const url = URL.createObjectURL(blob);
@@ -2525,6 +1519,42 @@ export function ClientBreakdown({
     a.remove();
     URL.revokeObjectURL(url);
   }
+
+  async function shareClientPDF(r: {
+    name: string;
+    bars: Piece[];
+    totalWeight: number;
+    totalPure: number;
+    totalLoss: number;
+  }) {
+    const [{ renderPurityReportToCanvas }, { jsPDF }] = await Promise.all([
+      import("@/components/PurityReport"),
+      import("jspdf"),
+    ]);
+    const data = buildReportData(r);
+    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const doc = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+      compress: true,
+    });
+    const W = 210;
+    const H = 297;
+    const ratio = canvas.height / canvas.width;
+    const imgH = W * ratio;
+    if (imgH <= H) {
+      doc.addImage(imgData, "JPEG", 0, (H - imgH) / 2, W, imgH, undefined, "FAST");
+    } else {
+      // scale down to fit page height
+      const imgW = H / ratio;
+      doc.addImage(imgData, "JPEG", (W - imgW) / 2, 0, imgW, H, undefined, "FAST");
+    }
+    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
+    doc.save(fileName);
+  }
+
 
   return (
     <div className="space-y-2">
