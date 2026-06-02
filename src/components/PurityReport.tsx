@@ -145,7 +145,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "172px 1fr 172px",
+            gridTemplateColumns: "220px 1fr 220px",
             alignItems: "center",
             gap: 40,
           }}
