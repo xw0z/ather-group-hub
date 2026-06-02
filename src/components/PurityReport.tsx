@@ -150,7 +150,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       >
         {/* Left: brand, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 285, height: "auto" }} />
+          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 245, height: "auto" }} />
           <div style={{ marginTop: 24, fontSize: 30, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
             GOLD &amp; PRECIOUS METALS
           </div>
