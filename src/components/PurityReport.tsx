@@ -626,7 +626,9 @@ function SummaryCard({
           fontSize: 96,
           fontWeight: 800,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          textAlign: "right",
+          textAlign: "center",
+          display: "block",
+          width: "100%",
           fontFamily: '"DM Serif Display", serif',
           letterSpacing: 1,
         }}
