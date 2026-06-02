@@ -1,7 +1,11 @@
 import { useEffect, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import atherLogoAsset from "@/assets/ather-logo.asset.json";
-import goldBarsImg from "@/assets/gold-bars-stack.png";
+import goldBarsImg from "@/assets/report-bars.png";
+import badgeImg from "@/assets/report-badge.png";
+import scaleImg from "@/assets/report-scale.png";
+import lossImg from "@/assets/report-loss.png";
+
 
 export type PurityReportBar = {
   index: number;
