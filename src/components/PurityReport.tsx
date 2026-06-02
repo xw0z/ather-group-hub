@@ -241,18 +241,27 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       <table
         style={{
           width: "100%",
+          tableLayout: "fixed",
           marginTop: 90,
           borderCollapse: "separate",
           borderSpacing: 0,
           borderRadius: 24,
           overflow: "hidden",
-          fontSize: 36,
+          fontSize: 38,
+          fontFamily: "Inter, system-ui, sans-serif",
           boxShadow: "0 18px 60px rgba(0,0,0,0.08)",
           border: "2px solid #eadfbd",
         }}
       >
+        <colgroup>
+          <col style={{ width: "6%" }} />
+          <col style={{ width: "24%" }} />
+          <col style={{ width: "24%" }} />
+          <col style={{ width: "24%" }} />
+          <col style={{ width: "22%" }} />
+        </colgroup>
         <thead>
-          <tr>
+          <tr style={{ height: 120 }}>
             {["#", "WEIGHT (g)", "BAFLEH ‰", "PURE (g)", "LOSS (g)"].map((h) => (
               <th
                 key={h}
@@ -264,9 +273,11 @@ export function PurityReport({ data }: { data: PurityReportData }) {
                   fontWeight: 600,
                   letterSpacing: 1.5,
                   textAlign: "center",
+                  verticalAlign: "middle",
+                  padding: "0 12px",
                   borderBottom: "3px solid #9a7b1f",
+                  fontFamily: "Inter, system-ui, sans-serif",
                 }}
-
               >
                 {h}
               </th>
@@ -275,7 +286,13 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         </thead>
         <tbody>
           {data.bars.map((b, i) => (
-            <tr key={b.index} style={{ background: i % 2 === 0 ? "#ffffff" : "#fbf6e9" }}>
+            <tr
+              key={b.index}
+              style={{
+                background: i % 2 === 0 ? "#FFFFFF" : "#F8F4EA",
+                height: 168,
+              }}
+            >
               <td style={cellStyle}>{b.index}</td>
               <td style={cellStyle}>{b.weight}</td>
               <td style={cellStyle}>{b.purity}</td>
@@ -283,7 +300,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               <td
                 style={{
                   ...cellStyle,
-                  color: b.lossClass === "red" ? "#d33c2d" : b.lossClass === "green" ? "#0e8f55" : undefined,
+                  color: b.lossClass === "red" ? "#D33C2D" : b.lossClass === "green" ? "#0E8F55" : undefined,
                   fontWeight: b.lossClass ? 700 : 500,
                 }}
               >
@@ -539,14 +556,15 @@ function ShieldIcon() {
 
 
 const cellStyle: React.CSSProperties = {
-  height: 174,
+  height: 168,
   textAlign: "center",
-  borderBottom: "2px solid #f0e5c5",
+  verticalAlign: "middle",
+  borderBottom: "1px solid #E9E2D0",
   fontFamily: "Inter, system-ui, sans-serif",
   fontSize: 38,
   fontWeight: 500,
   color: "#1c2431",
-  padding: "0 14px",
+  padding: "0 12px",
 };
 
 const vStrong: React.CSSProperties = {
