@@ -398,6 +398,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               fontSize: 90,
               color: "#111",
               borderBottom: "2px solid #bbb",
+              textAlign: "center",
               margin: "10px 0 14px",
               lineHeight: 1.1,
               paddingBottom: 6,
