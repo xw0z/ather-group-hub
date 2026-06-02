@@ -667,7 +667,7 @@ export async function renderPurityReportToCanvas(
   const target = host.firstElementChild as HTMLElement;
   const { default: html2canvas } = await import("html2canvas-pro");
   const canvas = await html2canvas(target, {
-    scale: opts.scale ?? 4,
+    scale: opts.scale ?? 6,
     useCORS: true,
     backgroundColor: "#fffdf8",
     logging: false,
