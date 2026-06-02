@@ -592,45 +592,43 @@ function SummaryCard({
   return (
     <div
       style={{
-        minHeight: 390,
+        minHeight: 540,
         background: "#ffffff",
         border: "2px solid #eadfbd",
         borderRadius: 54,
         boxShadow: "0 25px 70px rgba(0,0,0,0.08)",
-        padding: 50,
+        padding: 72,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
         justifyContent: "space-between",
+        textAlign: "center",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-        <div
-          style={{
-            width: 240,
-            height: 240,
-            borderRadius: "50%",
-            background: iconBg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <span style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</span>
+      <div
+        style={{
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background: iconBg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
       </div>
+      <div style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</div>
       <strong
         style={{
-          fontSize: 96,
+          fontSize: 126,
           fontWeight: 800,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          textAlign: "center",
-          display: "block",
-          width: "100%",
-          fontFamily: '"DM Serif Display", serif',
+          fontFamily: "Inter, system-ui, sans-serif",
           letterSpacing: 1,
+          lineHeight: 1,
         }}
       >
         {value}
