@@ -150,12 +150,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             gap: 40,
           }}
         >
-          <div style={{ width: 220, textAlign: "center" }}>
-            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block", margin: "0 auto" }} />
-            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifySelf: "center" }}>
+            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
+            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center" }}>
               GOLD &amp; PRECIOUS METALS
             </div>
-            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap" }}>
+            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center" }}>
               TRUST • INTEGRITY • EXCELLENCE
             </div>
           </div>
