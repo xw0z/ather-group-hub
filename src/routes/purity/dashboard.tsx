@@ -1813,8 +1813,8 @@ export function ClientBreakdown({
     const GOLD_DEEP = "#B8911E";
     const GOLD_SOFT = "#E8D27A";
     const GOLD_TINT = "rgba(201,162,39,0.08)";
-    const CREAM = "#FFFCF4";
-    const CREAM_ALT = "#FAF4E2";
+    const CREAM = "#F9F7F1";
+    const CREAM_ALT = "#F7F3EA";
     const CHARCOAL = "#1F2937";
     const INK = "#111827";
     const MUTED = "#6B7280";
