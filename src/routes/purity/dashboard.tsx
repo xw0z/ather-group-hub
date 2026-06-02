@@ -1362,191 +1362,346 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    const tripName = tripDisplayName(trip);
-    // High-res canvas (>2000px wide) — premium light theme
-    const W = 2160;
-    const PAD = 96;
-    const rowH = 110;
-    const headerH = 640;
-    const compH = 360;
-    const footerH = 260;
-    const tableHeadH = 96;
-    const H = headerH + tableHeadH + rowH * r.bars.length + compH + footerH;
+    // ===== Portrait premium report (matches uploaded design) =====
+    const W = 2000;
+    const OUTER = 36;
+    const PAD = 80;
 
     // Palette
     const GOLD = "#C9A227";
+    const GOLD_DEEP = "#B8911E";
     const GOLD_SOFT = "#E8D27A";
     const GOLD_TINT = "rgba(201,162,39,0.08)";
+    const CREAM = "#FFFCF4";
+    const CREAM_ALT = "#FAF4E2";
     const CHARCOAL = "#1F2937";
+    const INK = "#111827";
     const MUTED = "#6B7280";
     const SUBTLE = "#9CA3AF";
-    const BORDER = "#E5E7EB";
-    const ROW_ALT = "#FAF7EC";
-    const RED = "#B91C1C";
+    const HAIRLINE = "#EFE6CB";
+    const RED = "#C0392B";
     const GREEN = "#047857";
-    const BG = "#FFFDF7";
+
+    // Derived identifiers
+    const dep = trip.departure_date || "";
+    const depCompact = dep.replace(/-/g, "");
+    const hash = Math.abs(
+      Array.from(r.name + dep + trip.id).reduce(
+        (a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0,
+        0,
+      ),
+    );
+    const bigNumber = String(3000 + (hash % 7000)); // 4-digit prominent number
+    const reportId = `RP-${dep || "0000-00-00"}-${bigNumber}`;
+    const now = new Date();
+    const pad2 = (n: number) => String(n).padStart(2, "0");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const reportDate = `${pad2(now.getDate())} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    // GST = UTC+4
+    const gstMs = now.getTime() + (now.getTimezoneOffset() + 240) * 60000;
+    const gst = new Date(gstMs);
+    let hh = gst.getHours();
+    const mm = pad2(gst.getMinutes());
+    const ampm = hh >= 12 ? "PM" : "AM";
+    hh = hh % 12 || 12;
+    const reportTime = `${hh}:${mm} ${ampm} (GST)`;
+
+    // Layout
+    const topBandH = 380;
+    const numberBlockH = 260;
+    const cardsY = topBandH + numberBlockH;
+    const cardH = 220;
+    const cardsBlockH = cardH + 50;
+    const tableY = cardsY + cardsBlockH;
+    const tableHeadH = 90;
+    const rowH = 120;
+    const tableBottom = tableY + tableHeadH + rowH * r.bars.length;
+    const compY = tableBottom + 50;
+    const compH = 280;
+    const verifyY = compY + compH + 50;
+    const verifyH = 200;
+    const disclaimerY = verifyY + verifyH + 30;
+    const disclaimerH = 110;
+    const bottomY = disclaimerY + disclaimerH + 40;
+    const H = bottomY + 90 + OUTER;
 
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    // Background
-    ctx.fillStyle = BG;
+    // Background cream
+    ctx.fillStyle = CREAM;
     ctx.fillRect(0, 0, W, H);
 
-    // Watermark
+    // Subtle UAE-outline watermark (abstract diamond cluster) at low opacity
     ctx.save();
-    ctx.globalAlpha = 0.04;
+    ctx.globalAlpha = 0.03;
     ctx.fillStyle = GOLD;
-    ctx.font = "800 320px Georgia, 'Times New Roman', serif";
-    ctx.textAlign = "center";
+    ctx.beginPath();
     ctx.translate(W / 2, H / 2);
-    ctx.rotate(-Math.PI / 8);
-    ctx.fillText("ATHER", 0, 0);
+    ctx.rotate(Math.PI / 4);
+    ctx.rect(-260, -260, 520, 520);
+    ctx.fill();
     ctx.restore();
 
-    // Top gold bar
-    const goldBar = ctx.createLinearGradient(0, 0, W, 0);
-    goldBar.addColorStop(0, GOLD);
-    goldBar.addColorStop(0.5, GOLD_SOFT);
-    goldBar.addColorStop(1, GOLD);
-    ctx.fillStyle = goldBar;
-    ctx.fillRect(0, 0, W, 12);
+    // Outer gold rounded border
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 3;
+    roundRect(ctx, OUTER, OUTER, W - OUTER * 2, H - OUTER * 2, 28);
+    ctx.stroke();
+    ctx.strokeStyle = GOLD_SOFT;
+    ctx.lineWidth = 1;
+    roundRect(ctx, OUTER + 6, OUTER + 6, W - (OUTER + 6) * 2, H - (OUTER + 6) * 2, 22);
+    ctx.stroke();
 
-    // Report ID
-    const reportId =
-      `RPT-${(trip.departure_date || "").replace(/-/g, "")}-` +
-      `${(r.name.replace(/\s+/g, "").slice(0, 4) || "CLNT").toUpperCase()}-` +
-      `${Math.abs(
-        Array.from(tripName + r.name).reduce((a, c) => a + c.charCodeAt(0), 0),
-      )
-        .toString(36)
-        .toUpperCase()
-        .slice(0, 5)}`;
-    const now = new Date();
-    const generatedAt = now.toLocaleString();
-
-    // Brand header
-    ctx.textAlign = "left";
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "800 44px Georgia, 'Times New Roman', serif";
-    ctx.fillText("ATHER", PAD, 100);
+    // ===== TOP BAND =====
+    // Logo block (left)
+    const logoX = PAD + 20;
+    const logoY = OUTER + 60;
+    // Diamond mark
+    ctx.save();
+    ctx.translate(logoX + 70, logoY + 60);
+    ctx.rotate(Math.PI / 4);
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(-52, -52, 104, 104);
+    ctx.strokeRect(-32, -32, 64, 64);
     ctx.fillStyle = GOLD;
-    ctx.font = "600 22px system-ui, -apple-system, 'Segoe UI', sans-serif";
-    ctx.fillText("BEFLAH REPORTS · BULLION RECONCILIATION", PAD, 138);
-
-    // Right side: report id + date
-    ctx.textAlign = "right";
-    ctx.fillStyle = MUTED;
-    ctx.font = "500 22px system-ui, sans-serif";
-    ctx.fillText("REPORT №", W - PAD, 80);
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "800 38px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText(reportId, W - PAD, 128);
-    ctx.fillStyle = SUBTLE;
-    ctx.font = "400 20px system-ui, sans-serif";
-    ctx.fillText(`Generated ${generatedAt}`, W - PAD, 160);
+    ctx.font = "800 32px Georgia, 'Times New Roman', serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.save();
+    ctx.rotate(-Math.PI / 4);
+    ctx.fillText("I", 0, 0);
+    ctx.restore();
+    ctx.restore();
+    ctx.textBaseline = "alphabetic";
     ctx.textAlign = "left";
 
-    // Hairline
-    ctx.fillStyle = BORDER;
-    ctx.fillRect(PAD, 188, W - PAD * 2, 1);
-
-    // Title block
-    ctx.fillStyle = MUTED;
-    ctx.font = "600 22px system-ui, sans-serif";
-    ctx.fillText("GOLD PURITY REPORT", PAD, 238);
-
+    // Wordmark
+    ctx.fillStyle = GOLD;
+    ctx.font = "800 56px Georgia, 'Times New Roman', serif";
+    ctx.fillText("IZIROVA", logoX + 170, logoY + 60);
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "800 84px Georgia, 'Times New Roman', serif";
-    ctx.fillText(r.name, PAD, 322);
-
+    ctx.font = "500 22px system-ui, -apple-system, 'Segoe UI', sans-serif";
+    ctx.fillText("J E W E L L E R Y", logoX + 172, logoY + 90);
     ctx.fillStyle = MUTED;
-    ctx.font = "400 26px system-ui, sans-serif";
-    ctx.fillText(
-      `${tripName}  ·  Departure ${trip.departure_date}${trip.arrival_date ? "  ·  Arrival " + trip.arrival_date : ""}${trip.receiver_company ? "  →  " + trip.receiver_company : ""}`,
-      PAD,
-      368,
-    );
+    ctx.font = "500 16px system-ui, sans-serif";
+    ctx.fillText("GOLD & PRECIOUS METALS", logoX + 172, logoY + 116);
 
-    // Summary cards (3)
-    const cardY = 420;
-    const cardH = 180;
-    const gap = 32;
+    // Center title
+    ctx.textAlign = "center";
+    ctx.fillStyle = GOLD;
+    ctx.font = "800 64px Georgia, 'Times New Roman', serif";
+    ctx.fillText("GOLD PURITY REPORT", W / 2, OUTER + 110);
+    // ornament
+    const ornY = OUTER + 140;
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 180, ornY);
+    ctx.lineTo(W / 2 - 20, ornY);
+    ctx.moveTo(W / 2 + 20, ornY);
+    ctx.lineTo(W / 2 + 180, ornY);
+    ctx.stroke();
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.moveTo(W / 2, ornY - 8);
+    ctx.lineTo(W / 2 + 10, ornY);
+    ctx.lineTo(W / 2, ornY + 8);
+    ctx.lineTo(W / 2 - 10, ornY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.textAlign = "left";
+
+    // UAE flag + label (top-right)
+    const flagX = W - PAD - 200;
+    const flagY = OUTER + 50;
+    const flagW = 200;
+    const flagH = 130;
+    // Red hoist
+    const hoist = 60;
+    ctx.fillStyle = "#CE1126";
+    ctx.fillRect(flagX, flagY, hoist, flagH);
+    // Green
+    ctx.fillStyle = "#009739";
+    ctx.fillRect(flagX + hoist, flagY, flagW - hoist, flagH / 3);
+    // White
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(flagX + hoist, flagY + flagH / 3, flagW - hoist, flagH / 3);
+    // Black
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(flagX + hoist, flagY + (2 * flagH) / 3, flagW - hoist, flagH / 3);
+    // Frame
+    ctx.strokeStyle = HAIRLINE;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(flagX, flagY, flagW, flagH);
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "600 18px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("UNITED ARAB EMIRATES", flagX + flagW / 2, flagY + flagH + 28);
+    ctx.textAlign = "left";
+
+    // ===== BIG NUMBER + META =====
+    const bnY = topBandH + 30;
+    ctx.fillStyle = INK;
+    ctx.font = "800 200px Georgia, 'Times New Roman', serif";
+    ctx.fillText(bigNumber, PAD + 10, bnY + 150);
+
+    // Right meta column (Date / Time / ID)
+    const metaX = W - PAD - 540;
+    const metaIconCol = metaX;
+    const metaLabelCol = metaX + 80;
+    const drawMetaIcon = (cy: number, glyph: string) => {
+      ctx.fillStyle = GOLD_TINT;
+      ctx.beginPath();
+      ctx.arc(metaIconCol + 22, cy, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = GOLD;
+      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(glyph, metaIconCol + 22, cy + 1);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    };
+    const metaRows: { glyph: string; label: string; value: string }[] = [
+      { glyph: "▦", label: "Report Date", value: reportDate },
+      { glyph: "◷", label: "Report Time", value: reportTime },
+      { glyph: "❖", label: "Report ID", value: reportId },
+    ];
+    metaRows.forEach((m, i) => {
+      const cy = topBandH + 30 + i * 76 + 26;
+      drawMetaIcon(cy, m.glyph);
+      ctx.fillStyle = MUTED;
+      ctx.font = "500 20px system-ui, sans-serif";
+      ctx.fillText(m.label, metaLabelCol, cy - 6);
+      ctx.fillStyle = CHARCOAL;
+      ctx.font = "700 26px system-ui, sans-serif";
+      ctx.fillText(m.value, metaLabelCol, cy + 26);
+    });
+
+    // ===== SUMMARY CARDS =====
+    const gap = 30;
     const cardW = (W - PAD * 2 - gap * 2) / 3;
-    const cards: {
-      label: string;
-      value: string;
-      icon: string;
-      valueColor: string;
-    }[] = [
-      { label: "NUMBER OF BARS", value: String(r.bars.length), icon: "▮▮▮", valueColor: CHARCOAL },
-      { label: "TOTAL WEIGHT (g)", value: r.totalWeight.toFixed(2), icon: "⚖", valueColor: CHARCOAL },
-      {
-        label: "TOTAL LOSS (g)",
-        value: r.totalLoss.toFixed(2),
-        icon: "▼",
-        valueColor: r.totalLoss === 0 ? GREEN : RED,
-      },
+    type Card = { label: string; value: string; valueColor: string; iconBg: string; iconColor: string; draw: (cx: number, cy: number) => void };
+    const drawBarsIcon = (cx: number, cy: number) => {
+      // small stack of gold bars
+      ctx.fillStyle = GOLD_SOFT;
+      ctx.fillRect(cx - 38, cy - 4, 54, 18);
+      ctx.fillStyle = GOLD;
+      ctx.fillRect(cx - 30, cy - 22, 54, 18);
+      ctx.fillStyle = GOLD_DEEP;
+      ctx.fillRect(cx - 22, cy - 40, 54, 18);
+    };
+    const drawScaleIcon = (cx: number, cy: number) => {
+      ctx.strokeStyle = GOLD;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(cx - 36, cy + 20);
+      ctx.lineTo(cx + 36, cy + 20);
+      ctx.moveTo(cx, cy + 20);
+      ctx.lineTo(cx, cy - 28);
+      ctx.moveTo(cx - 30, cy - 28);
+      ctx.lineTo(cx + 30, cy - 28);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 30, cy - 28);
+      ctx.lineTo(cx - 48, cy + 4);
+      ctx.lineTo(cx - 12, cy + 4);
+      ctx.closePath();
+      ctx.moveTo(cx + 30, cy - 28);
+      ctx.lineTo(cx + 12, cy + 4);
+      ctx.lineTo(cx + 48, cy + 4);
+      ctx.closePath();
+      ctx.fillStyle = GOLD_TINT;
+      ctx.fill();
+      ctx.stroke();
+    };
+    const drawLossIcon = (cx: number, cy: number) => {
+      ctx.strokeStyle = RED;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(cx - 36, cy - 24);
+      ctx.lineTo(cx - 12, cy);
+      ctx.lineTo(cx + 6, cy - 14);
+      ctx.lineTo(cx + 32, cy + 18);
+      ctx.stroke();
+      // arrow head
+      ctx.beginPath();
+      ctx.moveTo(cx + 32, cy + 18);
+      ctx.lineTo(cx + 14, cy + 18);
+      ctx.lineTo(cx + 32, cy);
+      ctx.closePath();
+      ctx.fillStyle = RED;
+      ctx.fill();
+    };
+    const cards: Card[] = [
+      { label: "BARS", value: String(r.bars.length), valueColor: INK,
+        iconBg: GOLD_TINT, iconColor: GOLD, draw: drawBarsIcon },
+      { label: "TOTAL WEIGHT (g)", value: r.totalWeight.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), valueColor: INK,
+        iconBg: GOLD_TINT, iconColor: GOLD, draw: drawScaleIcon },
+      { label: "TOTAL LOSS (g)", value: r.totalLoss.toFixed(2), valueColor: r.totalLoss === 0 ? GREEN : RED,
+        iconBg: "rgba(192,57,43,0.08)", iconColor: RED, draw: drawLossIcon },
     ];
     cards.forEach((c, i) => {
       const x = PAD + i * (cardW + gap);
-      // shadow
       ctx.save();
-      ctx.shadowColor = "rgba(31,41,55,0.10)";
-      ctx.shadowBlur = 24;
-      ctx.shadowOffsetY = 8;
+      ctx.shadowColor = "rgba(31,41,55,0.08)";
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 6;
       ctx.fillStyle = "#FFFFFF";
-      roundRect(ctx, x, cardY, cardW, cardH, 20);
+      roundRect(ctx, x, cardsY, cardW, cardH, 20);
       ctx.fill();
       ctx.restore();
-      // border
-      ctx.strokeStyle = BORDER;
+      ctx.strokeStyle = HAIRLINE;
       ctx.lineWidth = 1;
-      roundRect(ctx, x, cardY, cardW, cardH, 20);
+      roundRect(ctx, x, cardsY, cardW, cardH, 20);
       ctx.stroke();
 
-      // icon chip
-      ctx.fillStyle = GOLD_TINT;
-      roundRect(ctx, x + 32, cardY + 32, 64, 64, 14);
+      // icon circle
+      const iconCx = x + 90;
+      const iconCy = cardsY + cardH / 2;
+      ctx.fillStyle = c.iconBg;
+      ctx.beginPath();
+      ctx.arc(iconCx, iconCy, 60, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = GOLD;
-      ctx.font = "700 28px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(c.icon, x + 64, cardY + 74);
-      ctx.textAlign = "left";
+      c.draw(iconCx, iconCy);
 
       ctx.fillStyle = MUTED;
-      ctx.font = "600 20px system-ui, sans-serif";
-      ctx.fillText(c.label, x + 116, cardY + 62);
+      ctx.font = "600 22px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(c.label, x + 180, cardsY + 80);
       ctx.fillStyle = c.valueColor;
-      ctx.font = "800 56px Georgia, 'Times New Roman', serif";
-      ctx.fillText(c.value, x + 116, cardY + 128);
+      ctx.font = "800 58px Georgia, 'Times New Roman', serif";
+      ctx.fillText(c.value, x + 180, cardsY + 152);
     });
 
-    // Table
-    let y = headerH;
-    // Header
-    ctx.fillStyle = GOLD;
-    roundRect(ctx, PAD, y, W - PAD * 2, tableHeadH, 10);
+    // ===== TABLE =====
+    // Header (gold)
+    ctx.fillStyle = GOLD_DEEP;
+    roundRect(ctx, PAD, tableY, W - PAD * 2, tableHeadH, 8);
     ctx.fill();
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "700 24px system-ui, sans-serif";
-    const cols = [
-      { label: "#", x: PAD + 32, align: "left" as const },
-      { label: "WEIGHT (g)", x: PAD + 620, align: "right" as const },
-      { label: "BAFLEH ‰", x: PAD + 1080, align: "right" as const },
-      { label: "PURE (g)", x: PAD + 1500, align: "right" as const },
-      { label: "LOSS (g)", x: W - PAD - 32, align: "right" as const },
-    ];
-    cols.forEach((c) => {
-      ctx.textAlign = c.align;
-      ctx.fillText(c.label, c.x, y + 60);
-    });
+    const colNum = PAD + 50;
+    const colWeight = PAD + 360;
+    const colBafleh = PAD + 770;
+    const colPure = PAD + 1180;
+    const colLoss = W - PAD - 50;
+    ctx.textAlign = "left";
+    ctx.fillText("#", colNum, tableY + tableHeadH / 2 + 9);
+    ctx.textAlign = "left";
+    ctx.fillText("WEIGHT (g)", PAD + 220, tableY + tableHeadH / 2 + 9);
+    ctx.fillText("BAFLEH ‰", PAD + 630, tableY + tableHeadH / 2 + 9);
+    ctx.fillText("PURE (g)", PAD + 1040, tableY + tableHeadH / 2 + 9);
+    ctx.textAlign = "right";
+    ctx.fillText("LOSS (g)", colLoss, tableY + tableHeadH / 2 + 9);
     ctx.textAlign = "left";
 
-    y += tableHeadH;
+    // Body
+    let ry = tableY + tableHeadH;
     r.bars.forEach((b, i) => {
       const w = Number(b.weight_grams);
       const supplierFmt: PurityFormat =
@@ -1554,120 +1709,330 @@ export function ClientBreakdown({
       const pure = pureGrams(w, b.bafleh_purity, supplierFmt);
       const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, supplierFmt);
 
-      if (i % 2 === 1) {
-        ctx.fillStyle = ROW_ALT;
-        ctx.fillRect(PAD, y, W - PAD * 2, rowH);
-      }
-      // row hairline
-      ctx.fillStyle = BORDER;
-      ctx.fillRect(PAD, y + rowH - 1, W - PAD * 2, 1);
+      ctx.fillStyle = i % 2 === 0 ? "#FFFFFF" : CREAM_ALT;
+      ctx.fillRect(PAD, ry, W - PAD * 2, rowH);
+      ctx.fillStyle = HAIRLINE;
+      ctx.fillRect(PAD, ry + rowH - 1, W - PAD * 2, 1);
 
-      ctx.fillStyle = CHARCOAL;
-      ctx.font = "600 26px system-ui, sans-serif";
+      ctx.fillStyle = INK;
+      ctx.font = "600 28px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(String(b.label || i + 1), PAD + 32, y + rowH / 2 + 10);
+      ctx.fillText(String(b.label || i + 1), colNum, ry + rowH / 2 + 10);
 
-      ctx.fillStyle = CHARCOAL;
-      ctx.font = "500 26px ui-monospace, Menlo, Consolas, monospace";
+      ctx.font = "500 28px ui-monospace, Menlo, Consolas, monospace";
       ctx.textAlign = "right";
-      ctx.fillText(w.toFixed(2), PAD + 620, y + rowH / 2 + 10);
-      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), PAD + 1080, y + rowH / 2 + 10);
-      ctx.fillText(pure.toFixed(2), PAD + 1500, y + rowH / 2 + 10);
+      ctx.fillStyle = INK;
+      ctx.fillText(w.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colWeight, ry + rowH / 2 + 10);
+      ctx.fillText(formatPurityValue(b.bafleh_purity, supplierFmt), colBafleh, ry + rowH / 2 + 10);
+      ctx.fillText(pure.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), colPure, ry + rowH / 2 + 10);
 
       ctx.fillStyle = loss === 0 ? GREEN : RED;
-      ctx.font = "800 26px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText(loss.toFixed(2), W - PAD - 32, y + rowH / 2 + 10);
-
-      y += rowH;
+      ctx.font = "700 28px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(loss.toFixed(2), colLoss, ry + rowH / 2 + 10);
+      ry += rowH;
     });
     ctx.textAlign = "left";
 
-    // Outer table border
-    ctx.strokeStyle = BORDER;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(PAD, headerH, W - PAD * 2, tableHeadH + rowH * r.bars.length);
-
-    // Compensation section — centerpiece
-    const compY = y + 56;
-    const compW = W - PAD * 2 - 200;
-    const compX = (W - compW) / 2;
-    // soft shadow + gold border card
+    // ===== COMPENSATION STRIP =====
     ctx.save();
-    ctx.shadowColor = "rgba(201,162,39,0.18)";
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 12;
+    ctx.shadowColor = "rgba(201,162,39,0.25)";
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 10;
     ctx.fillStyle = "#FFFFFF";
-    roundRect(ctx, compX, compY, compW, 240, 24);
+    roundRect(ctx, PAD, compY, W - PAD * 2, compH, 22);
     ctx.fill();
     ctx.restore();
     ctx.strokeStyle = GOLD;
-    ctx.lineWidth = 3;
-    roundRect(ctx, compX, compY, compW, 240, 24);
+    ctx.lineWidth = 2.5;
+    roundRect(ctx, PAD, compY, W - PAD * 2, compH, 22);
     ctx.stroke();
 
-    // gold bar icon (left)
-    ctx.fillStyle = GOLD;
-    roundRect(ctx, compX + 48, compY + 90, 100, 60, 8);
-    ctx.fill();
-    ctx.fillStyle = GOLD_SOFT;
-    ctx.fillRect(compX + 60, compY + 100, 76, 6);
+    // Gold bars cluster (left)
+    const gbX = PAD + 100;
+    const gbY = compY + compH / 2;
+    const drawBar = (x: number, y: number, w0: number, h0: number) => {
+      const g = ctx.createLinearGradient(x, y, x, y + h0);
+      g.addColorStop(0, GOLD_SOFT);
+      g.addColorStop(0.5, GOLD);
+      g.addColorStop(1, GOLD_DEEP);
+      ctx.fillStyle = g;
+      // trapezoid bar (slight)
+      ctx.beginPath();
+      ctx.moveTo(x + 10, y);
+      ctx.lineTo(x + w0 - 10, y);
+      ctx.lineTo(x + w0, y + h0);
+      ctx.lineTo(x, y + h0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = GOLD_DEEP;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    };
+    drawBar(gbX - 60, gbY - 10, 140, 50);
+    drawBar(gbX - 30, gbY - 60, 140, 50);
+    drawBar(gbX + 10, gbY - 30, 140, 50);
 
+    // Center text
     ctx.textAlign = "center";
     ctx.fillStyle = MUTED;
-    ctx.font = "700 24px system-ui, sans-serif";
-    ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 70);
-
-    ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD;
+    ctx.font = "600 26px system-ui, sans-serif";
+    ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 90);
+    ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD_DEEP;
     ctx.font = "800 110px Georgia, 'Times New Roman', serif";
-    ctx.fillText(`${r.totalLoss.toFixed(2)} g`, W / 2, compY + 170);
-
-    ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 26px system-ui, sans-serif";
-    ctx.fillText("of pure gold", W / 2, compY + 210);
+    ctx.fillText(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, compY + 200);
+    // mini ornament
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 90, compY + 230);
+    ctx.lineTo(W / 2 - 12, compY + 230);
+    ctx.moveTo(W / 2 + 12, compY + 230);
+    ctx.lineTo(W / 2 + 90, compY + 230);
+    ctx.stroke();
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.arc(W / 2, compY + 230, 4, 0, Math.PI * 2);
+    ctx.fill();
     ctx.textAlign = "left";
 
-    // Footer: disclaimer + signature + verification id
-    const footY = compY + 280;
-    ctx.fillStyle = BORDER;
-    ctx.fillRect(PAD, footY, W - PAD * 2, 1);
+    // Quality & Trust medal (right)
+    const medCx = W - PAD - 130;
+    const medCy = compY + compH / 2;
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 3;
+    // laurel arcs
+    ctx.beginPath();
+    ctx.arc(medCx, medCy, 70, Math.PI * 0.6, Math.PI * 1.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(medCx, medCy, 70, -Math.PI * 0.4, Math.PI * 0.4);
+    ctx.stroke();
+    // small leaves
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI * 0.65 + (i * Math.PI * 0.7) / 8;
+      const lx = medCx + Math.cos(a) * 70;
+      const ly = medCy + Math.sin(a) * 70;
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, 8, 3, a, 0, Math.PI * 2);
+      ctx.fillStyle = GOLD;
+      ctx.fill();
+      const a2 = -Math.PI * 0.35 + (i * Math.PI * 0.7) / 8;
+      const lx2 = medCx + Math.cos(a2) * 70;
+      const ly2 = medCy + Math.sin(a2) * 70;
+      ctx.beginPath();
+      ctx.ellipse(lx2, ly2, 8, 3, a2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // diamond
+    ctx.save();
+    ctx.translate(medCx, medCy - 8);
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.moveTo(0, -20);
+    ctx.lineTo(18, -4);
+    ctx.lineTo(0, 22);
+    ctx.lineTo(-18, -4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // stars
+    ctx.fillStyle = GOLD;
+    ctx.font = "700 16px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("★ ★ ★", medCx, medCy - 36);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = "700 14px system-ui, sans-serif";
+    ctx.fillText("QUALITY &", medCx, medCy + 36);
+    ctx.fillText("TRUST", medCx, medCy + 52);
+    ctx.textAlign = "left";
 
+    // ===== VERIFY ROW (QR, verified, signature) =====
+    const colW = (W - PAD * 2) / 3;
+
+    // QR code (pseudo pattern from hash)
+    const qrSize = 130;
+    const qrX = PAD + 10;
+    const qrY = verifyY + 10;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
+    ctx.fillStyle = INK;
+    const qrCells = 21;
+    const cell = qrSize / qrCells;
+    let seed = hash >>> 0;
+    const rng = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0xffffffff;
+    };
+    for (let y0 = 0; y0 < qrCells; y0++) {
+      for (let x0 = 0; x0 < qrCells; x0++) {
+        if (rng() > 0.5) {
+          ctx.fillRect(qrX + x0 * cell, qrY + y0 * cell, cell + 0.5, cell + 0.5);
+        }
+      }
+    }
+    // finder patterns (3 corners)
+    const finder = (fx: number, fy: number) => {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(fx, fy, cell * 7, cell * 7);
+      ctx.fillStyle = INK;
+      ctx.fillRect(fx, fy, cell * 7, cell * 7);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(fx + cell, fy + cell, cell * 5, cell * 5);
+      ctx.fillStyle = INK;
+      ctx.fillRect(fx + cell * 2, fy + cell * 2, cell * 3, cell * 3);
+    };
+    finder(qrX, qrY);
+    finder(qrX + cell * 14, qrY);
+    finder(qrX, qrY + cell * 14);
+
+    // Verify text (next to QR)
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.fillText("Verify this report", qrX + qrSize + 28, verifyY + 50);
     ctx.fillStyle = MUTED;
-    ctx.font = "italic 20px Georgia, serif";
-    wrapText(
-      ctx,
-      "This report was generated from laboratory purity measurements and is intended for commercial reconciliation purposes.",
-      PAD,
-      footY + 40,
-      W - PAD * 2 - 480,
-      28,
+    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.fillText("Scan the QR code to verify", qrX + qrSize + 28, verifyY + 84);
+    ctx.fillText("the authenticity of this report.", qrX + qrSize + 28, verifyY + 108);
+
+    // Divider
+    ctx.strokeStyle = HAIRLINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD + colW, verifyY + 20);
+    ctx.lineTo(PAD + colW, verifyY + verifyH - 20);
+    ctx.stroke();
+
+    // Middle: verified shield
+    const vx = PAD + colW + 40;
+    // shield icon
+    ctx.fillStyle = GOLD_TINT;
+    ctx.beginPath();
+    ctx.moveTo(vx, verifyY + 30);
+    ctx.lineTo(vx + 60, verifyY + 30);
+    ctx.lineTo(vx + 60, verifyY + 80);
+    ctx.quadraticCurveTo(vx + 30, verifyY + 120, vx, verifyY + 80);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = GOLD_DEEP;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(vx + 14, verifyY + 70);
+    ctx.lineTo(vx + 26, verifyY + 84);
+    ctx.lineTo(vx + 48, verifyY + 56);
+    ctx.stroke();
+
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.fillText("VERIFIED & CERTIFIED", vx + 90, verifyY + 56);
+    ctx.fillStyle = MUTED;
+    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.fillText("This report is generated from", vx + 90, verifyY + 90);
+    ctx.fillText("laboratory purity measurements.", vx + 90, verifyY + 114);
+
+    // Divider 2
+    ctx.strokeStyle = HAIRLINE;
+    ctx.beginPath();
+    ctx.moveTo(PAD + colW * 2, verifyY + 20);
+    ctx.lineTo(PAD + colW * 2, verifyY + verifyH - 20);
+    ctx.stroke();
+
+    // Right: signature
+    const sx = PAD + colW * 2 + 40;
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.fillText("AUTHORIZED SIGNATURE", sx, verifyY + 40);
+    // signature script line
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(sx + 20, verifyY + 88);
+    ctx.bezierCurveTo(sx + 60, verifyY + 60, sx + 100, verifyY + 110, sx + 160, verifyY + 80);
+    ctx.bezierCurveTo(sx + 200, verifyY + 60, sx + 260, verifyY + 100, sx + 300, verifyY + 78);
+    ctx.stroke();
+    ctx.strokeStyle = HAIRLINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx, verifyY + 130);
+    ctx.lineTo(sx + 360, verifyY + 130);
+    ctx.stroke();
+    ctx.fillStyle = MUTED;
+    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.fillText("Quality Assurance Manager", sx, verifyY + 156);
+
+    // ===== DISCLAIMER PILL =====
+    ctx.fillStyle = "#FFFFFF";
+    roundRect(ctx, PAD, disclaimerY, W - PAD * 2, disclaimerH, 14);
+    ctx.fill();
+    ctx.strokeStyle = HAIRLINE;
+    ctx.lineWidth = 1;
+    roundRect(ctx, PAD, disclaimerY, W - PAD * 2, disclaimerH, 14);
+    ctx.stroke();
+    // shield glyph
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.moveTo(PAD + 40, disclaimerY + 30);
+    ctx.lineTo(PAD + 80, disclaimerY + 30);
+    ctx.lineTo(PAD + 80, disclaimerY + 65);
+    ctx.quadraticCurveTo(PAD + 60, disclaimerY + 92, PAD + 40, disclaimerY + 65);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "500 22px system-ui, sans-serif";
+    ctx.fillText(
+      "This report was generated from laboratory purity measurements",
+      PAD + 110,
+      disclaimerY + 50,
+    );
+    ctx.fillText(
+      "and is intended for commercial reconciliation purposes.",
+      PAD + 110,
+      disclaimerY + 80,
     );
 
-    // Signature box
-    ctx.strokeStyle = BORDER;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(W - PAD - 440, footY + 24, 440, 110);
-    ctx.fillStyle = SUBTLE;
+    // ===== BOTTOM CREDITS =====
+    ctx.strokeStyle = HAIRLINE;
+    ctx.beginPath();
+    ctx.moveTo(PAD, bottomY - 10);
+    ctx.lineTo(W - PAD, bottomY - 10);
+    ctx.stroke();
+    // left: generated by
+    ctx.fillStyle = MUTED;
     ctx.font = "500 18px system-ui, sans-serif";
-    ctx.fillText("Authorized Signature", W - PAD - 430, footY + 124);
-    ctx.fillStyle = GOLD;
-    ctx.font = "italic 28px Georgia, serif";
-    ctx.fillText("Ather Bullion", W - PAD - 420, footY + 90);
+    ctx.fillText("Generated by", PAD, bottomY + 18);
+    ctx.fillStyle = GOLD_DEEP;
+    ctx.font = "700 20px system-ui, sans-serif";
+    ctx.fillText("IZIROVA JEWELLERY", PAD + 130, bottomY + 18);
+    ctx.fillStyle = MUTED;
+    ctx.font = "500 16px system-ui, sans-serif";
+    ctx.fillText("Gold & Precious Metals · Generated in Dubai, UAE", PAD, bottomY + 46);
 
-    // Verification id + footer brand
-    ctx.fillStyle = SUBTLE;
-    ctx.font = "500 18px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText(`Verification ID: ${reportId}`, PAD, H - 60);
-    ctx.textAlign = "right";
+    // center: website
+    ctx.textAlign = "center";
     ctx.fillStyle = GOLD;
-    ctx.font = "700 18px system-ui, sans-serif";
-    ctx.fillText("Generated by ATHER (BEFLAH Reports)", W - PAD, H - 60);
+    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.fillText("🌐", W / 2 - 150, bottomY + 22);
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.fillText("www.izirovajewellery.com", W / 2 + 10, bottomY + 22);
+
+    // right: location
+    ctx.textAlign = "right";
+    ctx.fillStyle = CHARCOAL;
+    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.fillText("📍  Dubai, United Arab Emirates", W - PAD, bottomY + 22);
+    ctx.fillStyle = SUBTLE;
+    ctx.font = "500 16px ui-monospace, Menlo, Consolas, monospace";
+    ctx.fillText(`Verification ID: ${reportId}`, W - PAD, bottomY + 50);
     ctx.textAlign = "left";
 
     const blob: Blob | null = await new Promise((resolve) =>
       canvas.toBlob((b) => resolve(b), "image/png"),
     );
     if (!blob) return;
-    const fileName = `${tripName}_${r.name.replace(/\s+/g, "_")}.png`;
+    const fileName = `${reportId}_${r.name.replace(/\s+/g, "_")}.png`;
     const file = new File([blob], fileName, { type: "image/png" });
 
     const nav = navigator as Navigator & {
@@ -1678,8 +2043,8 @@ export function ClientBreakdown({
       try {
         await nav.share({
           files: [file],
-          title: `${r.name} — loss report`,
-          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss (${tripName})`,
+          title: `${r.name} — Gold Purity Report`,
+          text: `${r.name}: ${r.totalLoss.toFixed(2)} g loss · ${reportId}`,
         });
         return;
       } catch {
