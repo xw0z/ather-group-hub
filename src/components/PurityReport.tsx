@@ -150,12 +150,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             gap: 40,
           }}
         >
-          <div style={{ width: 220, textAlign: "center" }}>
-            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block", margin: "0 auto" }} />
-            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifySelf: "center" }}>
+            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
+            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center" }}>
               GOLD &amp; PRECIOUS METALS
             </div>
-            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap" }}>
+            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center" }}>
               TRUST • INTEGRITY • EXCELLENCE
             </div>
           </div>
@@ -181,14 +181,14 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             </div>
           </div>
 
-          <div style={{ width: 220, textAlign: "center" }}>
-            <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block", margin: "0 auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifySelf: "center" }}>
+            <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block" }}>
               <rect width="15" height="30" fill="#ce1126" />
               <rect x="15" width="45" height="10" fill="#00732f" />
               <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
               <rect x="15" y="20" width="45" height="10" fill="#000000" />
             </svg>
-            <div style={{ marginTop: 16, fontSize: 24, color: "#444444", fontWeight: 500, lineHeight: 1.25, whiteSpace: "nowrap" }}>
+            <div style={{ marginTop: 16, fontSize: 24, color: "#444444", fontWeight: 500, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center" }}>
               Dubai,<br />United Arab Emirates
             </div>
           </div>
