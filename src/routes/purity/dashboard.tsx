@@ -1417,7 +1417,7 @@ export function ClientBreakdown({
     const FONT_TITLE = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
     const FONT_DISPLAY = "'DM Serif Display', 'Cormorant Garamond', Georgia, serif";
     const FONT_LUX = "'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
-    const FONT_UI = "'Inter', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif";
+    const FONT_UI = "'Inter', 'Manrope', 'Inter', system-ui, -apple-system, sans-serif";
     const FONT_MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
     // Layout
@@ -1549,7 +1549,7 @@ export function ClientBreakdown({
     ctx.lineWidth = 1;
     ctx.strokeRect(flagX, flagY, flagW, flagH);
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "600 18px system-ui, sans-serif";
+    ctx.font = "600 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("UNITED ARAB EMIRATES", flagX + flagW / 2, flagY + flagH + 28);
     ctx.textAlign = "left";
@@ -1694,11 +1694,11 @@ export function ClientBreakdown({
       c.draw(iconCx, iconCy);
 
       ctx.fillStyle = MUTED;
-      ctx.font = "600 22px system-ui, sans-serif";
+      ctx.font = "600 22px 'Inter', system-ui, -apple-system, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText(c.label, x + 180, cardsY + 80);
       ctx.fillStyle = c.valueColor;
-      ctx.font = "800 58px Georgia, 'Times New Roman', serif";
+      ctx.font = "800 58px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
       ctx.fillText(c.value, x + 180, cardsY + 152);
     });
 
@@ -1708,7 +1708,7 @@ export function ClientBreakdown({
     roundRect(ctx, PAD, tableY, W - PAD * 2, tableHeadH, 8);
     ctx.fill();
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
     const colNum = PAD + 50;
     const colWeight = PAD + 360;
     const colBafleh = PAD + 770;
@@ -1739,7 +1739,7 @@ export function ClientBreakdown({
       ctx.fillRect(PAD, ry + rowH - 1, W - PAD * 2, 1);
 
       ctx.fillStyle = INK;
-      ctx.font = "600 28px system-ui, sans-serif";
+      ctx.font = "600 28px 'Inter', system-ui, -apple-system, sans-serif";
       ctx.textAlign = "left";
       ctx.fillText(String(b.label || i + 1), colNum, ry + rowH / 2 + 10);
 
@@ -1799,10 +1799,10 @@ export function ClientBreakdown({
     // Center text
     ctx.textAlign = "center";
     ctx.fillStyle = MUTED;
-    ctx.font = "600 26px system-ui, sans-serif";
+    ctx.font = "600 26px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("AMOUNT TO COMPENSATE", W / 2, compY + 90);
     ctx.fillStyle = r.totalLoss === 0 ? GREEN : GOLD_DEEP;
-    ctx.font = "800 110px Georgia, 'Times New Roman', serif";
+    ctx.font = "800 110px 'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
     ctx.fillText(`${r.totalLoss.toFixed(2)} g of Pure Gold`, W / 2, compY + 200);
     // mini ornament
     ctx.strokeStyle = GOLD;
@@ -1861,11 +1861,11 @@ export function ClientBreakdown({
     ctx.restore();
     // stars
     ctx.fillStyle = GOLD;
-    ctx.font = "700 16px system-ui, sans-serif";
+    ctx.font = "700 16px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("★ ★ ★", medCx, medCy - 36);
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 14px system-ui, sans-serif";
+    ctx.font = "700 14px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("QUALITY &", medCx, medCy + 36);
     ctx.fillText("TRUST", medCx, medCy + 52);
     ctx.textAlign = "left";
@@ -1911,10 +1911,10 @@ export function ClientBreakdown({
 
     // Verify text (next to QR)
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 24px system-ui, sans-serif";
+    ctx.font = "700 24px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Verify this report", qrX + qrSize + 28, verifyY + 50);
     ctx.fillStyle = MUTED;
-    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Scan the QR code to verify", qrX + qrSize + 28, verifyY + 84);
     ctx.fillText("the authenticity of this report.", qrX + qrSize + 28, verifyY + 108);
 
@@ -1949,10 +1949,10 @@ export function ClientBreakdown({
     ctx.stroke();
 
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("VERIFIED & CERTIFIED", vx + 90, verifyY + 56);
     ctx.fillStyle = MUTED;
-    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.font = "400 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("This report is generated from", vx + 90, verifyY + 90);
     ctx.fillText("laboratory purity measurements.", vx + 90, verifyY + 114);
 
@@ -1966,7 +1966,7 @@ export function ClientBreakdown({
     // Right: signature
     const sx = PAD + colW * 2 + 40;
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("AUTHORIZED SIGNATURE", sx, verifyY + 40);
     // signature script line
     ctx.strokeStyle = INK;
@@ -1983,7 +1983,7 @@ export function ClientBreakdown({
     ctx.lineTo(sx + 360, verifyY + 130);
     ctx.stroke();
     ctx.fillStyle = MUTED;
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Quality Assurance Manager", sx, verifyY + 156);
 
     // ===== DISCLAIMER PILL =====
@@ -2004,7 +2004,7 @@ export function ClientBreakdown({
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 22px system-ui, sans-serif";
+    ctx.font = "500 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText(
       "This report was generated from laboratory purity measurements",
       PAD + 110,
@@ -2024,20 +2024,20 @@ export function ClientBreakdown({
     ctx.stroke();
     // left: generated by Ather
     ctx.fillStyle = MUTED;
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("Generated by", PAD, bottomY + 18);
     ctx.fillStyle = GOLD_DEEP;
-    ctx.font = "700 20px system-ui, sans-serif";
+    ctx.font = "700 20px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("ATHER", PAD + 130, bottomY + 18);
     ctx.fillStyle = MUTED;
-    ctx.font = "500 16px system-ui, sans-serif";
+    ctx.font = "500 16px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Gold & Precious Metals · Dubai, United Arab Emirates", PAD, bottomY + 46);
 
     // right: location + verification ID
     ctx.textAlign = "right";
     ctx.fillStyle = CHARCOAL;
-    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.font = "500 20px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("Dubai, United Arab Emirates", W - PAD, bottomY + 22);
     ctx.fillStyle = SUBTLE;
     ctx.font = "500 16px ui-monospace, Menlo, Consolas, monospace";
