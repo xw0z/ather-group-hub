@@ -153,7 +153,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ width: 220, textAlign: "center" }}>
             <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block", margin: "0 auto" }} />
             <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap" }}>
-              GOLD &amp;<br />PRECIOUS METALS
+              GOLD &amp; PRECIOUS METALS
             </div>
             <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap" }}>
               TRUST • INTEGRITY • EXCELLENCE
@@ -189,7 +189,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               <rect x="15" y="20" width="45" height="10" fill="#000000" />
             </svg>
             <div style={{ marginTop: 16, fontSize: 24, color: "#444444", fontWeight: 500, lineHeight: 1.25, whiteSpace: "nowrap" }}>
-              Dubai,<br />United Arab<br />Emirates
+              Dubai,<br />United Arab Emirates
             </div>
           </div>
         </div>
