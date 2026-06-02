@@ -1,7 +1,11 @@
 import { useEffect, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import atherLogoAsset from "@/assets/ather-logo.asset.json";
-import goldBarsImg from "@/assets/gold-bars-stack.png";
+import goldBarsImg from "@/assets/report-bars.png";
+import badgeImg from "@/assets/report-badge.png";
+import scaleImg from "@/assets/report-scale.png";
+import lossImg from "@/assets/report-loss.png";
+
 
 export type PurityReportBar = {
   index: number;
@@ -223,15 +227,17 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
       {/* SUMMARY CARDS */}
       <section style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 48, marginTop: 110 }}>
-        <SummaryCard icon={<BarsIcon />} label="BARS" value={String(data.barsCount)} />
-        <SummaryCard icon={<ScaleIcon />} label="TOTAL WEIGHT (g)" value={data.totalWeight} />
+        <SummaryCard icon={<AssetIcon src={goldBarsImg} alt="Bars" />} iconBg="#FFF7DF" label="BARS" value={String(data.barsCount)} />
+        <SummaryCard icon={<AssetIcon src={scaleImg} alt="Scale" />} iconBg="#FFF7DF" label="TOTAL WEIGHT (g)" value={data.totalWeight} />
         <SummaryCard
-          icon={<TrendDownIcon />}
+          icon={<AssetIcon src={lossImg} alt="Loss" />}
+          iconBg="#FFF0F0"
           label="TOTAL LOSS (g)"
           value={data.totalLoss}
           variant={data.totalLossClass}
         />
       </section>
+
 
       {/* TABLE */}
       <table
@@ -306,7 +312,19 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         }}
       >
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <GoldBarsStack width={420} />
+          <img
+            src={goldBarsImg}
+            alt="Gold bullion bars"
+            width={510}
+            crossOrigin="anonymous"
+            style={{
+              width: 510,
+              height: "auto",
+              display: "block",
+              objectFit: "contain",
+              filter: "drop-shadow(0 18px 22px rgba(120,85,10,0.35))",
+            }}
+          />
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 38, fontWeight: 700, color: "#555", letterSpacing: 4 }}>
@@ -331,8 +349,21 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <QualitySeal />
+          <img
+            src={badgeImg}
+            alt="Quality & Trust"
+            width={360}
+            crossOrigin="anonymous"
+            style={{
+              width: 360,
+              height: "auto",
+              display: "block",
+              objectFit: "contain",
+              filter: "drop-shadow(0 14px 18px rgba(120,85,10,0.30))",
+            }}
+          />
         </div>
+
       </section>
 
       {/* VERIFICATION */}
@@ -470,7 +501,7 @@ function MetaRow({
 }
 
 const ICON_GOLD = "#c9a227";
-const ICON_RED = "#d33c2d";
+
 
 /* Lucide: calendar-days */
 function CalendarIcon() {
@@ -503,151 +534,8 @@ function ShieldIcon() {
   );
 }
 
-/* Gold bars — premium 3D stack */
-function BarsIcon() {
-  return (
-    <svg viewBox="0 0 120 120" width={110} height={110}>
-      <defs>
-        <linearGradient id="gbarTop" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff1ad" />
-          <stop offset="100%" stopColor="#e0bf4a" />
-        </linearGradient>
-        <linearGradient id="gbarFace" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbe892" />
-          <stop offset="50%" stopColor="#d4ad28" />
-          <stop offset="100%" stopColor="#8a6c14" />
-        </linearGradient>
-      </defs>
-      {/* back row left */}
-      <g>
-        <polygon points="14,58 56,58 64,50 22,50" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
-        <rect x="14" y="58" width="42" height="20" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
-        <polygon points="56,58 56,78 64,70 64,50" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
-      </g>
-      {/* back row right */}
-      <g>
-        <polygon points="60,58 102,58 110,50 68,50" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
-        <rect x="60" y="58" width="42" height="20" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
-        <polygon points="102,58 102,78 110,70 110,50" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
-      </g>
-      {/* front bar */}
-      <g>
-        <polygon points="32,82 90,82 100,72 42,72" fill="url(#gbarTop)" stroke="#7a5f15" strokeWidth="0.7" />
-        <rect x="32" y="82" width="58" height="24" fill="url(#gbarFace)" stroke="#7a5f15" strokeWidth="0.7" />
-        <polygon points="90,82 90,106 100,96 100,72" fill="#9a7b1f" stroke="#7a5f15" strokeWidth="0.7" />
-        <text x="61" y="98" textAnchor="middle" fill="#6a4f10" fontSize="8" fontWeight="700" fontFamily="serif">999.9</text>
-      </g>
-    </svg>
-  );
-}
 
-/* Lucide: scale (gold) */
-function ScaleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width={110} height={110} fill="none" stroke={ICON_GOLD} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
-      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
-      <path d="M7 21h10" />
-      <path d="M12 3v18" />
-      <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
-    </svg>
-  );
-}
 
-/* Lucide: chart-no-axes-combined (red) */
-function TrendDownIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width={110} height={110} fill="none" stroke={ICON_RED} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 16v5" />
-      <path d="M16 14v7" />
-      <path d="M20 10v11" />
-      <path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15" />
-      <path d="M4 18v3" />
-      <path d="M8 14v7" />
-    </svg>
-  );
-}
-
-/* Premium realistic gold bars stack — photographic bullion image */
-function GoldBarsStack({ width }: { width: number }) {
-  return (
-    <img
-      src={goldBarsImg}
-      alt="Gold bullion bars"
-      width={width}
-      height={width}
-      crossOrigin="anonymous"
-      style={{
-        width,
-        height: "auto",
-        display: "block",
-        objectFit: "contain",
-        filter: "drop-shadow(0 18px 22px rgba(120,85,10,0.35))",
-      }}
-    />
-  );
-}
-
-/* Refinery certification seal — double ring, laurels, stars, QUALITY & TRUST */
-function QualitySeal() {
-  const size = 345; // ~115px at 3x scale
-  const c = size / 2;
-  return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-      <defs>
-        <radialGradient id="sealBg2" cx="0.5" cy="0.4" r="0.7">
-          <stop offset="0%" stopColor="#fff7d6" />
-          <stop offset="55%" stopColor="#ecc960" />
-          <stop offset="100%" stopColor="#8a6c14" />
-        </radialGradient>
-        <linearGradient id="sealRing2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbe88f" />
-          <stop offset="50%" stopColor="#c9a227" />
-          <stop offset="100%" stopColor="#7a5f15" />
-        </linearGradient>
-        <filter id="sealShadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="4" stdDeviation="5" floodOpacity="0.28" />
-        </filter>
-      </defs>
-
-      {/* drop shadow + outer ring */}
-      <g filter="url(#sealShadow)">
-        <circle cx={c} cy={c} r={c - 12} fill="url(#sealRing2)" stroke="#6a4f10" strokeWidth="2" />
-      </g>
-      {/* inner ring (creates the double-ring look) */}
-      <circle cx={c} cy={c} r={c - 28} fill="none" stroke="#7a5f15" strokeWidth="1.5" />
-      {/* inner medallion */}
-      <circle cx={c} cy={c} r={c - 40} fill="url(#sealBg2)" stroke="#7a5f15" strokeWidth="1.5" />
-
-      {/* small decorative dots around inner ring */}
-      {Array.from({ length: 24 }).map((_, i) => {
-        const a = (i * 15 * Math.PI) / 180;
-        const r = c - 34;
-        const x = c + Math.cos(a) * r;
-        const y = c + Math.sin(a) * r;
-        return <circle key={i} cx={x} cy={y} r={1.6} fill="#7a5f15" />;
-      })}
-
-      {/* 3 stars at the top */}
-      <g fill="#7a5f15">
-        <text x={c - 38} y={c - 60} textAnchor="middle" fontSize="28" fontFamily="serif">★</text>
-        <text x={c} y={c - 64} textAnchor="middle" fontSize="34" fontFamily="serif">★</text>
-        <text x={c + 38} y={c - 60} textAnchor="middle" fontSize="28" fontFamily="serif">★</text>
-      </g>
-
-      {/* center text */}
-      <text x={c} y={c - 6} textAnchor="middle" fill="#1c2431" fontSize="38" fontWeight="800" fontFamily="serif" letterSpacing="3">QUALITY</text>
-      <text x={c} y={c + 26} textAnchor="middle" fill="#7a5f15" fontSize="26" fontStyle="italic" fontFamily="serif">&amp;</text>
-      <text x={c} y={c + 60} textAnchor="middle" fill="#1c2431" fontSize="38" fontWeight="800" fontFamily="serif" letterSpacing="3">TRUST</text>
-
-      {/* small laurel sprigs left/right at bottom */}
-      <g stroke="#7a5f15" strokeWidth="1.2" fill="none" opacity="0.85">
-        <path d={`M ${c - 60} ${c + 90} Q ${c - 40} ${c + 110} ${c - 20} ${c + 95}`} />
-        <path d={`M ${c + 60} ${c + 90} Q ${c + 40} ${c + 110} ${c + 20} ${c + 95}`} />
-      </g>
-    </svg>
-  );
-}
 
 const cellStyle: React.CSSProperties = {
   height: 110,
@@ -674,13 +562,28 @@ const vText: React.CSSProperties = {
   margin: 0,
 };
 
+function AssetIcon({ src, alt, size = 180 }: { src: string; alt: string; size?: number }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      crossOrigin="anonymous"
+      style={{ width: size, height: size, objectFit: "contain", display: "block" }}
+    />
+  );
+}
+
 function SummaryCard({
   icon,
+  iconBg,
   label,
   value,
   variant,
 }: {
   icon: ReactElement;
+  iconBg: string;
   label: string;
   value: string;
   variant?: "red" | "green" | "";
@@ -691,8 +594,8 @@ function SummaryCard({
         minHeight: 390,
         background: "#ffffff",
         border: "2px solid #eadfbd",
-        borderRadius: 32,
-        boxShadow: "0 25px 70px rgba(184,138,24,0.12)",
+        borderRadius: 54,
+        boxShadow: "0 25px 70px rgba(0,0,0,0.08)",
         padding: 50,
         boxSizing: "border-box",
         display: "flex",
@@ -703,11 +606,10 @@ function SummaryCard({
       <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <div
           style={{
-            width: 130,
-            height: 130,
-            borderRadius: 24,
-            background: "linear-gradient(135deg, #fff7df 0%, #f5e6b0 100%)",
-            border: "2px solid #e2c970",
+            width: 240,
+            height: 240,
+            borderRadius: "50%",
+            background: iconBg,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -733,6 +635,7 @@ function SummaryCard({
     </div>
   );
 }
+
 
 /* ---------- Headless renderer: mount → snapshot → unmount ---------- */
 
