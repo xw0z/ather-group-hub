@@ -114,7 +114,7 @@ function PseudoQR({ seed, size = 180 }: { seed: string; size?: number }) {
     }
   }
   return (
-    <svg viewBox={`0 0 ${N} ${N}`} style={{ width: size, height: size, display: "block" }}>
+    <svg viewBox={`0 0 ${N} ${N}`} width={size} height={size} preserveAspectRatio="xMidYMid meet" style={{ width: size, height: size, minWidth: size, minHeight: size, aspectRatio: "1 / 1", display: "block", flexShrink: 0 }}>
       <rect width={N} height={N} fill="#fff" />
       {cells}
     </svg>
