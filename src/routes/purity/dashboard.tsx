@@ -176,6 +176,48 @@ export function wrapText(
   if (line) ctx.fillText(line, x, cy);
 }
 
+// Lazily inject luxury Google Fonts used by the canvas report and wait until
+// they are ready so the first render isn't a fallback font.
+let _reportFontsLoaded: Promise<void> | null = null;
+export function ensureReportFonts(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  if (_reportFontsLoaded) return _reportFontsLoaded;
+  _reportFontsLoaded = (async () => {
+    const id = "ather-report-fonts";
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.href =
+        "https://fonts.googleapis.com/css2" +
+        "?family=Cinzel:wght@600;700;800" +
+        "&family=Cormorant+Garamond:wght@500;600;700&family=DM+Serif+Display" +
+        "&family=Inter:wght@400;500;600;700;800&display=swap";
+      document.head.appendChild(link);
+    }
+    const fontsToLoad = [
+      "700 64px 'Cinzel'",
+      "400 220px 'DM Serif Display'",
+      "700 110px 'Cormorant Garamond'",
+      "600 24px 'Inter'",
+      "700 28px 'Inter'",
+    ];
+    try {
+      // @ts-expect-error – FontFaceSet is well-supported in modern browsers
+      if (document.fonts && document.fonts.load) {
+        await Promise.all(fontsToLoad.map((f) => document.fonts.load(f)));
+        // @ts-expect-error – ready is available alongside load
+        await document.fonts.ready;
+      }
+    } catch {
+      /* non-fatal – fall back to system fonts */
+    }
+  })();
+  return _reportFontsLoaded;
+}
+
+
+
 
 function PurityDashboard() {
   const navigate = useNavigate();
