@@ -315,10 +315,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <img
             src={goldBarsImg}
             alt="Gold bullion bars"
-            width={510}
+            width={561}
             crossOrigin="anonymous"
             style={{
-              width: 510,
+              width: 561,
               height: "auto",
               display: "block",
               objectFit: "contain",
