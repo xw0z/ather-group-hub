@@ -333,7 +333,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"Cormorant Garamond", serif',
-              fontSize: 210,
+              fontSize: 231,
               color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
