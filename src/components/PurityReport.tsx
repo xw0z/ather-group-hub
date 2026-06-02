@@ -680,13 +680,28 @@ const vText: React.CSSProperties = {
   margin: 0,
 };
 
+function AssetIcon({ src, alt, size = 180 }: { src: string; alt: string; size?: number }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      crossOrigin="anonymous"
+      style={{ width: size, height: size, objectFit: "contain", display: "block" }}
+    />
+  );
+}
+
 function SummaryCard({
   icon,
+  iconBg,
   label,
   value,
   variant,
 }: {
   icon: ReactElement;
+  iconBg: string;
   label: string;
   value: string;
   variant?: "red" | "green" | "";
@@ -697,8 +712,8 @@ function SummaryCard({
         minHeight: 390,
         background: "#ffffff",
         border: "2px solid #eadfbd",
-        borderRadius: 32,
-        boxShadow: "0 25px 70px rgba(184,138,24,0.12)",
+        borderRadius: 54,
+        boxShadow: "0 25px 70px rgba(0,0,0,0.08)",
         padding: 50,
         boxSizing: "border-box",
         display: "flex",
@@ -709,11 +724,10 @@ function SummaryCard({
       <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <div
           style={{
-            width: 130,
-            height: 130,
-            borderRadius: 24,
-            background: "linear-gradient(135deg, #fff7df 0%, #f5e6b0 100%)",
-            border: "2px solid #e2c970",
+            width: 240,
+            height: 240,
+            borderRadius: "50%",
+            background: iconBg,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -739,6 +753,7 @@ function SummaryCard({
     </div>
   );
 }
+
 
 /* ---------- Headless renderer: mount → snapshot → unmount ---------- */
 
