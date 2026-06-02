@@ -173,6 +173,8 @@ export function wrapText(
     }
   }
   if (line) ctx.fillText(line, x, cy);
+}
+
 
 function PurityDashboard() {
   const navigate = useNavigate();
