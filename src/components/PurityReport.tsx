@@ -204,15 +204,16 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"DM Serif Display", serif',
-              fontSize: 210,
+              fontSize: 204,
               lineHeight: 0.95,
               marginTop: 18,
-              color: "#1c2431",
+              color: "#1C2431",
               fontWeight: 400,
             }}
           >
             {data.clientCode}
           </div>
+
           <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
             {data.tripCode} • {data.depositCode}
           </div>
