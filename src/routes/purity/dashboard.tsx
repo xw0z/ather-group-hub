@@ -151,6 +151,29 @@ export function roundRect(
   ctx.closePath();
 }
 
+export function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+) {
+  const words = text.split(/\s+/);
+  let line = "";
+  let cy = y;
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, cy);
+      line = w;
+      cy += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, x, cy);
+
 function PurityDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
