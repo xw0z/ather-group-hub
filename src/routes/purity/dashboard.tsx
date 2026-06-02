@@ -1383,6 +1383,9 @@ export function ClientBreakdown({
     const RED = "#C0392B";
     const GREEN = "#047857";
 
+    // Load luxury fonts (Cinzel, DM Serif Display, Cormorant Garamond, Inter)
+    await ensureReportFonts();
+
     // Derived identifiers
     const dep = trip.departure_date || "";
     const depCompact = dep.replace(/-/g, "");
@@ -1392,8 +1395,11 @@ export function ClientBreakdown({
         0,
       ),
     );
-    const bigNumber = String(3000 + (hash % 7000)); // 4-digit prominent number
-    const reportId = `RP-${dep || "0000-00-00"}-${bigNumber}`;
+    // CLIENT CODE — the prominent number is the supplier's code (stored in client.name).
+    // The Report ID is a separate identifier and must never replace the client code.
+    const clientCode = (r.name || "—").toString();
+    const reportSerial = String(hash % 10000).padStart(4, "0");
+    const reportId = `RP-${depCompact || "00000000"}-${reportSerial}`;
     const now = new Date();
     const pad2 = (n: number) => String(n).padStart(2, "0");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1406,6 +1412,13 @@ export function ClientBreakdown({
     const ampm = hh >= 12 ? "PM" : "AM";
     hh = hh % 12 || 12;
     const reportTime = `${hh}:${mm} ${ampm} (GST)`;
+
+    // Font shorthands
+    const FONT_TITLE = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
+    const FONT_DISPLAY = "'DM Serif Display', 'Cormorant Garamond', Georgia, serif";
+    const FONT_LUX = "'Cormorant Garamond', 'DM Serif Display', Georgia, serif";
+    const FONT_UI = "'Inter', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif";
+    const FONT_MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
     // Layout
     const topBandH = 380;
