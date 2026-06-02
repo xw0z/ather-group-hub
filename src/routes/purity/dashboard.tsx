@@ -2414,14 +2414,10 @@ export function ClientBreakdown({
     ctx.fillStyle = CHARCOAL;
     ctx.font = "700 22px 'Inter', system-ui, -apple-system, sans-serif";
     ctx.fillText("AUTHORIZED SIGNATURE", sx, verifyY + 40);
-    // signature script line
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(sx + 20, verifyY + 88);
-    ctx.bezierCurveTo(sx + 60, verifyY + 60, sx + 100, verifyY + 110, sx + 160, verifyY + 80);
-    ctx.bezierCurveTo(sx + 200, verifyY + 60, sx + 260, verifyY + 100, sx + 300, verifyY + 78);
-    ctx.stroke();
+    // signature in Great Vibes script
+    ctx.fillStyle = INK;
+    ctx.font = "400 64px 'Great Vibes', 'Brush Script MT', cursive";
+    ctx.fillText("Ather Quality", sx + 10, verifyY + 100);
     ctx.strokeStyle = HAIRLINE;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -2430,7 +2426,7 @@ export function ClientBreakdown({
     ctx.stroke();
     ctx.fillStyle = MUTED;
     ctx.font = "500 18px 'Inter', system-ui, -apple-system, sans-serif";
-    ctx.fillText("Quality Assurance Manager", sx, verifyY + 156);
+    ctx.fillText("Authorized by Ather Quality Department", sx, verifyY + 156);
 
     // ===== DISCLAIMER PILL =====
     ctx.fillStyle = "#FFFFFF";
