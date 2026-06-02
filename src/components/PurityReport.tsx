@@ -261,15 +261,16 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               <th
                 key={h}
                 style={{
-                  background: "linear-gradient(180deg, #d4ad28 0%, #b8901a 100%)",
+                  background: "#C79A19",
                   color: "white",
                   height: 120,
                   fontSize: 36,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   letterSpacing: 1.5,
                   textAlign: "center",
                   borderBottom: "3px solid #9a7b1f",
                 }}
+
               >
                 {h}
               </th>
