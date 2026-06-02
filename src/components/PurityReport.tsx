@@ -336,8 +336,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div
             style={{
               fontFamily: '"Cormorant Garamond", serif',
-              fontSize: 216,
-              color: "#b88a18",
+              fontSize: 210,
+              color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
@@ -345,8 +345,9 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             }}
           >
             {data.totalLoss}
-            <span style={{ fontSize: 90, marginLeft: 18, color: "#9a7b1f" }}>g</span>
+            <span style={{ fontSize: 90, marginLeft: 18, color: "#B88A18" }}>g</span>
           </div>
+
           <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic" }}>
             of Pure Gold
           </div>
