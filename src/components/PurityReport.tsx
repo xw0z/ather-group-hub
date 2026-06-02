@@ -224,8 +224,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         </div>
       </section>
 
-      {/* SUMMARY CARDS */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 48, marginTop: 110 }}>
+      {/* SUMMARY CARDS — strict equal grid, icon/label/value centered */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 48, marginTop: 110 }}>
         <SummaryCard icon={<AssetIcon src={goldBarsImg} alt="Bars" />} iconBg="#FFF7DF" label="BARS" value={String(data.barsCount)} />
         <SummaryCard icon={<AssetIcon src={scaleImg} alt="Scale" />} iconBg="#FFF7DF" label="TOTAL WEIGHT (g)" value={data.totalWeight} />
         <SummaryCard
