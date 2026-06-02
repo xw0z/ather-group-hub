@@ -920,7 +920,7 @@ export function TripHeaderEditor({
           type="date"
           value={arrival}
           onChange={(e) => setArrival(e.target.value)}
-          className="w-full h-9 block"
+          className="w-full h-9 min-h-9 appearance-none leading-none"
         />
       </div>
       <div className="flex-1 min-w-0">
