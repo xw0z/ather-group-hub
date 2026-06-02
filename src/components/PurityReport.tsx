@@ -139,18 +139,18 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         position: "relative",
       }}
     >
-      {/* HEADER */}
+      {/* HEADER — 20% / 60% / 20% */}
       <header
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 2fr 1fr",
-          alignItems: "start",
+          gridTemplateColumns: "20% 60% 20%",
+          alignItems: "center",
           gap: 40,
         }}
       >
         {/* Left: brand, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 245, height: "auto" }} />
+          <img src={atherLogoAsset.url} alt="Ather" style={{ width: 240, height: "auto" }} />
           <div style={{ marginTop: 24, fontSize: 30, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
             GOLD &amp; PRECIOUS METALS
           </div>
@@ -159,15 +159,15 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           </div>
         </div>
 
-        {/* Center title */}
-        <div style={{ textAlign: "center" }}>
+        {/* Center title — single line, horizontally centered */}
+        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: 140,
+              fontSize: 144,
               letterSpacing: 6,
               color: "#B88A18",
-              margin: "10px 0 18px",
+              margin: "10px 0 22px",
               fontWeight: 700,
               whiteSpace: "nowrap",
             }}
@@ -175,21 +175,21 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             GOLD PURITY REPORT
           </h1>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, color: "#C79A19", fontSize: 30 }}>
-            <span style={{ width: 120, height: 2, background: "#C79A19" }} />
+            <span style={{ width: 160, height: 1, background: "#C79A19" }} />
             ◆
-            <span style={{ width: 120, height: 2, background: "#C79A19" }} />
+            <span style={{ width: 160, height: 1, background: "#C79A19" }} />
           </div>
         </div>
 
         {/* Right: flag, centered */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 245, height: 165, display: "block" }}>
+          <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 255, height: 170, display: "block" }}>
             <rect width="15" height="30" fill="#ce1126" />
             <rect x="15" width="45" height="10" fill="#00732f" />
             <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
             <rect x="15" y="20" width="45" height="10" fill="#000000" />
           </svg>
-          <div style={{ marginTop: 20, fontSize: 36, color: "#444444", fontWeight: 500, textAlign: "center" }}>
+          <div style={{ marginTop: 20, fontSize: 39, color: "#444444", fontWeight: 500, textAlign: "center" }}>
             Dubai, United Arab Emirates
           </div>
         </div>
