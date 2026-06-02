@@ -312,7 +312,19 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         }}
       >
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <GoldBarsStack width={420} />
+          <img
+            src={goldBarsImg}
+            alt="Gold bullion bars"
+            width={510}
+            crossOrigin="anonymous"
+            style={{
+              width: 510,
+              height: "auto",
+              display: "block",
+              objectFit: "contain",
+              filter: "drop-shadow(0 18px 22px rgba(120,85,10,0.35))",
+            }}
+          />
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 38, fontWeight: 700, color: "#555", letterSpacing: 4 }}>
@@ -337,8 +349,21 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <QualitySeal />
+          <img
+            src={badgeImg}
+            alt="Quality & Trust"
+            width={360}
+            crossOrigin="anonymous"
+            style={{
+              width: 360,
+              height: "auto",
+              display: "block",
+              objectFit: "contain",
+              filter: "drop-shadow(0 14px 18px rgba(120,85,10,0.30))",
+            }}
+          />
         </div>
+
       </section>
 
       {/* VERIFICATION */}
