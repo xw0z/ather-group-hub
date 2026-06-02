@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import atherLogoAsset from "@/assets/ather-logo.asset.json";
 
@@ -80,7 +80,7 @@ function PseudoQR({ seed, size = 180 }: { seed: string; size?: number }) {
     const v = Math.sin(h + i * 12.9898) * 43758.5453;
     return v - Math.floor(v);
   };
-  const cells: JSX.Element[] = [];
+  const cells: ReactElement[] = [];
   const isFinder = (r: number, c: number) => {
     const inBox = (r0: number, c0: number) =>
       r >= r0 && r < r0 + 7 && c >= c0 && c < c0 + 7;
