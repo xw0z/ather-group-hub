@@ -145,17 +145,17 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "172px 1fr 172px",
+            gridTemplateColumns: "220px 1fr 220px",
             alignItems: "center",
             gap: 40,
           }}
         >
-          <div style={{ width: 172, textAlign: "center" }}>
-            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
-            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1 }}>
-              GOLD &amp; PRECIOUS METALS
+          <div style={{ width: 220, textAlign: "center" }}>
+            <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block", margin: "0 auto" }} />
+            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap" }}>
+              GOLD &amp;<br />PRECIOUS METALS
             </div>
-            <div style={{ marginTop: 12, fontSize: 16, letterSpacing: 3, color: "#9a7b1f", fontWeight: 600 }}>
+            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap" }}>
               TRUST • INTEGRITY • EXCELLENCE
             </div>
           </div>
@@ -181,15 +181,15 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             </div>
           </div>
 
-          <div style={{ width: 172, textAlign: "center" }}>
-            <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block" }}>
+          <div style={{ width: 220, textAlign: "center" }}>
+            <svg viewBox="0 0 60 30" preserveAspectRatio="none" style={{ width: 172, height: 115, display: "block", margin: "0 auto" }}>
               <rect width="15" height="30" fill="#ce1126" />
               <rect x="15" width="45" height="10" fill="#00732f" />
               <rect x="15" y="10" width="45" height="10" fill="#ffffff" />
               <rect x="15" y="20" width="45" height="10" fill="#000000" />
             </svg>
-            <div style={{ marginTop: 16, fontSize: 27, color: "#444444", fontWeight: 500 }}>
-              Dubai, United Arab Emirates
+            <div style={{ marginTop: 16, fontSize: 24, color: "#444444", fontWeight: 500, lineHeight: 1.25, whiteSpace: "nowrap" }}>
+              Dubai,<br />United Arab<br />Emirates
             </div>
           </div>
         </div>
@@ -667,7 +667,7 @@ export async function renderPurityReportToCanvas(
   const target = host.firstElementChild as HTMLElement;
   const { default: html2canvas } = await import("html2canvas-pro");
   const canvas = await html2canvas(target, {
-    scale: opts.scale ?? 4,
+    scale: opts.scale ?? 6,
     useCORS: true,
     backgroundColor: "#fffdf8",
     logging: false,
