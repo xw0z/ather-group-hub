@@ -132,7 +132,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         padding: 110,
         background: "linear-gradient(180deg, #fffdf8 0%, #f7f2e8 100%)",
         color: "#1c2431",
-        border: "6px solid #c9a227",
+        border: "6px solid #C79A19",
         borderRadius: 36,
         boxSizing: "border-box",
         fontFamily: "Inter, system-ui, sans-serif",
@@ -303,7 +303,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         style={{
           marginTop: 100,
           minHeight: 380,
-          border: "4px solid #c9a227",
+          border: "4px solid #C79A19",
           borderRadius: 30,
           background: "linear-gradient(135deg, #fffdf8 0%, #faf1d6 100%)",
           display: "grid",
@@ -377,7 +377,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           gridTemplateColumns: "1fr 1fr 1fr",
           gap: 60,
           marginTop: 90,
-          borderTop: "3px solid #c9a227",
+          borderTop: "3px solid #C79A19",
           paddingTop: 60,
         }}
       >
@@ -434,7 +434,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       </div>
 
       {/* FOOTER */}
-      <div style={{ marginTop: 70, height: 2, background: "linear-gradient(90deg, transparent, #c9a227, transparent)" }} />
+      <div style={{ marginTop: 70, height: 2, background: "linear-gradient(90deg, transparent, #C79A19, transparent)" }} />
       <footer
         style={{
           marginTop: 35,
@@ -504,7 +504,7 @@ function MetaRow({
   );
 }
 
-const ICON_GOLD = "#c9a227";
+const ICON_GOLD = "#C79A19";
 
 
 /* Lucide: calendar-days */
