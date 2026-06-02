@@ -196,8 +196,8 @@ export function PurityReport({ data }: { data: PurityReportData }) {
 
       </header>
 
-      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right) */}
-      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 80, alignItems: "start" }}>
+      {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
+      <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
         <div>
           <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
             CLIENT CODE
@@ -214,14 +214,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           >
             {data.clientCode}
           </div>
-
-          <div style={{ fontSize: 40, color: "#555", marginTop: 24, letterSpacing: 1 }}>
-            {data.tripCode} • {data.depositCode}
-          </div>
         </div>
 
-        {/* Right: Report meta under flag */}
-        <div style={{ display: "grid", gap: 36, paddingTop: 20 }}>
+        {/* Right: Report meta aligned to right edge under flag */}
+        <div style={{ display: "grid", gap: 36, paddingTop: 20, justifySelf: "end" }}>
           <MetaRow icon={<CalendarIcon />} label="Report Date" value={data.reportDate} />
           <MetaRow icon={<ClockIcon />} label="Report Time (GST)" value={data.reportTime} />
           <MetaRow icon={<ShieldIcon />} label="Report ID" value={data.reportId} mono />
