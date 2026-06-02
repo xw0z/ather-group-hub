@@ -1420,8 +1420,8 @@ export function ClientBreakdown({
     const GOLD: [number, number, number] = [201, 162, 39];
     const GOLD_DEEP: [number, number, number] = [184, 145, 30];
     const GOLD_SOFT: [number, number, number] = [232, 210, 122];
-    const CREAM: [number, number, number] = [255, 252, 244];
-    const CREAM_ALT: [number, number, number] = [250, 244, 226];
+    const CREAM: [number, number, number] = [249, 247, 241];
+    const CREAM_ALT: [number, number, number] = [247, 243, 234];
     const INK: [number, number, number] = [17, 24, 39];
     const CHARCOAL: [number, number, number] = [31, 41, 55];
     const MUTED: [number, number, number] = [107, 114, 128];
