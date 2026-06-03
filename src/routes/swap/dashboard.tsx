@@ -1683,33 +1683,6 @@ function MarginLogTab() {
     });
   }, [enriched, filter, search, clientById]);
 
-  async function share(r: MarginHistoryRow) {
-    setSharingId(r.id);
-    setShareErr(null);
-    try {
-      const c = clientById.get(r.client_id);
-      if (!c) throw new Error("Client not found.");
-      const live = await getLiveXauPrice();
-      const xau =
-        live && live.price > 0 ? live.price : Number(c.xauusd_price ?? 0);
-      if (!xau) throw new Error("No XAU price available.");
-      await shareClientMarginReport(
-        {
-          code: c.code,
-          name: c.notes ?? null,
-          usd_balance: Number(c.usd_balance),
-          gold_kg: Number(c.gold_kg ?? 0),
-          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
-          position_type: c.position_type,
-        },
-        xau,
-      );
-    } catch (err) {
-      setShareErr(err instanceof Error ? err.message : "Failed to share.");
-    } finally {
-      setSharingId(null);
-    }
-  }
 
   const filters: { key: LogFilter; label: string }[] = [
     { key: "all", label: "All Changes" },
