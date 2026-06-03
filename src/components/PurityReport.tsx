@@ -359,7 +359,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
-              letterSpacing: 1,
+              letterSpacing: 0,
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -654,7 +654,7 @@ function SummaryCard({
           fontWeight: 700,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
           fontFamily: "'Inter', system-ui, sans-serif",
-          letterSpacing: 1,
+          letterSpacing: 0,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         }}
