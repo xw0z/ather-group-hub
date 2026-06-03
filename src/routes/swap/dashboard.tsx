@@ -1001,27 +1001,35 @@ function MarginDetails({
   marginPct: number;
   margin: ReturnType<typeof computeMargin>;
 }) {
-  const isEnough = margin.status === "enough";
+  const tier = margin.tier;
+  const tierBorder =
+    tier === "safe"
+      ? "border-green-500/40 bg-green-500/5"
+      : tier === "warning"
+        ? "border-amber-500/40 bg-amber-500/5"
+        : "border-red-500/40 bg-red-500/5";
+  const tierBadge =
+    tier === "safe"
+      ? "bg-green-500/20 text-green-600"
+      : tier === "warning"
+        ? "bg-amber-500/20 text-amber-600"
+        : "bg-red-500/20 text-red-600";
+  const tierLabel =
+    tier === "safe"
+      ? "✓ Safe"
+      : tier === "warning"
+        ? "⚠ Warning"
+        : "⚠ Margin needed";
+  const diffAccent: "green" | "amber" | "red" =
+    tier === "safe" ? "green" : tier === "warning" ? "amber" : "red";
   return (
-    <div
-      className={`mt-3 rounded-md border p-3 ${
-        isEnough
-          ? "border-green-500/40 bg-green-500/5"
-          : "border-red-500/40 bg-red-500/5"
-      }`}
-    >
+    <div className={`mt-3 rounded-md border p-3 ${tierBorder}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
           Margin details
         </div>
-        <span
-          className={`text-[11px] px-2 py-0.5 rounded font-semibold ${
-            isEnough
-              ? "bg-green-500/20 text-green-600"
-              : "bg-red-500/20 text-red-600"
-          }`}
-        >
-          {isEnough ? "✓ Enough margin" : "⚠ Margin needed"}
+        <span className={`text-[11px] px-2 py-0.5 rounded font-semibold ${tierBadge}`}>
+          {tierLabel} · {fmt(margin.marginLevelPct)}%
         </span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -1035,10 +1043,11 @@ function MarginDetails({
         <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
         <Row label="Available margin" value={`$${fmt(margin.availableMargin)}`} />
+        <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
-          label={isEnough ? "Extra available" : "Needs to add"}
+          label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
           value={`$${fmt(Math.abs(margin.difference))}`}
-          accent={isEnough ? "green" : "red"}
+          accent={diffAccent}
         />
       </div>
     </div>
