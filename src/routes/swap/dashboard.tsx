@@ -474,12 +474,22 @@ function SwapDashboard() {
     );
   }
 
-  const visibleNav = NAV_ITEMS.filter((n) => !n.adminOnly || isAdmin);
+  const { perms } = useMyPermissions();
+  const visibleNav = NAV_ITEMS.filter((n) => {
+    if (n.adminOnly && !isAdmin) return false;
+    if (!n.module) return true; // dashboard always visible
+    return can(perms, n.module, "view");
+  });
   const currentLabel = NAV_ITEMS.find((n) => n.key === tab)?.label ?? "Dashboard";
 
-  // Admin-gate guard for restricted tabs
-  const effectiveTab: Tab =
-    !isAdmin && (tab === "audit" || tab === "users") ? "dashboard" : tab;
+  // Permission gate: if the user can't view the requested tab, fall back to dashboard
+  const requested = NAV_ITEMS.find((n) => n.key === tab);
+  const tabAllowed =
+    !requested ||
+    !requested.module ||
+    (requested.adminOnly ? isAdmin : true) && can(perms, requested.module, "view");
+  const effectiveTab: Tab = tabAllowed ? tab : "dashboard";
+
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
