@@ -970,7 +970,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         {/* Margin Details */}
                         <MarginDetails
                           goldKg={Number(c.gold_kg ?? 0)}
-                          xau={c.xauusd_price !== null ? Number(c.xauusd_price) : null}
+                          xau={xauForCalc}
                           marginPct={Number(c.margin_requirement_pct ?? 20)}
                           margin={margin}
                         />
