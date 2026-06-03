@@ -1,7 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { SwapDashboard } from "./swap/dashboard";
 
 export const Route = createFileRoute("/desk/app/margin")({
-  beforeLoad: () => {
-    throw redirect({ to: "/swap/dashboard", search: { tab: "margin" } });
-  },
+  head: () => ({
+    meta: [
+      { title: "ATHER DESK — Margin" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+  component: () => <SwapDashboard tab="margin" />,
 });

@@ -1,7 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { SwapDashboard } from "./swap/dashboard";
 
 export const Route = createFileRoute("/desk/app/discount-premium")({
-  beforeLoad: () => {
-    throw redirect({ to: "/swap/dashboard", search: { tab: "premium" } });
-  },
+  head: () => ({
+    meta: [
+      { title: "ATHER DESK — Discount / Premium" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+  component: () => <SwapDashboard tab="premium" />,
 });
