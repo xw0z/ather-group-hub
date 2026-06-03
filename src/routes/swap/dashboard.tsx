@@ -1116,6 +1116,15 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => share(c)}
+                            disabled={sharingId === c.id}
+                            title="Share margin report"
+                          >
+                            <Share2 className="h-4 w-4 text-primary" />
+                          </Button>
                           <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -1615,8 +1624,6 @@ function MarginLogTab() {
   const [rows, setRows] = useState<MarginHistoryRow[]>([]);
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sharingId, setSharingId] = useState<string | null>(null);
-  const [shareErr, setShareErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<LogFilter>("all");
   const [search, setSearch] = useState("");
 
@@ -1676,33 +1683,6 @@ function MarginLogTab() {
     });
   }, [enriched, filter, search, clientById]);
 
-  async function share(r: MarginHistoryRow) {
-    setSharingId(r.id);
-    setShareErr(null);
-    try {
-      const c = clientById.get(r.client_id);
-      if (!c) throw new Error("Client not found.");
-      const live = await getLiveXauPrice();
-      const xau =
-        live && live.price > 0 ? live.price : Number(c.xauusd_price ?? 0);
-      if (!xau) throw new Error("No XAU price available.");
-      await shareClientMarginReport(
-        {
-          code: c.code,
-          name: c.notes ?? null,
-          usd_balance: Number(c.usd_balance),
-          gold_kg: Number(c.gold_kg ?? 0),
-          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
-          position_type: c.position_type,
-        },
-        xau,
-      );
-    } catch (err) {
-      setShareErr(err instanceof Error ? err.message : "Failed to share.");
-    } finally {
-      setSharingId(null);
-    }
-  }
 
   const filters: { key: LogFilter; label: string }[] = [
     { key: "all", label: "All Changes" },
@@ -1748,7 +1728,7 @@ function MarginLogTab() {
         </div>
       </div>
 
-      {shareErr && <p className="text-sm text-destructive mb-2">{shareErr}</p>}
+
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -1784,19 +1764,6 @@ function MarginLogTab() {
                       <span className="text-foreground/80">{r.username}</span>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => share(r)}
-                    disabled={sharingId === r.id}
-                    title="Share margin report"
-                    className="h-8 gap-1 border-primary/40 text-primary hover:bg-primary/10 shrink-0"
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">
-                      {sharingId === r.id ? "..." : "Share"}
-                    </span>
-                  </Button>
                 </div>
 
                 <ul className="mt-3 space-y-1.5">
