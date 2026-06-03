@@ -265,7 +265,7 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
   }, []);
 
   const totalLive = useMemo(
-    () => data?.rows.reduce((s, r) => s + r.live_daily_fee, 0) ?? 0,
+    () => data?.rows.reduce((s, r) => s + r.base_daily_fee, 0) ?? 0,
     [data],
   );
   const totalToday = useMemo(
@@ -354,7 +354,7 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
                             isShort ? "text-red-600" : "text-green-600"
                           }`}
                         >
-                          {isShort ? "+" : ""}${fmt(r.live_daily_fee)}
+                          {isShort ? "+" : ""}${fmt(r.base_daily_fee)}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           {amountLabel}:{" "}
