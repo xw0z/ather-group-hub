@@ -675,14 +675,14 @@ function HomeTab({
 
 /* ---------------------------- CLIENTS ---------------------------- */
 
-type MarginFilter = "all" | "enough" | "needed";
+type MarginLogFilter = "all" | "enough" | "needed";
 
 function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<MarginFilter>("all");
+  const [filter, setFilter] = useState<MarginLogFilter>("all");
 
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
@@ -918,7 +918,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
 
         {/* Filters */}
         <div className="flex gap-1 mb-3 flex-wrap">
-          {(["all", "enough", "needed"] as MarginFilter[]).map((f) => (
+          {(["all", "enough", "needed"] as MarginLogFilter[]).map((f) => (
             <button
               key={f}
               type="button"
@@ -1501,18 +1501,132 @@ function LiveXauCard({
 
 /* -------------------------- MARGIN LOG -------------------------- */
 
+type FieldChange = {
+  key: "status" | "gold" | "margin_pct" | "balance" | "price" | "level" | "required";
+  label: string;
+  oldText: string;
+  newText: string;
+  tone?: "status" | "default";
+  oldStatus?: string | null;
+  newStatus?: string | null;
+};
+
+type LogFilter = "all" | "status" | "gold" | "margin" | "balance";
+
+function statusLabel(s: string | null): string {
+  if (!s) return "—";
+  if (s === "enough" || s === "safe") return "Safe";
+  if (s === "warning") return "Warning";
+  if (s === "critical") return "Critical";
+  return "Margin Needed";
+}
+
+function buildChanges(r: MarginHistoryRow): FieldChange[] {
+  const out: FieldChange[] = [];
+
+  const oldUsd = Number(r.old_usd_balance ?? 0);
+  const newUsd = Number(r.new_usd_balance ?? 0);
+  if (oldUsd !== newUsd) {
+    out.push({
+      key: "balance",
+      label: "USD Balance",
+      oldText: fmtMoney(oldUsd),
+      newText: fmtMoney(newUsd),
+    });
+  }
+
+  const oldKg = Number(r.old_gold_kg ?? 0);
+  const newKg = Number(r.new_gold_kg ?? 0);
+  if (oldKg !== newKg) {
+    out.push({
+      key: "gold",
+      label: "Gold Balance",
+      oldText: `${fmt(oldKg * 1000, 0)} g`,
+      newText: `${fmt(newKg * 1000, 0)} g`,
+    });
+  }
+
+  const oldXau = Number(r.old_xauusd_price ?? 0);
+  const newXau = Number(r.new_xauusd_price ?? 0);
+  if (oldXau !== newXau && (oldXau > 0 || newXau > 0)) {
+    out.push({
+      key: "price",
+      label: "Gold Price",
+      oldText: oldXau > 0 ? `${fmtMoney(oldXau)} / oz` : "—",
+      newText: newXau > 0 ? `${fmtMoney(newXau)} / oz` : "—",
+    });
+  }
+
+  const oldPct = Number(r.old_margin_pct ?? 0);
+  const newPct = Number(r.new_margin_pct ?? 0);
+  if (oldPct !== newPct) {
+    out.push({
+      key: "margin_pct",
+      label: "Margin Requirement",
+      oldText: `${fmt(oldPct)}%`,
+      newText: `${fmt(newPct)}%`,
+    });
+  }
+
+  const oldReq = Number(r.old_required_margin ?? 0);
+  const newReq = Number(r.new_required_margin ?? 0);
+  if (oldReq !== newReq && (oldReq > 0 || newReq > 0)) {
+    out.push({
+      key: "required",
+      label: "Required Margin",
+      oldText: fmtMoney(oldReq),
+      newText: fmtMoney(newReq),
+    });
+  }
+
+  const oldAvail = Number(r.old_available_margin ?? 0);
+  const newAvail = Number(r.new_available_margin ?? 0);
+  const oldLevel = oldReq > 0 ? (oldAvail / oldReq) * 100 : null;
+  const newLevel = newReq > 0 ? (newAvail / newReq) * 100 : null;
+  if (
+    oldLevel !== null &&
+    newLevel !== null &&
+    Math.abs(oldLevel - newLevel) >= 0.01
+  ) {
+    out.push({
+      key: "level",
+      label: "Margin Level",
+      oldText: `${fmt(oldLevel)}%`,
+      newText: `${fmt(newLevel)}%`,
+    });
+  }
+
+  if (r.old_status !== r.new_status) {
+    out.push({
+      key: "status",
+      label: "Status",
+      oldText: statusLabel(r.old_status),
+      newText: statusLabel(r.new_status),
+      tone: "status",
+      oldStatus: r.old_status,
+      newStatus: r.new_status,
+    });
+  }
+
+  return out;
+}
+
 function MarginLogTab() {
   const [rows, setRows] = useState<MarginHistoryRow[]>([]);
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareErr, setShareErr] = useState<string | null>(null);
-  const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const [filter, setFilter] = useState<LogFilter>("all");
+  const [search, setSearch] = useState("");
 
   async function load() {
     setLoading(true);
     try {
-      const [h, c] = await Promise.all([listSwapMarginHistory({ data: {} }), listSwapClients()]);
+      const [h, c] = await Promise.all([
+        listSwapMarginHistory({ data: {} }),
+        listSwapClients(),
+      ]);
       setRows(h as MarginHistoryRow[]);
       setClients(c as SwapClient[]);
     } finally {
@@ -1523,23 +1637,54 @@ function MarginLogTab() {
     load();
   }, []);
 
-  const codeById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of clients) m.set(c.id, c.code);
+  const clientById = useMemo(() => {
+    const m = new Map<string, SwapClient>();
+    for (const c of clients) m.set(c.id, c);
     return m;
   }, [clients]);
+
+  const enriched = useMemo(() => {
+    return rows
+      .map((r) => ({ r, changes: buildChanges(r) }))
+      .filter((x) => x.changes.length > 0)
+      .sort(
+        (a, b) =>
+          new Date(b.r.created_at).getTime() -
+          new Date(a.r.created_at).getTime(),
+      );
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return enriched.filter(({ r, changes }) => {
+      if (filter !== "all") {
+        const has = (k: FieldChange["key"][]) =>
+          changes.some((c) => k.includes(c.key));
+        if (filter === "status" && !has(["status"])) return false;
+        if (filter === "gold" && !has(["gold"])) return false;
+        if (filter === "margin" && !has(["margin_pct", "required", "level"]))
+          return false;
+        if (filter === "balance" && !has(["balance"])) return false;
+      }
+      if (q) {
+        const c = clientById.get(r.client_id);
+        const code = (c?.code ?? "").toLowerCase();
+        const name = (c?.notes ?? "").toLowerCase();
+        if (!code.includes(q) && !name.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [enriched, filter, search, clientById]);
 
   async function share(r: MarginHistoryRow) {
     setSharingId(r.id);
     setShareErr(null);
     try {
-      const c = clients.find((x) => x.id === r.client_id);
+      const c = clientById.get(r.client_id);
       if (!c) throw new Error("Client not found.");
       const live = await getLiveXauPrice();
       const xau =
-        live && live.price > 0
-          ? live.price
-          : Number(c.xauusd_price ?? 0);
+        live && live.price > 0 ? live.price : Number(c.xauusd_price ?? 0);
       if (!xau) throw new Error("No XAU price available.");
       await shareClientMarginReport(
         {
@@ -1559,83 +1704,132 @@ function MarginLogTab() {
     }
   }
 
+  const filters: { key: LogFilter; label: string }[] = [
+    { key: "all", label: "All Changes" },
+    { key: "status", label: "Status" },
+    { key: "gold", label: "Gold" },
+    { key: "margin", label: "Margin" },
+    { key: "balance", label: "Balance" },
+  ];
+
   return (
     <section className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold flex items-center gap-2">
-          <ScrollText className="h-4 w-4 text-primary" /> Margin history
+          <ScrollText className="h-4 w-4 text-primary" /> Margin audit trail
         </h2>
         <Button size="sm" variant="outline" onClick={load}>
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>
+
+      <div className="space-y-2 mb-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by client code or name…"
+          className="h-9"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                filter === f.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {shareErr && <p className="text-sm text-destructive mb-2">{shareErr}</p>}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No margin changes recorded yet.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {enriched.length === 0
+            ? "No margin changes recorded yet."
+            : "No changes match your filters."}
+        </p>
       ) : (
         <ul className="space-y-2">
-          {rows.map((r) => {
-            const flipped = r.old_status !== r.new_status;
+          {filtered.map(({ r, changes }) => {
+            const c = clientById.get(r.client_id);
+            const code = c?.code ?? r.client_id.slice(0, 8);
+            const name = c?.notes ?? null;
             return (
               <li
                 key={r.id}
-                ref={(el) => {
-                  if (el) rowRefs.current.set(r.id, el);
-                  else rowRefs.current.delete(r.id);
-                }}
-                className="rounded-md border border-border/60 p-3 bg-background text-sm"
+                className="rounded-lg border border-border/60 p-3 bg-background"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-medium">
-                      {codeById.get(r.client_id) ?? r.client_id.slice(0, 8)}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm leading-tight">
+                      {code}
+                      {name && (
+                        <span className="ml-2 font-normal text-muted-foreground">
+                          {name}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      by {r.username} · changed: {r.changed_field}
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {new Date(r.created_at).toLocaleString()} · by{" "}
+                      <span className="text-foreground/80">{r.username}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-[11px] text-muted-foreground whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString()}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => share(r)}
-                      disabled={sharingId === r.id}
-                      title="Share margin report"
-                      className="h-8 gap-1 border-primary/40 text-primary hover:bg-primary/10"
-                      data-share-hide
-                    >
-                      <Share2 className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">
-                        {sharingId === r.id ? "..." : "Share"}
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
-                  <StatusPill status={r.old_status} />
-                  <span className="text-muted-foreground">→</span>
-                  <StatusPill status={r.new_status} />
-                  {flipped && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-semibold">
-                      status changed
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => share(r)}
+                    disabled={sharingId === r.id}
+                    title="Share margin report"
+                    className="h-8 gap-1 border-primary/40 text-primary hover:bg-primary/10 shrink-0"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">
+                      {sharingId === r.id ? "..." : "Share"}
                     </span>
-                  )}
+                  </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-muted-foreground">
-                  <div>
-                    Required: ${fmt(Number(r.old_required_margin ?? 0))} → $
-                    {fmt(Number(r.new_required_margin ?? 0))}
-                  </div>
-                  <div>
-                    Available: ${fmt(Number(r.old_available_margin ?? 0))} → $
-                    {fmt(Number(r.new_available_margin ?? 0))}
-                  </div>
-                </div>
+
+                <ul className="mt-3 space-y-1.5">
+                  {changes.map((ch, i) => (
+                    <li
+                      key={i}
+                      className="rounded-md bg-muted/30 px-2.5 py-1.5"
+                    >
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {ch.label}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-sm flex-wrap">
+                        {ch.tone === "status" ? (
+                          <>
+                            <StatusPill status={ch.oldStatus ?? null} />
+                            <span className="text-muted-foreground">→</span>
+                            <StatusPill status={ch.newStatus ?? null} />
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-medium text-muted-foreground tabular-nums">
+                              {ch.oldText}
+                            </span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-semibold tabular-nums">
+                              {ch.newText}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </li>
             );
           })}
