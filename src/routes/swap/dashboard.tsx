@@ -941,7 +941,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
         },
       });
       setEditingId(null);
-      load();
+      load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     }
