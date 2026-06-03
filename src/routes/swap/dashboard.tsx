@@ -953,6 +953,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     if (!confirm(`Delete client ${codeStr}?`)) return;
     try {
       await deleteSwapClient({ data: { id } });
+      invalidate(CK.todayFees, CK.margin, CK.activity);
       load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete.");
