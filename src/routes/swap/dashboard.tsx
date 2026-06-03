@@ -1415,6 +1415,9 @@ function MarginLogTab() {
   const [rows, setRows] = useState<MarginHistoryRow[]>([]);
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [shareErr, setShareErr] = useState<string | null>(null);
+  const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
 
   async function load() {
     setLoading(true);
@@ -1436,6 +1439,20 @@ function MarginLogTab() {
     return m;
   }, [clients]);
 
+  async function share(r: MarginHistoryRow) {
+    const el = rowRefs.current.get(r.id);
+    if (!el) return;
+    setSharingId(r.id);
+    setShareErr(null);
+    try {
+      await shareCardImage(el, codeById.get(r.client_id) ?? r.client_id.slice(0, 8));
+    } catch (err) {
+      setShareErr(err instanceof Error ? err.message : "Failed to share.");
+    } finally {
+      setSharingId(null);
+    }
+  }
+
   return (
     <section className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -1446,6 +1463,7 @@ function MarginLogTab() {
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>
+      {shareErr && <p className="text-sm text-destructive mb-2">{shareErr}</p>}
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : rows.length === 0 ? (
@@ -1457,6 +1475,10 @@ function MarginLogTab() {
             return (
               <li
                 key={r.id}
+                ref={(el) => {
+                  if (el) rowRefs.current.set(r.id, el);
+                  else rowRefs.current.delete(r.id);
+                }}
                 className="rounded-md border border-border/60 p-3 bg-background text-sm"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -1468,8 +1490,24 @@ function MarginLogTab() {
                       by {r.username} · changed: {r.changed_field}
                     </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground whitespace-nowrap">
-                    {new Date(r.created_at).toLocaleString()}
+                  <div className="flex items-center gap-2">
+                    <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                      {new Date(r.created_at).toLocaleString()}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => share(r)}
+                      disabled={sharingId === r.id}
+                      title="Share margin report"
+                      className="h-8 gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                      data-share-hide
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">
+                        {sharingId === r.id ? "..." : "Share"}
+                      </span>
+                    </Button>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
