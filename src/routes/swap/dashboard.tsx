@@ -1088,11 +1088,7 @@ function MarginDetails({
       <div className="grid grid-cols-2 gap-1.5 text-xs">
         <Row
           label="Gold balance"
-          value={
-            goldKg > 0 && goldKg < 1
-              ? `${fmt(goldKg * 1000, 0)} g`
-              : `${fmt(goldKg, 4)} kg`
-          }
+          value={`${fmt(goldKg * 1000, 0)} g`}
         />
         {goldKg > 100 && (
           <div className="col-span-2 text-[11px] text-amber-600 px-2">
