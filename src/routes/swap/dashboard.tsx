@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import html2canvas from "html2canvas-pro";
 import {
   DollarSign,
   Plus,
@@ -15,6 +16,7 @@ import {
   ScrollText,
   UserCircle,
   RefreshCw,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,6 +117,140 @@ function fmt(n: number, d = 2): string {
 function fmtMoney(n: number, d = 2): string {
   const v = Number(n);
   return `${v < 0 ? "-" : ""}$${fmt(Math.abs(v), d)}`;
+}
+
+function snapshotStamp(d = new Date()): string {
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+async function shareCardImage(
+  cardEl: HTMLElement,
+  clientCode: string,
+): Promise<void> {
+  // Clone the card so admin actions can be stripped and branding added
+  // without disturbing the live DOM.
+  const clone = cardEl.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("[data-share-hide]").forEach((el) => el.remove());
+
+  const stage = document.createElement("div");
+  stage.style.position = "fixed";
+  stage.style.left = "-10000px";
+  stage.style.top = "0";
+  stage.style.width = "560px";
+  stage.style.padding = "28px";
+  stage.style.background = "#1a1a1a";
+  stage.style.color = "#f4f1ec";
+  stage.style.fontFamily =
+    'Epilogue, system-ui, -apple-system, "Segoe UI", sans-serif';
+  stage.style.zIndex = "-1";
+
+  const header = document.createElement("div");
+  header.style.display = "flex";
+  header.style.alignItems = "center";
+  header.style.justifyContent = "space-between";
+  header.style.marginBottom = "16px";
+  header.style.paddingBottom = "14px";
+  header.style.borderBottom = "1px solid #3a3a3a";
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#e85d3a,#c64a2d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a1a1a;font-size:14px;font-family:Urbanist,sans-serif">A</div>
+      <div>
+        <div style="font-family:Urbanist,sans-serif;font-weight:800;letter-spacing:-0.02em;font-size:16px">ATHER GROUP</div>
+        <div style="font-size:10px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Margin report</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>
+      <div style="font-size:12px;color:#d9d4cc;margin-top:2px">${snapshotStamp()}</div>
+    </div>
+  `;
+
+  // Style the cloned card to match the card container in-app.
+  clone.style.background = "#2d2d2d";
+  clone.style.border = "1px solid #3a3a3a";
+  clone.style.borderRadius = "8px";
+  clone.style.padding = "14px";
+
+  const footer = document.createElement("div");
+  footer.style.marginTop = "14px";
+  footer.style.paddingTop = "10px";
+  footer.style.borderTop = "1px solid #3a3a3a";
+  footer.style.display = "flex";
+  footer.style.justifyContent = "space-between";
+  footer.style.fontSize = "10px";
+  footer.style.color = "#9a9a9a";
+  footer.innerHTML = `<span>ather.group</span><span>Confidential — for client use</span>`;
+
+  stage.appendChild(header);
+  stage.appendChild(clone);
+  stage.appendChild(footer);
+  document.body.appendChild(stage);
+
+  try {
+    const canvas = await html2canvas(stage, {
+      backgroundColor: "#1a1a1a",
+      scale: 3,
+      useCORS: true,
+    });
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/png"),
+    );
+    if (!blob) throw new Error("Failed to render image");
+
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `margin-report-${clientCode}-${date}.png`;
+    const file = new File([blob], filename, { type: "image/png" });
+
+    const nav = navigator as Navigator & {
+      canShare?: (data: ShareData) => boolean;
+      share?: (data: ShareData) => Promise<void>;
+    };
+    if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({
+          files: [file],
+          title: `Margin report — ${clientCode}`,
+          text: `Margin report for ${clientCode}`,
+        });
+        return;
+      } catch {
+        // user cancelled or share failed — fall through to download
+      }
+    }
+
+    // Desktop fallback: try copying to clipboard, then download.
+    try {
+      if (
+        typeof ClipboardItem !== "undefined" &&
+        navigator.clipboard &&
+        "write" in navigator.clipboard
+      ) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
+      }
+    } catch {
+      // clipboard not allowed — skip silently
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } finally {
+    stage.remove();
+  }
 }
 
 type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
@@ -477,6 +613,21 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [editRate, setEditRate] = useState("");
   const [editShortRate, setEditShortRate] = useState("");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
+  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  async function share(c: SwapClient) {
+    const el = cardRefs.current.get(c.id);
+    if (!el) return;
+    setSharingId(c.id);
+    try {
+      await shareCardImage(el, c.code);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share.");
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -823,6 +974,10 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
               return (
                 <li
                   key={c.id}
+                  ref={(el) => {
+                    if (el) cardRefs.current.set(c.id, el);
+                    else cardRefs.current.delete(c.id);
+                  }}
                   className="rounded-md border border-border/60 p-3 bg-background"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -842,7 +997,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         )}
                       </div>
                     )}
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" data-share-hide>
                       {isEditing ? (
                         <>
                           <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
@@ -858,6 +1013,15 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => share(c)}
+                            disabled={sharingId === c.id}
+                            title="Share margin report"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -872,6 +1036,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                       )}
                     </div>
                   </div>
+
 
                   {isEditing ? (
                     <div className="grid grid-cols-2 gap-2 mt-2">
