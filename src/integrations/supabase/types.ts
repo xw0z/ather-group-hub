@@ -236,36 +236,45 @@ export type Database = {
           code: string
           created_at: string
           created_by: string
+          gold_kg: number
           id: string
+          margin_requirement_pct: number
           notes: string | null
           position_type: string
           short_annual_rate: number
           updated_at: string
           usd_balance: number
+          xauusd_price: number | null
         }
         Insert: {
           annual_rate?: number
           code: string
           created_at?: string
           created_by: string
+          gold_kg?: number
           id?: string
+          margin_requirement_pct?: number
           notes?: string | null
           position_type?: string
           short_annual_rate?: number
           updated_at?: string
           usd_balance?: number
+          xauusd_price?: number | null
         }
         Update: {
           annual_rate?: number
           code?: string
           created_at?: string
           created_by?: string
+          gold_kg?: number
           id?: string
+          margin_requirement_pct?: number
           notes?: string | null
           position_type?: string
           short_annual_rate?: number
           updated_at?: string
           usd_balance?: number
+          xauusd_price?: number | null
         }
         Relationships: []
       }
@@ -346,6 +355,75 @@ export type Database = {
           start_date?: string
           usd_amount?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      swap_margin_history: {
+        Row: {
+          changed_field: string
+          client_id: string
+          created_at: string
+          id: string
+          new_available_margin: number | null
+          new_gold_kg: number | null
+          new_margin_pct: number | null
+          new_required_margin: number | null
+          new_status: string | null
+          new_usd_balance: number | null
+          new_xauusd_price: number | null
+          old_available_margin: number | null
+          old_gold_kg: number | null
+          old_margin_pct: number | null
+          old_required_margin: number | null
+          old_status: string | null
+          old_usd_balance: number | null
+          old_xauusd_price: number | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          changed_field: string
+          client_id: string
+          created_at?: string
+          id?: string
+          new_available_margin?: number | null
+          new_gold_kg?: number | null
+          new_margin_pct?: number | null
+          new_required_margin?: number | null
+          new_status?: string | null
+          new_usd_balance?: number | null
+          new_xauusd_price?: number | null
+          old_available_margin?: number | null
+          old_gold_kg?: number | null
+          old_margin_pct?: number | null
+          old_required_margin?: number | null
+          old_status?: string | null
+          old_usd_balance?: number | null
+          old_xauusd_price?: number | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          changed_field?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          new_available_margin?: number | null
+          new_gold_kg?: number | null
+          new_margin_pct?: number | null
+          new_required_margin?: number | null
+          new_status?: string | null
+          new_usd_balance?: number | null
+          new_xauusd_price?: number | null
+          old_available_margin?: number | null
+          old_gold_kg?: number | null
+          old_margin_pct?: number | null
+          old_required_margin?: number | null
+          old_status?: string | null
+          old_usd_balance?: number | null
+          old_xauusd_price?: number | null
+          user_id?: string
+          username?: string
         }
         Relationships: []
       }
