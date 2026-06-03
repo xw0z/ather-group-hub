@@ -27,10 +27,12 @@ import {
   listSwapUsers,
 } from "@/lib/swap-users.functions";
 import {
+  computeMargin,
   createSwapClient,
   deleteSwapClient,
   listSwapActivityLog,
   listSwapClients,
+  listSwapMarginHistory,
   listTodaySwapFees,
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
