@@ -385,6 +385,8 @@ function UserManagement() {
                     </Button>
                   )}
                 </div>
+
+                <UserPermissionsEditor userId={u.id} username={u.username} onChanged={load} />
               </article>
             );
           })}
