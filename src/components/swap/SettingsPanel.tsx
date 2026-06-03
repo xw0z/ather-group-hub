@@ -109,6 +109,7 @@ export function SettingsPanel() {
       const r = await updateSwapSettings({
         data: { patch: p, applyToExistingClients: applyChoice },
       });
+      invalidate(CK.settings, CK.activity, CK.clients);
       setSettings(r.settings);
       setInfo(
         applyChoice
