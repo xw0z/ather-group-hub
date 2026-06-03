@@ -981,7 +981,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           <Stat
                             label="USD balance"
                             value={fmtMoney(Number(c.usd_balance))}
-                            accent={Number(c.usd_balance) < 0 ? "red" : undefined}
                           />
                           <Stat
                             label={isShort ? "Benefit rate" : "Fee rate"}
