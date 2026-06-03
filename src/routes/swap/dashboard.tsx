@@ -938,12 +938,32 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Gold (kg)</Label>
-                        <Input
-                          type="number"
-                          value={editGoldKg}
-                          onChange={(e) => setEditGoldKg(e.target.value)}
-                        />
+                        <Label className="text-xs">Gold balance</Label>
+                        <div className="flex gap-1">
+                          <Input
+                            type="number"
+                            value={editGoldAmount}
+                            onChange={(e) => setEditGoldAmount(e.target.value)}
+                            className="flex-1"
+                          />
+                          <select
+                            value={editGoldUnit}
+                            onChange={(e) =>
+                              setEditGoldUnit(e.target.value as "kg" | "g")
+                            }
+                            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+                            aria-label="Gold unit"
+                          >
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                          </select>
+                        </div>
+                        {editGoldUnit === "kg" &&
+                          (parseFloat(editGoldAmount) || 0) > 100 && (
+                            <p className="text-[11px] text-amber-600 mt-1">
+                              ⚠ Verify unit. Did you mean grams?
+                            </p>
+                          )}
                       </div>
                       <div>
                         <Label className="text-xs">XAUUSD ($/oz)</Label>
