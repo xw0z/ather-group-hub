@@ -443,6 +443,7 @@ export function SwapDashboard({
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const { perms } = useMyPermissions();
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
@@ -513,7 +514,6 @@ export function SwapDashboard({
     );
   }
 
-  const { perms } = useMyPermissions();
   const visibleNav = NAV_ITEMS.filter((n) => {
     if (n.adminOnly && !isAdmin) return false;
     if (!n.module) return true; // dashboard always visible
