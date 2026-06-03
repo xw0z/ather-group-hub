@@ -1471,7 +1471,7 @@ function MarginTab({
     (async () => {
       setLoading(true);
       try {
-        const data = await listSwapClients();
+        const data = await cached(CK.clients, () => listSwapClients(), 60_000);
         setClients(data as SwapClient[]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load.");
