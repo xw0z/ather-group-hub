@@ -1107,7 +1107,16 @@ function MarginDetails({
         <Row label="Margin %" value={`${fmt(marginPct)}%`} />
         <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
-        <Row label="Available margin" value={`$${fmt(margin.availableMargin)}`} />
+        <Row
+          label="Equity (USD + Gold)"
+          value={`${margin.equity < 0 ? "-" : ""}$${fmt(Math.abs(margin.equity))}`}
+          accent={margin.equity < 0 ? "red" : undefined}
+        />
+        <Row
+          label="Available margin"
+          value={`${margin.availableMargin < 0 ? "-" : ""}$${fmt(Math.abs(margin.availableMargin))}`}
+          accent={margin.availableMargin < 0 ? "red" : undefined}
+        />
         <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
           label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
