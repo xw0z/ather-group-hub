@@ -451,6 +451,75 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_settings: {
+        Row: {
+          company_name: string
+          confidentiality_text: string
+          default_long_annual_rate: number
+          default_margin_requirement_pct: number
+          default_report_format: string
+          default_short_annual_rate: number
+          id: string
+          report_footer_text: string | null
+          safe_threshold_pct: number
+          show_logo_on_reports: boolean
+          skip_saturday: boolean
+          skip_sunday: boolean
+          updated_at: string
+          updated_by: string | null
+          warning_threshold_pct: number
+          wednesday_multiplier: number
+          xau_api_key: string | null
+          xau_api_provider: string | null
+          xau_auto_refresh_seconds: number
+          xau_manual_fallback_price: number | null
+        }
+        Insert: {
+          company_name?: string
+          confidentiality_text?: string
+          default_long_annual_rate?: number
+          default_margin_requirement_pct?: number
+          default_report_format?: string
+          default_short_annual_rate?: number
+          id?: string
+          report_footer_text?: string | null
+          safe_threshold_pct?: number
+          show_logo_on_reports?: boolean
+          skip_saturday?: boolean
+          skip_sunday?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          warning_threshold_pct?: number
+          wednesday_multiplier?: number
+          xau_api_key?: string | null
+          xau_api_provider?: string | null
+          xau_auto_refresh_seconds?: number
+          xau_manual_fallback_price?: number | null
+        }
+        Update: {
+          company_name?: string
+          confidentiality_text?: string
+          default_long_annual_rate?: number
+          default_margin_requirement_pct?: number
+          default_report_format?: string
+          default_short_annual_rate?: number
+          id?: string
+          report_footer_text?: string | null
+          safe_threshold_pct?: number
+          show_logo_on_reports?: boolean
+          skip_saturday?: boolean
+          skip_sunday?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          warning_threshold_pct?: number
+          wednesday_multiplier?: number
+          xau_api_key?: string | null
+          xau_api_provider?: string | null
+          xau_auto_refresh_seconds?: number
+          xau_manual_fallback_price?: number | null
+        }
+        Relationships: []
+      }
       swap_xau_snapshots: {
         Row: {
           created_at: string

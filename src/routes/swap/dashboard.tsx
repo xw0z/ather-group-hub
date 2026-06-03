@@ -46,6 +46,7 @@ import {
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { SwapFooter } from "@/components/SwapFooter";
+import { SettingsPanel } from "@/components/swap/SettingsPanel";
 
 const TAB_VALUES = [
   "dashboard",
@@ -651,17 +652,9 @@ function ReportsTab() {
 }
 
 function SettingsTab() {
-  return (
-    <section className="rounded-xl border border-border/60 bg-card p-8 text-center">
-      <SettingsIcon className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-      <h2 className="text-base font-semibold">Settings module coming soon</h2>
-      <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-        Configurable defaults for margin %, long/short swap rates, Wednesday multiplier,
-        report branding, WhatsApp sharing, and XAUUSD API will live here.
-      </p>
-    </section>
-  );
+  return <SettingsPanel />;
 }
+
 
 function AuditLogTab() {
   const [sub, setSub] = useState<"margin" | "activity">("margin");
