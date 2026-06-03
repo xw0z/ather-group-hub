@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import html2canvas from "html2canvas-pro";
 import {
@@ -17,6 +17,10 @@ import {
   UserCircle,
   RefreshCw,
   Share2,
+  TrendingUp,
+  FileText,
+  Settings as SettingsIcon,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
