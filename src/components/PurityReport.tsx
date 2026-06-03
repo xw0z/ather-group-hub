@@ -417,16 +417,15 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <strong style={vStrong}>AUTHORIZED SIGNATURE</strong>
           <div
             style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
-              fontSize: 64,
-              fontWeight: 600,
+              fontFamily: "'Great Vibes', cursive",
+              fontSize: 96,
+              fontWeight: 400,
               color: "#111",
               borderBottom: "2px solid #bbb",
               textAlign: "center",
               margin: "10px 0 14px",
               lineHeight: 1.2,
               paddingBottom: 6,
-              fontStyle: "italic",
             }}
           >
             {data.signatureName ?? "Ather Quality"}
