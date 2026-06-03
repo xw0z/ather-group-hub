@@ -427,6 +427,77 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_premium_companies: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      swap_premium_transactions: {
+        Row: {
+          amount_usd: number | null
+          company_id: string
+          created_at: string
+          created_by: string
+          grams: number
+          id: string
+          kind: string
+          notes: string | null
+          per_oz: number | null
+          username: string
+        }
+        Insert: {
+          amount_usd?: number | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          grams?: number
+          id?: string
+          kind: string
+          notes?: string | null
+          per_oz?: number | null
+          username: string
+        }
+        Update: {
+          amount_usd?: number | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          grams?: number
+          id?: string
+          kind?: string
+          notes?: string | null
+          per_oz?: number | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_premium_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "swap_premium_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_profiles: {
         Row: {
           created_at: string
