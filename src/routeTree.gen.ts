@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as MarginRouteImport } from './routes/margin'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SwapIndexRouteImport } from './routes/swap/index'
@@ -33,6 +35,11 @@ const MarginRoute = MarginRouteImport.update({
   path: '/margin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -41,6 +48,11 @@ const ContactRoute = ContactRouteImport.update({
 const CompaniesRoute = CompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -93,8 +105,10 @@ const ApiPublicHooksSwapDailyFeesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/app': typeof AppRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
@@ -108,8 +122,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/app': typeof AppRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
@@ -124,8 +140,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/app': typeof AppRoute
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
+  '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
@@ -141,8 +159,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/app'
     | '/companies'
     | '/contact'
+    | '/login'
     | '/margin'
     | '/unauthorized'
     | '/purity/dashboard'
@@ -156,8 +176,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/app'
     | '/companies'
     | '/contact'
+    | '/login'
     | '/margin'
     | '/unauthorized'
     | '/purity/dashboard'
@@ -171,8 +193,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/app'
     | '/companies'
     | '/contact'
+    | '/login'
     | '/margin'
     | '/unauthorized'
     | '/purity/dashboard'
@@ -187,8 +211,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AppRoute: typeof AppRoute
   CompaniesRoute: typeof CompaniesRoute
   ContactRoute: typeof ContactRoute
+  LoginRoute: typeof LoginRoute
   MarginRoute: typeof MarginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
@@ -216,6 +242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
@@ -228,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies'
       preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -299,8 +339,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AppRoute: AppRoute,
   CompaniesRoute: CompaniesRoute,
   ContactRoute: ContactRoute,
+  LoginRoute: LoginRoute,
   MarginRoute: MarginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   PurityDashboardRoute: PurityDashboardRoute,
