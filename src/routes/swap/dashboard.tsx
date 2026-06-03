@@ -211,6 +211,7 @@ function SwapDashboard() {
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
         {tab === "home" && <HomeTab isAdmin={isAdmin} />}
         {tab === "clients" && <ClientsTab />}
+        {tab === "margin" && <MarginLogTab />}
         {tab === "profile" && <ProfileTab username={username} />}
         {tab === "users" && isAdmin && <UsersTab />}
         {tab === "logs" && isAdmin && <LogsTab />}
