@@ -1084,12 +1084,12 @@ function MarginDetails({
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
         <Row
           label="Equity (USD + Gold)"
-          value={`${margin.equity < 0 ? "-" : ""}$${fmt(Math.abs(margin.equity))}`}
+          value={fmtMoney(margin.equity)}
           accent={margin.equity < 0 ? "red" : undefined}
         />
         <Row
           label="Available margin"
-          value={`${margin.availableMargin < 0 ? "-" : ""}$${fmt(Math.abs(margin.availableMargin))}`}
+          value={fmtMoney(margin.availableMargin)}
           accent={margin.availableMargin < 0 ? "red" : undefined}
         />
         <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
