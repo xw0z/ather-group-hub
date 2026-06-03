@@ -372,24 +372,31 @@ async function shareClientMarginReport(
 
 type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
 
+import type { AppModule } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
+import { useMyPermissions } from "@/hooks/use-my-permissions";
+
 type NavItem = {
   key: Tab;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  module?: AppModule; // when set, requires `view` permission on this module
   adminOnly?: boolean;
+  external?: string; // external link (e.g. /purity/dashboard)
 };
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: Home },
-  { key: "clients", label: "Clients", icon: UsersIcon },
-  { key: "swap-fees", label: "Swap Fees", icon: DollarSign },
-  { key: "margin", label: "Margin", icon: ShieldCheck },
-  { key: "premium", label: "Discount / Premium", icon: TrendingUp },
-  { key: "reports", label: "Reports", icon: FileText },
-  { key: "audit", label: "Audit Log", icon: ScrollText, adminOnly: true },
-  { key: "users", label: "Users", icon: UserPlus, adminOnly: true },
-  { key: "settings", label: "Settings", icon: SettingsIcon },
+  { key: "clients", label: "Clients", icon: UsersIcon, module: "swap" },
+  { key: "swap-fees", label: "Swap Fees", icon: DollarSign, module: "swap" },
+  { key: "margin", label: "Margin", icon: ShieldCheck, module: "margin" },
+  { key: "premium", label: "Discount / Premium", icon: TrendingUp, module: "premium" },
+  { key: "reports", label: "Reports", icon: FileText, module: "reports" },
+  { key: "audit", label: "Audit Log", icon: ScrollText, module: "audit", adminOnly: true },
+  { key: "users", label: "Users", icon: UserPlus, module: "users", adminOnly: true },
+  { key: "settings", label: "Settings", icon: SettingsIcon, module: "settings" },
 ];
+
 
 function SwapDashboard() {
   const navigate = useNavigate();
