@@ -707,11 +707,24 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [sharingId, setSharingId] = useState<string | null>(null);
 
   async function share(c: SwapClient) {
-    const el = cardRefs.current.get(c.id);
-    if (!el) return;
     setSharingId(c.id);
     try {
-      await shareCardImage(el, c.code);
+      const xau =
+        livePrice && livePrice.price > 0
+          ? livePrice.price
+          : Number(c.xauusd_price ?? 0);
+      if (!xau) throw new Error("No XAU price available");
+      await shareClientMarginReport(
+        {
+          code: c.code,
+          name: c.notes ?? null,
+          usd_balance: Number(c.usd_balance),
+          gold_kg: Number(c.gold_kg ?? 0),
+          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+          position_type: c.position_type,
+        },
+        xau,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to share.");
     } finally {
