@@ -1080,7 +1080,19 @@ function MarginDetails({
         </span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-xs">
-        <Row label="Gold balance" value={`${fmt(goldKg, 4)} kg`} />
+        <Row
+          label="Gold balance"
+          value={
+            goldKg > 0 && goldKg < 1
+              ? `${fmt(goldKg * 1000, 0)} g`
+              : `${fmt(goldKg, 4)} kg`
+          }
+        />
+        {goldKg > 100 && (
+          <div className="col-span-2 text-[11px] text-amber-600 px-2">
+            ⚠ Please verify gold unit. Did you mean grams?
+          </div>
+        )}
         <Row
           label="Gold value (USD)"
           value={xau !== null ? `$${fmt(margin.goldValue)}` : "—"}
