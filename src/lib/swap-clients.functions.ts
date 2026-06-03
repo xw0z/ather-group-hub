@@ -16,22 +16,29 @@ export function computeMargin(input: {
   margin_requirement_pct: number;
 }) {
   const xau = Number(input.xauusd_price ?? 0);
+  const usdBalance = Number(input.usd_balance);
   const goldValue = Number(input.gold_kg) * TROY_OZ_PER_KG * xau;
-  const totalExposure = Number(input.usd_balance) + goldValue;
+  // Equity = USD balance + gold value (can be negative)
+  const equity = usdBalance + goldValue;
+  // Total exposure is the gold position value only
+  const totalExposure = goldValue;
   const requiredMargin = (totalExposure * Number(input.margin_requirement_pct)) / 100;
-  const availableMargin = Number(input.usd_balance);
+  // Available margin is based on equity, not raw USD balance
+  const availableMargin = equity;
   const difference = availableMargin - requiredMargin;
-  const marginLevelPct = requiredMargin > 0 ? (availableMargin / requiredMargin) * 100 : 0;
+  const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
   const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
-  // Tiered status per spec: >=120 safe, 100-120 warning, <100 needed.
-  // When there is no required margin (no exposure), treat as safe.
-  let tier: "safe" | "warning" | "needed";
-  if (requiredMargin <= 0) tier = "safe";
+  // Tiered status: critical if equity < 0, needed if equity < required,
+  // warning if 100-120%, safe if >=120% or no exposure.
+  let tier: "safe" | "warning" | "needed" | "critical";
+  if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
+  else if (equity < 0) tier = "critical";
   else if (marginLevelPct >= 120) tier = "safe";
   else if (marginLevelPct >= 100) tier = "warning";
   else tier = "needed";
   return {
     goldValue,
+    equity,
     totalExposure,
     requiredMargin,
     availableMargin,

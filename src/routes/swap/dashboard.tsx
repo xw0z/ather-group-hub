@@ -1054,19 +1054,25 @@ function MarginDetails({
       ? "border-green-500/40 bg-green-500/5"
       : tier === "warning"
         ? "border-amber-500/40 bg-amber-500/5"
-        : "border-red-500/40 bg-red-500/5";
+        : tier === "critical"
+          ? "border-red-600/60 bg-red-600/10"
+          : "border-red-500/40 bg-red-500/5";
   const tierBadge =
     tier === "safe"
       ? "bg-green-500/20 text-green-600"
       : tier === "warning"
         ? "bg-amber-500/20 text-amber-600"
-        : "bg-red-500/20 text-red-600";
+        : tier === "critical"
+          ? "bg-red-600/25 text-red-700"
+          : "bg-red-500/20 text-red-600";
   const tierLabel =
     tier === "safe"
       ? "✓ Safe"
       : tier === "warning"
         ? "⚠ Warning"
-        : "⚠ Margin needed";
+        : tier === "critical"
+          ? "⛔ Critical margin needed"
+          : "⚠ Margin needed";
   const diffAccent: "green" | "amber" | "red" =
     tier === "safe" ? "green" : tier === "warning" ? "amber" : "red";
   return (
@@ -1101,7 +1107,16 @@ function MarginDetails({
         <Row label="Margin %" value={`${fmt(marginPct)}%`} />
         <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
-        <Row label="Available margin" value={`$${fmt(margin.availableMargin)}`} />
+        <Row
+          label="Equity (USD + Gold)"
+          value={`${margin.equity < 0 ? "-" : ""}$${fmt(Math.abs(margin.equity))}`}
+          accent={margin.equity < 0 ? "red" : undefined}
+        />
+        <Row
+          label="Available margin"
+          value={`${margin.availableMargin < 0 ? "-" : ""}$${fmt(Math.abs(margin.availableMargin))}`}
+          accent={margin.availableMargin < 0 ? "red" : undefined}
+        />
         <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
           label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
