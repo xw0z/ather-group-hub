@@ -451,6 +451,33 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_xau_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          price: number
+          source: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          price: number
+          source?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          price?: number
+          source?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

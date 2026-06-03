@@ -21,8 +21,25 @@ export function computeMargin(input: {
   const requiredMargin = (totalExposure * Number(input.margin_requirement_pct)) / 100;
   const availableMargin = Number(input.usd_balance);
   const difference = availableMargin - requiredMargin;
+  const marginLevelPct = requiredMargin > 0 ? (availableMargin / requiredMargin) * 100 : 0;
   const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
-  return { goldValue, totalExposure, requiredMargin, availableMargin, difference, status };
+  // Tiered status per spec: >=120 safe, 100-120 warning, <100 needed.
+  // When there is no required margin (no exposure), treat as safe.
+  let tier: "safe" | "warning" | "needed";
+  if (requiredMargin <= 0) tier = "safe";
+  else if (marginLevelPct >= 120) tier = "safe";
+  else if (marginLevelPct >= 100) tier = "warning";
+  else tier = "needed";
+  return {
+    goldValue,
+    totalExposure,
+    requiredMargin,
+    availableMargin,
+    difference,
+    marginLevelPct,
+    status,
+    tier,
+  };
 }
 
 async function getUsername(userId: string): Promise<string> {
@@ -570,3 +587,111 @@ export const listSwapMarginHistory = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/* ---------------------- Live XAUUSD price ---------------------- */
+
+async function fetchLiveXau(): Promise<number | null> {
+  try {
+    const r = await fetch("https://api.gold-api.com/price/XAU", {
+      headers: { Accept: "application/json" },
+    });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { price?: number };
+    return typeof j.price === "number" ? j.price : null;
+  } catch {
+    return null;
+  }
+}
+
+async function lastSnapshot() {
+  const { data } = await supabaseAdmin
+    .from("swap_xau_snapshots")
+    .select("price, source, username, created_at")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+// Returns the current XAU price to use everywhere. Fetches live, saves snapshot,
+// falls back to last saved if the API fails.
+export const getLiveXauPrice = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const last = await lastSnapshot();
+    // If the last snapshot is a manual override less than 30 min old, prefer it.
+    if (last && last.source === "manual") {
+      const ageMs = Date.now() - new Date(last.created_at).getTime();
+      if (ageMs < 30 * 60 * 1000) {
+        return {
+          price: Number(last.price),
+          source: "manual" as const,
+          updated_at: last.created_at,
+          stale: false,
+          warning: null as string | null,
+        };
+      }
+    }
+    const live = await fetchLiveXau();
+    if (live !== null) {
+      const username = await getUsername(context.userId);
+      const { data: inserted } = await supabaseAdmin
+        .from("swap_xau_snapshots")
+        .insert({ price: live, source: "live", created_by: context.userId, username })
+        .select("created_at")
+        .single();
+      return {
+        price: live,
+        source: "live" as const,
+        updated_at: inserted?.created_at ?? new Date().toISOString(),
+        stale: false,
+        warning: null,
+      };
+    }
+    if (last) {
+      return {
+        price: Number(last.price),
+        source: (last.source as "live" | "manual" | "fallback") ?? "fallback",
+        updated_at: last.created_at,
+        stale: true,
+        warning: "Live price unavailable, using last saved price.",
+      };
+    }
+    return {
+      price: 0,
+      source: "fallback" as const,
+      updated_at: null,
+      stale: true,
+      warning: "Live price unavailable and no saved price yet.",
+    };
+  });
+
+export const setManualXauPrice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ price: z.number().finite().min(0).max(1e6) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("is_admin")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (!prof?.is_admin) throw new Error("Only admins can override the gold price.");
+    const username = await getUsername(context.userId);
+    const { data: row, error } = await supabaseAdmin
+      .from("swap_xau_snapshots")
+      .insert({ price: data.price, source: "manual", created_by: context.userId, username })
+      .select("price, source, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    await logActivity(context.userId, "xau_price_override", null, null, { price: data.price });
+    return {
+      price: Number(row.price),
+      source: "manual" as const,
+      updated_at: row.created_at,
+      stale: false,
+      warning: null as string | null,
+    };
+  });
+

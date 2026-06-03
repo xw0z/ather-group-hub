@@ -30,10 +30,12 @@ import {
   computeMargin,
   createSwapClient,
   deleteSwapClient,
+  getLiveXauPrice,
   listSwapActivityLog,
   listSwapClients,
   listSwapMarginHistory,
   listTodaySwapFees,
+  setManualXauPrice,
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
@@ -113,12 +115,35 @@ function fmt(n: number, d = 2): string {
 
 type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
 
+type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
+
 function SwapDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [tab, setTab] = useState<Tab>("home");
+  const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
+  const [livePriceLoading, setLivePriceLoading] = useState(false);
+
+  const refreshPrice = async () => {
+    setLivePriceLoading(true);
+    try {
+      const r = await getLiveXauPrice();
+      setLivePrice(r);
+    } catch (e) {
+      console.error("Failed to fetch live XAU", e);
+    } finally {
+      setLivePriceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!ready) return;
+    refreshPrice();
+    const id = setInterval(refreshPrice, 2 * 60 * 1000); // every 2 minutes
+    return () => clearInterval(id);
+  }, [ready]);
 
   useEffect(() => {
     let cancelled = false;
@@ -209,8 +234,16 @@ function SwapDashboard() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
-        {tab === "home" && <HomeTab isAdmin={isAdmin} />}
-        {tab === "clients" && <ClientsTab />}
+        {tab === "home" && (
+          <HomeTab
+            isAdmin={isAdmin}
+            livePrice={livePrice}
+            livePriceLoading={livePriceLoading}
+            onRefreshPrice={refreshPrice}
+            onPriceChanged={setLivePrice}
+          />
+        )}
+        {tab === "clients" && <ClientsTab livePrice={livePrice} />}
         {tab === "margin" && <MarginLogTab />}
         {tab === "profile" && <ProfileTab username={username} />}
         {tab === "users" && isAdmin && <UsersTab />}
@@ -246,7 +279,19 @@ function TabBtn({
 
 /* ----------------------------- HOME ----------------------------- */
 
-function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
+function HomeTab({
+  isAdmin,
+  livePrice,
+  livePriceLoading,
+  onRefreshPrice,
+  onPriceChanged,
+}: {
+  isAdmin: boolean;
+  livePrice: LiveXau | null;
+  livePriceLoading: boolean;
+  onRefreshPrice: () => void;
+  onPriceChanged: (p: LiveXau) => void;
+}) {
   const navigate = useNavigate();
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -275,6 +320,14 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-4">
+      <LiveXauCard
+        isAdmin={isAdmin}
+        livePrice={livePrice}
+        loading={livePriceLoading}
+        onRefresh={onRefreshPrice}
+        onPriceChanged={onPriceChanged}
+      />
+
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div>
           <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -394,7 +447,7 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
 
 type MarginFilter = "all" | "enough" | "needed";
 
-function ClientsTab() {
+function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -513,6 +566,12 @@ function ClientsTab() {
     }
   }
 
+  // Live XAU price overrides any per-client saved price for margin math.
+  const effectiveXau = (c: SwapClient): number | null => {
+    if (livePrice && livePrice.price > 0) return livePrice.price;
+    return c.xauusd_price !== null ? Number(c.xauusd_price) : null;
+  };
+
   // Aggregate margin totals
   const totals = useMemo(() => {
     let required = 0;
@@ -523,7 +582,7 @@ function ClientsTab() {
       const m = computeMargin({
         usd_balance: Number(c.usd_balance),
         gold_kg: Number(c.gold_kg ?? 0),
-        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        xauusd_price: effectiveXau(c),
         margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
       });
       required += m.requiredMargin;
@@ -534,7 +593,8 @@ function ClientsTab() {
       }
     }
     return { required, available, shortage, needingCount };
-  }, [clients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, livePrice]);
 
   const filteredClients = useMemo(() => {
     if (filter === "all") return clients;
@@ -542,12 +602,13 @@ function ClientsTab() {
       const m = computeMargin({
         usd_balance: Number(c.usd_balance),
         gold_kg: Number(c.gold_kg ?? 0),
-        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        xauusd_price: effectiveXau(c),
         margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
       });
       return filter === "enough" ? m.status === "enough" : m.status === "needed";
     });
-  }, [clients, filter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, filter, livePrice]);
 
   return (
     <div className="space-y-4">
@@ -737,10 +798,11 @@ function ClientsTab() {
           <ul className="space-y-2">
             {filteredClients.map((c) => {
               const isEditing = editingId === c.id;
+              const xauForCalc = effectiveXau(c);
               const margin = computeMargin({
                 usd_balance: Number(c.usd_balance),
                 gold_kg: Number(c.gold_kg ?? 0),
-                xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+                xauusd_price: xauForCalc,
                 margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
               });
               const needsMargin = margin.status === "needed";
@@ -908,7 +970,7 @@ function ClientsTab() {
                         {/* Margin Details */}
                         <MarginDetails
                           goldKg={Number(c.gold_kg ?? 0)}
-                          xau={c.xauusd_price !== null ? Number(c.xauusd_price) : null}
+                          xau={xauForCalc}
                           marginPct={Number(c.margin_requirement_pct ?? 20)}
                           margin={margin}
                         />
@@ -939,27 +1001,35 @@ function MarginDetails({
   marginPct: number;
   margin: ReturnType<typeof computeMargin>;
 }) {
-  const isEnough = margin.status === "enough";
+  const tier = margin.tier;
+  const tierBorder =
+    tier === "safe"
+      ? "border-green-500/40 bg-green-500/5"
+      : tier === "warning"
+        ? "border-amber-500/40 bg-amber-500/5"
+        : "border-red-500/40 bg-red-500/5";
+  const tierBadge =
+    tier === "safe"
+      ? "bg-green-500/20 text-green-600"
+      : tier === "warning"
+        ? "bg-amber-500/20 text-amber-600"
+        : "bg-red-500/20 text-red-600";
+  const tierLabel =
+    tier === "safe"
+      ? "✓ Safe"
+      : tier === "warning"
+        ? "⚠ Warning"
+        : "⚠ Margin needed";
+  const diffAccent: "green" | "amber" | "red" =
+    tier === "safe" ? "green" : tier === "warning" ? "amber" : "red";
   return (
-    <div
-      className={`mt-3 rounded-md border p-3 ${
-        isEnough
-          ? "border-green-500/40 bg-green-500/5"
-          : "border-red-500/40 bg-red-500/5"
-      }`}
-    >
+    <div className={`mt-3 rounded-md border p-3 ${tierBorder}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
           Margin details
         </div>
-        <span
-          className={`text-[11px] px-2 py-0.5 rounded font-semibold ${
-            isEnough
-              ? "bg-green-500/20 text-green-600"
-              : "bg-red-500/20 text-red-600"
-          }`}
-        >
-          {isEnough ? "✓ Enough margin" : "⚠ Margin needed"}
+        <span className={`text-[11px] px-2 py-0.5 rounded font-semibold ${tierBadge}`}>
+          {tierLabel} · {fmt(margin.marginLevelPct)}%
         </span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -973,10 +1043,11 @@ function MarginDetails({
         <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
         <Row label="Available margin" value={`$${fmt(margin.availableMargin)}`} />
+        <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
-          label={isEnough ? "Extra available" : "Needs to add"}
+          label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
           value={`$${fmt(Math.abs(margin.difference))}`}
-          accent={isEnough ? "green" : "red"}
+          accent={diffAccent}
         />
       </div>
     </div>
@@ -990,7 +1061,7 @@ function Row({
 }: {
   label: string;
   value: string;
-  accent?: "green" | "red";
+  accent?: "green" | "red" | "amber";
 }) {
   return (
     <div
@@ -999,7 +1070,9 @@ function Row({
           ? "bg-green-500/15 text-green-600 font-semibold"
           : accent === "red"
             ? "bg-red-500/15 text-red-600 font-semibold"
-            : "bg-muted/40"
+            : accent === "amber"
+              ? "bg-amber-500/15 text-amber-600 font-semibold"
+              : "bg-muted/40"
       }`}
     >
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1007,6 +1080,114 @@ function Row({
       </span>
       <span className="font-medium">{value}</span>
     </div>
+  );
+}
+
+/* -------------------------- LIVE XAUUSD -------------------------- */
+
+function LiveXauCard({
+  isAdmin,
+  livePrice,
+  loading,
+  onRefresh,
+  onPriceChanged,
+}: {
+  isAdmin: boolean;
+  livePrice: LiveXau | null;
+  loading: boolean;
+  onRefresh: () => void;
+  onPriceChanged: (p: LiveXau) => void;
+}) {
+  const [showOverride, setShowOverride] = useState(false);
+  const [override, setOverride] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function saveOverride(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const price = parseFloat(override);
+    if (!Number.isFinite(price) || price <= 0) {
+      setErr("Enter a valid price.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await setManualXauPrice({ data: { price } });
+      onPriceChanged(r);
+      setOverride("");
+      setShowOverride(false);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const updatedAt = livePrice?.updated_at
+    ? new Date(livePrice.updated_at).toLocaleString()
+    : "—";
+
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+            Live XAUUSD
+          </div>
+          <div className="mt-1 text-2xl font-bold tabular-nums">
+            ${livePrice ? fmt(livePrice.price) : "—"}{" "}
+            <span className="text-xs font-normal text-muted-foreground">/ oz</span>
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Last updated: {updatedAt}
+            {livePrice?.source ? ` · ${livePrice.source}` : ""}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Button size="sm" variant="outline" onClick={onRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowOverride((v) => !v)}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline"
+            >
+              {showOverride ? "Cancel override" : "Admin override"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {livePrice?.warning && (
+        <div className="mt-3 text-xs px-3 py-2 rounded-md bg-amber-500/15 text-amber-700">
+          ⚠ {livePrice.warning}
+        </div>
+      )}
+
+      {isAdmin && showOverride && (
+        <form onSubmit={saveOverride} className="mt-3 flex gap-2 items-end">
+          <div className="flex-1">
+            <Label className="text-xs">Manual XAUUSD ($/oz)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={override}
+              onChange={(e) => setOverride(e.target.value)}
+              placeholder="e.g. 2350"
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={saving}>
+            {saving ? "Saving…" : "Save override"}
+          </Button>
+        </form>
+      )}
+      {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Auto-refreshes every 2 minutes. Used for all margin calculations.
+      </p>
+    </section>
   );
 }
 
