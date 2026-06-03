@@ -1435,16 +1435,19 @@ export function ClientBreakdown({
     const supplier = clients.find((c) => c.name === r.name);
     const fmt: PurityFormat = (supplier?.purity_format as PurityFormat | undefined) ?? "3";
 
+    const fmtNum = (n: number) =>
+      n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     const bars = r.bars.map((b, i) => {
       const w = Number(b.weight_grams);
       const pure = pureGrams(w, b.bafleh_purity, fmt);
       const loss = lossGrams(w, trip.declared_purity, b.bafleh_purity, fmt);
       return {
         index: i + 1,
-        weight: w.toFixed(2),
+        weight: fmtNum(w),
         purity: formatPurityValue(b.bafleh_purity, fmt),
-        pure: pure.toFixed(2),
-        loss: loss.toFixed(2),
+        pure: fmtNum(pure),
+        loss: fmtNum(loss),
         lossClass: (loss > 0 ? "red" : loss < 0 ? "green" : "") as "red" | "green" | "",
       };
     });
@@ -1458,8 +1461,8 @@ export function ClientBreakdown({
       reportId,
       reportSerial,
       barsCount: r.bars.length,
-      totalWeight: r.totalWeight.toFixed(2),
-      totalLoss: r.totalLoss.toFixed(2),
+      totalWeight: fmtNum(r.totalWeight),
+      totalLoss: fmtNum(r.totalLoss),
       totalLossClass: (r.totalLoss > 0 ? "red" : "green") as "red" | "green",
       bars,
       signatureName: "Ather Quality",
