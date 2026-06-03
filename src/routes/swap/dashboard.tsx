@@ -942,6 +942,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
         },
       });
       setEditingId(null);
+      invalidate(CK.todayFees, CK.margin, CK.activity);
       load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
