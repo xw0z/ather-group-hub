@@ -206,12 +206,13 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           </div>
           <div
             style={{
-              fontFamily: '"DM Serif Display", serif',
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: 204,
               lineHeight: 0.95,
               marginTop: 18,
               color: "#1C2431",
-              fontWeight: 400,
+              fontWeight: 700,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             {data.clientCode}
