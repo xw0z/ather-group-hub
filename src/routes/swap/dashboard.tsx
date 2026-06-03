@@ -50,6 +50,7 @@ import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
+import { UsersPanel } from "@/components/swap/UsersPanel";
 
 const TAB_VALUES = [
   "dashboard",
