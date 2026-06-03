@@ -1476,6 +1476,217 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   );
 }
 
+/* ---------------------------- MARGIN ---------------------------- */
+
+function MarginTab({
+  livePrice,
+  showLiveCard,
+  isAdmin,
+  livePriceLoading,
+  onRefreshPrice,
+  onPriceChanged,
+}: {
+  livePrice: LiveXau | null;
+  showLiveCard: boolean;
+  isAdmin?: boolean;
+  livePriceLoading?: boolean;
+  onRefreshPrice?: () => void;
+  onPriceChanged?: (p: LiveXau) => void;
+}) {
+  const navigate = useNavigate();
+  const [clients, setClients] = useState<SwapClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await listSwapClients();
+        setClients(data as SwapClient[]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const effectiveXau = (c: SwapClient): number | null => {
+    if (livePrice && livePrice.price > 0) return livePrice.price;
+    return c.xauusd_price !== null ? Number(c.xauusd_price) : null;
+  };
+
+  const totals = useMemo(() => {
+    let required = 0;
+    let available = 0;
+    let shortage = 0;
+    let needingCount = 0;
+    let totalUsd = 0;
+    let totalGoldKg = 0;
+    let totalGoldValue = 0;
+    let totalEquity = 0;
+    for (const c of clients) {
+      const m = computeMargin({
+        usd_balance: Number(c.usd_balance),
+        gold_kg: Number(c.gold_kg ?? 0),
+        xauusd_price: effectiveXau(c),
+        margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+      });
+      required += m.requiredMargin;
+      available += m.availableMargin;
+      totalUsd += Number(c.usd_balance);
+      totalGoldKg += Number(c.gold_kg ?? 0);
+      totalGoldValue += m.goldValue;
+      totalEquity += m.equity;
+      if (m.status === "needed") {
+        shortage += Math.abs(m.difference);
+        needingCount += 1;
+      }
+    }
+    return {
+      required,
+      available,
+      shortage,
+      needingCount,
+      totalUsd,
+      totalGoldKg,
+      totalGoldValue,
+      totalEquity,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, livePrice]);
+
+  return (
+    <div className="space-y-4">
+      {showLiveCard && onRefreshPrice && onPriceChanged && (
+        <LiveXauCard
+          isAdmin={!!isAdmin}
+          livePrice={livePrice}
+          loading={!!livePriceLoading}
+          onRefresh={onRefreshPrice}
+          onPriceChanged={onPriceChanged}
+        />
+      )}
+
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold flex items-center gap-2 mb-3">
+          <ShieldCheck className="h-4 w-4 text-primary" /> Margin overview
+        </h2>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total USD balance</div>
+            <div className="font-semibold">${fmt(totals.totalUsd)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total gold balance</div>
+            <div className="font-semibold">{fmt(totals.totalGoldKg * 1000, 0)} g</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Gold valuation</div>
+            <div className="font-semibold">${fmt(totals.totalGoldValue)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total equity</div>
+            <div className="font-semibold">${fmt(totals.totalEquity)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total required</div>
+            <div className="font-semibold">${fmt(totals.required)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total available</div>
+            <div className="font-semibold">${fmt(totals.available)}</div>
+          </div>
+          <div
+            className={`rounded-md px-3 py-2 ${
+              totals.shortage > 0
+                ? "bg-red-500/15 text-red-600"
+                : "bg-green-500/15 text-green-600"
+            }`}
+          >
+            <div className="text-[11px] opacity-80">Total shortage</div>
+            <div className="font-semibold">${fmt(totals.shortage)}</div>
+          </div>
+          <div
+            className={`rounded-md px-3 py-2 ${
+              totals.needingCount > 0
+                ? "bg-red-500/15 text-red-600"
+                : "bg-green-500/15 text-green-600"
+            }`}
+          >
+            <div className="text-[11px] opacity-80">Clients needing margin</div>
+            <div className="font-semibold">{totals.needingCount}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h3 className="text-sm font-semibold mb-3">Per-client margin</h3>
+        {error && (
+          <p className="text-sm text-destructive mb-2" role="alert">
+            {error}
+          </p>
+        )}
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : clients.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No clients yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {clients.map((c) => {
+              const xauForCalc = effectiveXau(c);
+              const margin = computeMargin({
+                usd_balance: Number(c.usd_balance),
+                gold_kg: Number(c.gold_kg ?? 0),
+                xauusd_price: xauForCalc,
+                margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+              });
+              const needsMargin = margin.status === "needed";
+              return (
+                <li
+                  key={c.id}
+                  className="rounded-md border border-border/60 p-3 bg-background"
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate({ to: "/swap/clients/$clientId", params: { clientId: c.id } })
+                    }
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        <span>{c.code}</span>
+                        {needsMargin && (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
+                            ⚠ Margin needed
+                          </span>
+                        )}
+                        {c.notes ? (
+                          <span className="text-muted-foreground font-normal text-xs">
+                            ({c.notes})
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <MarginDetails
+                      goldKg={Number(c.gold_kg ?? 0)}
+                      xau={xauForCalc}
+                      marginPct={Number(c.margin_requirement_pct ?? 20)}
+                      margin={margin}
+                    />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function MarginDetails({
   goldKg,
   xau,
