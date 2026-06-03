@@ -359,7 +359,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
-              letterSpacing: 1,
+              letterSpacing: 0,
               fontVariantNumeric: "tabular-nums",
             }}
           >
