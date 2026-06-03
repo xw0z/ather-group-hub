@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { createSwapUser, deleteSwapUser, listSwapUsers } from "@/lib/swap-users.functions";
+import { createSwapUser, deleteSwapUser, listSwapUsers, updateSwapUser, resetSwapUserPassword } from "@/lib/swap-users.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
@@ -360,7 +360,22 @@ function UserManagement() {
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-xs"
-                    onClick={() => toast.info("Edit user — coming soon")}
+                    onClick={async () => {
+                      const newUsername = window.prompt("Username:", u.username);
+                      if (newUsername === null) return;
+                      const newEmail = window.prompt("Email (leave blank to clear):", u.email ?? "");
+                      if (newEmail === null) return;
+                      try {
+                        await updateSwapUser({
+                          data: { id: u.id, username: newUsername.trim(), email: newEmail.trim() },
+                        });
+                        toast.success("User updated");
+                        invalidate(CK.users, CK.activity);
+                        load();
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to update user.");
+                      }
+                    }}
                   >
                     Edit
                   </Button>
@@ -368,7 +383,20 @@ function UserManagement() {
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-xs"
-                    onClick={() => toast.info("Password reset — coming soon")}
+                    onClick={async () => {
+                      const pwd = window.prompt(`New password for ${u.username} (min 6 chars):`);
+                      if (pwd === null) return;
+                      if (pwd.length < 6) {
+                        toast.error("Password must be at least 6 characters.");
+                        return;
+                      }
+                      try {
+                        await resetSwapUserPassword({ data: { id: u.id, password: pwd } });
+                        toast.success(`Password reset for ${u.username}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to reset password.");
+                      }
+                    }}
                   >
                     <KeyRound className="h-3 w-3 mr-1" />
                     Reset Password
