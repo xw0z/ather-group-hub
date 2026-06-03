@@ -19,10 +19,22 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SwapIndexRouteImport } from './routes/swap/index'
 import { Route as PurityIndexRouteImport } from './routes/purity/index'
+import { Route as DeskIndexRouteImport } from './routes/desk.index'
 import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
+import { Route as DeskLoginRouteImport } from './routes/desk.login'
+import { Route as DeskAppIndexRouteImport } from './routes/desk.app.index'
 import { Route as SwapClientsClientIdRouteImport } from './routes/swap/clients.$clientId'
 import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
+import { Route as DeskAppUsersRouteImport } from './routes/desk.app.users'
+import { Route as DeskAppSwapRouteImport } from './routes/desk.app.swap'
+import { Route as DeskAppSettingsRouteImport } from './routes/desk.app.settings'
+import { Route as DeskAppReportsRouteImport } from './routes/desk.app.reports'
+import { Route as DeskAppPurityRouteImport } from './routes/desk.app.purity'
+import { Route as DeskAppMarginRouteImport } from './routes/desk.app.margin'
+import { Route as DeskAppDiscountPremiumRouteImport } from './routes/desk.app.discount-premium'
+import { Route as DeskAppDashboardRouteImport } from './routes/desk.app.dashboard'
+import { Route as DeskAppAuditRouteImport } from './routes/desk.app.audit'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
@@ -75,6 +87,11 @@ const PurityIndexRoute = PurityIndexRouteImport.update({
   path: '/purity/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskIndexRoute = DeskIndexRouteImport.update({
+  id: '/desk/',
+  path: '/desk/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SwapDashboardRoute = SwapDashboardRouteImport.update({
   id: '/swap/dashboard',
   path: '/swap/dashboard',
@@ -85,6 +102,16 @@ const PurityDashboardRoute = PurityDashboardRouteImport.update({
   path: '/purity/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskLoginRoute = DeskLoginRouteImport.update({
+  id: '/desk/login',
+  path: '/desk/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppIndexRoute = DeskAppIndexRouteImport.update({
+  id: '/desk/app/',
+  path: '/desk/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SwapClientsClientIdRoute = SwapClientsClientIdRouteImport.update({
   id: '/swap/clients/$clientId',
   path: '/swap/clients/$clientId',
@@ -93,6 +120,51 @@ const SwapClientsClientIdRoute = SwapClientsClientIdRouteImport.update({
 const PurityTripsTripIdRoute = PurityTripsTripIdRouteImport.update({
   id: '/purity/trips/$tripId',
   path: '/purity/trips/$tripId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppUsersRoute = DeskAppUsersRouteImport.update({
+  id: '/desk/app/users',
+  path: '/desk/app/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppSwapRoute = DeskAppSwapRouteImport.update({
+  id: '/desk/app/swap',
+  path: '/desk/app/swap',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppSettingsRoute = DeskAppSettingsRouteImport.update({
+  id: '/desk/app/settings',
+  path: '/desk/app/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppReportsRoute = DeskAppReportsRouteImport.update({
+  id: '/desk/app/reports',
+  path: '/desk/app/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppPurityRoute = DeskAppPurityRouteImport.update({
+  id: '/desk/app/purity',
+  path: '/desk/app/purity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppMarginRoute = DeskAppMarginRouteImport.update({
+  id: '/desk/app/margin',
+  path: '/desk/app/margin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppDiscountPremiumRoute = DeskAppDiscountPremiumRouteImport.update({
+  id: '/desk/app/discount-premium',
+  path: '/desk/app/discount-premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppDashboardRoute = DeskAppDashboardRouteImport.update({
+  id: '/desk/app/dashboard',
+  path: '/desk/app/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskAppAuditRoute = DeskAppAuditRouteImport.update({
+  id: '/desk/app/audit',
+  path: '/desk/app/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksSwapDailyFeesRoute =
@@ -111,12 +183,24 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/desk/login': typeof DeskLoginRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
+  '/desk/': typeof DeskIndexRoute
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
+  '/desk/app/audit': typeof DeskAppAuditRoute
+  '/desk/app/dashboard': typeof DeskAppDashboardRoute
+  '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
+  '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/reports': typeof DeskAppReportsRoute
+  '/desk/app/settings': typeof DeskAppSettingsRoute
+  '/desk/app/swap': typeof DeskAppSwapRoute
+  '/desk/app/users': typeof DeskAppUsersRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
+  '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesByTo {
@@ -128,12 +212,24 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/desk/login': typeof DeskLoginRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
+  '/desk': typeof DeskIndexRoute
   '/purity': typeof PurityIndexRoute
   '/swap': typeof SwapIndexRoute
+  '/desk/app/audit': typeof DeskAppAuditRoute
+  '/desk/app/dashboard': typeof DeskAppDashboardRoute
+  '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
+  '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/reports': typeof DeskAppReportsRoute
+  '/desk/app/settings': typeof DeskAppSettingsRoute
+  '/desk/app/swap': typeof DeskAppSwapRoute
+  '/desk/app/users': typeof DeskAppUsersRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
+  '/desk/app': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRoutesById {
@@ -146,12 +242,24 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/desk/login': typeof DeskLoginRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
+  '/desk/': typeof DeskIndexRoute
   '/purity/': typeof PurityIndexRoute
   '/swap/': typeof SwapIndexRoute
+  '/desk/app/audit': typeof DeskAppAuditRoute
+  '/desk/app/dashboard': typeof DeskAppDashboardRoute
+  '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
+  '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/reports': typeof DeskAppReportsRoute
+  '/desk/app/settings': typeof DeskAppSettingsRoute
+  '/desk/app/swap': typeof DeskAppSwapRoute
+  '/desk/app/users': typeof DeskAppUsersRoute
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
+  '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
 }
 export interface FileRouteTypes {
@@ -165,12 +273,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/margin'
     | '/unauthorized'
+    | '/desk/login'
     | '/purity/dashboard'
     | '/swap/dashboard'
+    | '/desk/'
     | '/purity/'
     | '/swap/'
+    | '/desk/app/audit'
+    | '/desk/app/dashboard'
+    | '/desk/app/discount-premium'
+    | '/desk/app/margin'
+    | '/desk/app/purity'
+    | '/desk/app/reports'
+    | '/desk/app/settings'
+    | '/desk/app/swap'
+    | '/desk/app/users'
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
+    | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -182,12 +302,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/margin'
     | '/unauthorized'
+    | '/desk/login'
     | '/purity/dashboard'
     | '/swap/dashboard'
+    | '/desk'
     | '/purity'
     | '/swap'
+    | '/desk/app/audit'
+    | '/desk/app/dashboard'
+    | '/desk/app/discount-premium'
+    | '/desk/app/margin'
+    | '/desk/app/purity'
+    | '/desk/app/reports'
+    | '/desk/app/settings'
+    | '/desk/app/swap'
+    | '/desk/app/users'
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
+    | '/desk/app'
     | '/api/public/hooks/swap-daily-fees'
   id:
     | '__root__'
@@ -199,12 +331,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/margin'
     | '/unauthorized'
+    | '/desk/login'
     | '/purity/dashboard'
     | '/swap/dashboard'
+    | '/desk/'
     | '/purity/'
     | '/swap/'
+    | '/desk/app/audit'
+    | '/desk/app/dashboard'
+    | '/desk/app/discount-premium'
+    | '/desk/app/margin'
+    | '/desk/app/purity'
+    | '/desk/app/reports'
+    | '/desk/app/settings'
+    | '/desk/app/swap'
+    | '/desk/app/users'
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
+    | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
   fileRoutesById: FileRoutesById
 }
@@ -217,12 +361,24 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MarginRoute: typeof MarginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
+  DeskLoginRoute: typeof DeskLoginRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
   SwapDashboardRoute: typeof SwapDashboardRoute
+  DeskIndexRoute: typeof DeskIndexRoute
   PurityIndexRoute: typeof PurityIndexRoute
   SwapIndexRoute: typeof SwapIndexRoute
+  DeskAppAuditRoute: typeof DeskAppAuditRoute
+  DeskAppDashboardRoute: typeof DeskAppDashboardRoute
+  DeskAppDiscountPremiumRoute: typeof DeskAppDiscountPremiumRoute
+  DeskAppMarginRoute: typeof DeskAppMarginRoute
+  DeskAppPurityRoute: typeof DeskAppPurityRoute
+  DeskAppReportsRoute: typeof DeskAppReportsRoute
+  DeskAppSettingsRoute: typeof DeskAppSettingsRoute
+  DeskAppSwapRoute: typeof DeskAppSwapRoute
+  DeskAppUsersRoute: typeof DeskAppUsersRoute
   PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
   SwapClientsClientIdRoute: typeof SwapClientsClientIdRoute
+  DeskAppIndexRoute: typeof DeskAppIndexRoute
   ApiPublicHooksSwapDailyFeesRoute: typeof ApiPublicHooksSwapDailyFeesRoute
 }
 
@@ -298,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/': {
+      id: '/desk/'
+      path: '/desk'
+      fullPath: '/desk/'
+      preLoaderRoute: typeof DeskIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/swap/dashboard': {
       id: '/swap/dashboard'
       path: '/swap/dashboard'
@@ -312,6 +475,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurityDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/login': {
+      id: '/desk/login'
+      path: '/desk/login'
+      fullPath: '/desk/login'
+      preLoaderRoute: typeof DeskLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/': {
+      id: '/desk/app/'
+      path: '/desk/app'
+      fullPath: '/desk/app/'
+      preLoaderRoute: typeof DeskAppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/swap/clients/$clientId': {
       id: '/swap/clients/$clientId'
       path: '/swap/clients/$clientId'
@@ -324,6 +501,69 @@ declare module '@tanstack/react-router' {
       path: '/purity/trips/$tripId'
       fullPath: '/purity/trips/$tripId'
       preLoaderRoute: typeof PurityTripsTripIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/users': {
+      id: '/desk/app/users'
+      path: '/desk/app/users'
+      fullPath: '/desk/app/users'
+      preLoaderRoute: typeof DeskAppUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/swap': {
+      id: '/desk/app/swap'
+      path: '/desk/app/swap'
+      fullPath: '/desk/app/swap'
+      preLoaderRoute: typeof DeskAppSwapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/settings': {
+      id: '/desk/app/settings'
+      path: '/desk/app/settings'
+      fullPath: '/desk/app/settings'
+      preLoaderRoute: typeof DeskAppSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/reports': {
+      id: '/desk/app/reports'
+      path: '/desk/app/reports'
+      fullPath: '/desk/app/reports'
+      preLoaderRoute: typeof DeskAppReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/purity': {
+      id: '/desk/app/purity'
+      path: '/desk/app/purity'
+      fullPath: '/desk/app/purity'
+      preLoaderRoute: typeof DeskAppPurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/margin': {
+      id: '/desk/app/margin'
+      path: '/desk/app/margin'
+      fullPath: '/desk/app/margin'
+      preLoaderRoute: typeof DeskAppMarginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/discount-premium': {
+      id: '/desk/app/discount-premium'
+      path: '/desk/app/discount-premium'
+      fullPath: '/desk/app/discount-premium'
+      preLoaderRoute: typeof DeskAppDiscountPremiumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/dashboard': {
+      id: '/desk/app/dashboard'
+      path: '/desk/app/dashboard'
+      fullPath: '/desk/app/dashboard'
+      preLoaderRoute: typeof DeskAppDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/app/audit': {
+      id: '/desk/app/audit'
+      path: '/desk/app/audit'
+      fullPath: '/desk/app/audit'
+      preLoaderRoute: typeof DeskAppAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/swap-daily-fees': {
@@ -345,12 +585,24 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MarginRoute: MarginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
+  DeskLoginRoute: DeskLoginRoute,
   PurityDashboardRoute: PurityDashboardRoute,
   SwapDashboardRoute: SwapDashboardRoute,
+  DeskIndexRoute: DeskIndexRoute,
   PurityIndexRoute: PurityIndexRoute,
   SwapIndexRoute: SwapIndexRoute,
+  DeskAppAuditRoute: DeskAppAuditRoute,
+  DeskAppDashboardRoute: DeskAppDashboardRoute,
+  DeskAppDiscountPremiumRoute: DeskAppDiscountPremiumRoute,
+  DeskAppMarginRoute: DeskAppMarginRoute,
+  DeskAppPurityRoute: DeskAppPurityRoute,
+  DeskAppReportsRoute: DeskAppReportsRoute,
+  DeskAppSettingsRoute: DeskAppSettingsRoute,
+  DeskAppSwapRoute: DeskAppSwapRoute,
+  DeskAppUsersRoute: DeskAppUsersRoute,
   PurityTripsTripIdRoute: PurityTripsTripIdRoute,
   SwapClientsClientIdRoute: SwapClientsClientIdRoute,
+  DeskAppIndexRoute: DeskAppIndexRoute,
   ApiPublicHooksSwapDailyFeesRoute: ApiPublicHooksSwapDailyFeesRoute,
 }
 export const routeTree = rootRouteImport

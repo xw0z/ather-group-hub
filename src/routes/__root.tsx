@@ -80,7 +80,8 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPurity = pathname.startsWith("/purity");
   const isSwap = pathname.startsWith("/swap");
-  const hideChrome = isPurity || isSwap;
+  const isDesk = pathname.startsWith("/desk") || pathname === "/login" || pathname === "/app" || pathname === "/margin" || pathname === "/unauthorized";
+  const hideChrome = isPurity || isSwap || isDesk;
   return (
     <QueryClientProvider client={queryClient}>
       {!hideChrome && <SiteHeader />}
