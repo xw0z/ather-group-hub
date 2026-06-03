@@ -286,8 +286,9 @@ async function shareClientMarginReport(
   try {
     const canvas = await html2canvas(stage, {
       backgroundColor: "#1a1a1a",
-      scale: 3,
+      scale: Math.max(4, Math.min(6, (window.devicePixelRatio || 1) * 3)),
       useCORS: true,
+      logging: false,
     });
     const blob: Blob | null = await new Promise((resolve) =>
       canvas.toBlob((b) => resolve(b), "image/png"),
