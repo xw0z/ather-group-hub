@@ -111,7 +111,7 @@ function fmt(n: number, d = 2): string {
   });
 }
 
-type Tab = "home" | "clients" | "profile" | "users" | "logs";
+type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
 
 function SwapDashboard() {
   const navigate = useNavigate();
