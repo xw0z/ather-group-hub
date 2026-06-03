@@ -1,7 +1,9 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
 
 export const Route = createFileRoute("/margin")({
-  beforeLoad: () => {
-    throw redirect({ to: "/swap/dashboard", search: { tab: "margin" } });
-  },
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  }),
+  component: LegacyDeskRedirect,
 });
