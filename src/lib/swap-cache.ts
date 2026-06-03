@@ -31,13 +31,13 @@ export async function cached<T>(
   if (hit?.inflight) return hit.inflight as Promise<T>;
   if (hit && now - hit.ts < ttl) return hit.data as T;
 
-  const p = (async () => {
+  let p!: Promise<T>;
+  p = (async () => {
     try {
       const data = await fn();
       cache.set(key, { data, ts: Date.now() });
       return data;
     } catch (e) {
-      // On error, drop any in-flight marker so a retry can run.
       const cur = cache.get(key);
       if (cur?.inflight === p) {
         if (cur.ts > 0) cache.set(key, { data: cur.data, ts: cur.ts });
