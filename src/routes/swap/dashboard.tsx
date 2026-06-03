@@ -51,6 +51,7 @@ import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
+import { PremiumPanel } from "@/components/swap/PremiumPanel";
 
 const TAB_VALUES = [
   "dashboard",
