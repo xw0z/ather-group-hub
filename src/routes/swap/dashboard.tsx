@@ -974,6 +974,10 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
               return (
                 <li
                   key={c.id}
+                  ref={(el) => {
+                    if (el) cardRefs.current.set(c.id, el);
+                    else cardRefs.current.delete(c.id);
+                  }}
                   className="rounded-md border border-border/60 p-3 bg-background"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -993,7 +997,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         )}
                       </div>
                     )}
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" data-share-hide>
                       {isEditing ? (
                         <>
                           <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
@@ -1009,6 +1013,15 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => share(c)}
+                            disabled={sharingId === c.id}
+                            title="Share margin report"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -1023,6 +1036,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                       )}
                     </div>
                   </div>
+
 
                   {isEditing ? (
                     <div className="grid grid-cols-2 gap-2 mt-2">
