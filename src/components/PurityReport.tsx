@@ -646,15 +646,16 @@ function SummaryCard({
       >
         {icon}
       </div>
-      <div style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</div>
+      <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 34, fontWeight: 600, color: "#555", letterSpacing: 2, textTransform: "uppercase" }}>{label}</div>
       <strong
         style={{
           fontSize: 126,
-          fontWeight: 800,
+          fontWeight: 700,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          fontFamily: "Inter, system-ui, sans-serif",
+          fontFamily: "'Inter', system-ui, sans-serif",
           letterSpacing: 1,
           lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         {value}
