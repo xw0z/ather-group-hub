@@ -154,6 +154,54 @@ export const listSwapUsers = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+export const updateSwapUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        username: usernameRule.optional(),
+        email: z.string().email().max(255).optional().or(z.literal("")),
+        is_admin: z.boolean().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const patch: Record<string, unknown> = {};
+    if (data.username !== undefined) patch.username = data.username.toLowerCase();
+    if (data.email !== undefined) patch.email = data.email === "" ? null : data.email;
+    if (data.is_admin !== undefined) patch.is_admin = data.is_admin;
+    if (Object.keys(patch).length > 0) {
+      const { error } = await supabaseAdmin
+        .from("swap_profiles")
+        .update(patch)
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+    }
+    if (data.email !== undefined && data.email !== "") {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(data.id, {
+        email: data.email,
+      });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const resetSwapUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), password: z.string().min(6).max(128) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.id, {
+      password: data.password,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getCurrentSwapUser = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
