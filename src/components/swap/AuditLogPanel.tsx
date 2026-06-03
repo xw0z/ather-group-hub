@@ -402,7 +402,7 @@ export function AuditLogPanel() {
           <ScrollText className="h-5 w-5 text-primary" />
           <h2 className="text-base font-semibold">Audit Log</h2>
         </div>
-        <Button size="sm" variant="outline" onClick={load}>
+        <Button size="sm" variant="outline" onClick={() => load(true)}>
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>
