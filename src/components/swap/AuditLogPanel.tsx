@@ -176,13 +176,14 @@ export function AuditLogPanel() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<AuditEntry | null>(null);
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     try {
+      if (force) invalidate(CK.activity, CK.margin, CK.clients);
       const [act, margin, clients] = await Promise.all([
-        listSwapActivityLog(),
-        listSwapMarginHistory({ data: {} }),
-        listSwapClients(),
+        cached(CK.activity, () => listSwapActivityLog(), 30_000),
+        cached(CK.margin, () => listSwapMarginHistory({ data: {} }), 30_000),
+        cached(CK.clients, () => listSwapClients(), 60_000),
       ]);
       const byId = new Map<string, { code: string; name?: string }>();
       for (const c of clients as Array<{ id: string; code: string; notes?: string | null }>) {
