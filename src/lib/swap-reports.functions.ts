@@ -215,7 +215,7 @@ export const logReportGeneration = createServerFn({ method: "POST" })
       channel: data.channel,
       generated_by: context.userId,
       generated_by_username: username,
-      details: data.details ?? null,
+      details: (data.details ?? null) as never,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
