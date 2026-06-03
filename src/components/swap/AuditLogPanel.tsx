@@ -23,6 +23,7 @@ import {
   listSwapClients,
   listSwapMarginHistory,
 } from "@/lib/swap-clients.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 /* ------------------------------ Types ------------------------------ */
 
