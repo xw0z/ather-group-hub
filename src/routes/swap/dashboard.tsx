@@ -50,6 +50,7 @@ import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
+import { UsersPanel } from "@/components/swap/UsersPanel";
 
 const TAB_VALUES = [
   "dashboard",
@@ -585,10 +586,7 @@ function SwapDashboard() {
           {effectiveTab === "reports" && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
-            <div className="space-y-5">
-              <UsersTab />
-              <ProfileTab username={username} />
-            </div>
+            <UsersPanel currentUsername={username} />
           )}
           {effectiveTab === "settings" && <SettingsTab />}
         </main>
