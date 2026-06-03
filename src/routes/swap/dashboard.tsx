@@ -634,10 +634,10 @@ function HomeTab({
                       <div className="text-right shrink-0">
                         <div
                           className={`font-semibold ${
-                            isShort ? "text-red-600" : "text-green-600"
+                            isShort ? "text-green-600" : "text-red-600"
                           }`}
                         >
-                          {isShort ? "+" : ""}${fmt(r.base_daily_fee)}
+                          {isShort ? "+" : "-"}${fmt(r.base_daily_fee)}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           {amountLabel}:{" "}
