@@ -457,7 +457,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [goldAmount, setGoldAmount] = useState("0");
-  const [goldUnit, setGoldUnit] = useState<"kg" | "g">("kg");
   const [xau, setXau] = useState("");
   const [marginPct, setMarginPct] = useState("20");
   const [rate, setRate] = useState("5.4");
@@ -469,7 +468,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [editCode, setEditCode] = useState("");
   const [editBalance, setEditBalance] = useState("");
   const [editGoldAmount, setEditGoldAmount] = useState("0");
-  const [editGoldUnit, setEditGoldUnit] = useState<"kg" | "g">("kg");
   const [editXau, setEditXau] = useState("");
   const [editMarginPct, setEditMarginPct] = useState("20");
   const [editRate, setEditRate] = useState("");
@@ -499,10 +497,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
         data: {
           code: code.trim(),
           usd_balance: parseFloat(balance) || 0,
-          gold_kg:
-            goldUnit === "g"
-              ? (parseFloat(goldAmount) || 0) / 1000
-              : parseFloat(goldAmount) || 0,
+          gold_kg: (parseFloat(goldAmount) || 0) / 1000,
           xauusd_price: xau.trim() === "" ? null : parseFloat(xau) || 0,
           margin_requirement_pct: parseFloat(marginPct) || 20,
           annual_rate: parseFloat(rate) || 5.4,
@@ -514,7 +509,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setCode("");
       setBalance("");
       setGoldAmount("0");
-      setGoldUnit("kg");
+      
       setXau("");
       setMarginPct("20");
       setRate("5.4");
@@ -532,8 +527,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     setEditingId(c.id);
     setEditCode(c.code);
     setEditBalance(String(c.usd_balance));
-    setEditGoldAmount(String(c.gold_kg ?? 0));
-    setEditGoldUnit("kg");
+    setEditGoldAmount(String((c.gold_kg ?? 0) * 1000));
     setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
     setEditMarginPct(String(c.margin_requirement_pct ?? 20));
     setEditRate(String(c.annual_rate));
@@ -548,10 +542,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           id,
           code: editCode.trim(),
           usd_balance: parseFloat(editBalance) || 0,
-          gold_kg:
-            editGoldUnit === "g"
-              ? (parseFloat(editGoldAmount) || 0) / 1000
-              : parseFloat(editGoldAmount) || 0,
+          gold_kg: (parseFloat(editGoldAmount) || 0) / 1000,
           xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
           margin_requirement_pct: parseFloat(editMarginPct) || 20,
           annual_rate: parseFloat(editRate) || 5.4,
@@ -753,8 +744,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
               />
             </div>
             <div>
-              <Label className="text-xs">Gold balance</Label>
-              <div className="flex gap-1">
+              <Label className="text-xs">Gold balance (grams)</Label>
+              <div className="flex items-center gap-1">
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -763,19 +754,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                   placeholder="0"
                   className="flex-1"
                 />
-                <select
-                  value={goldUnit}
-                  onChange={(e) => setGoldUnit(e.target.value as "kg" | "g")}
-                  className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-                  aria-label="Gold unit"
-                >
-                  <option value="kg">kg</option>
-                  <option value="g">g</option>
-                </select>
+                <span className="text-sm text-muted-foreground px-2">g</span>
               </div>
-              {goldUnit === "kg" && (parseFloat(goldAmount) || 0) > 100 && (
+              {(parseFloat(goldAmount) || 0) > 100000 && (
                 <p className="text-[11px] text-amber-600 mt-1">
-                  ⚠ Please verify gold unit. Did you mean grams?
+                  ⚠ Over 100,000 g (100 kg). Please verify.
                 </p>
               )}
             </div>
@@ -938,32 +921,21 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Gold balance</Label>
-                        <div className="flex gap-1">
+                        <Label className="text-xs">Gold balance (grams)</Label>
+                        <div className="flex items-center gap-1">
                           <Input
                             type="number"
                             value={editGoldAmount}
                             onChange={(e) => setEditGoldAmount(e.target.value)}
                             className="flex-1"
                           />
-                          <select
-                            value={editGoldUnit}
-                            onChange={(e) =>
-                              setEditGoldUnit(e.target.value as "kg" | "g")
-                            }
-                            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-                            aria-label="Gold unit"
-                          >
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                          </select>
+                          <span className="text-sm text-muted-foreground px-2">g</span>
                         </div>
-                        {editGoldUnit === "kg" &&
-                          (parseFloat(editGoldAmount) || 0) > 100 && (
-                            <p className="text-[11px] text-amber-600 mt-1">
-                              ⚠ Verify unit. Did you mean grams?
-                            </p>
-                          )}
+                        {(parseFloat(editGoldAmount) || 0) > 100000 && (
+                          <p className="text-[11px] text-amber-600 mt-1">
+                            ⚠ Over 100,000 g (100 kg). Please verify.
+                          </p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-xs">XAUUSD ($/oz)</Label>
