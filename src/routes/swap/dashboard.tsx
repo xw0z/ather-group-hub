@@ -1793,19 +1793,6 @@ function MarginLogTab() {
                       <span className="text-foreground/80">{r.username}</span>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => share(r)}
-                    disabled={sharingId === r.id}
-                    title="Share margin report"
-                    className="h-8 gap-1 border-primary/40 text-primary hover:bg-primary/10 shrink-0"
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">
-                      {sharingId === r.id ? "..." : "Share"}
-                    </span>
-                  </Button>
                 </div>
 
                 <ul className="mt-3 space-y-1.5">
