@@ -566,6 +566,12 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     }
   }
 
+  // Live XAU price overrides any per-client saved price for margin math.
+  const effectiveXau = (c: SwapClient): number | null => {
+    if (livePrice && livePrice.price > 0) return livePrice.price;
+    return c.xauusd_price !== null ? Number(c.xauusd_price) : null;
+  };
+
   // Aggregate margin totals
   const totals = useMemo(() => {
     let required = 0;
@@ -576,7 +582,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       const m = computeMargin({
         usd_balance: Number(c.usd_balance),
         gold_kg: Number(c.gold_kg ?? 0),
-        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        xauusd_price: effectiveXau(c),
         margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
       });
       required += m.requiredMargin;
@@ -587,7 +593,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       }
     }
     return { required, available, shortage, needingCount };
-  }, [clients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, livePrice]);
 
   const filteredClients = useMemo(() => {
     if (filter === "all") return clients;
@@ -595,12 +602,13 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       const m = computeMargin({
         usd_balance: Number(c.usd_balance),
         gold_kg: Number(c.gold_kg ?? 0),
-        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        xauusd_price: effectiveXau(c),
         margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
       });
       return filter === "enough" ? m.status === "enough" : m.status === "needed";
     });
-  }, [clients, filter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients, filter, livePrice]);
 
   return (
     <div className="space-y-4">
