@@ -555,7 +555,7 @@ export function SwapDashboard({
           ))}
           {can(perms, "purity", "view") && (
             <a
-              href="/purity/dashboard"
+              href="/desk/app/purity"
               className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
             >
               <ScrollText className="h-4 w-4 mr-2.5" />
@@ -593,7 +593,7 @@ export function SwapDashboard({
               ))}
               {can(perms, "purity", "view") && (
                 <a
-                  href="/purity/dashboard"
+                  href="/desk/app/purity"
                   className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 >
                   <ScrollText className="h-4 w-4 mr-2.5" />
