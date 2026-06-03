@@ -476,7 +476,7 @@ export function SwapDashboard({
     const check = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        navigate({ to: "/swap", replace: true });
+        navigate({ to: "/desk/login", replace: true });
         return;
       }
       try {
@@ -484,14 +484,14 @@ export function SwapDashboard({
         if (cancelled) return;
         if (!me.isSwapUser) {
           await supabase.auth.signOut();
-          navigate({ to: "/swap", replace: true });
+          navigate({ to: "/desk/login", replace: true });
           return;
         }
         setIsAdmin(me.isAdmin);
         setUsername(me.username ?? "");
         setReady(true);
       } catch {
-        navigate({ to: "/swap", replace: true });
+        navigate({ to: "/desk/login", replace: true });
       }
     };
     check();
@@ -502,7 +502,7 @@ export function SwapDashboard({
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/swap", replace: true });
+    navigate({ to: "/desk/login", replace: true });
   };
 
   if (!ready) {
