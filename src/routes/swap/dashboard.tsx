@@ -686,11 +686,8 @@ function AuditLogTab() {
   );
 }
 
-    </button>
-  );
-}
-
 /* ----------------------------- HOME ----------------------------- */
+
 
 function HomeTab({
   isAdmin,
