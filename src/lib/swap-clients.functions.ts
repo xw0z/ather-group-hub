@@ -79,7 +79,7 @@ export const listSwapClients = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("swap_clients")
       .select(
-        "id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes, created_by, created_at, updated_at",
+        "id, code, usd_balance, gold_kg, xauusd_price, margin_requirement_pct, annual_rate, short_annual_rate, position_type, notes, created_by, created_at, updated_at",
       )
       .order("code", { ascending: true });
     if (error) throw new Error(error.message);
@@ -93,6 +93,9 @@ export const createSwapClient = createServerFn({ method: "POST" })
       .object({
         code: codeRule,
         usd_balance: z.number().finite().min(0).max(1e12),
+        gold_kg: z.number().finite().min(0).max(1e6).optional(),
+        xauusd_price: z.number().finite().min(0).max(1e6).optional().nullable(),
+        margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
