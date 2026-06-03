@@ -58,9 +58,16 @@ function buildMessage(
 ): string {
   const isShort = positionType === "short";
   const absFee = Math.abs(dailyFee);
+  const dt = new Date(`${feeDate}T00:00:00Z`);
+  const isWed = dt.getUTCDay() === 3;
+  const baseFee = isWed ? absFee / 3 : absFee;
+  const sign = isShort ? "+" : "-";
   const amountLine = isShort
-    ? `Swap benefit credited: *+$${fmt(absFee)}*`
-    : `Swap fee: *-$${fmt(absFee)}*`;
+    ? `Swap benefit credited: *+$${fmt(baseFee)}*`
+    : `Swap fee: *-$${fmt(baseFee)}*`;
+  const wedLine = isWed
+    ? `\nWednesday 3× applied: *${sign}$${fmt(absFee)}* charged`
+    : "";
   return (
     `Swap Statement — ${feeDate}\n` +
     `Client: ${code}\n` +
@@ -70,7 +77,8 @@ function buildMessage(
     `\n\n` +
     `Balance: ${money(balance)}\n` +
     `Rate: ${fmt(rate)}% p.a.\n` +
-    amountLine
+    amountLine +
+    wedLine
   );
 }
 
