@@ -168,7 +168,7 @@ export const updateSwapUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
-    const patch: Record<string, unknown> = {};
+    const patch: { username?: string; email?: string | null; is_admin?: boolean } = {};
     if (data.username !== undefined) patch.username = data.username.toLowerCase();
     if (data.email !== undefined) patch.email = data.email === "" ? null : data.email;
     if (data.is_admin !== undefined) patch.is_admin = data.is_admin;
