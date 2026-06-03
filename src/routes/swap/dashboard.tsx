@@ -1820,13 +1820,15 @@ function StatusPill({ status }: { status: string | null }) {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Stat({ label, value, accent, tone }: { label: string; value: string; accent?: boolean; tone?: "positive" | "negative" }) {
+  const cls =
+    tone === "negative"
+      ? "bg-red-500/15 text-red-600"
+      : tone === "positive" || accent
+        ? "bg-green-500/15 text-green-600"
+        : "bg-muted/40";
   return (
-    <div
-      className={`rounded-md px-2 py-1.5 ${
-        accent ? "bg-green-500/15 text-green-600" : "bg-muted/40"
-      }`}
-    >
+    <div className={`rounded-md px-2 py-1.5 ${cls}`}>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
