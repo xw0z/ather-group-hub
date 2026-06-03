@@ -279,7 +279,19 @@ function TabBtn({
 
 /* ----------------------------- HOME ----------------------------- */
 
-function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
+function HomeTab({
+  isAdmin,
+  livePrice,
+  livePriceLoading,
+  onRefreshPrice,
+  onPriceChanged,
+}: {
+  isAdmin: boolean;
+  livePrice: LiveXau | null;
+  livePriceLoading: boolean;
+  onRefreshPrice: () => void;
+  onPriceChanged: (p: LiveXau) => void;
+}) {
   const navigate = useNavigate();
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
