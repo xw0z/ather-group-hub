@@ -1617,7 +1617,7 @@ function MarginLogTab() {
   const [loading, setLoading] = useState(true);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareErr, setShareErr] = useState<string | null>(null);
-  const [filter, setFilter] = useState<MarginLogFilter>("all");
+  const [filter, setFilter] = useState<LogFilter>("all");
   const [search, setSearch] = useState("");
 
   async function load() {
@@ -1704,7 +1704,7 @@ function MarginLogTab() {
     }
   }
 
-  const filters: { key: MarginLogFilter; label: string }[] = [
+  const filters: { key: LogFilter; label: string }[] = [
     { key: "all", label: "All Changes" },
     { key: "status", label: "Status" },
     { key: "gold", label: "Gold" },
