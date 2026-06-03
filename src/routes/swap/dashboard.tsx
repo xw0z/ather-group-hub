@@ -457,7 +457,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [goldAmount, setGoldAmount] = useState("0");
-  const [goldUnit, setGoldUnit] = useState<"kg" | "g">("kg");
   const [xau, setXau] = useState("");
   const [marginPct, setMarginPct] = useState("20");
   const [rate, setRate] = useState("5.4");
