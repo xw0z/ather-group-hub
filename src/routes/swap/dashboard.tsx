@@ -112,6 +112,10 @@ function fmt(n: number, d = 2): string {
     maximumFractionDigits: d,
   });
 }
+function fmtMoney(n: number, d = 2): string {
+  const v = Number(n);
+  return `${v < 0 ? "-" : ""}$${fmt(Math.abs(v), d)}`;
+}
 
 type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
 
