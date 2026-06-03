@@ -46,6 +46,7 @@ import {
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { SwapFooter } from "@/components/SwapFooter";
+import { SettingsPanel } from "@/components/swap/SettingsPanel";
 
 const TAB_VALUES = [
   "dashboard",
