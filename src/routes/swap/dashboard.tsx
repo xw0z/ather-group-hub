@@ -527,8 +527,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     setEditingId(c.id);
     setEditCode(c.code);
     setEditBalance(String(c.usd_balance));
-    setEditGoldAmount(String(c.gold_kg ?? 0));
-    setEditGoldUnit("kg");
+    setEditGoldAmount(String((c.gold_kg ?? 0) * 1000));
     setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
     setEditMarginPct(String(c.margin_requirement_pct ?? 20));
     setEditRate(String(c.annual_rate));
