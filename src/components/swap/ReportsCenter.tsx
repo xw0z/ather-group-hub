@@ -438,7 +438,7 @@ export function ReportsCenter() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await listSwapClients();
+        const list = await cached(CK.clients, () => listSwapClients(), 60_000);
         setClients(list as Client[]);
       } finally {
         setLoadingClients(false);
