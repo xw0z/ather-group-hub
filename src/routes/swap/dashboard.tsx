@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import html2canvas from "html2canvas-pro";
 import {
@@ -69,18 +69,30 @@ const TAB_VALUES = [
 ] as const;
 type Tab = (typeof TAB_VALUES)[number];
 
+// Map each tab to its canonical /desk/app/* URL.
+export const TAB_TO_DESK_PATH: Record<Tab, string> = {
+  dashboard: "/desk/app/dashboard",
+  clients: "/desk/app/swap",
+  "swap-fees": "/desk/app/swap",
+  margin: "/desk/app/margin",
+  premium: "/desk/app/discount-premium",
+  reports: "/desk/app/reports",
+  audit: "/desk/app/audit",
+  users: "/desk/app/users",
+  settings: "/desk/app/settings",
+};
+
+// Legacy /swap/dashboard?tab=... → redirect to the new /desk/app/* URL.
 export const Route = createFileRoute("/swap/dashboard")({
   validateSearch: (search: Record<string, unknown>): { tab: Tab } => {
     const t = String(search.tab ?? "dashboard") as Tab;
     return { tab: TAB_VALUES.includes(t) ? t : "dashboard" };
   },
-  head: () => ({
-    meta: [
-      { title: "Ather Margin & Swap" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
-  component: SwapDashboard,
+  beforeLoad: ({ search }) => {
+    const path = TAB_TO_DESK_PATH[search.tab] ?? "/desk/app/dashboard";
+    const sub = search.tab === "swap-fees" ? { view: "fees" as const } : undefined;
+    throw redirect({ to: path as never, search: sub as never, replace: true });
+  },
 });
 
 type SwapUser = {
@@ -400,9 +412,31 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 
-function SwapDashboard() {
+export function SwapDashboard({
+  tab: tabProp,
+  swapView,
+}: {
+  tab?: Tab;
+  swapView?: "clients" | "fees";
+} = {}) {
   const navigate = useNavigate();
-  const { tab } = useSearch({ from: "/swap/dashboard" });
+  // Tab can come from prop (new /desk/app/* routes) or legacy ?tab= search.
+  let searchTab: Tab | undefined;
+  try {
+    const s = useSearch({ strict: false }) as { tab?: string; view?: string };
+    if (s.tab && (TAB_VALUES as readonly string[]).includes(s.tab)) {
+      searchTab = s.tab as Tab;
+    }
+    if (!swapView && s.view === "fees") {
+      swapView = "fees";
+    }
+  } catch {
+    /* no search context */
+  }
+  const baseTab: Tab = tabProp ?? searchTab ?? "dashboard";
+  // /desk/app/swap with ?view=fees renders the swap-fees panel.
+  const tab: Tab = baseTab === "clients" && swapView === "fees" ? "swap-fees" : baseTab;
+
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
@@ -412,7 +446,10 @@ function SwapDashboard() {
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
-    navigate({ to: "/swap/dashboard", search: { tab: next }, replace: false });
+    const path = TAB_TO_DESK_PATH[next];
+    const search = next === "swap-fees" ? { view: "fees" } : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigate({ to: path as any, search: search as any, replace: false });
   };
 
   const refreshPrice = async () => {
@@ -439,7 +476,7 @@ function SwapDashboard() {
     const check = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        navigate({ to: "/swap", replace: true });
+        navigate({ to: "/desk/login", replace: true });
         return;
       }
       try {
@@ -447,14 +484,14 @@ function SwapDashboard() {
         if (cancelled) return;
         if (!me.isSwapUser) {
           await supabase.auth.signOut();
-          navigate({ to: "/swap", replace: true });
+          navigate({ to: "/desk/login", replace: true });
           return;
         }
         setIsAdmin(me.isAdmin);
         setUsername(me.username ?? "");
         setReady(true);
       } catch {
-        navigate({ to: "/swap", replace: true });
+        navigate({ to: "/desk/login", replace: true });
       }
     };
     check();
@@ -465,7 +502,7 @@ function SwapDashboard() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/swap", replace: true });
+    navigate({ to: "/desk/login", replace: true });
   };
 
   if (!ready) {
@@ -518,7 +555,7 @@ function SwapDashboard() {
           ))}
           {can(perms, "purity", "view") && (
             <a
-              href="/purity/dashboard"
+              href="/desk/app/purity"
               className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
             >
               <ScrollText className="h-4 w-4 mr-2.5" />
@@ -556,7 +593,7 @@ function SwapDashboard() {
               ))}
               {can(perms, "purity", "view") && (
                 <a
-                  href="/purity/dashboard"
+                  href="/desk/app/purity"
                   className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 >
                   <ScrollText className="h-4 w-4 mr-2.5" />
