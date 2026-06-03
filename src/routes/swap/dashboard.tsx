@@ -30,10 +30,12 @@ import {
   computeMargin,
   createSwapClient,
   deleteSwapClient,
+  getLiveXauPrice,
   listSwapActivityLog,
   listSwapClients,
   listSwapMarginHistory,
   listTodaySwapFees,
+  setManualXauPrice,
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
