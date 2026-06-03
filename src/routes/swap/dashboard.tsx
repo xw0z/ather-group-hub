@@ -234,8 +234,16 @@ function SwapDashboard() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
-        {tab === "home" && <HomeTab isAdmin={isAdmin} />}
-        {tab === "clients" && <ClientsTab />}
+        {tab === "home" && (
+          <HomeTab
+            isAdmin={isAdmin}
+            livePrice={livePrice}
+            livePriceLoading={livePriceLoading}
+            onRefreshPrice={refreshPrice}
+            onPriceChanged={setLivePrice}
+          />
+        )}
+        {tab === "clients" && <ClientsTab livePrice={livePrice} />}
         {tab === "margin" && <MarginLogTab />}
         {tab === "profile" && <ProfileTab username={username} />}
         {tab === "users" && isAdmin && <UsersTab />}
