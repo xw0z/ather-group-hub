@@ -8,6 +8,7 @@ import {
   updateSwapSettings,
   type SwapSettings,
 } from "@/lib/swap-settings.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 function Field({
   label,
@@ -54,7 +55,7 @@ export function SettingsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const r = await getSwapSettings();
+      const r = await cached(CK.settings, () => getSwapSettings(), 5 * 60_000);
       setSettings(r.settings);
       setIsAdmin(r.isAdmin);
     } catch (e) {
@@ -108,6 +109,7 @@ export function SettingsPanel() {
       const r = await updateSwapSettings({
         data: { patch: p, applyToExistingClients: applyChoice },
       });
+      invalidate(CK.settings, CK.activity, CK.clients);
       setSettings(r.settings);
       setInfo(
         applyChoice

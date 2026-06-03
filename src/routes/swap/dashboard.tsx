@@ -45,6 +45,7 @@ import {
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
@@ -659,7 +660,7 @@ function HomeTab({
   async function load() {
     setLoading(true);
     try {
-      const r = await listTodaySwapFees();
+      const r = await cached(CK.todayFees, () => listTodaySwapFees(), 30_000);
       setData(r);
     } finally {
       setLoading(false);
@@ -862,10 +863,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     }
   }
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     try {
-      const data = await listSwapClients();
+      if (force) invalidate(CK.clients);
+      const data = await cached(CK.clients, () => listSwapClients(), 60_000);
       setClients(data as SwapClient[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load.");
@@ -905,7 +907,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setPositionType("long");
       setNotes("");
       setShowForm(false);
-      load();
+      invalidate(CK.todayFees, CK.margin, CK.activity);
+      load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create.");
     }
@@ -939,7 +942,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
         },
       });
       setEditingId(null);
-      load();
+      invalidate(CK.todayFees, CK.margin, CK.activity);
+      load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save.");
     }
@@ -949,7 +953,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     if (!confirm(`Delete client ${codeStr}?`)) return;
     try {
       await deleteSwapClient({ data: { id } });
-      load();
+      invalidate(CK.todayFees, CK.margin, CK.activity);
+      load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete.");
     }
@@ -1466,7 +1471,7 @@ function MarginTab({
     (async () => {
       setLoading(true);
       try {
-        const data = await listSwapClients();
+        const data = await cached(CK.clients, () => listSwapClients(), 60_000);
         setClients(data as SwapClient[]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load.");
@@ -2000,8 +2005,8 @@ function MarginLogTab() {
     setLoading(true);
     try {
       const [h, c] = await Promise.all([
-        listSwapMarginHistory({ data: {} }),
-        listSwapClients(),
+        cached(CK.margin, () => listSwapMarginHistory({ data: {} }), 30_000),
+        cached(CK.clients, () => listSwapClients(), 60_000),
       ]);
       setRows(h as MarginHistoryRow[]);
       setClients(c as SwapClient[]);
@@ -2286,7 +2291,7 @@ function UsersTab() {
   async function load() {
     setLoading(true);
     try {
-      const data = await listSwapUsers();
+      const data = await cached(CK.users, () => listSwapUsers(), 60_000);
       setUsers(data as SwapUser[]);
       const { data: auth } = await supabase.auth.getUser();
       setCurrentUserId(auth.user?.id ?? "");
@@ -2313,6 +2318,7 @@ function UsersTab() {
       setEmail("");
       setMakeAdmin(false);
       setShowForm(false);
+      invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user.");
@@ -2323,6 +2329,7 @@ function UsersTab() {
     if (!confirm(`Delete user ${name}?`)) return;
     try {
       await deleteSwapUser({ data: { id } });
+      invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete user.");
@@ -2427,10 +2434,11 @@ function LogsTab() {
   const [rows, setRows] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     try {
-      const data = await listSwapActivityLog();
+      if (force) invalidate(CK.activity);
+      const data = await cached(CK.activity, () => listSwapActivityLog(), 30_000);
       setRows(data as ActivityRow[]);
     } finally {
       setLoading(false);
@@ -2444,7 +2452,7 @@ function LogsTab() {
     <section className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold">Activity log</h2>
-        <Button size="sm" variant="outline" onClick={load}>
+        <Button size="sm" variant="outline" onClick={() => load(true)}>
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>

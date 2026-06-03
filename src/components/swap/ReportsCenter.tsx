@@ -26,6 +26,7 @@ import {
   listReportHistory,
   logReportGeneration,
 } from "@/lib/swap-reports.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 // ---------------- shared helpers ----------------
 
@@ -437,7 +438,7 @@ export function ReportsCenter() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await listSwapClients();
+        const list = await cached(CK.clients, () => listSwapClients(), 60_000);
         setClients(list as Client[]);
       } finally {
         setLoadingClients(false);
@@ -1031,11 +1032,12 @@ function HistoryPanel() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | HistoryRow["report_type"]>("all");
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     setError(null);
     try {
-      setRows(await listReportHistory());
+      if (force) invalidate(CK.reports);
+      setRows(await cached(CK.reports, () => listReportHistory(), 30_000));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed.");
     } finally {
@@ -1063,7 +1065,8 @@ function HistoryPanel() {
     <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Report history</h3>
-        <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+        <Button size="sm" variant="ghost" onClick={() => load(true)} disabled={loading}>
+
           Refresh
         </Button>
       </div>
