@@ -47,10 +47,26 @@ import {
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { SwapFooter } from "@/components/SwapFooter";
 
+const TAB_VALUES = [
+  "dashboard",
+  "clients",
+  "swap-fees",
+  "margin",
+  "reports",
+  "audit",
+  "users",
+  "settings",
+] as const;
+type Tab = (typeof TAB_VALUES)[number];
+
 export const Route = createFileRoute("/swap/dashboard")({
+  validateSearch: (search: Record<string, unknown>): { tab: Tab } => {
+    const t = String(search.tab ?? "dashboard") as Tab;
+    return { tab: TAB_VALUES.includes(t) ? t : "dashboard" };
+  },
   head: () => ({
     meta: [
-      { title: "Swap — Dashboard" },
+      { title: "Ather Margin & Swap" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
