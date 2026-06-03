@@ -2005,8 +2005,8 @@ function MarginLogTab() {
     setLoading(true);
     try {
       const [h, c] = await Promise.all([
-        listSwapMarginHistory({ data: {} }),
-        listSwapClients(),
+        cached(CK.margin, () => listSwapMarginHistory({ data: {} }), 30_000),
+        cached(CK.clients, () => listSwapClients(), 60_000),
       ]);
       setRows(h as MarginHistoryRow[]);
       setClients(c as SwapClient[]);
