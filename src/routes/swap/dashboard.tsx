@@ -1624,8 +1624,6 @@ function MarginLogTab() {
   const [rows, setRows] = useState<MarginHistoryRow[]>([]);
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sharingId, setSharingId] = useState<string | null>(null);
-  const [shareErr, setShareErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<LogFilter>("all");
   const [search, setSearch] = useState("");
 
