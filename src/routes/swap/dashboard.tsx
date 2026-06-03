@@ -1511,7 +1511,7 @@ type FieldChange = {
   newStatus?: string | null;
 };
 
-type MarginLogFilter = "all" | "status" | "gold" | "margin" | "balance";
+type LogFilter = "all" | "status" | "gold" | "margin" | "balance";
 
 function statusLabel(s: string | null): string {
   if (!s) return "—";
