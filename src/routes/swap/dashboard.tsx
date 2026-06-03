@@ -1061,7 +1061,7 @@ function Row({
 }: {
   label: string;
   value: string;
-  accent?: "green" | "red";
+  accent?: "green" | "red" | "amber";
 }) {
   return (
     <div
@@ -1070,7 +1070,9 @@ function Row({
           ? "bg-green-500/15 text-green-600 font-semibold"
           : accent === "red"
             ? "bg-red-500/15 text-red-600 font-semibold"
-            : "bg-muted/40"
+            : accent === "amber"
+              ? "bg-amber-500/15 text-amber-600 font-semibold"
+              : "bg-muted/40"
       }`}
     >
       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1078,6 +1080,114 @@ function Row({
       </span>
       <span className="font-medium">{value}</span>
     </div>
+  );
+}
+
+/* -------------------------- LIVE XAUUSD -------------------------- */
+
+function LiveXauCard({
+  isAdmin,
+  livePrice,
+  loading,
+  onRefresh,
+  onPriceChanged,
+}: {
+  isAdmin: boolean;
+  livePrice: LiveXau | null;
+  loading: boolean;
+  onRefresh: () => void;
+  onPriceChanged: (p: LiveXau) => void;
+}) {
+  const [showOverride, setShowOverride] = useState(false);
+  const [override, setOverride] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function saveOverride(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const price = parseFloat(override);
+    if (!Number.isFinite(price) || price <= 0) {
+      setErr("Enter a valid price.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await setManualXauPrice({ data: { price } });
+      onPriceChanged(r);
+      setOverride("");
+      setShowOverride(false);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const updatedAt = livePrice?.updated_at
+    ? new Date(livePrice.updated_at).toLocaleString()
+    : "—";
+
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+            Live XAUUSD
+          </div>
+          <div className="mt-1 text-2xl font-bold tabular-nums">
+            ${livePrice ? fmt(livePrice.price) : "—"}{" "}
+            <span className="text-xs font-normal text-muted-foreground">/ oz</span>
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            Last updated: {updatedAt}
+            {livePrice?.source ? ` · ${livePrice.source}` : ""}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Button size="sm" variant="outline" onClick={onRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowOverride((v) => !v)}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline"
+            >
+              {showOverride ? "Cancel override" : "Admin override"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {livePrice?.warning && (
+        <div className="mt-3 text-xs px-3 py-2 rounded-md bg-amber-500/15 text-amber-700">
+          ⚠ {livePrice.warning}
+        </div>
+      )}
+
+      {isAdmin && showOverride && (
+        <form onSubmit={saveOverride} className="mt-3 flex gap-2 items-end">
+          <div className="flex-1">
+            <Label className="text-xs">Manual XAUUSD ($/oz)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={override}
+              onChange={(e) => setOverride(e.target.value)}
+              placeholder="e.g. 2350"
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={saving}>
+            {saving ? "Saving…" : "Save override"}
+          </Button>
+        </form>
+      )}
+      {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Auto-refreshes every 2 minutes. Used for all margin calculations.
+      </p>
+    </section>
   );
 }
 
