@@ -115,12 +115,35 @@ function fmt(n: number, d = 2): string {
 
 type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
 
+type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
+
 function SwapDashboard() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [tab, setTab] = useState<Tab>("home");
+  const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
+  const [livePriceLoading, setLivePriceLoading] = useState(false);
+
+  const refreshPrice = async () => {
+    setLivePriceLoading(true);
+    try {
+      const r = await getLiveXauPrice();
+      setLivePrice(r);
+    } catch (e) {
+      console.error("Failed to fetch live XAU", e);
+    } finally {
+      setLivePriceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!ready) return;
+    refreshPrice();
+    const id = setInterval(refreshPrice, 2 * 60 * 1000); // every 2 minutes
+    return () => clearInterval(id);
+  }, [ready]);
 
   useEffect(() => {
     let cancelled = false;
