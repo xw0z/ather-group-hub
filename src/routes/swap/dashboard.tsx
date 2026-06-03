@@ -552,6 +552,15 @@ function SwapDashboard() {
               {visibleNav.map((n) => (
                 <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
               ))}
+              {can(perms, "purity", "view") && (
+                <a
+                  href="/purity/dashboard"
+                  className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                >
+                  <ScrollText className="h-4 w-4 mr-2.5" />
+                  Purity
+                </a>
+              )}
             </nav>
             <div className="pt-3 border-t border-border/60 mt-3">
               <p className="text-[11px] text-muted-foreground truncate">
