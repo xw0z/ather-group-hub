@@ -540,7 +540,14 @@ async function sendDailyWhatsAppStatements(
     const isShort = (f.position_type ?? "long") === "short";
     const amountLabel = isShort ? "Swap benefit credited" : "Swap fee";
     const absFee = Math.abs(Number(f.daily_fee));
-    const amountFmt = isShort ? `*+$${fmtNum(absFee)}*` : `*-$${fmtNum(absFee)}*`;
+    const dt = new Date(`${feeDate}T00:00:00Z`);
+    const isWed = dt.getUTCDay() === 3;
+    const baseFee = isWed ? absFee / 3 : absFee;
+    const sign = isShort ? "+" : "-";
+    const amountFmt = `*${sign}$${fmtNum(baseFee)}*`;
+    const wedLine = isWed
+      ? `\nWednesday 3× applied: *${sign}$${fmtNum(absFee)}* charged`
+      : "";
     const bal = Number(f.usd_balance);
     const balStr = `${bal < 0 ? "-" : ""}$${fmtNum(Math.abs(bal))}`;
     const body =
@@ -552,7 +559,7 @@ async function sendDailyWhatsAppStatements(
       `\n\n` +
       `Balance: ${balStr}\n` +
       `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
-      `${amountLabel}: ${amountFmt}`;
+      `${amountLabel}: ${amountFmt}${wedLine}`;
 
     try {
       const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
