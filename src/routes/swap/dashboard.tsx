@@ -242,7 +242,6 @@ async function shareClientMarginReport(
       <div>
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Client Code</div>
         <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${client.code}</div>
-        ${client.name ? `<div style="font-size:13px;color:#d9d4cc;margin-top:2px">${client.name}</div>` : ""}
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>
