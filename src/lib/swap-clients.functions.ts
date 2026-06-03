@@ -116,7 +116,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
     z
       .object({
         code: codeRule,
-        usd_balance: z.number().finite().min(0).max(1e12),
+        usd_balance: z.number().finite().min(-1e12).max(1e12),
         gold_kg: z.number().finite().min(0).max(1e6).optional(),
         xauusd_price: z.number().finite().min(0).max(1e6).optional().nullable(),
         margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
