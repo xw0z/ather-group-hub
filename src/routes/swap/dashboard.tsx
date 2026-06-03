@@ -548,7 +548,10 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           id,
           code: editCode.trim(),
           usd_balance: parseFloat(editBalance) || 0,
-          gold_kg: parseFloat(editGoldKg) || 0,
+          gold_kg:
+            editGoldUnit === "g"
+              ? (parseFloat(editGoldAmount) || 0) / 1000
+              : parseFloat(editGoldAmount) || 0,
           xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
           margin_requirement_pct: parseFloat(editMarginPct) || 20,
           annual_rate: parseFloat(editRate) || 5.4,
