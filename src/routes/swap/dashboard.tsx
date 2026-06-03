@@ -52,6 +52,9 @@ import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
+import type { AppModule } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
+import { useMyPermissions } from "@/hooks/use-my-permissions";
 
 const TAB_VALUES = [
   "dashboard",
@@ -372,24 +375,30 @@ async function shareClientMarginReport(
 
 type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
 
+
+
+
 type NavItem = {
   key: Tab;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  module?: AppModule; // when set, requires `view` permission on this module
   adminOnly?: boolean;
+  external?: string; // external link (e.g. /purity/dashboard)
 };
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: Home },
-  { key: "clients", label: "Clients", icon: UsersIcon },
-  { key: "swap-fees", label: "Swap Fees", icon: DollarSign },
-  { key: "margin", label: "Margin", icon: ShieldCheck },
-  { key: "premium", label: "Discount / Premium", icon: TrendingUp },
-  { key: "reports", label: "Reports", icon: FileText },
-  { key: "audit", label: "Audit Log", icon: ScrollText, adminOnly: true },
-  { key: "users", label: "Users", icon: UserPlus, adminOnly: true },
-  { key: "settings", label: "Settings", icon: SettingsIcon },
+  { key: "clients", label: "Clients", icon: UsersIcon, module: "swap" },
+  { key: "swap-fees", label: "Swap Fees", icon: DollarSign, module: "swap" },
+  { key: "margin", label: "Margin", icon: ShieldCheck, module: "margin" },
+  { key: "premium", label: "Discount / Premium", icon: TrendingUp, module: "premium" },
+  { key: "reports", label: "Reports", icon: FileText, module: "reports" },
+  { key: "audit", label: "Audit Log", icon: ScrollText, module: "audit", adminOnly: true },
+  { key: "users", label: "Users", icon: UserPlus, module: "users", adminOnly: true },
+  { key: "settings", label: "Settings", icon: SettingsIcon, module: "settings" },
 ];
+
 
 function SwapDashboard() {
   const navigate = useNavigate();
@@ -467,12 +476,22 @@ function SwapDashboard() {
     );
   }
 
-  const visibleNav = NAV_ITEMS.filter((n) => !n.adminOnly || isAdmin);
+  const { perms } = useMyPermissions();
+  const visibleNav = NAV_ITEMS.filter((n) => {
+    if (n.adminOnly && !isAdmin) return false;
+    if (!n.module) return true; // dashboard always visible
+    return can(perms, n.module, "view");
+  });
   const currentLabel = NAV_ITEMS.find((n) => n.key === tab)?.label ?? "Dashboard";
 
-  // Admin-gate guard for restricted tabs
-  const effectiveTab: Tab =
-    !isAdmin && (tab === "audit" || tab === "users") ? "dashboard" : tab;
+  // Permission gate: if the user can't view the requested tab, fall back to dashboard
+  const requested = NAV_ITEMS.find((n) => n.key === tab);
+  const tabAllowed =
+    !requested ||
+    !requested.module ||
+    (requested.adminOnly ? isAdmin : true) && can(perms, requested.module, "view");
+  const effectiveTab: Tab = tabAllowed ? tab : "dashboard";
+
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
@@ -497,6 +516,15 @@ function SwapDashboard() {
           {visibleNav.map((n) => (
             <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
           ))}
+          {can(perms, "purity", "view") && (
+            <a
+              href="/purity/dashboard"
+              className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
+            >
+              <ScrollText className="h-4 w-4 mr-2.5" />
+              Purity
+            </a>
+          )}
         </nav>
         <div className="p-3 border-t border-border/60">
           <p className="text-[11px] text-muted-foreground truncate">
@@ -526,6 +554,15 @@ function SwapDashboard() {
               {visibleNav.map((n) => (
                 <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
               ))}
+              {can(perms, "purity", "view") && (
+                <a
+                  href="/purity/dashboard"
+                  className="w-full inline-flex items-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                >
+                  <ScrollText className="h-4 w-4 mr-2.5" />
+                  Purity
+                </a>
+              )}
             </nav>
             <div className="pt-3 border-t border-border/60 mt-3">
               <p className="text-[11px] text-muted-foreground truncate">

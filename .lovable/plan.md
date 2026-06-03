@@ -1,86 +1,130 @@
-# Ather Margin & Swap — Restructure Plan
+## Goal
 
-Rename internal app to **Ather Margin & Swap**. Keep `/swap` as primary URL; add `/margin` as alias. Preserve every existing calculation (daily swap fees, Wed multiplier, weekend skip, margin level, status). This is a **reorganization**, not a rewrite of business logic.
+Merge the currently separate **Purity** dashboard (`/purity/*`) and **Ather Margin & Swap** dashboard (`/swap/*`) into a single unified admin platform with one login, one user database, one audit log, one reports center, and per-user **module permissions**.
 
-## 1. Routing layout (hybrid sidebar shell)
+---
 
-```text
-src/routes/_authenticated/swap/
-  route.tsx                ← sidebar shell + <Outlet/> (auth-gated)
-  index.tsx                ← redirects to ./dashboard
-  dashboard.tsx            ← Swap overview + Margin overview cards
-  clients.tsx              ← Clients list (Swap + Margin per client)
-  clients.$clientId.tsx    ← (existing detail, kept)
-  swap-fees.tsx            ← Daily fees, history, totals, export
-  margin.tsx               ← Live XAU, balances, equity, status
-  reports.tsx              ← Swap / Margin / Combined; PNG, PDF, WhatsApp
-  audit.tsx                ← Unified swap_activity_log + swap_margin_history
-  users.tsx                ← Full user mgmt (admin-only)
-  settings.tsx             ← Placeholder "Coming soon"
+## Modules & permission matrix
 
-src/routes/_authenticated/margin/
-  index.tsx                ← redirects to /swap (alias entry)
+Each user gets an assigned set of modules. Per module, fine-grained permissions:
+
+| Permission | Meaning |
+|---|---|
+| `view` | See the module in sidebar + open it |
+| `create` | Add new records |
+| `edit` | Modify existing records |
+| `delete` | Remove records |
+| `export` | Download reports / CSVs |
+| `share` | Send WhatsApp / shareable links |
+
+Modules: `purity`, `margin`, `swap`, `premium`, `reports`, `audit`, `users`, `settings`.
+
+Administrators implicitly get everything (no row needed; `is_admin = true` short-circuits all checks).
+
+---
+
+## Database changes (one migration)
+
+1. **Unify profiles** — keep `swap_profiles` as the single profile table (already linked to `auth.users`). Backfill any `purity_profiles` users into it; drop `purity_profiles` after.
+2. **New table `user_module_permissions`**:
+   - `user_id uuid → auth.users`
+   - `module text` (enum-checked: purity/margin/swap/premium/reports/audit/users/settings)
+   - `can_view bool`, `can_create bool`, `can_edit bool`, `can_delete bool`, `can_export bool`, `can_share bool`
+   - PK `(user_id, module)`
+   - RLS: user can read their own row; admins can read/write all (via existing `is_swap_user` + new `is_swap_admin` security-definer).
+3. **Update existing RLS** on `purity_*` tables to check membership in unified profiles + `has_module_permission(uid, 'purity', 'view')` instead of separate purity_profiles.
+4. **Audit log unification** — keep `swap_activity_log`, add a `module text` column; migrate `purity_activity_log` rows in then drop it.
+
+---
+
+## Routing & auth changes
+
+- **Single login page** at `/login` (replace `/swap/index.tsx` + `/purity/index.tsx` logins). Both old routes redirect to `/login`.
+- **Single authenticated shell** at new route `/_authenticated/app/*` with a unified sidebar listing only modules the user has `view` permission for.
+- Move existing dashboards under one shell:
+  - `/app/purity` → current PurityDashboard panels
+  - `/app/margin`, `/app/swap`, `/app/premium`, `/app/clients/:id`, `/app/reports`, `/app/audit`, `/app/users`, `/app/settings`
+- Old `/purity/dashboard` and `/swap/dashboard` redirect into the new shell (preserve bookmarks).
+- **Route guard** (`beforeLoad` on each module route) calls `requireModulePermission('purity', 'view')` server-fn → throws `redirect({ to: '/unauthorized' })` if denied.
+- New `/unauthorized` page with same dark theme.
+
+---
+
+## Permission enforcement (defense in depth)
+
+1. **Client sidebar**: filter nav items by `useModulePermissions()` hook (loaded once at app shell mount, cached).
+2. **Route guard**: `beforeLoad` redirects to `/unauthorized`.
+3. **Server functions**: every mutating server-fn calls a shared `assertPermission(ctx, module, action)` helper that reads `user_module_permissions` (or `is_admin`) and throws on miss. This is the real security boundary — RLS is the backstop.
+4. **UI affordances**: Create/Edit/Delete/Export/Share buttons hidden when the corresponding permission is false.
+
+---
+
+## User Management redesign
+
+Add a **Module Permissions** section to each user card in `UsersPanel`:
+
+```
+┌─ Module Permissions ───────────────────────────┐
+│  Module      View Create Edit Delete Export Share │
+│  Purity       [x]  [x]   [x]  [ ]    [x]   [x]   │
+│  Margin       [ ]  [ ]   [ ]  [ ]    [ ]   [ ]   │
+│  Swap         [ ]  [ ]   [ ]  [ ]    [ ]   [ ]   │
+│  …                                               │
+│                              [Save Permissions]  │
+└──────────────────────────────────────────────────┘
 ```
 
-The existing `src/routes/swap/dashboard.tsx` becomes the **source of components** — its tab sections are extracted into the new route files. Old route stays as a redirect to `/swap/dashboard` for any bookmarks.
+Quick-apply presets dropdown: "Purity only", "Swap full", "Reports viewer", "Administrator".
 
-## 2. Logic preserved verbatim
+Seed initial permissions per your spec:
+- **Wassim, SIF, Moussa** → purity only (view/create/edit/export/share)
+- **Salah** → purity + margin + swap + reports (view/create/edit/export/share, no delete)
+- **Khalil** → `is_admin = true` (everything)
 
-- `runDailyFeeJob`, per-client daily fee computation, Wednesday 3-day multiplier, Saturday/Sunday skip → unchanged in `src/lib/swap-clients.functions.ts`.
-- Margin level / required margin / status derivation → moved as-is into `margin.tsx`.
-- Cron endpoint `/api/public/hooks/swap-daily-fees` → unchanged.
+---
 
-## 3. New: Users page (admin only)
+## Branding
 
-Table-based list of `swap_profiles` showing:
-- Username, email, role (Admin/Staff), last login, activity count
-- Actions: Create, Edit, Disable, Delete (admin), Send password reset
+Unified shell uses the existing Ather dark theme (already shared across Swap module). Purity panels keep their internal styling but adopt the same sidebar, header, and card primitives. Sidebar shows an Ather logo + user avatar + module switcher.
 
-Role gate: only `is_admin = true` can open the Users route or perform any of these actions. Staff visiting `/swap/users` see "Access denied".
+---
 
-**Required DB change (one migration):**
-- Add `last_sign_in_at` mirror column to `swap_profiles` (synced from `auth.users`) OR query `auth.users` via a security-definer function. I'll use a SECURITY DEFINER function `get_swap_users_overview()` returning username/email/is_admin/last_sign_in/activity_count to avoid touching auth schema.
-- No new role table needed — `is_admin` already exists. Staff = `is_admin = false`.
+## File plan
 
-## 4. Audit Log page
+**New**
+- `supabase/migrations/<ts>_unify_platform.sql` (profiles unify + permissions table + RLS + audit migration)
+- `src/lib/permissions.ts` (shared `MODULES`, `ACTIONS`, `PermissionMap` types)
+- `src/lib/permissions.functions.ts` (`getMyPermissions`, `setUserPermissions`, `assertPermission`)
+- `src/routes/login.tsx` (unified login)
+- `src/routes/unauthorized.tsx`
+- `src/routes/_authenticated/app/route.tsx` (shell + sidebar)
+- `src/routes/_authenticated/app/{purity,margin,swap,premium,reports,audit,users,settings}.tsx`
+- `src/routes/_authenticated/app/clients.$clientId.tsx`
+- `src/components/app/AppSidebar.tsx`
+- `src/components/app/PermissionGate.tsx` + `usePermissions` hook
+- `src/components/swap/UserPermissionsEditor.tsx`
 
-Single unified feed:
-- Source A: `swap_activity_log` (login, logout, share, generic actions)
-- Source B: `swap_margin_history` (balance/gold/margin changes — already filtered to real changes per prior work)
-- Merge in memory, sort by `created_at` desc.
-- Filters: All / Client / Balances / Margin / Reports / Auth
-- Search: client code, client name, username
-- Admin-only route.
+**Edited**
+- `src/routes/__root.tsx` (single auth listener already there)
+- `src/routes/purity/index.tsx`, `src/routes/swap/index.tsx` → redirect to `/login`
+- `src/routes/purity/dashboard.tsx`, `src/routes/swap/dashboard.tsx` → redirect to `/app/…`
+- `src/components/swap/UsersPanel.tsx` (add permissions editor section)
+- All `*.functions.ts` mutating server fns → wrap with `assertPermission`
 
-## 5. Reports page
+**Removed**
+- `src/routes/swap/clients.$clientId.tsx` (moved into shell)
 
-Three tabs: **Swap Fee Report**, **Margin Report**, **Combined Statement**.
-Each tab: client picker → preview card → PNG / PDF / WhatsApp buttons.
-PNG uses existing html-to-image flow already in `ClientsTab`. PDF added via `jspdf` (lightweight; no native deps). WhatsApp uses existing Twilio path.
+---
 
-## 6. Sidebar shell
+## Estimated scope
 
-`src/routes/_authenticated/swap/route.tsx` renders:
-- Left rail: brand "Ather Margin & Swap", 8 nav links with active state, role-gated (Users hidden for staff).
-- Right: `<Outlet />`.
-- Mobile: collapsible drawer.
+~25 file changes + 1 migration. This is a large refactor that touches auth, routing, RLS, and every server function. I'll ship it in one go but it's the biggest change in the project so far.
 
-## 7. /margin alias
+---
 
-`src/routes/_authenticated/margin/index.tsx` issues `redirect({ to: '/swap/margin' })` in `beforeLoad`. URL stays clean, single source of truth.
+## Confirm before I start
 
-## 8. Out of scope this turn
-
-- Settings UI (placeholder only)
-- New role table / RBAC overhaul (current `is_admin` boolean is sufficient per user)
-- Changing any fee or margin formula
-
-## Technical notes
-
-- One migration: `get_swap_users_overview()` SECURITY DEFINER function + grant to authenticated.
-- New deps: `jspdf` (PDF export).
-- Existing `swap_activity_log` insert points already cover login/share; I'll add inserts on user create/edit/disable in the new Users page.
-- File size: I'll split the current 1800-line `dashboard.tsx` into the new route files rather than copying it whole. Shared helpers (formatters, `Stat`, `Card` wrappers) move to `src/components/swap/`.
-
-Approve and I'll execute in this order: migration → shell + nav → extract pages → Users → Reports/PDF → audit unification → /margin alias.
-
+1. **Login URL**: I'm proposing `/login` as the single entry. Old `/purity` and `/swap` URLs will redirect there. OK?
+2. **New dashboard URL**: `/app/<module>` (e.g. `/app/swap`). OK, or do you prefer keeping `/swap/dashboard`, `/purity/dashboard` and just adding cross-module nav?
+3. **Permission seeding**: I'll seed the five users you named with the permissions listed above. If any of those usernames don't exist yet I'll create them disabled and you can set passwords. OK?
+4. **Audit log**: merge purity audit rows into the swap audit table (single log). Confirm OK to drop `purity_activity_log` after migration.

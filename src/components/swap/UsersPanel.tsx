@@ -21,6 +21,9 @@ import { createSwapUser, deleteSwapUser, listSwapUsers } from "@/lib/swap-users.
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
+import { UserPermissionsEditor } from "@/components/swap/UserPermissionsEditor";
+
+
 
 type SwapUser = {
   id: string;
@@ -382,6 +385,8 @@ function UserManagement() {
                     </Button>
                   )}
                 </div>
+
+                <UserPermissionsEditor userId={u.id} username={u.username} onChanged={load} />
               </article>
             );
           })}

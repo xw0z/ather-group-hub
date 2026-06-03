@@ -665,15 +665,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_module_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_export: boolean
+          can_share: boolean
+          can_view: boolean
+          module: Database["public"]["Enums"]["app_module"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_export?: boolean
+          can_share?: boolean
+          can_view?: boolean
+          module: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_export?: boolean
+          can_share?: boolean
+          can_view?: boolean
+          module?: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_module_permission: {
+        Args: {
+          _action: string
+          _module: Database["public"]["Enums"]["app_module"]
+          _uid: string
+        }
+        Returns: boolean
+      }
+      is_platform_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_module:
+        | "purity"
+        | "margin"
+        | "swap"
+        | "premium"
+        | "reports"
+        | "audit"
+        | "users"
+        | "settings"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -800,6 +853,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_module: [
+        "purity",
+        "margin",
+        "swap",
+        "premium",
+        "reports",
+        "audit",
+        "users",
+        "settings",
+      ],
+    },
   },
 } as const
