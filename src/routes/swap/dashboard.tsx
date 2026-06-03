@@ -1493,10 +1493,36 @@ function MarginTab({
   onRefreshPrice?: () => void;
   onPriceChanged?: (p: LiveXau) => void;
 }) {
-  const navigate = useNavigate();
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  async function shareMargin(c: SwapClient) {
+    setSharingId(c.id);
+    try {
+      const xau =
+        livePrice && livePrice.price > 0
+          ? livePrice.price
+          : Number(c.xauusd_price ?? 0);
+      if (!xau) throw new Error("No XAU price available");
+      await shareClientMarginReport(
+        {
+          code: c.code,
+          name: c.notes ?? null,
+          usd_balance: Number(c.usd_balance),
+          gold_kg: Number(c.gold_kg ?? 0),
+          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+          position_type: c.position_type,
+        },
+        xau,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share.");
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   useEffect(() => {
     (async () => {
