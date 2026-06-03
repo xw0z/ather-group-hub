@@ -567,11 +567,12 @@ const cellStyle: React.CSSProperties = {
   textAlign: "center",
   verticalAlign: "middle",
   borderBottom: "1px solid #E9E2D0",
-  fontFamily: "Inter, system-ui, sans-serif",
+  fontFamily: "'Inter', system-ui, sans-serif",
   fontSize: 38,
-  fontWeight: 500,
+  fontWeight: 600,
   color: "#1c2431",
   padding: "0 12px",
+  fontVariantNumeric: "tabular-nums",
 };
 
 const vStrong: React.CSSProperties = {
