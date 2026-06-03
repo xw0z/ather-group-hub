@@ -243,11 +243,26 @@ function PurityDashboard() {
       }
       setEmail(data.session.user.email ?? "");
       setCurrentUserId(data.session.user.id);
+      // Unified permission gate: must be in purity_profiles OR have purity:view permission OR be platform admin.
       try {
-        const me = await getCurrentPurityUser();
-        if (!cancelled) setIsAdmin(me.isAdmin);
+        const [{ getMyPermissions }, { can }] = await Promise.all([
+          import("@/lib/permissions.functions"),
+          import("@/lib/permissions"),
+        ]);
+        const myPerms = await getMyPermissions().catch(() => null);
+        const isPlatformAdmin = Boolean(myPerms?.isAdmin);
+        const hasPurityPerm = can(myPerms ?? undefined, "purity", "view");
+        try {
+          const me = await getCurrentPurityUser();
+          if (!cancelled) setIsAdmin(me.isAdmin);
+        } catch {
+          if (!isPlatformAdmin && !hasPurityPerm) {
+            navigate({ to: "/unauthorized", replace: true });
+            return;
+          }
+        }
       } catch {
-        /* ignore */
+        /* ignore — fall through */
       }
       await Promise.all([loadClients(), loadTrips(), loadAllPieces()]);
       setReady(true);
@@ -257,6 +272,7 @@ function PurityDashboard() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   async function loadClients() {
     const { data } = await supabase
