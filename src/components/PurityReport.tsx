@@ -347,25 +347,26 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           />
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 38, fontWeight: 700, color: "#555", letterSpacing: 4 }}>
+          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 38, fontWeight: 600, color: "#555", letterSpacing: 4, textTransform: "uppercase" }}>
             AMOUNT TO COMPENSATE
           </div>
           <div
             style={{
-              fontFamily: '"Cormorant Garamond", serif',
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: 254,
               color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
               letterSpacing: 1,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             {data.totalLoss}
             <span style={{ fontSize: 90, marginLeft: 18, color: "#B88A18" }}>g</span>
           </div>
 
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic" }}>
+          <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic", fontWeight: 500 }}>
             of Pure Gold
           </div>
         </div>
