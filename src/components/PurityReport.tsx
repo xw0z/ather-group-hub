@@ -59,6 +59,7 @@ async function waitForFonts() {
       f.load("600 36px 'Inter'"),
       f.load("700 36px 'Inter'"),
       f.load("800 36px 'Inter'"),
+      f.load("400 92px 'Great Vibes'"),
     ]);
     await f.ready;
   } catch (err) {
