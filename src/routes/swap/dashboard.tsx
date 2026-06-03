@@ -2291,7 +2291,7 @@ function UsersTab() {
   async function load() {
     setLoading(true);
     try {
-      const data = await listSwapUsers();
+      const data = await cached(CK.users, () => listSwapUsers(), 60_000);
       setUsers(data as SwapUser[]);
       const { data: auth } = await supabase.auth.getUser();
       setCurrentUserId(auth.user?.id ?? "");
