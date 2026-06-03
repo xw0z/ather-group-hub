@@ -392,14 +392,20 @@ function HomeTab({ isAdmin: _isAdmin }: { isAdmin: boolean }) {
 
 /* ---------------------------- CLIENTS ---------------------------- */
 
+type MarginFilter = "all" | "enough" | "needed";
+
 function ClientsTab() {
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<MarginFilter>("all");
 
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
+  const [goldKg, setGoldKg] = useState("0");
+  const [xau, setXau] = useState("");
+  const [marginPct, setMarginPct] = useState("20");
   const [rate, setRate] = useState("5.4");
   const [shortRate, setShortRate] = useState("2.5");
   const [positionType, setPositionType] = useState<"long" | "short">("long");
@@ -408,6 +414,9 @@ function ClientsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editBalance, setEditBalance] = useState("");
+  const [editGoldKg, setEditGoldKg] = useState("0");
+  const [editXau, setEditXau] = useState("");
+  const [editMarginPct, setEditMarginPct] = useState("20");
   const [editRate, setEditRate] = useState("");
   const [editShortRate, setEditShortRate] = useState("");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
@@ -435,6 +444,9 @@ function ClientsTab() {
         data: {
           code: code.trim(),
           usd_balance: parseFloat(balance) || 0,
+          gold_kg: parseFloat(goldKg) || 0,
+          xauusd_price: xau.trim() === "" ? null : parseFloat(xau) || 0,
+          margin_requirement_pct: parseFloat(marginPct) || 20,
           annual_rate: parseFloat(rate) || 5.4,
           short_annual_rate: parseFloat(shortRate) || 2.5,
           position_type: positionType,
@@ -443,6 +455,9 @@ function ClientsTab() {
       });
       setCode("");
       setBalance("");
+      setGoldKg("0");
+      setXau("");
+      setMarginPct("20");
       setRate("5.4");
       setShortRate("2.5");
       setPositionType("long");
@@ -458,6 +473,9 @@ function ClientsTab() {
     setEditingId(c.id);
     setEditCode(c.code);
     setEditBalance(String(c.usd_balance));
+    setEditGoldKg(String(c.gold_kg ?? 0));
+    setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
+    setEditMarginPct(String(c.margin_requirement_pct ?? 20));
     setEditRate(String(c.annual_rate));
     setEditShortRate(String(c.short_annual_rate ?? 2.5));
     setEditPositionType((c.position_type ?? "long") as "long" | "short");
@@ -470,6 +488,9 @@ function ClientsTab() {
           id,
           code: editCode.trim(),
           usd_balance: parseFloat(editBalance) || 0,
+          gold_kg: parseFloat(editGoldKg) || 0,
+          xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
+          margin_requirement_pct: parseFloat(editMarginPct) || 20,
           annual_rate: parseFloat(editRate) || 5.4,
           short_annual_rate: parseFloat(editShortRate) || 2.5,
           position_type: editPositionType,
@@ -492,243 +513,606 @@ function ClientsTab() {
     }
   }
 
+  // Aggregate margin totals
+  const totals = useMemo(() => {
+    let required = 0;
+    let available = 0;
+    let shortage = 0;
+    let needingCount = 0;
+    for (const c of clients) {
+      const m = computeMargin({
+        usd_balance: Number(c.usd_balance),
+        gold_kg: Number(c.gold_kg ?? 0),
+        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+      });
+      required += m.requiredMargin;
+      available += m.availableMargin;
+      if (m.status === "needed") {
+        shortage += Math.abs(m.difference);
+        needingCount += 1;
+      }
+    }
+    return { required, available, shortage, needingCount };
+  }, [clients]);
+
+  const filteredClients = useMemo(() => {
+    if (filter === "all") return clients;
+    return clients.filter((c) => {
+      const m = computeMargin({
+        usd_balance: Number(c.usd_balance),
+        gold_kg: Number(c.gold_kg ?? 0),
+        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+        margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+      });
+      return filter === "enough" ? m.status === "enough" : m.status === "needed";
+    });
+  }, [clients, filter]);
+
+  return (
+    <div className="space-y-4">
+      {/* Margin totals */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold flex items-center gap-2 mb-3">
+          <ShieldCheck className="h-4 w-4 text-primary" /> Margin overview
+        </h2>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total required</div>
+            <div className="font-semibold">${fmt(totals.required)}</div>
+          </div>
+          <div className="rounded-md bg-muted/40 px-3 py-2">
+            <div className="text-[11px] text-muted-foreground">Total available</div>
+            <div className="font-semibold">${fmt(totals.available)}</div>
+          </div>
+          <div
+            className={`rounded-md px-3 py-2 ${
+              totals.shortage > 0
+                ? "bg-red-500/15 text-red-600"
+                : "bg-green-500/15 text-green-600"
+            }`}
+          >
+            <div className="text-[11px] opacity-80">Total shortage</div>
+            <div className="font-semibold">${fmt(totals.shortage)}</div>
+          </div>
+          <div
+            className={`rounded-md px-3 py-2 ${
+              totals.needingCount > 0
+                ? "bg-red-500/15 text-red-600"
+                : "bg-green-500/15 text-green-600"
+            }`}
+          >
+            <div className="text-[11px] opacity-80">Clients needing margin</div>
+            <div className="font-semibold">{totals.needingCount}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold">Clients</h2>
+          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+            <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "New client"}
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-1 mb-3 flex-wrap">
+          {(["all", "enough", "needed"] as MarginFilter[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                filter === f
+                  ? f === "needed"
+                    ? "border-red-500 bg-red-500/15 text-red-600 font-medium"
+                    : f === "enough"
+                      ? "border-green-500 bg-green-500/15 text-green-600 font-medium"
+                      : "border-primary bg-primary/15 text-foreground font-medium"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f === "all"
+                ? `All (${clients.length})`
+                : f === "enough"
+                  ? `Enough margin (${clients.length - totals.needingCount})`
+                  : `Margin needed (${totals.needingCount})`}
+            </button>
+          ))}
+        </div>
+
+        {showForm && (
+          <form onSubmit={add} className="grid grid-cols-2 gap-2 mb-4 p-3 rounded-md bg-muted/30">
+            <div className="col-span-2">
+              <Label className="text-xs">Client code</Label>
+              <Input value={code} onChange={(e) => setCode(e.target.value)} required />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Position type</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setPositionType("long")}
+                  className={`text-xs rounded-md border px-3 py-2 ${
+                    positionType === "long"
+                      ? "border-primary bg-green-500/15 text-green-600 font-medium"
+                      : "border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  Long / Buy (fee)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPositionType("short")}
+                  className={`text-xs rounded-md border px-3 py-2 ${
+                    positionType === "short"
+                      ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
+                      : "border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  Short / Sell (benefit)
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">USD balance</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={balance}
+                onChange={(e) => setBalance(e.target.value)}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-xs">
+                {positionType === "short" ? "Short benefit %/yr" : "Long fee %/yr"}
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={positionType === "short" ? shortRate : rate}
+                onChange={(e) =>
+                  positionType === "short"
+                    ? setShortRate(e.target.value)
+                    : setRate(e.target.value)
+                }
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Gold balance (kg)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={goldKg}
+                onChange={(e) => setGoldKg(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">XAUUSD price ($/oz)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={xau}
+                onChange={(e) => setXau(e.target.value)}
+                placeholder="auto"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Margin requirement (%)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={marginPct}
+                onChange={(e) => setMarginPct(e.target.value)}
+                placeholder="20"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Name</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Button type="submit" className="w-full">
+                Save client
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {error && (
+          <p className="text-sm text-destructive mb-2" role="alert">
+            {error}
+          </p>
+        )}
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : filteredClients.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No clients to show.</p>
+        ) : (
+          <ul className="space-y-2">
+            {filteredClients.map((c) => {
+              const isEditing = editingId === c.id;
+              const margin = computeMargin({
+                usd_balance: Number(c.usd_balance),
+                gold_kg: Number(c.gold_kg ?? 0),
+                xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+                margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+              });
+              const needsMargin = margin.status === "needed";
+              return (
+                <li
+                  key={c.id}
+                  className="rounded-md border border-border/60 p-3 bg-background"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    {isEditing ? (
+                      <Input
+                        value={editCode}
+                        onChange={(e) => setEditCode(e.target.value)}
+                        className="max-w-[160px]"
+                      />
+                    ) : (
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        <span>{c.code}</span>
+                        {needsMargin && (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
+                            ⚠ Margin needed
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex gap-1">
+                      {isEditing ? (
+                        <>
+                          <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditingId(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => remove(c.id, c.code)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Position type</Label>
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditPositionType("long")}
+                            className={`text-xs rounded-md border px-3 py-2 ${
+                              editPositionType === "long"
+                                ? "border-primary bg-green-500/15 text-green-600 font-medium"
+                                : "border-border/60 text-muted-foreground"
+                            }`}
+                          >
+                            Long / Buy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditPositionType("short")}
+                            className={`text-xs rounded-md border px-3 py-2 ${
+                              editPositionType === "short"
+                                ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
+                                : "border-border/60 text-muted-foreground"
+                            }`}
+                          >
+                            Short / Sell
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">USD balance</Label>
+                        <Input
+                          type="number"
+                          value={editBalance}
+                          onChange={(e) => setEditBalance(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">
+                          {editPositionType === "short" ? "Short benefit %" : "Long fee %"}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={editPositionType === "short" ? editShortRate : editRate}
+                          onChange={(e) =>
+                            editPositionType === "short"
+                              ? setEditShortRate(e.target.value)
+                              : setEditRate(e.target.value)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Gold (kg)</Label>
+                        <Input
+                          type="number"
+                          value={editGoldKg}
+                          onChange={(e) => setEditGoldKg(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">XAUUSD ($/oz)</Label>
+                        <Input
+                          type="number"
+                          value={editXau}
+                          onChange={(e) => setEditXau(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Margin requirement (%)</Label>
+                        <Input
+                          type="number"
+                          value={editMarginPct}
+                          onChange={(e) => setEditMarginPct(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (() => {
+                    const isShort = (c.position_type ?? "long") === "short";
+                    const effRate = isShort
+                      ? Number(c.short_annual_rate ?? 0)
+                      : Number(c.annual_rate);
+                    const daily = (Number(c.usd_balance) * effRate) / 100 / 365;
+                    return (
+                      <>
+                        <div className="mt-2">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              isShort
+                                ? "bg-red-500/15 text-red-600"
+                                : "bg-green-500/15 text-green-600"
+                            }`}
+                          >
+                            {isShort ? "Short / Sell" : "Long / Buy"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                          <Stat label="USD balance" value={`$${fmt(Number(c.usd_balance))}`} />
+                          <Stat
+                            label={isShort ? "Benefit rate" : "Fee rate"}
+                            value={`${fmt(effRate)}%`}
+                          />
+                          <Stat
+                            label={isShort ? "Daily benefit" : "Daily fee"}
+                            value={`${isShort ? "+" : ""}$${fmt(daily)}`}
+                            accent
+                          />
+                        </div>
+
+                        {/* Margin Details */}
+                        <MarginDetails
+                          goldKg={Number(c.gold_kg ?? 0)}
+                          xau={c.xauusd_price !== null ? Number(c.xauusd_price) : null}
+                          marginPct={Number(c.margin_requirement_pct ?? 20)}
+                          margin={margin}
+                        />
+                      </>
+                    );
+                  })()}
+                  {c.notes && (
+                    <div className="text-[11px] text-muted-foreground mt-2">{c.notes}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function MarginDetails({
+  goldKg,
+  xau,
+  marginPct,
+  margin,
+}: {
+  goldKg: number;
+  xau: number | null;
+  marginPct: number;
+  margin: ReturnType<typeof computeMargin>;
+}) {
+  const isEnough = margin.status === "enough";
+  return (
+    <div
+      className={`mt-3 rounded-md border p-3 ${
+        isEnough
+          ? "border-green-500/40 bg-green-500/5"
+          : "border-red-500/40 bg-red-500/5"
+      }`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+          Margin details
+        </div>
+        <span
+          className={`text-[11px] px-2 py-0.5 rounded font-semibold ${
+            isEnough
+              ? "bg-green-500/20 text-green-600"
+              : "bg-red-500/20 text-red-600"
+          }`}
+        >
+          {isEnough ? "✓ Enough margin" : "⚠ Margin needed"}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5 text-xs">
+        <Row label="Gold balance" value={`${fmt(goldKg, 4)} kg`} />
+        <Row
+          label="Gold value (USD)"
+          value={xau !== null ? `$${fmt(margin.goldValue)}` : "—"}
+        />
+        <Row label="XAUUSD price" value={xau !== null ? `$${fmt(xau)}/oz` : "not set"} />
+        <Row label="Margin %" value={`${fmt(marginPct)}%`} />
+        <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
+        <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
+        <Row label="Available margin" value={`$${fmt(margin.availableMargin)}`} />
+        <Row
+          label={isEnough ? "Extra available" : "Needs to add"}
+          value={`$${fmt(Math.abs(margin.difference))}`}
+          accent={isEnough ? "green" : "red"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "green" | "red";
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between rounded px-2 py-1 ${
+        accent === "green"
+          ? "bg-green-500/15 text-green-600 font-semibold"
+          : accent === "red"
+            ? "bg-red-500/15 text-red-600 font-semibold"
+            : "bg-muted/40"
+      }`}
+    >
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+/* -------------------------- MARGIN LOG -------------------------- */
+
+function MarginLogTab() {
+  const [rows, setRows] = useState<MarginHistoryRow[]>([]);
+  const [clients, setClients] = useState<SwapClient[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [h, c] = await Promise.all([listSwapMarginHistory({ data: {} }), listSwapClients()]);
+      setRows(h as MarginHistoryRow[]);
+      setClients(c as SwapClient[]);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  const codeById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of clients) m.set(c.id, c.code);
+    return m;
+  }, [clients]);
+
   return (
     <section className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold">Clients</h2>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          <Plus className="h-4 w-4 mr-1" /> {showForm ? "Cancel" : "New client"}
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <ScrollText className="h-4 w-4 text-primary" /> Margin history
+        </h2>
+        <Button size="sm" variant="outline" onClick={load}>
+          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>
-
-      {showForm && (
-        <form onSubmit={add} className="grid grid-cols-2 gap-2 mb-4 p-3 rounded-md bg-muted/30">
-          <div className="col-span-2">
-            <Label className="text-xs">Client code</Label>
-            <Input value={code} onChange={(e) => setCode(e.target.value)} required />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-xs">Position type</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => setPositionType("long")}
-                className={`text-xs rounded-md border px-3 py-2 ${
-                  positionType === "long"
-                    ? "border-primary bg-green-500/15 text-green-600 font-medium"
-                    : "border-border/60 text-muted-foreground"
-                }`}
-              >
-                Long / Buy (fee)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPositionType("short")}
-                className={`text-xs rounded-md border px-3 py-2 ${
-                  positionType === "short"
-                    ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
-                    : "border-border/60 text-muted-foreground"
-                }`}
-              >
-                Short / Sell (benefit)
-              </button>
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Current USD balance</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-          </div>
-          <div>
-            <Label className="text-xs">
-              {positionType === "short" ? "Short benefit rate %/yr" : "Long fee rate %/yr"}
-            </Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={positionType === "short" ? shortRate : rate}
-              onChange={(e) =>
-                positionType === "short"
-                  ? setShortRate(e.target.value)
-                  : setRate(e.target.value)
-              }
-            />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-xs">Name</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-          <div className="col-span-2">
-            <Button type="submit" className="w-full">
-              Save client
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {error && (
-        <p className="text-sm text-destructive mb-2" role="alert">
-          {error}
-        </p>
-      )}
-
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : clients.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No clients yet.</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No margin changes recorded yet.</p>
       ) : (
         <ul className="space-y-2">
-          {clients.map((c) => {
-            const isEditing = editingId === c.id;
+          {rows.map((r) => {
+            const flipped = r.old_status !== r.new_status;
             return (
               <li
-                key={c.id}
-                className="rounded-md border border-border/60 p-3 bg-background"
+                key={r.id}
+                className="rounded-md border border-border/60 p-3 bg-background text-sm"
               >
                 <div className="flex items-start justify-between gap-2">
-                  {isEditing ? (
-                    <Input
-                      value={editCode}
-                      onChange={(e) => setEditCode(e.target.value)}
-                      className="max-w-[160px]"
-                    />
-                  ) : (
-                    <div className="font-medium">{c.code}</div>
-                  )}
-                  <div className="flex gap-1">
-                    {isEditing ? (
-                      <>
-                        <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setEditingId(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => remove(c.id, c.code)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    )}
+                  <div>
+                    <div className="font-medium">
+                      {codeById.get(r.client_id) ?? r.client_id.slice(0, 8)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      by {r.username} · changed: {r.changed_field}
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {new Date(r.created_at).toLocaleString()}
                   </div>
                 </div>
-
-                {isEditing ? (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="col-span-2">
-                      <Label className="text-xs">Position type</Label>
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditPositionType("long")}
-                          className={`text-xs rounded-md border px-3 py-2 ${
-                            editPositionType === "long"
-                              ? "border-primary bg-green-500/15 text-green-600 font-medium"
-                              : "border-border/60 text-muted-foreground"
-                          }`}
-                        >
-                          Long / Buy
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditPositionType("short")}
-                          className={`text-xs rounded-md border px-3 py-2 ${
-                            editPositionType === "short"
-                              ? "border-red-500 bg-red-500/10 text-red-600 font-medium"
-                              : "border-border/60 text-muted-foreground"
-                          }`}
-                        >
-                          Short / Sell
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-xs">USD balance</Label>
-                      <Input
-                        type="number"
-                        value={editBalance}
-                        onChange={(e) => setEditBalance(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">
-                        {editPositionType === "short"
-                          ? "Short benefit %"
-                          : "Long fee %"}
-                      </Label>
-                      <Input
-                        type="number"
-                        value={editPositionType === "short" ? editShortRate : editRate}
-                        onChange={(e) =>
-                          editPositionType === "short"
-                            ? setEditShortRate(e.target.value)
-                            : setEditRate(e.target.value)
-                        }
-                      />
-                    </div>
+                <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
+                  <StatusPill status={r.old_status} />
+                  <span className="text-muted-foreground">→</span>
+                  <StatusPill status={r.new_status} />
+                  {flipped && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-semibold">
+                      status changed
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-1 mt-2 text-[11px] text-muted-foreground">
+                  <div>
+                    Required: ${fmt(Number(r.old_required_margin ?? 0))} → $
+                    {fmt(Number(r.new_required_margin ?? 0))}
                   </div>
-                ) : (() => {
-                  const isShort = (c.position_type ?? "long") === "short";
-                  const effRate = isShort
-                    ? Number(c.short_annual_rate ?? 0)
-                    : Number(c.annual_rate);
-                  const daily = (Number(c.usd_balance) * effRate) / 100 / 365;
-                  return (
-                    <>
-                      <div className="mt-2">
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded ${
-                            isShort
-                              ? "bg-red-500/15 text-red-600"
-                              : "bg-green-500/15 text-green-600"
-                          }`}
-                        >
-                          {isShort ? "Short / Sell" : "Long / Buy"}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                        <Stat label="USD balance" value={`$${fmt(Number(c.usd_balance))}`} />
-                        <Stat
-                          label={isShort ? "Benefit rate" : "Fee rate"}
-                          value={`${fmt(effRate)}%`}
-                        />
-                        <Stat
-                          label={isShort ? "Daily benefit" : "Daily fee"}
-                          value={`${isShort ? "+" : ""}$${fmt(daily)}`}
-                          accent
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
-                {c.notes && (
-                  <div className="text-[11px] text-muted-foreground mt-2">{c.notes}</div>
-                )}
+                  <div>
+                    Available: ${fmt(Number(r.old_available_margin ?? 0))} → $
+                    {fmt(Number(r.new_available_margin ?? 0))}
+                  </div>
+                </div>
               </li>
             );
           })}
         </ul>
       )}
     </section>
+  );
+}
+
+function StatusPill({ status }: { status: string | null }) {
+  if (!status) return <span className="text-muted-foreground text-[11px]">—</span>;
+  const enough = status === "enough";
+  return (
+    <span
+      className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+        enough ? "bg-green-500/15 text-green-600" : "bg-red-500/15 text-red-600"
+      }`}
+    >
+      {enough ? "Enough" : "Needed"}
+    </span>
   );
 }
 
