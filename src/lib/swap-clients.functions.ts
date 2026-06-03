@@ -553,3 +553,20 @@ async function sendDailyWhatsAppStatements(
   }
   return { sent, failed };
 }
+
+export const listSwapMarginHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ client_id: z.string().uuid().optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data }) => {
+    let q = supabaseAdmin
+      .from("swap_margin_history")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (data.client_id) q = q.eq("client_id", data.client_id);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
