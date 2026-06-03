@@ -363,18 +363,40 @@ async function shareClientMarginReport(
   }
 }
 
-type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
-
 type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
+
+type NavItem = {
+  key: Tab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", label: "Dashboard", icon: Home },
+  { key: "clients", label: "Clients", icon: UsersIcon },
+  { key: "swap-fees", label: "Swap Fees", icon: DollarSign },
+  { key: "margin", label: "Margin", icon: ShieldCheck },
+  { key: "reports", label: "Reports", icon: FileText },
+  { key: "audit", label: "Audit Log", icon: ScrollText, adminOnly: true },
+  { key: "users", label: "Users", icon: UserPlus, adminOnly: true },
+  { key: "settings", label: "Settings", icon: SettingsIcon },
+];
 
 function SwapDashboard() {
   const navigate = useNavigate();
+  const { tab } = useSearch({ from: "/swap/dashboard" });
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
-  const [tab, setTab] = useState<Tab>("home");
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  const setTab = (next: Tab) => {
+    setNavOpen(false);
+    navigate({ to: "/swap/dashboard", search: { tab: next }, replace: false });
+  };
 
   const refreshPrice = async () => {
     setLivePriceLoading(true);
@@ -391,7 +413,7 @@ function SwapDashboard() {
   useEffect(() => {
     if (!ready) return;
     refreshPrice();
-    const id = setInterval(refreshPrice, 2 * 60 * 1000); // every 2 minutes
+    const id = setInterval(refreshPrice, 2 * 60 * 1000);
     return () => clearInterval(id);
   }, [ready]);
 
@@ -437,92 +459,233 @@ function SwapDashboard() {
     );
   }
 
+  const visibleNav = NAV_ITEMS.filter((n) => !n.adminOnly || isAdmin);
+  const currentLabel = NAV_ITEMS.find((n) => n.key === tab)?.label ?? "Dashboard";
+
+  // Admin-gate guard for restricted tabs
+  const effectiveTab: Tab =
+    !isAdmin && (tab === "audit" || tab === "users") ? "dashboard" : tab;
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/60 bg-card/60 sticky top-0 z-10">
-        <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-background text-foreground flex">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden md:flex flex-col w-60 border-r border-border/60 bg-card/40 sticky top-0 h-screen">
+        <div className="px-4 py-4 border-b border-border/60">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-primary/15 border border-primary/40 grid place-items-center">
+            <div className="h-9 w-9 rounded-md bg-primary/15 border border-primary/40 grid place-items-center">
               <DollarSign className="h-4 w-4 text-primary" />
             </div>
-            <div>
-              <p className="text-sm font-semibold">Swap</p>
-              <p className="text-[11px] text-muted-foreground">
-                {username}
-                {isAdmin && " · admin"}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-tight truncate">
+                Ather Margin
+              </p>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                &amp; Swap
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-1" /> Sign out
+        </div>
+        <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+          {visibleNav.map((n) => (
+            <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
+          ))}
+        </nav>
+        <div className="p-3 border-t border-border/60">
+          <p className="text-[11px] text-muted-foreground truncate">
+            {username}
+            {isAdmin && " · admin"}
+          </p>
+          <Button variant="ghost" size="sm" className="w-full justify-start mt-1" onClick={signOut}>
+            <LogOut className="h-4 w-4 mr-2" /> Sign out
           </Button>
         </div>
-        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm overflow-x-auto">
-          <TabBtn active={tab === "home"} onClick={() => setTab("home")}>
-            <Home className="h-4 w-4 mr-1.5" /> Home
-          </TabBtn>
-          <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <UsersIcon className="h-4 w-4 mr-1.5" /> Clients
-          </TabBtn>
-          <TabBtn active={tab === "margin"} onClick={() => setTab("margin")}>
-            <ShieldCheck className="h-4 w-4 mr-1.5" /> Margin log
-          </TabBtn>
-          <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
-            <UserCircle className="h-4 w-4 mr-1.5" /> Profile
-          </TabBtn>
-          {isAdmin && (
-            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-              <UserPlus className="h-4 w-4 mr-1.5" /> Users
-            </TabBtn>
-          )}
-          {isAdmin && (
-            <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
-              <ScrollText className="h-4 w-4 mr-1.5" /> Logs
-            </TabBtn>
-          )}
-        </nav>
-      </header>
+      </aside>
 
-      <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
-        {tab === "home" && (
-          <HomeTab
-            isAdmin={isAdmin}
-            livePrice={livePrice}
-            livePriceLoading={livePriceLoading}
-            onRefreshPrice={refreshPrice}
-            onPriceChanged={setLivePrice}
-          />
-        )}
-        {tab === "clients" && <ClientsTab livePrice={livePrice} />}
-        {tab === "margin" && <MarginLogTab />}
-        {tab === "profile" && <ProfileTab username={username} />}
-        {tab === "users" && isAdmin && <UsersTab />}
-        {tab === "logs" && isAdmin && <LogsTab />}
-      </main>
-      <SwapFooter />
+      {/* Mobile drawer */}
+      {navOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setNavOpen(false)}>
+          <aside
+            className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r border-border/60 p-3 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold">Ather Margin &amp; Swap</p>
+              <Button variant="ghost" size="icon" onClick={() => setNavOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <nav className="flex-1 overflow-y-auto space-y-0.5">
+              {visibleNav.map((n) => (
+                <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
+              ))}
+            </nav>
+            <div className="pt-3 border-t border-border/60 mt-3">
+              <p className="text-[11px] text-muted-foreground truncate">
+                {username}
+                {isAdmin && " · admin"}
+              </p>
+              <Button variant="ghost" size="sm" className="w-full justify-start mt-1" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" /> Sign out
+              </Button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="md:hidden border-b border-border/60 bg-card/60 sticky top-0 z-10">
+          <div className="px-3 py-3 flex items-center justify-between gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setNavOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <p className="text-sm font-semibold truncate">{currentLabel}</p>
+            <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
+          {effectiveTab === "dashboard" && (
+            <HomeTab
+              isAdmin={isAdmin}
+              livePrice={livePrice}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+            />
+          )}
+          {effectiveTab === "clients" && <ClientsTab livePrice={livePrice} />}
+          {effectiveTab === "swap-fees" && (
+            <HomeTab
+              isAdmin={isAdmin}
+              livePrice={livePrice}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+            />
+          )}
+          {effectiveTab === "margin" && <ClientsTab livePrice={livePrice} />}
+          {effectiveTab === "reports" && <ReportsTab />}
+          {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
+          {effectiveTab === "users" && isAdmin && (
+            <div className="space-y-5">
+              <UsersTab />
+              <ProfileTab username={username} />
+            </div>
+          )}
+          {effectiveTab === "settings" && <SettingsTab />}
+        </main>
+        <SwapFooter />
+      </div>
     </div>
   );
 }
 
-function TabBtn({
+function NavBtn({
+  item,
   active,
   onClick,
-  children,
 }: {
+  item: NavItem;
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
 }) {
+  const Icon = item.icon;
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
+      className={`w-full inline-flex items-center px-3 py-2 rounded-md text-sm transition-colors ${
         active
           ? "bg-green-500/15 text-green-600 font-medium"
-          : "text-muted-foreground hover:text-foreground"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
       }`}
     >
-      {children}
+      <Icon className="h-4 w-4 mr-2.5" />
+      {item.label}
+    </button>
+  );
+}
+
+function ReportsTab() {
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-primary" />
+        <h2 className="text-base font-semibold">Reports</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Generate client-facing margin and swap statements.
+      </p>
+      <ul className="text-sm space-y-2 mt-2">
+        <li className="rounded-md border border-border/60 p-3 bg-background">
+          <p className="font-medium">Client margin report</p>
+          <p className="text-[12px] text-muted-foreground mt-1">
+            Open the <span className="font-medium">Clients</span> tab and tap the share
+            icon next to a client to generate a PNG margin report ready to send on WhatsApp.
+          </p>
+        </li>
+        <li className="rounded-md border border-border/60 p-3 bg-background">
+          <p className="font-medium">Client swap fee report</p>
+          <p className="text-[12px] text-muted-foreground mt-1">Coming soon.</p>
+        </li>
+        <li className="rounded-md border border-border/60 p-3 bg-background">
+          <p className="font-medium">Combined client statement (PDF)</p>
+          <p className="text-[12px] text-muted-foreground mt-1">Coming soon.</p>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+function SettingsTab() {
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-8 text-center">
+      <SettingsIcon className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+      <h2 className="text-base font-semibold">Settings module coming soon</h2>
+      <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+        Configurable defaults for margin %, long/short swap rates, Wednesday multiplier,
+        report branding, WhatsApp sharing, and XAUUSD API will live here.
+      </p>
+    </section>
+  );
+}
+
+function AuditLogTab() {
+  const [sub, setSub] = useState<"margin" | "activity">("margin");
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <ScrollText className="h-5 w-5 text-primary" />
+        <h2 className="text-base font-semibold">Audit Log</h2>
+      </div>
+      <div className="flex gap-1 border-b border-border/60">
+        <button
+          onClick={() => setSub("margin")}
+          className={`px-3 py-2 text-sm border-b-2 transition-colors ${
+            sub === "margin"
+              ? "border-primary text-foreground font-medium"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Margin & balance changes
+        </button>
+        <button
+          onClick={() => setSub("activity")}
+          className={`px-3 py-2 text-sm border-b-2 transition-colors ${
+            sub === "activity"
+              ? "border-primary text-foreground font-medium"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Activity (login / shares / users)
+        </button>
+      </div>
+      {sub === "margin" ? <MarginLogTab /> : <LogsTab />}
+    </div>
+  );
+}
+
     </button>
   );
 }
