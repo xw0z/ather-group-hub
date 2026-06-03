@@ -112,6 +112,10 @@ function fmt(n: number, d = 2): string {
     maximumFractionDigits: d,
   });
 }
+function fmtMoney(n: number, d = 2): string {
+  const v = Number(n);
+  return `${v < 0 ? "-" : ""}$${fmt(Math.abs(v), d)}`;
+}
 
 type Tab = "home" | "clients" | "margin" | "profile" | "users" | "logs";
 
@@ -974,7 +978,10 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                          <Stat label="USD balance" value={`$${fmt(Number(c.usd_balance))}`} />
+                          <Stat
+                            label="USD balance"
+                            value={fmtMoney(Number(c.usd_balance))}
+                          />
                           <Stat
                             label={isShort ? "Benefit rate" : "Fee rate"}
                             value={`${fmt(effRate)}%`}
@@ -1077,12 +1084,12 @@ function MarginDetails({
         <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
         <Row
           label="Equity (USD + Gold)"
-          value={`${margin.equity < 0 ? "-" : ""}$${fmt(Math.abs(margin.equity))}`}
+          value={fmtMoney(margin.equity)}
           accent={margin.equity < 0 ? "red" : undefined}
         />
         <Row
           label="Available margin"
-          value={`${margin.availableMargin < 0 ? "-" : ""}$${fmt(Math.abs(margin.availableMargin))}`}
+          value={fmtMoney(margin.availableMargin)}
           accent={margin.availableMargin < 0 ? "red" : undefined}
         />
         <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
