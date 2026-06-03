@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as MarginRouteImport } from './routes/margin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -22,6 +23,11 @@ import { Route as SwapClientsClientIdRouteImport } from './routes/swap/clients.$
 import { Route as PurityTripsTripIdRouteImport } from './routes/purity/trips.$tripId'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
 
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarginRoute = MarginRouteImport.update({
   id: '/margin',
   path: '/margin',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/margin': typeof MarginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/purity/': typeof PurityIndexRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/margin': typeof MarginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/purity': typeof PurityIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/contact': typeof ContactRoute
   '/margin': typeof MarginRoute
+  '/unauthorized': typeof UnauthorizedRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/purity/': typeof PurityIndexRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/margin'
+    | '/unauthorized'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/purity/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/margin'
+    | '/unauthorized'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/purity'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contact'
     | '/margin'
+    | '/unauthorized'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/purity/'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   ContactRoute: typeof ContactRoute
   MarginRoute: typeof MarginRoute
+  UnauthorizedRoute: typeof UnauthorizedRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
   SwapDashboardRoute: typeof SwapDashboardRoute
   PurityIndexRoute: typeof PurityIndexRoute
@@ -189,6 +202,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/margin': {
       id: '/margin'
       path: '/margin'
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   ContactRoute: ContactRoute,
   MarginRoute: MarginRoute,
+  UnauthorizedRoute: UnauthorizedRoute,
   PurityDashboardRoute: PurityDashboardRoute,
   SwapDashboardRoute: SwapDashboardRoute,
   PurityIndexRoute: PurityIndexRoute,
@@ -293,3 +314,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
