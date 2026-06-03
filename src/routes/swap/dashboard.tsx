@@ -798,10 +798,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           <ul className="space-y-2">
             {filteredClients.map((c) => {
               const isEditing = editingId === c.id;
+              const xauForCalc = effectiveXau(c);
               const margin = computeMargin({
                 usd_balance: Number(c.usd_balance),
                 gold_kg: Number(c.gold_kg ?? 0),
-                xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : null,
+                xauusd_price: xauForCalc,
                 margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
               });
               const needsMargin = margin.status === "needed";
