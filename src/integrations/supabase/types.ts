@@ -451,6 +451,53 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_report_history: {
+        Row: {
+          channel: string
+          client_code: string | null
+          client_id: string | null
+          created_at: string
+          details: Json | null
+          format: string
+          generated_by: string
+          generated_by_username: string
+          id: string
+          report_type: string
+        }
+        Insert: {
+          channel: string
+          client_code?: string | null
+          client_id?: string | null
+          created_at?: string
+          details?: Json | null
+          format: string
+          generated_by: string
+          generated_by_username: string
+          id?: string
+          report_type: string
+        }
+        Update: {
+          channel?: string
+          client_code?: string | null
+          client_id?: string | null
+          created_at?: string
+          details?: Json | null
+          format?: string
+          generated_by?: string
+          generated_by_username?: string
+          id?: string
+          report_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_report_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "swap_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_settings: {
         Row: {
           company_name: string
