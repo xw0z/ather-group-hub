@@ -1116,6 +1116,15 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => share(c)}
+                            disabled={sharingId === c.id}
+                            title="Share margin report"
+                          >
+                            <Share2 className="h-4 w-4 text-primary" />
+                          </Button>
                           <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
