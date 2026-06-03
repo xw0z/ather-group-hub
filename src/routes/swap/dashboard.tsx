@@ -1493,10 +1493,36 @@ function MarginTab({
   onRefreshPrice?: () => void;
   onPriceChanged?: (p: LiveXau) => void;
 }) {
-  const navigate = useNavigate();
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  async function shareMargin(c: SwapClient) {
+    setSharingId(c.id);
+    try {
+      const xau =
+        livePrice && livePrice.price > 0
+          ? livePrice.price
+          : Number(c.xauusd_price ?? 0);
+      if (!xau) throw new Error("No XAU price available");
+      await shareClientMarginReport(
+        {
+          code: c.code,
+          name: c.notes ?? null,
+          usd_balance: Number(c.usd_balance),
+          gold_kg: Number(c.gold_kg ?? 0),
+          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+          position_type: c.position_type,
+        },
+        xau,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share.");
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -1648,35 +1674,37 @@ function MarginTab({
                   key={c.id}
                   className="rounded-md border border-border/60 p-3 bg-background"
                 >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate({ to: "/swap/clients/$clientId", params: { clientId: c.id } })
-                    }
-                    className="w-full text-left"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="font-medium flex items-center gap-2 flex-wrap">
-                        <span>{c.code}</span>
-                        {needsMargin && (
-                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
-                            ⚠ Margin needed
-                          </span>
-                        )}
-                        {c.notes ? (
-                          <span className="text-muted-foreground font-normal text-xs">
-                            ({c.notes})
-                          </span>
-                        ) : null}
-                      </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium flex items-center gap-2 flex-wrap min-w-0">
+                      <span>{c.code}</span>
+                      {needsMargin && (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
+                          ⚠ Margin needed
+                        </span>
+                      )}
+                      {c.notes ? (
+                        <span className="text-muted-foreground font-normal text-xs">
+                          ({c.notes})
+                        </span>
+                      ) : null}
                     </div>
-                    <MarginDetails
-                      goldKg={Number(c.gold_kg ?? 0)}
-                      xau={xauForCalc}
-                      marginPct={Number(c.margin_requirement_pct ?? 20)}
-                      margin={margin}
-                    />
-                  </button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => shareMargin(c)}
+                      disabled={sharingId === c.id}
+                      className="shrink-0"
+                    >
+                      <Share2 className="h-4 w-4 mr-1 text-primary" />
+                      {sharingId === c.id ? "Sharing…" : "Share"}
+                    </Button>
+                  </div>
+                  <MarginDetails
+                    goldKg={Number(c.gold_kg ?? 0)}
+                    xau={xauForCalc}
+                    marginPct={Number(c.margin_requirement_pct ?? 20)}
+                    margin={margin}
+                  />
                 </li>
               );
             })}
