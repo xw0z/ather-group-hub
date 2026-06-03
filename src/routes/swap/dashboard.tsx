@@ -1530,12 +1530,28 @@ function MarginLogTab() {
   }, [clients]);
 
   async function share(r: MarginHistoryRow) {
-    const el = rowRefs.current.get(r.id);
-    if (!el) return;
     setSharingId(r.id);
     setShareErr(null);
     try {
-      await shareCardImage(el, codeById.get(r.client_id) ?? r.client_id.slice(0, 8));
+      const c = clients.find((x) => x.id === r.client_id);
+      if (!c) throw new Error("Client not found.");
+      const live = await getLiveXauPrice();
+      const xau =
+        live && live.price > 0
+          ? live.price
+          : Number(c.xauusd_price ?? 0);
+      if (!xau) throw new Error("No XAU price available.");
+      await shareClientMarginReport(
+        {
+          code: c.code,
+          name: c.notes ?? null,
+          usd_balance: Number(c.usd_balance),
+          gold_kg: Number(c.gold_kg ?? 0),
+          margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+          position_type: c.position_type,
+        },
+        xau,
+      );
     } catch (err) {
       setShareErr(err instanceof Error ? err.message : "Failed to share.");
     } finally {
