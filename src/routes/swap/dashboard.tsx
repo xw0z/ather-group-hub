@@ -61,10 +61,35 @@ type SwapClient = {
   id: string;
   code: string;
   usd_balance: number;
+  gold_kg: number;
+  xauusd_price: number | null;
+  margin_requirement_pct: number;
   annual_rate: number;
   short_annual_rate: number;
   position_type: "long" | "short";
   notes: string | null;
+  created_at: string;
+};
+
+type MarginHistoryRow = {
+  id: string;
+  client_id: string;
+  username: string;
+  changed_field: string;
+  old_usd_balance: number | null;
+  new_usd_balance: number | null;
+  old_gold_kg: number | null;
+  new_gold_kg: number | null;
+  old_xauusd_price: number | null;
+  new_xauusd_price: number | null;
+  old_margin_pct: number | null;
+  new_margin_pct: number | null;
+  old_required_margin: number | null;
+  new_required_margin: number | null;
+  old_available_margin: number | null;
+  new_available_margin: number | null;
+  old_status: string | null;
+  new_status: string | null;
   created_at: string;
 };
 
