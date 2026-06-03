@@ -613,6 +613,21 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [editRate, setEditRate] = useState("");
   const [editShortRate, setEditShortRate] = useState("");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
+  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  async function share(c: SwapClient) {
+    const el = cardRefs.current.get(c.id);
+    if (!el) return;
+    setSharingId(c.id);
+    try {
+      await shareCardImage(el, c.code);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share.");
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   async function load() {
     setLoading(true);
