@@ -189,6 +189,9 @@ function SwapDashboard() {
           <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
             <UsersIcon className="h-4 w-4 mr-1.5" /> Clients
           </TabBtn>
+          <TabBtn active={tab === "margin"} onClick={() => setTab("margin")}>
+            <ShieldCheck className="h-4 w-4 mr-1.5" /> Margin log
+          </TabBtn>
           <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
             <UserCircle className="h-4 w-4 mr-1.5" /> Profile
           </TabBtn>
