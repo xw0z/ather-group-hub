@@ -508,14 +508,15 @@ function MetaRow({
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5 }}>{label}</div>
+        <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
         <div
           style={{
+            fontFamily: mono ? "ui-monospace, Menlo, Consolas, monospace" : "'Inter', system-ui, sans-serif",
             fontSize: 40,
             color: "#1c2431",
-            fontWeight: 700,
+            fontWeight: 600,
             marginTop: 4,
-            fontFamily: mono ? "ui-monospace, Menlo, Consolas, monospace" : undefined,
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           {value}
