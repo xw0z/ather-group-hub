@@ -52,16 +52,17 @@ async function waitForFonts() {
     }).fonts;
     if (!f) return;
     await Promise.all([
-      f.load("700 92px 'Cinzel'"),
-      f.load("400 260px 'DM Serif Display'"),
-      f.load("700 130px 'Cormorant Garamond'"),
-      f.load("400 76px 'Great Vibes'"),
+      f.load("600 92px 'Montserrat'"),
+      f.load("700 92px 'Montserrat'"),
+      f.load("400 36px 'Inter'"),
+      f.load("500 36px 'Inter'"),
+      f.load("600 36px 'Inter'"),
       f.load("700 36px 'Inter'"),
-      f.load("500 30px 'Inter'"),
+      f.load("800 36px 'Inter'"),
     ]);
     await f.ready;
-  } catch {
-    /* non-fatal */
+  } catch (err) {
+    console.error("[PurityReport] Font loading failed:", err);
   }
 }
 
