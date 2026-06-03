@@ -585,10 +585,7 @@ function SwapDashboard() {
           {effectiveTab === "reports" && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
-            <div className="space-y-5">
-              <UsersTab />
-              <ProfileTab username={username} />
-            </div>
+            <UsersPanel currentUsername={username} />
           )}
           {effectiveTab === "settings" && <SettingsTab />}
         </main>
