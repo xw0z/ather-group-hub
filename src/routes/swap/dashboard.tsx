@@ -51,12 +51,14 @@ import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
+import { PremiumPanel } from "@/components/swap/PremiumPanel";
 
 const TAB_VALUES = [
   "dashboard",
   "clients",
   "swap-fees",
   "margin",
+  "premium",
   "reports",
   "audit",
   "users",
@@ -382,6 +384,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "clients", label: "Clients", icon: UsersIcon },
   { key: "swap-fees", label: "Swap Fees", icon: DollarSign },
   { key: "margin", label: "Margin", icon: ShieldCheck },
+  { key: "premium", label: "Discount / Premium", icon: TrendingUp },
   { key: "reports", label: "Reports", icon: FileText },
   { key: "audit", label: "Audit Log", icon: ScrollText, adminOnly: true },
   { key: "users", label: "Users", icon: UserPlus, adminOnly: true },
@@ -583,6 +586,7 @@ function SwapDashboard() {
               onPriceChanged={setLivePrice}
             />
           )}
+          {effectiveTab === "premium" && <PremiumPanel />}
           {effectiveTab === "reports" && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
