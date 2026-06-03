@@ -164,12 +164,14 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ textAlign: "center" }}>
             <h1
               style={{
-                fontFamily: "Cinzel, serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: 119,
                 letterSpacing: 6,
                 color: "#B88A18",
                 margin: "0 0 18px",
-                fontWeight: 700,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                textAlign: "center",
                 whiteSpace: "nowrap",
               }}
             >
