@@ -48,6 +48,7 @@ import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
+import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 
 const TAB_VALUES = [
   "dashboard",
@@ -632,38 +633,7 @@ function SettingsTab() {
 
 
 function AuditLogTab() {
-  const [sub, setSub] = useState<"margin" | "activity">("margin");
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ScrollText className="h-5 w-5 text-primary" />
-        <h2 className="text-base font-semibold">Audit Log</h2>
-      </div>
-      <div className="flex gap-1 border-b border-border/60">
-        <button
-          onClick={() => setSub("margin")}
-          className={`px-3 py-2 text-sm border-b-2 transition-colors ${
-            sub === "margin"
-              ? "border-primary text-foreground font-medium"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Margin & balance changes
-        </button>
-        <button
-          onClick={() => setSub("activity")}
-          className={`px-3 py-2 text-sm border-b-2 transition-colors ${
-            sub === "activity"
-              ? "border-primary text-foreground font-medium"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Activity (login / shares / users)
-        </button>
-      </div>
-      {sub === "margin" ? <MarginLogTab /> : <LogsTab />}
-    </div>
-  );
+  return <AuditLogPanel />;
 }
 
 /* ----------------------------- HOME ----------------------------- */
