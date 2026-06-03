@@ -375,9 +375,8 @@ async function shareClientMarginReport(
 
 type LiveXau = Awaited<ReturnType<typeof getLiveXauPrice>>;
 
-import type { AppModule } from "@/lib/permissions";
-import { can } from "@/lib/permissions";
-import { useMyPermissions } from "@/hooks/use-my-permissions";
+
+
 
 type NavItem = {
   key: Tab;
