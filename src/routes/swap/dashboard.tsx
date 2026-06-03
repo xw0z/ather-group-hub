@@ -660,7 +660,7 @@ function HomeTab({
   async function load() {
     setLoading(true);
     try {
-      const r = await listTodaySwapFees();
+      const r = await cached(CK.todayFees, () => listTodaySwapFees(), 30_000);
       setData(r);
     } finally {
       setLoading(false);
