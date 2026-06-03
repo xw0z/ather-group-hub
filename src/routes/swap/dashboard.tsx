@@ -907,6 +907,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setPositionType("long");
       setNotes("");
       setShowForm(false);
+      invalidate(CK.todayFees, CK.margin, CK.activity);
       load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create.");
