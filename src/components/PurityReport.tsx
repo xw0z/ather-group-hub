@@ -32,7 +32,7 @@ export type PurityReportData = {
 };
 
 const FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Cormorant+Garamond:wght@700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700;800&family=Great+Vibes&display=swap";
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700&display=swap";
 
 function injectFonts() {
   if (typeof document === "undefined") return;
@@ -52,16 +52,17 @@ async function waitForFonts() {
     }).fonts;
     if (!f) return;
     await Promise.all([
-      f.load("700 92px 'Cinzel'"),
-      f.load("400 260px 'DM Serif Display'"),
-      f.load("700 130px 'Cormorant Garamond'"),
-      f.load("400 76px 'Great Vibes'"),
+      f.load("600 92px 'Montserrat'"),
+      f.load("700 92px 'Montserrat'"),
+      f.load("400 36px 'Inter'"),
+      f.load("500 36px 'Inter'"),
+      f.load("600 36px 'Inter'"),
       f.load("700 36px 'Inter'"),
-      f.load("500 30px 'Inter'"),
+      f.load("800 36px 'Inter'"),
     ]);
     await f.ready;
-  } catch {
-    /* non-fatal */
+  } catch (err) {
+    console.error("[PurityReport] Font loading failed:", err);
   }
 }
 
@@ -152,10 +153,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifySelf: "center" }}>
             <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
-            <div style={{ marginTop: 18, fontSize: 22, fontWeight: 700, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center" }}>
+            <div style={{ marginTop: 18, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 600, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
               GOLD &amp; PRECIOUS METALS
             </div>
-            <div style={{ marginTop: 10, fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center" }}>
+            <div style={{ marginTop: 10, fontFamily: "'Montserrat', sans-serif", fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
               TRUST • INTEGRITY • EXCELLENCE
             </div>
           </div>
@@ -163,12 +164,14 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ textAlign: "center" }}>
             <h1
               style={{
-                fontFamily: "Cinzel, serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: 119,
                 letterSpacing: 6,
                 color: "#B88A18",
                 margin: "0 0 18px",
-                fontWeight: 700,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                textAlign: "center",
                 whiteSpace: "nowrap",
               }}
             >
@@ -198,17 +201,18 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
       <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
         <div>
-          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
+          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "'Montserrat', sans-serif", textTransform: "uppercase" }}>
             CLIENT CODE
           </div>
           <div
             style={{
-              fontFamily: '"DM Serif Display", serif',
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: 204,
               lineHeight: 0.95,
               marginTop: 18,
               color: "#1C2431",
-              fontWeight: 400,
+              fontWeight: 700,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             {data.clientCode}
@@ -343,25 +347,26 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           />
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 38, fontWeight: 700, color: "#555", letterSpacing: 4 }}>
+          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 38, fontWeight: 600, color: "#555", letterSpacing: 4, textTransform: "uppercase" }}>
             AMOUNT TO COMPENSATE
           </div>
           <div
             style={{
-              fontFamily: '"Cormorant Garamond", serif',
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: 254,
               color: "#B88A18",
               lineHeight: 1,
               fontWeight: 700,
               marginTop: 20,
               letterSpacing: 1,
+              fontVariantNumeric: "tabular-nums",
             }}
           >
             {data.totalLoss}
             <span style={{ fontSize: 90, marginLeft: 18, color: "#B88A18" }}>g</span>
           </div>
 
-          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic" }}>
+          <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic", fontWeight: 500 }}>
             of Pure Gold
           </div>
         </div>
@@ -411,14 +416,16 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <strong style={vStrong}>AUTHORIZED SIGNATURE</strong>
           <div
             style={{
-              fontFamily: '"Great Vibes", cursive',
-              fontSize: 90,
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontSize: 64,
+              fontWeight: 600,
               color: "#111",
               borderBottom: "2px solid #bbb",
               textAlign: "center",
               margin: "10px 0 14px",
-              lineHeight: 1.1,
+              lineHeight: 1.2,
               paddingBottom: 6,
+              fontStyle: "italic",
             }}
           >
             {data.signatureName ?? "Ather Quality"}
@@ -501,14 +508,15 @@ function MetaRow({
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5 }}>{label}</div>
+        <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
         <div
           style={{
+            fontFamily: mono ? "ui-monospace, Menlo, Consolas, monospace" : "'Inter', system-ui, sans-serif",
             fontSize: 40,
             color: "#1c2431",
-            fontWeight: 700,
+            fontWeight: 600,
             marginTop: 4,
-            fontFamily: mono ? "ui-monospace, Menlo, Consolas, monospace" : undefined,
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           {value}
@@ -560,11 +568,12 @@ const cellStyle: React.CSSProperties = {
   textAlign: "center",
   verticalAlign: "middle",
   borderBottom: "1px solid #E9E2D0",
-  fontFamily: "Inter, system-ui, sans-serif",
+  fontFamily: "'Inter', system-ui, sans-serif",
   fontSize: 38,
-  fontWeight: 500,
+  fontWeight: 600,
   color: "#1c2431",
   padding: "0 12px",
+  fontVariantNumeric: "tabular-nums",
 };
 
 const vStrong: React.CSSProperties = {
@@ -638,15 +647,16 @@ function SummaryCard({
       >
         {icon}
       </div>
-      <div style={{ fontSize: 34, fontWeight: 700, color: "#555", letterSpacing: 2 }}>{label}</div>
+      <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 34, fontWeight: 600, color: "#555", letterSpacing: 2, textTransform: "uppercase" }}>{label}</div>
       <strong
         style={{
           fontSize: 126,
-          fontWeight: 800,
+          fontWeight: 700,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          fontFamily: "Inter, system-ui, sans-serif",
+          fontFamily: "'Inter', system-ui, sans-serif",
           letterSpacing: 1,
           lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         {value}
