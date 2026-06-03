@@ -978,7 +978,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                          <Stat label="USD balance" value={`$${fmt(Number(c.usd_balance))}`} />
+                          <Stat
+                            label="USD balance"
+                            value={fmtMoney(Number(c.usd_balance))}
+                            accent={Number(c.usd_balance) < 0 ? "red" : undefined}
+                          />
                           <Stat
                             label={isShort ? "Benefit rate" : "Fee rate"}
                             value={`${fmt(effRate)}%`}
