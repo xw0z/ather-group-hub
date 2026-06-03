@@ -2329,6 +2329,7 @@ function UsersTab() {
     if (!confirm(`Delete user ${name}?`)) return;
     try {
       await deleteSwapUser({ data: { id } });
+      invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete user.");
