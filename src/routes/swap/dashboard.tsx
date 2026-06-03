@@ -2434,9 +2434,10 @@ function LogsTab() {
   const [rows, setRows] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     try {
+      if (force) invalidate(CK.activity);
       const data = await cached(CK.activity, () => listSwapActivityLog(), 30_000);
       setRows(data as ActivityRow[]);
     } finally {
@@ -2451,7 +2452,7 @@ function LogsTab() {
     <section className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold">Activity log</h2>
-        <Button size="sm" variant="outline" onClick={load}>
+        <Button size="sm" variant="outline" onClick={() => load(true)}>
           <RefreshCw className="h-4 w-4 mr-1" /> Refresh
         </Button>
       </div>
