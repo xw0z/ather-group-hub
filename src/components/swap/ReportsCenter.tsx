@@ -1129,5 +1129,7 @@ function labelForType(t: HistoryRow["report_type"]): string {
       return "Combined statement";
     case "portfolio":
       return "Portfolio report";
+    default:
+      return t;
   }
 }
