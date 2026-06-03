@@ -1065,7 +1065,8 @@ function HistoryPanel() {
     <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Report history</h3>
-        <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+        <Button size="sm" variant="ghost" onClick={() => load(true)} disabled={loading}>
+
           Refresh
         </Button>
       </div>
