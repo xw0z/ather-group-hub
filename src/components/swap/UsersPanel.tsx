@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { createSwapUser, deleteSwapUser, listSwapUsers } from "@/lib/swap-users.functions";
+import { createSwapUser, deleteSwapUser, listSwapUsers, updateSwapUser, resetSwapUserPassword } from "@/lib/swap-users.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
