@@ -55,7 +55,7 @@ export function SettingsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const r = await getSwapSettings();
+      const r = await cached(CK.settings, () => getSwapSettings(), 5 * 60_000);
       setSettings(r.settings);
       setIsAdmin(r.isAdmin);
     } catch (e) {
