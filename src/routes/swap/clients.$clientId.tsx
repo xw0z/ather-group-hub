@@ -18,10 +18,13 @@ export const Route = createFileRoute("/swap/clients/$clientId")({
 });
 
 function fmt(n: number, d = 2): string {
-  return Number(n).toLocaleString(undefined, {
+  return Number(n).toLocaleString("en-US", {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   });
+}
+function money(n: number, d = 2): string {
+  return `${n < 0 ? "-" : ""}$${fmt(Math.abs(n), d)}`;
 }
 
 type History = Awaited<ReturnType<typeof getSwapClientHistory>>;
