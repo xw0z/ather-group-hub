@@ -26,6 +26,7 @@ import {
   listReportHistory,
   logReportGeneration,
 } from "@/lib/swap-reports.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 // ---------------- shared helpers ----------------
 
