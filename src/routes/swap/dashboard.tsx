@@ -2437,10 +2437,7 @@ function LogsTab() {
   async function load() {
     setLoading(true);
     try {
-      const data = await listSwapActivityLog();
-      // Always serve the freshest log here, but also prime the cache.
-      // Other tabs (Audit) read this via the cache and get instant render.
-      void cached(CK.activity, async () => data, 30_000);
+      const data = await cached(CK.activity, () => listSwapActivityLog(), 30_000);
       setRows(data as ActivityRow[]);
     } finally {
       setLoading(false);
