@@ -2318,6 +2318,7 @@ function UsersTab() {
       setEmail("");
       setMakeAdmin(false);
       setShowForm(false);
+      invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user.");
