@@ -384,6 +384,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "clients", label: "Clients", icon: UsersIcon },
   { key: "swap-fees", label: "Swap Fees", icon: DollarSign },
   { key: "margin", label: "Margin", icon: ShieldCheck },
+  { key: "premium", label: "Discount / Premium", icon: TrendingUp },
   { key: "reports", label: "Reports", icon: FileText },
   { key: "audit", label: "Audit Log", icon: ScrollText, adminOnly: true },
   { key: "users", label: "Users", icon: UserPlus, adminOnly: true },
