@@ -58,6 +58,7 @@ const TAB_VALUES = [
   "clients",
   "swap-fees",
   "margin",
+  "premium",
   "reports",
   "audit",
   "users",
