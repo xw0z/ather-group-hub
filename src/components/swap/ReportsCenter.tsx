@@ -1032,11 +1032,12 @@ function HistoryPanel() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | HistoryRow["report_type"]>("all");
 
-  async function load() {
+  async function load(force = false) {
     setLoading(true);
     setError(null);
     try {
-      setRows(await listReportHistory());
+      if (force) invalidate(CK.reports);
+      setRows(await cached(CK.reports, () => listReportHistory(), 30_000));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed.");
     } finally {
