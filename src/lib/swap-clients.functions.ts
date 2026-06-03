@@ -21,8 +21,25 @@ export function computeMargin(input: {
   const requiredMargin = (totalExposure * Number(input.margin_requirement_pct)) / 100;
   const availableMargin = Number(input.usd_balance);
   const difference = availableMargin - requiredMargin;
+  const marginLevelPct = requiredMargin > 0 ? (availableMargin / requiredMargin) * 100 : 0;
   const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
-  return { goldValue, totalExposure, requiredMargin, availableMargin, difference, status };
+  // Tiered status per spec: >=120 safe, 100-120 warning, <100 needed.
+  // When there is no required margin (no exposure), treat as safe.
+  let tier: "safe" | "warning" | "needed";
+  if (requiredMargin <= 0) tier = "safe";
+  else if (marginLevelPct >= 120) tier = "safe";
+  else if (marginLevelPct >= 100) tier = "warning";
+  else tier = "needed";
+  return {
+    goldValue,
+    totalExposure,
+    requiredMargin,
+    availableMargin,
+    difference,
+    marginLevelPct,
+    status,
+    tier,
+  };
 }
 
 async function getUsername(userId: string): Promise<string> {
