@@ -1728,7 +1728,7 @@ function MarginLogTab() {
         </div>
       </div>
 
-      {shareErr && <p className="text-sm text-destructive mb-2">{shareErr}</p>}
+
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
