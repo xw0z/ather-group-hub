@@ -509,7 +509,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setCode("");
       setBalance("");
       setGoldAmount("0");
-      setGoldUnit("kg");
+      
       setXau("");
       setMarginPct("20");
       setRate("5.4");
