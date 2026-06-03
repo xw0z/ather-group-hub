@@ -125,7 +125,11 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
     });
 
     if (data.applyToExistingClients) {
-      const clientPatch: Record<string, number> = {};
+      const clientPatch: {
+        annual_rate?: number;
+        short_annual_rate?: number;
+        margin_requirement_pct?: number;
+      } = {};
       if (data.patch.default_long_annual_rate !== undefined)
         clientPatch.annual_rate = data.patch.default_long_annual_rate;
       if (data.patch.default_short_annual_rate !== undefined)
