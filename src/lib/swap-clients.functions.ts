@@ -6,6 +6,25 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
 const positionTypeRule = z.enum(["long", "short"]);
 
+// 1 kg gold = 32.1507466 troy ounces
+export const TROY_OZ_PER_KG = 32.1507466;
+
+export function computeMargin(input: {
+  usd_balance: number;
+  gold_kg: number;
+  xauusd_price: number | null;
+  margin_requirement_pct: number;
+}) {
+  const xau = Number(input.xauusd_price ?? 0);
+  const goldValue = Number(input.gold_kg) * TROY_OZ_PER_KG * xau;
+  const totalExposure = Number(input.usd_balance) + goldValue;
+  const requiredMargin = (totalExposure * Number(input.margin_requirement_pct)) / 100;
+  const availableMargin = Number(input.usd_balance);
+  const difference = availableMargin - requiredMargin;
+  const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
+  return { goldValue, totalExposure, requiredMargin, availableMargin, difference, status };
+}
+
 async function getUsername(userId: string): Promise<string> {
   const { data } = await supabaseAdmin
     .from("swap_profiles")
