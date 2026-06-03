@@ -130,67 +130,158 @@ function snapshotStamp(d = new Date()): string {
   });
 }
 
-async function shareCardImage(
-  cardEl: HTMLElement,
-  clientCode: string,
+const TROY_OZ_PER_KG_LOCAL = 32.1507466;
+
+type ReportClient = {
+  code: string;
+  name?: string | null;
+  usd_balance: number;
+  gold_kg: number;
+  margin_requirement_pct: number;
+  position_type: "long" | "short";
+};
+
+function reportSnapshot(d = new Date()): string {
+  const date = d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+  const time = d.toLocaleString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  });
+  return `${date} ${time}`;
+}
+
+async function shareClientMarginReport(
+  client: ReportClient,
+  xauPrice: number,
 ): Promise<void> {
-  // Clone the card so admin actions can be stripped and branding added
-  // without disturbing the live DOM.
-  const clone = cardEl.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll("[data-share-hide]").forEach((el) => el.remove());
+  const usd = Number(client.usd_balance);
+  const goldKg = Number(client.gold_kg);
+  const goldGrams = goldKg * 1000;
+  const goldValue = goldKg * TROY_OZ_PER_KG_LOCAL * xauPrice;
+  const equity = usd + goldValue;
+  const reqPct = Number(client.margin_requirement_pct);
+  const requiredMargin = (goldValue * reqPct) / 100;
+  const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
+  const diff = equity - requiredMargin;
+
+  let tier: "safe" | "warning" | "needed" | "critical";
+  if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
+  else if (equity < 0) tier = "critical";
+  else if (marginLevelPct >= 120) tier = "safe";
+  else if (marginLevelPct >= 100) tier = "warning";
+  else tier = "needed";
+
+  const statusLabel =
+    tier === "safe"
+      ? "✓ Safe"
+      : tier === "warning"
+        ? "⚠ Warning"
+        : tier === "critical"
+          ? "✕ Critical Margin"
+          : "⚠ Margin Needed";
+  const statusColor =
+    tier === "safe"
+      ? "#22c55e"
+      : tier === "warning"
+        ? "#f59e0b"
+        : "#ef4444";
+
+  const money = (n: number) =>
+    `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  const num = (n: number, d = 2) =>
+    n.toLocaleString(undefined, {
+      minimumFractionDigits: d,
+      maximumFractionDigits: d,
+    });
+
+  const action = tier === "safe"
+    ? { label: "Extra Available", value: money(Math.max(0, diff)), color: "#22c55e" }
+    : { label: "Amount To Add", value: money(Math.abs(diff)), color: "#ef4444" };
+
+  const positionLabel =
+    client.position_type === "short" ? "Short / Sell" : "Long / Buy";
+
+  const row = (label: string, value: string, valueColor?: string) => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid #2a2a2a">
+      <span style="font-size:13px;color:#9a9a9a;letter-spacing:0.02em">${label}</span>
+      <span style="font-size:15px;color:${valueColor ?? "#f4f1ec"};font-weight:600;font-variant-numeric:tabular-nums">${value}</span>
+    </div>
+  `;
 
   const stage = document.createElement("div");
   stage.style.position = "fixed";
   stage.style.left = "-10000px";
   stage.style.top = "0";
-  stage.style.width = "560px";
-  stage.style.padding = "28px";
+  stage.style.width = "600px";
+  stage.style.padding = "32px";
   stage.style.background = "#1a1a1a";
   stage.style.color = "#f4f1ec";
   stage.style.fontFamily =
-    'Epilogue, system-ui, -apple-system, "Segoe UI", sans-serif';
+    'Epilogue, Inter, system-ui, -apple-system, "Segoe UI", sans-serif';
   stage.style.zIndex = "-1";
 
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.alignItems = "center";
-  header.style.justifyContent = "space-between";
-  header.style.marginBottom = "16px";
-  header.style.paddingBottom = "14px";
-  header.style.borderBottom = "1px solid #3a3a3a";
-  header.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#e85d3a,#c64a2d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a1a1a;font-size:14px;font-family:Urbanist,sans-serif">A</div>
+  stage.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <div style="width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,#e85d3a,#c64a2d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a1a1a;font-size:18px;font-family:Urbanist,sans-serif">A</div>
       <div>
-        <div style="font-family:Urbanist,sans-serif;font-weight:800;letter-spacing:-0.02em;font-size:16px">ATHER GROUP</div>
-        <div style="font-size:10px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Margin report</div>
+        <div style="font-family:Urbanist,sans-serif;font-weight:800;letter-spacing:-0.02em;font-size:18px;line-height:1">ATHER GROUP</div>
+        <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.14em;text-transform:uppercase;margin-top:3px">Margin Report</div>
       </div>
     </div>
-    <div style="text-align:right">
-      <div style="font-size:10px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>
-      <div style="font-size:12px;color:#d9d4cc;margin-top:2px">${snapshotStamp()}</div>
+
+    <div style="margin-top:22px;display:flex;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Client Code</div>
+        <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${client.code}</div>
+        ${client.name ? `<div style="font-size:13px;color:#d9d4cc;margin-top:2px">${client.name}</div>` : ""}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>
+        <div style="font-size:13px;color:#d9d4cc;margin-top:4px">${reportSnapshot()}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding:4px 16px;background:#222;border:1px solid #2f2f2f;border-radius:10px">
+      ${row("Position", positionLabel)}
+      ${row("Live XAUUSD", `${money(xauPrice)} / oz`)}
+      ${row("USD Balance", money(usd), usd < 0 ? "#ef4444" : undefined)}
+      ${row("Gold Balance", `${num(goldGrams, 0)} g`)}
+      ${row("Gold Value", money(goldValue))}
+      ${row("Equity (USD + Gold)", money(equity), equity < 0 ? "#ef4444" : undefined)}
+      ${row("Margin Requirement", `${num(reqPct)}%`)}
+      ${row("Required Margin", money(requiredMargin))}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0">
+        <span style="font-size:13px;color:#9a9a9a;letter-spacing:0.02em">Margin Level</span>
+        <span style="font-size:20px;color:${statusColor};font-weight:700;font-variant-numeric:tabular-nums">${num(marginLevelPct)}%</span>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:14px 16px;background:${statusColor}1f;border:1px solid ${statusColor}55;border-radius:10px;text-align:center">
+      <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.12em;text-transform:uppercase">Status</div>
+      <div style="font-size:20px;font-weight:800;color:${statusColor};margin-top:4px;letter-spacing:0.01em">${statusLabel}</div>
+    </div>
+
+    <div style="margin-top:14px;padding:18px 16px;background:#222;border:1px solid #2f2f2f;border-radius:10px;text-align:center">
+      <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.12em;text-transform:uppercase">${action.label}</div>
+      <div style="font-size:30px;font-weight:800;color:${action.color};margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-0.01em">${action.value}</div>
+    </div>
+
+    <div style="margin-top:22px;padding-top:14px;border-top:1px solid #2a2a2a;text-align:center">
+      <div style="font-size:10px;color:#7a7a7a;font-style:italic">Generated using live XAUUSD market price at report time.</div>
+      <div style="margin-top:10px;font-family:Urbanist,sans-serif;font-weight:800;letter-spacing:0.04em;font-size:12px;color:#d9d4cc">ATHER GROUP</div>
+      <div style="font-size:10px;color:#7a7a7a;letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">Confidential Client Report</div>
     </div>
   `;
 
-  // Style the cloned card to match the card container in-app.
-  clone.style.background = "#2d2d2d";
-  clone.style.border = "1px solid #3a3a3a";
-  clone.style.borderRadius = "8px";
-  clone.style.padding = "14px";
-
-  const footer = document.createElement("div");
-  footer.style.marginTop = "14px";
-  footer.style.paddingTop = "10px";
-  footer.style.borderTop = "1px solid #3a3a3a";
-  footer.style.display = "flex";
-  footer.style.justifyContent = "space-between";
-  footer.style.fontSize = "10px";
-  footer.style.color = "#9a9a9a";
-  footer.innerHTML = `<span>ather.group</span><span>Confidential — for client use</span>`;
-
-  stage.appendChild(header);
-  stage.appendChild(clone);
-  stage.appendChild(footer);
   document.body.appendChild(stage);
 
   try {
@@ -205,7 +296,7 @@ async function shareCardImage(
     if (!blob) throw new Error("Failed to render image");
 
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `margin-report-${clientCode}-${date}.png`;
+    const filename = `margin-report-${client.code}-${date}.png`;
     const file = new File([blob], filename, { type: "image/png" });
 
     const nav = navigator as Navigator & {
@@ -216,16 +307,15 @@ async function shareCardImage(
       try {
         await nav.share({
           files: [file],
-          title: `Margin report — ${clientCode}`,
-          text: `Margin report for ${clientCode}`,
+          title: `Margin report — ${client.code}`,
+          text: `Margin report for ${client.code}`,
         });
         return;
       } catch {
-        // user cancelled or share failed — fall through to download
+        // fall through to download
       }
     }
 
-    // Desktop fallback: try copying to clipboard, then download.
     try {
       if (
         typeof ClipboardItem !== "undefined" &&
@@ -237,7 +327,7 @@ async function shareCardImage(
         ]);
       }
     } catch {
-      // clipboard not allowed — skip silently
+      /* ignore */
     }
 
     const url = URL.createObjectURL(blob);
