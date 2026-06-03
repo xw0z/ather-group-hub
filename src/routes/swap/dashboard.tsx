@@ -621,35 +621,9 @@ function NavBtn({
 }
 
 function ReportsTab() {
-  return (
-    <section className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <h2 className="text-base font-semibold">Reports</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Generate client-facing margin and swap statements.
-      </p>
-      <ul className="text-sm space-y-2 mt-2">
-        <li className="rounded-md border border-border/60 p-3 bg-background">
-          <p className="font-medium">Client margin report</p>
-          <p className="text-[12px] text-muted-foreground mt-1">
-            Open the <span className="font-medium">Clients</span> tab and tap the share
-            icon next to a client to generate a PNG margin report ready to send on WhatsApp.
-          </p>
-        </li>
-        <li className="rounded-md border border-border/60 p-3 bg-background">
-          <p className="font-medium">Client swap fee report</p>
-          <p className="text-[12px] text-muted-foreground mt-1">Coming soon.</p>
-        </li>
-        <li className="rounded-md border border-border/60 p-3 bg-background">
-          <p className="font-medium">Combined client statement (PDF)</p>
-          <p className="text-[12px] text-muted-foreground mt-1">Coming soon.</p>
-        </li>
-      </ul>
-    </section>
-  );
+  return <ReportsCenter />;
 }
+
 
 function SettingsTab() {
   return <SettingsPanel />;
