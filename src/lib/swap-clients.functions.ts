@@ -109,6 +109,9 @@ export const createSwapClient = createServerFn({ method: "POST" })
       .insert({
         code: data.code.trim(),
         usd_balance: data.usd_balance,
+        gold_kg: data.gold_kg ?? 0,
+        xauusd_price: data.xauusd_price ?? null,
+        margin_requirement_pct: data.margin_requirement_pct ?? 20,
         annual_rate: data.annual_rate ?? 5.4,
         short_annual_rate: data.short_annual_rate ?? 2.5,
         position_type: data.position_type ?? "long",
@@ -121,6 +124,9 @@ export const createSwapClient = createServerFn({ method: "POST" })
     await logActivity(context.userId, "client_created", "client", row.id, {
       code: row.code,
       usd_balance: row.usd_balance,
+      gold_kg: row.gold_kg,
+      xauusd_price: row.xauusd_price,
+      margin_requirement_pct: row.margin_requirement_pct,
       annual_rate: row.annual_rate,
       short_annual_rate: row.short_annual_rate,
       position_type: row.position_type,
@@ -136,6 +142,9 @@ export const updateSwapClient = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         code: codeRule.optional(),
         usd_balance: z.number().finite().min(0).max(1e12).optional(),
+        gold_kg: z.number().finite().min(0).max(1e6).optional(),
+        xauusd_price: z.number().finite().min(0).max(1e6).optional().nullable(),
+        margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
@@ -147,6 +156,9 @@ export const updateSwapClient = createServerFn({ method: "POST" })
     const patch: {
       code?: string;
       usd_balance?: number;
+      gold_kg?: number;
+      xauusd_price?: number | null;
+      margin_requirement_pct?: number;
       annual_rate?: number;
       short_annual_rate?: number;
       position_type?: "long" | "short";
@@ -154,10 +166,22 @@ export const updateSwapClient = createServerFn({ method: "POST" })
     } = {};
     if (data.code !== undefined) patch.code = data.code.trim();
     if (data.usd_balance !== undefined) patch.usd_balance = data.usd_balance;
+    if (data.gold_kg !== undefined) patch.gold_kg = data.gold_kg;
+    if (data.xauusd_price !== undefined) patch.xauusd_price = data.xauusd_price;
+    if (data.margin_requirement_pct !== undefined)
+      patch.margin_requirement_pct = data.margin_requirement_pct;
     if (data.annual_rate !== undefined) patch.annual_rate = data.annual_rate;
     if (data.short_annual_rate !== undefined) patch.short_annual_rate = data.short_annual_rate;
     if (data.position_type !== undefined) patch.position_type = data.position_type;
     if (data.notes !== undefined) patch.notes = data.notes;
+
+    // Fetch existing for margin history comparison
+    const { data: existing } = await supabaseAdmin
+      .from("swap_clients")
+      .select("usd_balance, gold_kg, xauusd_price, margin_requirement_pct")
+      .eq("id", data.id)
+      .maybeSingle();
+
     const { data: row, error } = await supabaseAdmin
       .from("swap_clients")
       .update(patch)
@@ -165,6 +189,62 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Log margin change history when relevant fields changed
+    if (existing) {
+      const changedFields: string[] = [];
+      if (data.usd_balance !== undefined && Number(existing.usd_balance) !== data.usd_balance)
+        changedFields.push("usd_balance");
+      if (data.gold_kg !== undefined && Number(existing.gold_kg ?? 0) !== data.gold_kg)
+        changedFields.push("gold_kg");
+      if (
+        data.xauusd_price !== undefined &&
+        Number(existing.xauusd_price ?? 0) !== Number(data.xauusd_price ?? 0)
+      )
+        changedFields.push("xauusd_price");
+      if (
+        data.margin_requirement_pct !== undefined &&
+        Number(existing.margin_requirement_pct ?? 0) !== data.margin_requirement_pct
+      )
+        changedFields.push("margin_requirement_pct");
+
+      if (changedFields.length > 0) {
+        const oldM = computeMargin({
+          usd_balance: Number(existing.usd_balance),
+          gold_kg: Number(existing.gold_kg ?? 0),
+          xauusd_price: existing.xauusd_price !== null ? Number(existing.xauusd_price) : null,
+          margin_requirement_pct: Number(existing.margin_requirement_pct ?? 20),
+        });
+        const newM = computeMargin({
+          usd_balance: Number(row.usd_balance),
+          gold_kg: Number(row.gold_kg ?? 0),
+          xauusd_price: row.xauusd_price !== null ? Number(row.xauusd_price) : null,
+          margin_requirement_pct: Number(row.margin_requirement_pct ?? 20),
+        });
+        const username = await getUsername(context.userId);
+        await supabaseAdmin.from("swap_margin_history").insert({
+          client_id: row.id,
+          user_id: context.userId,
+          username,
+          changed_field: changedFields.join(","),
+          old_usd_balance: existing.usd_balance,
+          new_usd_balance: row.usd_balance,
+          old_gold_kg: existing.gold_kg,
+          new_gold_kg: row.gold_kg,
+          old_xauusd_price: existing.xauusd_price,
+          new_xauusd_price: row.xauusd_price,
+          old_margin_pct: existing.margin_requirement_pct,
+          new_margin_pct: row.margin_requirement_pct,
+          old_required_margin: oldM.requiredMargin,
+          new_required_margin: newM.requiredMargin,
+          old_available_margin: oldM.availableMargin,
+          new_available_margin: newM.availableMargin,
+          old_status: oldM.status,
+          new_status: newM.status,
+        });
+      }
+    }
+
     await logActivity(context.userId, "client_updated", "client", row.id, patch as Record<string, Json>);
     return row;
   });
