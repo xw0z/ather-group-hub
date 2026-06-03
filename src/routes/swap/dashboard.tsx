@@ -320,6 +320,14 @@ function HomeTab({
 
   return (
     <div className="space-y-4">
+      <LiveXauCard
+        isAdmin={isAdmin}
+        livePrice={livePrice}
+        loading={livePriceLoading}
+        onRefresh={onRefreshPrice}
+        onPriceChanged={onPriceChanged}
+      />
+
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div>
           <h2 className="text-sm font-semibold flex items-center gap-2">
