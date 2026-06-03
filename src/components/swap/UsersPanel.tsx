@@ -19,8 +19,10 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { createSwapUser, deleteSwapUser, listSwapUsers } from "@/lib/swap-users.functions";
 import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
+import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
 import { UserPermissionsEditor } from "@/components/swap/UserPermissionsEditor";
+
 
 
 type SwapUser = {
