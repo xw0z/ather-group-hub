@@ -412,9 +412,31 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 
-function SwapDashboard() {
+export function SwapDashboard({
+  tab: tabProp,
+  swapView,
+}: {
+  tab?: Tab;
+  swapView?: "clients" | "fees";
+} = {}) {
   const navigate = useNavigate();
-  const { tab } = useSearch({ from: "/swap/dashboard" });
+  // Tab can come from prop (new /desk/app/* routes) or legacy ?tab= search.
+  let searchTab: Tab | undefined;
+  try {
+    const s = useSearch({ strict: false }) as { tab?: string; view?: string };
+    if (s.tab && (TAB_VALUES as readonly string[]).includes(s.tab)) {
+      searchTab = s.tab as Tab;
+    }
+    if (!swapView && s.view === "fees") {
+      swapView = "fees";
+    }
+  } catch {
+    /* no search context */
+  }
+  const baseTab: Tab = tabProp ?? searchTab ?? "dashboard";
+  // /desk/app/swap with ?view=fees renders the swap-fees panel.
+  const tab: Tab = baseTab === "clients" && swapView === "fees" ? "swap-fees" : baseTab;
+
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
@@ -424,7 +446,10 @@ function SwapDashboard() {
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
-    navigate({ to: "/swap/dashboard", search: { tab: next }, replace: false });
+    const path = TAB_TO_DESK_PATH[next];
+    const search = next === "swap-fees" ? { view: "fees" } : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigate({ to: path as any, search: search as any, replace: false });
   };
 
   const refreshPrice = async () => {
