@@ -675,14 +675,14 @@ function HomeTab({
 
 /* ---------------------------- CLIENTS ---------------------------- */
 
-type MarginFilter = "all" | "enough" | "needed";
+type MarginLogFilter = "all" | "enough" | "needed";
 
 function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<MarginFilter>("all");
+  const [filter, setFilter] = useState<MarginLogFilter>("all");
 
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
@@ -918,7 +918,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
 
         {/* Filters */}
         <div className="flex gap-1 mb-3 flex-wrap">
-          {(["all", "enough", "needed"] as MarginFilter[]).map((f) => (
+          {(["all", "enough", "needed"] as MarginLogFilter[]).map((f) => (
             <button
               key={f}
               type="button"
@@ -1511,7 +1511,7 @@ type FieldChange = {
   newStatus?: string | null;
 };
 
-type MarginFilter = "all" | "status" | "gold" | "margin" | "balance";
+type MarginLogFilter = "all" | "status" | "gold" | "margin" | "balance";
 
 function statusLabel(s: string | null): string {
   if (!s) return "—";
@@ -1617,7 +1617,7 @@ function MarginLogTab() {
   const [loading, setLoading] = useState(true);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareErr, setShareErr] = useState<string | null>(null);
-  const [filter, setFilter] = useState<MarginFilter>("all");
+  const [filter, setFilter] = useState<MarginLogFilter>("all");
   const [search, setSearch] = useState("");
 
   async function load() {
@@ -1704,7 +1704,7 @@ function MarginLogTab() {
     }
   }
 
-  const filters: { key: MarginFilter; label: string }[] = [
+  const filters: { key: MarginLogFilter; label: string }[] = [
     { key: "all", label: "All Changes" },
     { key: "status", label: "Status" },
     { key: "gold", label: "Gold" },
