@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import html2canvas from "html2canvas-pro";
 import {
@@ -69,18 +69,30 @@ const TAB_VALUES = [
 ] as const;
 type Tab = (typeof TAB_VALUES)[number];
 
+// Map each tab to its canonical /desk/app/* URL.
+export const TAB_TO_DESK_PATH: Record<Tab, string> = {
+  dashboard: "/desk/app/dashboard",
+  clients: "/desk/app/swap",
+  "swap-fees": "/desk/app/swap",
+  margin: "/desk/app/margin",
+  premium: "/desk/app/discount-premium",
+  reports: "/desk/app/reports",
+  audit: "/desk/app/audit",
+  users: "/desk/app/users",
+  settings: "/desk/app/settings",
+};
+
+// Legacy /swap/dashboard?tab=... → redirect to the new /desk/app/* URL.
 export const Route = createFileRoute("/swap/dashboard")({
   validateSearch: (search: Record<string, unknown>): { tab: Tab } => {
     const t = String(search.tab ?? "dashboard") as Tab;
     return { tab: TAB_VALUES.includes(t) ? t : "dashboard" };
   },
-  head: () => ({
-    meta: [
-      { title: "Ather Margin & Swap" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
-  component: SwapDashboard,
+  beforeLoad: ({ search }) => {
+    const path = TAB_TO_DESK_PATH[search.tab] ?? "/desk/app/dashboard";
+    const sub = search.tab === "swap-fees" ? { view: "fees" as const } : undefined;
+    throw redirect({ to: path as never, search: sub as never, replace: true });
+  },
 });
 
 type SwapUser = {
