@@ -439,7 +439,7 @@ function HomeTab({
 
 type MarginFilter = "all" | "enough" | "needed";
 
-function ClientsTab() {
+function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
