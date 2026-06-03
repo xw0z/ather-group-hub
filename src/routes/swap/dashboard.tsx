@@ -547,13 +547,16 @@ function SwapDashboard() {
 
         <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
           {effectiveTab === "dashboard" && (
-            <HomeTab
-              isAdmin={isAdmin}
-              livePrice={livePrice}
-              livePriceLoading={livePriceLoading}
-              onRefreshPrice={refreshPrice}
-              onPriceChanged={setLivePrice}
-            />
+            <>
+              <HomeTab
+                isAdmin={isAdmin}
+                livePrice={livePrice}
+                livePriceLoading={livePriceLoading}
+                onRefreshPrice={refreshPrice}
+                onPriceChanged={setLivePrice}
+              />
+              <MarginTab livePrice={livePrice} showLiveCard={false} />
+            </>
           )}
           {effectiveTab === "clients" && <ClientsTab livePrice={livePrice} />}
           {effectiveTab === "swap-fees" && (
@@ -565,7 +568,16 @@ function SwapDashboard() {
               onPriceChanged={setLivePrice}
             />
           )}
-          {effectiveTab === "margin" && <ClientsTab livePrice={livePrice} />}
+          {effectiveTab === "margin" && (
+            <MarginTab
+              livePrice={livePrice}
+              showLiveCard
+              isAdmin={isAdmin}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+            />
+          )}
           {effectiveTab === "reports" && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
