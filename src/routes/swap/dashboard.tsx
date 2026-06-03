@@ -586,6 +586,7 @@ function SwapDashboard() {
               onPriceChanged={setLivePrice}
             />
           )}
+          {effectiveTab === "premium" && <PremiumPanel />}
           {effectiveTab === "reports" && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
