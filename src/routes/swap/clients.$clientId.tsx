@@ -18,10 +18,13 @@ export const Route = createFileRoute("/swap/clients/$clientId")({
 });
 
 function fmt(n: number, d = 2): string {
-  return Number(n).toLocaleString(undefined, {
+  return Number(n).toLocaleString("en-US", {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   });
+}
+function money(n: number, d = 2): string {
+  return `${n < 0 ? "-" : ""}$${fmt(Math.abs(n), d)}`;
 }
 
 type History = Awaited<ReturnType<typeof getSwapClientHistory>>;
@@ -54,9 +57,10 @@ function buildMessage(
   positionType: "long" | "short",
 ): string {
   const isShort = positionType === "short";
+  const absFee = Math.abs(dailyFee);
   const amountLine = isShort
-    ? `Swap benefit credited: *+$${fmt(dailyFee)}*`
-    : `Swap fee: *-$${fmt(dailyFee)}*`;
+    ? `Swap benefit credited: *+$${fmt(absFee)}*`
+    : `Swap fee: *-$${fmt(absFee)}*`;
   return (
     `Swap Statement — ${feeDate}\n` +
     `Client: ${code}\n` +
@@ -64,7 +68,7 @@ function buildMessage(
     `Snapshot: ${fmtSnapshot(snapshotAt)}` +
     (xauusd !== null ? ` · XAUUSD $${fmt(xauusd)}` : "") +
     `\n\n` +
-    `Balance: $${fmt(balance)}\n` +
+    `Balance: ${money(balance)}\n` +
     `Rate: ${fmt(rate)}% p.a.\n` +
     amountLine
   );

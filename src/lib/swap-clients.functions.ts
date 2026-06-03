@@ -539,9 +539,10 @@ async function sendDailyWhatsAppStatements(
       f.xauusd_price !== null && f.xauusd_price !== undefined ? Number(f.xauusd_price) : null;
     const isShort = (f.position_type ?? "long") === "short";
     const amountLabel = isShort ? "Swap benefit credited" : "Swap fee";
-    const amountFmt = isShort
-      ? `*+$${fmtNum(Number(f.daily_fee))}*`
-      : `*-$${fmtNum(Number(f.daily_fee))}*`;
+    const absFee = Math.abs(Number(f.daily_fee));
+    const amountFmt = isShort ? `*+$${fmtNum(absFee)}*` : `*-$${fmtNum(absFee)}*`;
+    const bal = Number(f.usd_balance);
+    const balStr = `${bal < 0 ? "-" : ""}$${fmtNum(Math.abs(bal))}`;
     const body =
       `Swap Statement — ${feeDate}\n` +
       `Client: ${c.code}\n` +
@@ -549,7 +550,7 @@ async function sendDailyWhatsAppStatements(
       `Snapshot: ${snapshot}` +
       (xau !== null ? ` · XAUUSD $${fmtNum(xau)}` : "") +
       `\n\n` +
-      `Balance: $${fmtNum(Number(f.usd_balance))}\n` +
+      `Balance: ${balStr}\n` +
       `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
       `${amountLabel}: ${amountFmt}`;
 
