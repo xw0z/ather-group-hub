@@ -201,7 +201,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
       <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
         <div>
-          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "Inter, system-ui, sans-serif" }}>
+          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "'Montserrat', sans-serif", textTransform: "uppercase" }}>
             CLIENT CODE
           </div>
           <div
