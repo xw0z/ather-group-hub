@@ -921,32 +921,21 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Gold balance</Label>
-                        <div className="flex gap-1">
+                        <Label className="text-xs">Gold balance (grams)</Label>
+                        <div className="flex items-center gap-1">
                           <Input
                             type="number"
                             value={editGoldAmount}
                             onChange={(e) => setEditGoldAmount(e.target.value)}
                             className="flex-1"
                           />
-                          <select
-                            value={editGoldUnit}
-                            onChange={(e) =>
-                              setEditGoldUnit(e.target.value as "kg" | "g")
-                            }
-                            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-                            aria-label="Gold unit"
-                          >
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                          </select>
+                          <span className="text-sm text-muted-foreground px-2">g</span>
                         </div>
-                        {editGoldUnit === "kg" &&
-                          (parseFloat(editGoldAmount) || 0) > 100 && (
-                            <p className="text-[11px] text-amber-600 mt-1">
-                              ⚠ Verify unit. Did you mean grams?
-                            </p>
-                          )}
+                        {(parseFloat(editGoldAmount) || 0) > 100000 && (
+                          <p className="text-[11px] text-amber-600 mt-1">
+                            ⚠ Over 100,000 g (100 kg). Please verify.
+                          </p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-xs">XAUUSD ($/oz)</Label>
