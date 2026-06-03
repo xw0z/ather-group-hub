@@ -67,4 +67,5 @@ export const CK = {
   users: "swap:users",
   settings: "swap:settings",
   reports: "swap:reportHistory",
+  myPerms: "platform:myPerms",
 } as const;
