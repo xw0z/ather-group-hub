@@ -1584,9 +1584,17 @@ export function ClientBreakdown({
   }) {
     setBusyKey(`img:${r.name}`);
     try {
-      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+      const { renderPurityReportToCanvas } = await withTimeout(
+        import("@/components/PurityReport"),
+        15_000,
+        "Report generator took too long to load. Please try again.",
+      );
       const data = buildReportData(r);
-      const canvas = await renderPurityReportToCanvas(data, { scale: 3 });
+      const canvas = await withTimeout(
+        renderPurityReportToCanvas(data, { scale: 3 }),
+        30_000,
+        "Report image generation timed out. Please try PDF if the image is too large.",
+      );
       // PNG works in both mobile share sheets and the Windows Share dialog
       // (which lists WhatsApp). Keep quality high.
       const blob: Blob | null = await new Promise((resolve) =>
@@ -1604,11 +1612,15 @@ export function ClientBreakdown({
       // opens the Windows Share dialog which lists WhatsApp.
       if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
         try {
-          await nav.share({
-            files: [file],
-            title: `Gold Purity Report — Client ${data.clientCode}`,
-            text: shareText,
-          });
+          await withTimeout(
+            nav.share({
+              files: [file],
+              title: `Gold Purity Report — Client ${data.clientCode}`,
+              text: shareText,
+            }),
+            45_000,
+            "The share window did not respond. Opening WhatsApp Web instead.",
+          );
           return;
         } catch (e) {
           if ((e as DOMException)?.name === "AbortError") return;
