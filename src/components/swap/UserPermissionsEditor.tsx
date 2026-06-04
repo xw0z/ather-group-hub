@@ -136,7 +136,7 @@ export function UserPermissionsEditor({
       {open && (
         <div className="space-y-2">
           {loading ? (
-            <p className="text-xs text-muted-foreground">Loading…</p>
+            <p className="text-xs text-muted-foreground">{tt("common.loading")}</p>
           ) : (
             <>
               <div className="flex flex-wrap gap-1.5">
