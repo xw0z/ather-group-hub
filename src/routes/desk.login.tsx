@@ -91,8 +91,9 @@ function DeskLoginPage() {
     e.preventDefault();
     setError(null);
     if (!username || !password) {
-      setError("Pick a username and password.");
+      setError(t("auth.bootstrapPick"));
       return;
+
     }
     setLoading(true);
     try {
