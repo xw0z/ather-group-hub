@@ -632,10 +632,16 @@ export function SwapDashboard({
             <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
             <div className="flex items-center gap-1">
               {isAdmin && (
-                <BackupButton
-                  app={effectiveTab === "purity" ? "purity" : "swap"}
-                  label=""
-                />
+                <>
+                  <BackupButton
+                    app={effectiveTab === "purity" ? "purity" : "swap"}
+                    label=""
+                  />
+                  <RestoreButton
+                    app={effectiveTab === "purity" ? "purity" : "swap"}
+                    label=""
+                  />
+                </>
               )}
               <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
