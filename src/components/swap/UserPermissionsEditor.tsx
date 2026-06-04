@@ -168,8 +168,9 @@ export function UserPermissionsEditor({
                         <th className="text-left px-2 py-1.5 font-medium">Module</th>
                         {ACTIONS.map((a) => (
                           <th key={a} className="px-1 py-1.5 font-medium text-center">
-                            {ACTION_LABELS[a]}
+                            {tt(ACTION_LABEL_KEYS[a])}
                           </th>
+
                         ))}
                       </tr>
                     </thead>
