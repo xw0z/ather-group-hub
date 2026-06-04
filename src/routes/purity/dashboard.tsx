@@ -1583,6 +1583,8 @@ export function ClientBreakdown({
     totalLoss: number;
   }) {
     setBusyKey(`img:${r.name}`);
+    // Safety net: never let the button stay stuck spinning.
+    const safety = window.setTimeout(() => setBusyKey(null), 4000);
     try {
       const data = buildReportData(r);
       const shareText = [
@@ -1592,35 +1594,16 @@ export function ClientBreakdown({
         `Total weight: ${data.totalWeight} g`,
         `Total loss: ${data.totalLoss} g`,
       ].join("\n");
-      const nav = navigator as Navigator & {
-        share?: (d: { title?: string; text?: string }) => Promise<void>;
-      };
-      // Keep Share lightweight and instant. The image/PDF renderer can be slow
-      // on some phones; the PDF button remains available for full report files.
-      if (nav.share) {
-        try {
-          await withTimeout(
-            nav.share({
-              title: `Gold Purity Report — Client ${data.clientCode}`,
-              text: shareText,
-            }),
-            12_000,
-            "The share window did not respond. Opening WhatsApp Web instead.",
-          );
-          return;
-        } catch (e) {
-          if ((e as DOMException)?.name === "AbortError") return;
-          // fall through to clipboard + WhatsApp Web
-        }
-      }
-      // Fallback: copy the report summary and open WhatsApp immediately.
+      // Copy to clipboard best-effort (non-blocking).
       try {
         if ("clipboard" in navigator && "writeText" in navigator.clipboard) {
-          await navigator.clipboard.writeText(shareText);
+          void navigator.clipboard.writeText(shareText);
         }
       } catch (clipErr) {
         console.warn("[purity] clipboard text copy failed:", clipErr);
       }
+      // Open WhatsApp directly — works reliably on every device & browser,
+      // unlike navigator.share which hangs on some Android/Chrome combos.
       window.open(
         `https://wa.me/?text=${encodeURIComponent(shareText)}`,
         "_blank",
@@ -1629,14 +1612,16 @@ export function ClientBreakdown({
     } catch (err) {
       console.error("[purity] shareClientImage failed:", err);
       alert(
-        `Could not generate the image report.\n\n${
+        `Could not prepare the report.\n\n${
           err instanceof Error ? err.message : String(err)
         }`,
       );
     } finally {
+      window.clearTimeout(safety);
       setBusyKey(null);
     }
   }
+
 
 
   async function shareClientPDF(r: {
