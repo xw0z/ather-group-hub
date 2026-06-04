@@ -80,22 +80,6 @@ export type Trip = {
   created_at: string;
 };
 
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(message)), ms);
-    promise.then(
-      (value) => {
-        window.clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        window.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
-
 export type Piece = {
   id: string;
   trip_id: string;
@@ -1584,45 +1568,51 @@ export function ClientBreakdown({
   }) {
     setBusyKey(`img:${r.name}`);
     try {
+      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
       const data = buildReportData(r);
-      const shareText = [
-        `Gold Purity Report — Client ${data.clientCode}`,
-        `Report ID: ${data.reportId}`,
-        `Bars: ${data.barsCount}`,
-        `Total weight: ${data.totalWeight} g`,
-        `Total loss: ${data.totalLoss} g`,
-      ].join("\n");
+      const canvas = await renderPurityReportToCanvas(data, { scale: 3 });
+      // PNG works in both mobile share sheets and the Windows Share dialog
+      // (which lists WhatsApp). Keep quality high.
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/png"),
+      );
+      if (!blob) throw new Error("Could not produce image.");
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+      const shareText = `Gold Purity Report — Client ${data.clientCode}\n${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`;
       const nav = navigator as Navigator & {
-        share?: (d: { title?: string; text?: string }) => Promise<void>;
+        canShare?: (d: { files?: File[] }) => boolean;
+        share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
       };
-      // Keep Share lightweight and instant. The image/PDF renderer can be slow
-      // on some phones; the PDF button remains available for full report files.
-      if (nav.share) {
+      // Native share sheet — mobile shows WhatsApp; Windows 10/11 Chrome/Edge
+      // opens the Windows Share dialog which lists WhatsApp.
+      if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
         try {
-          await withTimeout(
-            nav.share({
-              title: `Gold Purity Report — Client ${data.clientCode}`,
-              text: shareText,
-            }),
-            12_000,
-            "The share window did not respond. Opening WhatsApp Web instead.",
-          );
+          await nav.share({
+            files: [file],
+            title: `Gold Purity Report — Client ${data.clientCode}`,
+            text: shareText,
+          });
           return;
         } catch (e) {
           if ((e as DOMException)?.name === "AbortError") return;
           // fall through to clipboard + WhatsApp Web
         }
       }
-      // Fallback: copy the report summary and open WhatsApp immediately.
+      // Fallback (browsers without Web Share API for files): copy image to
+      // clipboard and open WhatsApp Web so the user can paste it.
       try {
-        if ("clipboard" in navigator && "writeText" in navigator.clipboard) {
-          await navigator.clipboard.writeText(shareText);
+        if ("clipboard" in navigator && "write" in navigator.clipboard) {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+          alert(
+            "Image copied to clipboard.\n\nWhatsApp Web will open — paste (Ctrl+V / Cmd+V) into the chat.",
+          );
         }
       } catch (clipErr) {
-        console.warn("[purity] clipboard text copy failed:", clipErr);
+        console.warn("[purity] clipboard copy failed:", clipErr);
       }
       window.open(
-        `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+        `https://web.whatsapp.com/send?text=${encodeURIComponent(shareText)}`,
         "_blank",
         "noopener,noreferrer",
       );
