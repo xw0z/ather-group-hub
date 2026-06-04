@@ -267,7 +267,10 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
         const hasPurityPerm = can(myPerms ?? undefined, "purity", "view");
         try {
           const me = await getCurrentPurityUser();
-          if (!cancelled) setIsAdmin(me.isAdmin);
+          if (!cancelled) {
+            setIsAdmin(me.isAdmin);
+            setCanBackup(Boolean(me.canBackup));
+          }
         } catch {
           if (!isPlatformAdmin && !hasPurityPerm) {
             navigate({ to: "/unauthorized", replace: true });
