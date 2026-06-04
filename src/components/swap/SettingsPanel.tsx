@@ -105,6 +105,7 @@ export function SettingsPanel() {
         confidentiality_text: settings.confidentiality_text,
         show_logo_on_reports: settings.show_logo_on_reports,
         default_report_format: settings.default_report_format,
+        language: settings.language,
       };
       const r = await updateSwapSettings({
         data: { patch: p, applyToExistingClients: applyChoice },
