@@ -2028,7 +2028,7 @@ function SearchTab({
               return (
                 <Link
                   key={p.id}
-                  to="/purity/trips/$tripId"
+                  to="/desk/app/purity/trips/$tripId"
                   params={{ tripId: p.trip_id }}
                   className="block rounded-md border border-border bg-card p-3 hover:bg-accent/40 transition-colors"
                 >
