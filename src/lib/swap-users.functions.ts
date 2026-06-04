@@ -153,6 +153,7 @@ export const createSwapUser = createServerFn({ method: "POST" })
       username,
       email: data.email && data.email !== "" ? data.email : null,
       is_admin: Boolean(data.is_admin),
+      is_manager: Boolean(data.is_manager),
     });
     if (profErr) {
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
