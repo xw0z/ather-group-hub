@@ -37,7 +37,7 @@ export const createPurityUser = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) throw new Error("Username already taken.");
 
-    const authEmail = data.email ?? `${username}@purity.local`;
+    const authEmail = data.email ?? `${username}@ather.group`;
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: authEmail,
