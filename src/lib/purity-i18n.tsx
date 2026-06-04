@@ -1252,9 +1252,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const { getSwapSettings } = await import("@/lib/swap-settings.functions");
-        const r = await getSwapSettings();
-        const s = (r.settings as unknown as { language?: string }).language;
+        const { getPlatformLanguage } = await import("@/lib/swap-settings.functions");
+        const r = await getPlatformLanguage();
+        const s = r.language;
         if (!cancelled && (s === "en" || s === "ar" || s === "fr")) {
           if (s !== readStoredLang()) {
             window.localStorage.setItem(STORAGE_KEY, s);
