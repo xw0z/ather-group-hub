@@ -904,7 +904,7 @@ function HomeTab({
                             isShort ? "text-green-600" : "text-red-600"
                           }`}
                         >
-                          {isShort ? "+" : "-"}${fmt(r.base_daily_fee)}
+                          {isShort ? "+" : "-"}${fmt(Math.abs(Number(r.base_daily_fee) || 0))}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           {amountLabel}:{" "}
