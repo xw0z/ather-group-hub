@@ -205,7 +205,7 @@ function UserManagement() {
         <div>
           <h2 className="text-base font-semibold flex items-center gap-2">
             <UsersIcon className="h-4 w-4 text-primary" />
-            User Management
+            {tt("users.management")}
           </h2>
           <p className="text-xs text-muted-foreground">
             {users.length} user{users.length === 1 ? "" : "s"} with access to the platform
@@ -213,8 +213,9 @@ function UserManagement() {
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <UserPlus className="h-4 w-4 mr-1" />
-          {showForm ? "Cancel" : "Add User"}
+          {showForm ? tt("common.cancel") : tt("users.addUser")}
         </Button>
+
       </div>
 
       {showForm && (
