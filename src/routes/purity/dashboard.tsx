@@ -450,8 +450,8 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && <BackupButton app="purity" />}
-            {isAdmin && <RestoreButton app="purity" />}
+            {canBackup && <BackupButton app="purity" />}
+            {canBackup && <RestoreButton app="purity" />}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
             </Button>
