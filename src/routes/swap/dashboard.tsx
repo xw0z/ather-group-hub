@@ -529,7 +529,7 @@ export function SwapDashboard({
     if (!n.module) return true; // dashboard always visible
     return can(perms, n.module, "view");
   });
-  const currentLabel = NAV_ITEMS.find((n) => n.key === tab)?.label ?? "Dashboard";
+  const currentLabel = t(NAV_ITEMS.find((n) => n.key === tab)?.label ?? "nav.dashboard");
 
   // Permission gate: if the user can't view the requested tab, fall back to dashboard
   const requested = NAV_ITEMS.find((n) => n.key === tab);
