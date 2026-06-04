@@ -224,14 +224,16 @@ export function ensureReportFonts(): Promise<void> {
 
 
 
-function PurityDashboard() {
+export function PurityDashboard({ inShell = false }: { inShell?: boolean } = {}) {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
-  const [tab, setTab] = useState<"trips" | "clients" | "search" | "users" | "logs" | "profile">("trips");
+  type FullTab = "trips" | "clients" | "search" | "users" | "logs" | "profile";
+  type ShellTab = "trips" | "clients" | "search";
+  const [tab, setTab] = useState<FullTab>("trips");
 
   const [clients, setClients] = useState<Client[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -242,7 +244,8 @@ function PurityDashboard() {
     supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return;
       if (!data.session) {
-        navigate({ to: "/purity", replace: true });
+        // When mounted inside DESK shell, DESK handles auth — just bail.
+        if (!inShell) navigate({ to: "/purity", replace: true });
         return;
       }
       setEmail(data.session.user.email ?? "");
@@ -327,12 +330,89 @@ function PurityDashboard() {
 
   if (!ready) {
     return (
-      <div dir={dir} className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+      <div
+        dir={dir}
+        className={
+          inShell
+            ? "py-10 grid place-items-center text-muted-foreground"
+            : "min-h-screen grid place-items-center bg-background text-muted-foreground"
+        }
+      >
         {t("app.loading")}
       </div>
     );
   }
 
+  // The tab strip — shared between in-shell and standalone modes, but the
+  // in-shell mode hides Users / Logs / Profile (those live in the DESK shell).
+  const TabStrip = (
+    <nav className="flex gap-1 text-sm flex-wrap">
+      <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
+        <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")} ({trips.length})
+      </TabBtn>
+      <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
+        <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
+      </TabBtn>
+      <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
+        <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
+      </TabBtn>
+      {!inShell && isAdmin && (
+        <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
+          <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
+        </TabBtn>
+      )}
+      {!inShell && isAdmin && (
+        <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
+          <FileClock className="h-4 w-4 mr-1.5" /> {t("tab.logs")}
+        </TabBtn>
+      )}
+      {!inShell && (
+        <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
+          <UserCircle className="h-4 w-4 mr-1.5" /> {t("tab.profile")}
+        </TabBtn>
+      )}
+    </nav>
+  );
+
+  // Effective tab — in-shell mode never shows users/logs/profile.
+  const effectiveTab: FullTab =
+    inShell && (tab === "users" || tab === "logs" || tab === "profile") ? "trips" : tab;
+
+  const Content = (
+    <>
+      {effectiveTab === "trips" && (
+        <TripsTab
+          trips={trips}
+          clients={clients}
+          pieces={pieces}
+          reloadTrips={loadTrips}
+        />
+      )}
+      {effectiveTab === "clients" && (
+        <ClientsTab clients={clients} reload={loadClients} />
+      )}
+      {effectiveTab === "search" && <SearchTab clients={clients} trips={trips} />}
+
+      {effectiveTab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
+      {effectiveTab === "logs" && isAdmin && <LogsTab />}
+      {effectiveTab === "profile" && <ProfileTab email={email} setEmail={setEmail} />}
+    </>
+  );
+
+  // In-shell mode: render only the tab strip + content; the ATHER DESK shell
+  // provides the header, sidebar, profile menu, sign-out, theme and footer.
+  if (inShell) {
+    return (
+      <div dir={dir} className="space-y-4">
+        {TabStrip}
+        <div className="space-y-5">{Content}</div>
+      </div>
+    );
+  }
+
+  // Standalone (legacy) mode preserves the original Purity chrome. The
+  // /purity/dashboard route now redirects to /desk/app/purity, so this is
+  // effectively a fallback for any imports still rendering full-mode.
   return (
     <div dir={dir} className="min-h-screen bg-popover text-popover-foreground">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
@@ -348,51 +428,10 @@ function PurityDashboard() {
             <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
           </Button>
         </div>
-        <nav className="mx-auto max-w-3xl px-2 pb-2 flex gap-1 text-sm">
-          <TabBtn active={tab === "trips"} onClick={() => setTab("trips")}>
-            <Plane className="h-4 w-4 mr-1.5" /> {t("tab.trips")} ({trips.length})
-          </TabBtn>
-
-          <TabBtn active={tab === "clients"} onClick={() => setTab("clients")}>
-            <Users className="h-4 w-4 mr-1.5" /> {t("tab.suppliers")}
-          </TabBtn>
-          <TabBtn active={tab === "search"} onClick={() => setTab("search")}>
-            <Search className="h-4 w-4 mr-1.5" /> {t("tab.search")}
-          </TabBtn>
-          {isAdmin && (
-            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>
-              <UserPlus className="h-4 w-4 mr-1.5" /> {t("tab.users")}
-            </TabBtn>
-          )}
-          {isAdmin && (
-            <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
-              <FileClock className="h-4 w-4 mr-1.5" /> {t("tab.logs")}
-            </TabBtn>
-          )}
-          <TabBtn active={tab === "profile"} onClick={() => setTab("profile")}>
-            <UserCircle className="h-4 w-4 mr-1.5" /> {t("tab.profile")}
-          </TabBtn>
-        </nav>
+        <div className="mx-auto max-w-3xl px-2 pb-2">{TabStrip}</div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">
-        {tab === "trips" && (
-          <TripsTab
-            trips={trips}
-            clients={clients}
-            pieces={pieces}
-            reloadTrips={loadTrips}
-          />
-        )}
-        {tab === "clients" && (
-          <ClientsTab clients={clients} reload={loadClients} />
-        )}
-        {tab === "search" && <SearchTab clients={clients} trips={trips} />}
-        
-        {tab === "users" && isAdmin && <UsersTab currentUserId={currentUserId} />}
-        {tab === "logs" && isAdmin && <LogsTab />}
-        {tab === "profile" && <ProfileTab email={email} setEmail={setEmail} /> }
-      </main>
+      <main className="mx-auto max-w-3xl px-4 py-5 space-y-5">{Content}</main>
 
       <PurityFooter />
     </div>
