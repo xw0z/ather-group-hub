@@ -34,6 +34,17 @@ const TROY_OZ_PER_KG = 32.1507466;
 
 type Client = Awaited<ReturnType<typeof listSwapClients>>[number];
 
+// HTML-escape any user-controlled string before embedding into report templates.
+function esc(s: string | null | undefined): string {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function fmt(n: number, d = 2): string {
   return Number(n).toLocaleString(undefined, {
     minimumFractionDigits: d,
@@ -274,8 +285,8 @@ function clientHeaderHtml(c: Client): string {
     <div style="margin-top:22px;display:flex;justify-content:space-between;gap:16px">
       <div>
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Client</div>
-        <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${c.code}</div>
-        ${c.notes ? `<div style="font-size:12px;color:#9a9a9a;margin-top:2px">${c.notes}</div>` : ""}
+        <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${esc(c.code)}</div>
+        ${c.notes ? `<div style="font-size:12px;color:#9a9a9a;margin-top:2px">${esc(c.notes)}</div>` : ""}
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>
