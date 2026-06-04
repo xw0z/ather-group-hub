@@ -228,25 +228,25 @@ function UserManagement() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Username</Label>
+              <Label className="text-xs">{tt("login.username")}</Label>
               <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. salah"
+                placeholder={tt("users.usernamePh")}
                 required
               />
             </div>
             <div>
-              <Label className="text-xs">Email (optional)</Label>
+              <Label className="text-xs">{tt("auth.emailOpt")}</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
+                placeholder={tt("users.emailPh")}
               />
             </div>
             <div>
-              <Label className="text-xs">Password</Label>
+              <Label className="text-xs">{tt("login.password")}</Label>
               <Input
                 type="password"
                 value={password}
@@ -256,7 +256,7 @@ function UserManagement() {
               />
             </div>
             <div>
-              <Label className="text-xs">Confirm Password</Label>
+              <Label className="text-xs">{tt("profile.confirmPwd")}</Label>
               <Input
                 type="password"
                 value={confirm}
@@ -266,8 +266,9 @@ function UserManagement() {
               />
             </div>
             <div className="sm:col-span-2">
-              <Label className="text-xs mb-1.5 block">Role</Label>
+              <Label className="text-xs mb-1.5 block">{tt("users.role")}</Label>
               <div className="grid grid-cols-3 gap-2">
+
                 {(["Administrator", "Manager", "Staff"] as const).map((r) => (
                   <button
                     key={r}
