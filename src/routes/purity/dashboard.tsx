@@ -41,6 +41,7 @@ import {
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 import { useLang, type Lang } from "@/lib/purity-i18n";
 import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
+import { BackupButton } from "@/components/BackupButton";
 
 // Legacy /purity/dashboard URL — keep redirecting users into the unified
 // ATHER DESK shell at /desk/app/purity. The actual Purity module UI is
