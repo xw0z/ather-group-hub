@@ -564,9 +564,25 @@ function TxRow({ t, onDelete }: { t: PremiumTx; onDelete: () => void }) {
           <p className="text-xs text-muted-foreground mt-1 truncate">{t.notes}</p>
         )}
       </div>
-      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onDelete}>
-        <Trash2 className="h-4 w-4 text-red-400" />
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-8 w-8">
+            <Trash2 className="h-4 w-4 text-red-400" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </li>
   );
 }
