@@ -44,18 +44,18 @@ export function BackupButton({
     <Button
       type="button"
       variant="outline"
-      size="sm"
+      size="icon"
       onClick={download}
       disabled={busy}
       className={className}
-      title="Download a local JSON backup of all app data"
+      title={label === "Backup" ? "Download a local JSON backup of all app data" : label}
+      aria-label={label}
     >
       {busy ? (
-        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Download className="h-4 w-4 mr-1.5" />
+        <Download className="h-4 w-4" />
       )}
-      {label}
     </Button>
   );
 }
