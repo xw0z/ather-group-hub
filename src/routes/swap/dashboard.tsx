@@ -423,9 +423,11 @@ const NAV_ITEMS: NavItem[] = [
 export function SwapDashboard({
   tab: tabProp,
   swapView,
+  purityTripId,
 }: {
   tab?: Tab;
   swapView?: "clients" | "fees";
+  purityTripId?: string;
 } = {}) {
   const navigate = useNavigate();
   // Tab can come from prop (new /desk/app/* routes) or legacy ?tab= search.
