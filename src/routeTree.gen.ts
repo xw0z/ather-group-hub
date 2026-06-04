@@ -30,6 +30,7 @@ import { Route as DeskAppUsersRouteImport } from './routes/desk.app.users'
 import { Route as DeskAppSwapRouteImport } from './routes/desk.app.swap'
 import { Route as DeskAppSettingsRouteImport } from './routes/desk.app.settings'
 import { Route as DeskAppReportsRouteImport } from './routes/desk.app.reports'
+import { Route as DeskAppProfileRouteImport } from './routes/desk.app.profile'
 import { Route as DeskAppMarginRouteImport } from './routes/desk.app.margin'
 import { Route as DeskAppDiscountPremiumRouteImport } from './routes/desk.app.discount-premium'
 import { Route as DeskAppDashboardRouteImport } from './routes/desk.app.dashboard'
@@ -143,6 +144,11 @@ const DeskAppReportsRoute = DeskAppReportsRouteImport.update({
   path: '/desk/app/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskAppProfileRoute = DeskAppProfileRouteImport.update({
+  id: '/desk/app/profile',
+  path: '/desk/app/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DeskAppMarginRoute = DeskAppMarginRouteImport.update({
   id: '/desk/app/margin',
   path: '/desk/app/margin',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/profile': typeof DeskAppProfileRoute
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/profile': typeof DeskAppProfileRoute
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
+  '/desk/app/profile': typeof DeskAppProfileRoute
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/desk/app/dashboard'
     | '/desk/app/discount-premium'
     | '/desk/app/margin'
+    | '/desk/app/profile'
     | '/desk/app/reports'
     | '/desk/app/settings'
     | '/desk/app/swap'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/desk/app/dashboard'
     | '/desk/app/discount-premium'
     | '/desk/app/margin'
+    | '/desk/app/profile'
     | '/desk/app/reports'
     | '/desk/app/settings'
     | '/desk/app/swap'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/desk/app/dashboard'
     | '/desk/app/discount-premium'
     | '/desk/app/margin'
+    | '/desk/app/profile'
     | '/desk/app/reports'
     | '/desk/app/settings'
     | '/desk/app/swap'
@@ -384,6 +396,7 @@ export interface RootRouteChildren {
   DeskAppDashboardRoute: typeof DeskAppDashboardRoute
   DeskAppDiscountPremiumRoute: typeof DeskAppDiscountPremiumRoute
   DeskAppMarginRoute: typeof DeskAppMarginRoute
+  DeskAppProfileRoute: typeof DeskAppProfileRoute
   DeskAppReportsRoute: typeof DeskAppReportsRoute
   DeskAppSettingsRoute: typeof DeskAppSettingsRoute
   DeskAppSwapRoute: typeof DeskAppSwapRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeskAppReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/app/profile': {
+      id: '/desk/app/profile'
+      path: '/desk/app/profile'
+      fullPath: '/desk/app/profile'
+      preLoaderRoute: typeof DeskAppProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/desk/app/margin': {
       id: '/desk/app/margin'
       path: '/desk/app/margin'
@@ -616,6 +636,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeskAppDashboardRoute: DeskAppDashboardRoute,
   DeskAppDiscountPremiumRoute: DeskAppDiscountPremiumRoute,
   DeskAppMarginRoute: DeskAppMarginRoute,
+  DeskAppProfileRoute: DeskAppProfileRoute,
   DeskAppReportsRoute: DeskAppReportsRoute,
   DeskAppSettingsRoute: DeskAppSettingsRoute,
   DeskAppSwapRoute: DeskAppSwapRoute,
