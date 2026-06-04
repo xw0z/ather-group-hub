@@ -458,6 +458,7 @@ export function SwapDashboard({
 
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canBackup, setCanBackup] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
