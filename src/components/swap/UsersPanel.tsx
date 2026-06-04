@@ -194,7 +194,8 @@ function UserManagement() {
       invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete user.");
+      toast.error(err instanceof Error ? err.message : tt("users.failedDelete"));
+
     }
   }
 
