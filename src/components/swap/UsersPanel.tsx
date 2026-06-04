@@ -32,6 +32,7 @@ type SwapUser = {
   username: string;
   email: string | null;
   is_admin: boolean;
+  is_manager?: boolean;
   created_at: string;
 };
 
