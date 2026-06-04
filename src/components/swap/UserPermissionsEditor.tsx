@@ -55,11 +55,13 @@ export function UserPermissionsEditor({
   username: string;
   onChanged?: () => void;
 }) {
+  const { t: tt } = useLang();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [perms, setPerms] = useState<PermissionMap>({});
+
 
   useEffect(() => {
     if (!open) return;
