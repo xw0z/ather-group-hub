@@ -140,12 +140,13 @@ export function UserPermissionsEditor({
           ) : (
             <>
               <div className="flex flex-wrap gap-1.5">
-                <PresetBtn label="Purity only" onClick={() => applyPresetTo("purity_only")} />
-                <PresetBtn label="Swap full" onClick={() => applyPresetTo("swap_full")} />
-                <PresetBtn label="Reports viewer" onClick={() => applyPresetTo("reports_viewer")} />
-                <PresetBtn label="Administrator" onClick={() => applyPresetTo("admin")} />
-                <PresetBtn label="Clear" onClick={() => applyPresetTo("none")} />
+                <PresetBtn label={tt("users.presetPurity")} onClick={() => applyPresetTo("purity_only")} />
+                <PresetBtn label={tt("users.presetSwapFull")} onClick={() => applyPresetTo("swap_full")} />
+                <PresetBtn label={tt("users.presetReports")} onClick={() => applyPresetTo("reports_viewer")} />
+                <PresetBtn label={tt("users.presetAdmin")} onClick={() => applyPresetTo("admin")} />
+                <PresetBtn label={tt("users.presetClear")} onClick={() => applyPresetTo("none")} />
               </div>
+
 
               <label className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 cursor-pointer">
                 <input
