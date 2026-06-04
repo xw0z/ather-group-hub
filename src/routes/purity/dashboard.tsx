@@ -225,7 +225,7 @@ export function ensureReportFonts(): Promise<void> {
 
 
 
-export function PurityDashboard({ inShell = false }: { inShell?: boolean } = {}) {
+export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean; tripId?: string } = {}) {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
