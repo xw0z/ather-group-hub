@@ -176,9 +176,9 @@ const ApiPublicHooksSwapDailyFeesRoute =
   } as any)
 const DeskAppPurityTripsTripIdRoute =
   DeskAppPurityTripsTripIdRouteImport.update({
-    id: '/trips/$tripId',
-    path: '/trips/$tripId',
-    getParentRoute: () => DeskAppPurityRoute,
+    id: '/desk/app/purity/trips/$tripId',
+    path: '/desk/app/purity/trips/$tripId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -393,6 +393,7 @@ export interface RootRouteChildren {
   DeskAppIndexRoute: typeof DeskAppIndexRoute
   ApiPublicHooksSwapDailyFeesRoute: typeof ApiPublicHooksSwapDailyFeesRoute
   DeskAppPurityIndexRoute: typeof DeskAppPurityIndexRoute
+  DeskAppPurityTripsTripIdRoute: typeof DeskAppPurityTripsTripIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -588,10 +589,10 @@ declare module '@tanstack/react-router' {
     }
     '/desk/app/purity/trips/$tripId': {
       id: '/desk/app/purity/trips/$tripId'
-      path: '/trips/$tripId'
+      path: '/desk/app/purity/trips/$tripId'
       fullPath: '/desk/app/purity/trips/$tripId'
       preLoaderRoute: typeof DeskAppPurityTripsTripIdRouteImport
-      parentRoute: typeof DeskAppPurityRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -624,17 +625,8 @@ const rootRouteChildren: RootRouteChildren = {
   DeskAppIndexRoute: DeskAppIndexRoute,
   ApiPublicHooksSwapDailyFeesRoute: ApiPublicHooksSwapDailyFeesRoute,
   DeskAppPurityIndexRoute: DeskAppPurityIndexRoute,
+  DeskAppPurityTripsTripIdRoute: DeskAppPurityTripsTripIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
