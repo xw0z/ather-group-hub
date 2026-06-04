@@ -167,21 +167,24 @@ const TONE_BG: Record<Tone, string> = {
 /* ============================ Component ============================ */
 
 const FILTERS: { key: "all" | Category; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "clients", label: "Clients" },
-  { key: "balances", label: "Balances" },
-  { key: "margin", label: "Margin" },
-  { key: "swap", label: "Swap" },
-  { key: "users", label: "Users" },
-  { key: "reports", label: "Reports" },
+const FILTERS: { key: "all" | Category; label: string }[] = [
+  { key: "all", label: "audit.all" },
+  { key: "clients", label: "audit.clients" },
+  { key: "balances", label: "audit.balances" },
+  { key: "margin", label: "audit.margin" },
+  { key: "swap", label: "audit.swap" },
+  { key: "users", label: "audit.users" },
+  { key: "reports", label: "audit.reports" },
 ];
 
 export function AuditLogPanel() {
+  const { t: tt } = useLang();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [filter, setFilter] = useState<"all" | Category>("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<AuditEntry | null>(null);
+
 
   async function load(force = false) {
     setLoading(true);
