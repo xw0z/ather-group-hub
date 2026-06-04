@@ -65,12 +65,12 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
   }, [open]);
 
   useEffect(() => {
-    if (open && mode === "statement" && !txs) {
+    if (open && !txs) {
       listCompanyTransactions({ data: { companyId: summary.company.id } })
         .then(setTxs)
         .catch(() => setTxs([]));
     }
-  }, [open, mode, summary.company.id, txs]);
+  }, [open, summary.company.id, txs]);
 
   const handleShare = async (chosen: Mode) => {
     setMode(chosen);
