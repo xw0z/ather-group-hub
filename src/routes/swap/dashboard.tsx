@@ -519,7 +519,8 @@ export function SwapDashboard({
   if (!ready) {
     return (
       <main className="min-h-screen bg-background text-foreground grid place-items-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+
       </main>
     );
   }
