@@ -633,18 +633,22 @@ export function SwapDashboard({
             </Button>
             <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
             <div className="flex items-center gap-1">
-              {canBackup && (
-                <>
-                  <BackupButton
-                    app={effectiveTab === "purity" ? "purity" : "swap"}
-                    label=""
-                  />
-                  <RestoreButton
-                    app={effectiveTab === "purity" ? "purity" : "swap"}
-                    label=""
-                  />
-                </>
-              )}
+              {canBackup && (() => {
+                const scope =
+                  effectiveTab === "purity"
+                    ? "purity"
+                    : effectiveTab === "margin"
+                      ? "margin"
+                      : effectiveTab === "premium"
+                        ? "premium"
+                        : "swap";
+                return (
+                  <>
+                    <BackupButton app={scope} label="" />
+                    <RestoreButton app={scope} label="" />
+                  </>
+                );
+              })()}
               <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
