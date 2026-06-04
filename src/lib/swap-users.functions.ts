@@ -178,7 +178,7 @@ export const listSwapUsers = createServerFn({ method: "GET" })
     await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_profiles")
-      .select("id, username, email, is_admin, created_at")
+      .select("id, username, email, is_admin, is_manager, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
