@@ -487,12 +487,12 @@ function CompanyDetail({
           <Building2 className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-bold">{summary.company.name}</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-          <Stat label="Total Gold Balance" value={fmtG(summary.total_balance_grams)} accent />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
           <Stat
-            label="Clean Gold Balance"
+            label="Total Gold (without Discount / Premium)"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
+            accent
           />
           <Stat
             label="Discount / Premium Gold"
