@@ -56,18 +56,18 @@ export function RestoreButton({
       <Button
         type="button"
         variant="outline"
-        size="sm"
+        size="icon"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
         className={className}
-        title="Restore app data from a JSON backup file"
+        title={label === "Restore" ? "Restore app data from a JSON backup file" : label}
+        aria-label={label}
       >
         {busy ? (
-          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Upload className="h-4 w-4 mr-1.5" />
+          <Upload className="h-4 w-4" />
         )}
-        {label}
       </Button>
     </>
   );
