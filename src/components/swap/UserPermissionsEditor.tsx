@@ -215,7 +215,7 @@ export function UserPermissionsEditor({
               <div className="flex justify-end">
                 <Button size="sm" className="h-7 text-xs" onClick={save} disabled={saving}>
                   <Save className="h-3 w-3 mr-1" />
-                  {saving ? "Saving…" : "Save Permissions"}
+                  {saving ? tt("common.saving") : tt("users.savePerms")}
                 </Button>
               </div>
             </>
