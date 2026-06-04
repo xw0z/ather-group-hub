@@ -340,28 +340,21 @@ function CompanyCard({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Stat label="Total Balance" value={fmtG(s.total_balance_grams)} accent />
+      <div className="mt-4 space-y-3">
+        <Stat label="Total Gold Balance" value={fmtG(s.total_balance_grams)} accent />
         <Stat
-          label="Clean Remaining"
+          label="Clean Gold Balance"
           value={fmtG(s.clean_remaining_grams)}
           tone={s.clean_remaining_grams < 0 ? "danger" : "ok"}
         />
-        <Stat label="Discounted" value={fmtG(s.discounted_grams)} tone="sky" />
-        <Stat label="Premium" value={fmtG(s.premium_grams)} tone="fuchsia" />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 pt-3 border-t border-border/60">
-        <Stat label="Total Discount" value={fmtUSD(s.total_discount_usd)} tone="sky" small />
-        <Stat label="Total Premium" value={fmtUSD(s.total_premium_usd)} tone="fuchsia" small />
-      </div>
-      <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/60">
-        <span className="text-xs text-muted-foreground">Net Result</span>
-        <span
-          className={`text-base font-bold tabular-nums ${s.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-        >
-          {fmtUSD(s.net_usd)}
-        </span>
+        <Stat label="Discount / Premium Gold" value={fmtG(s.dp_grams)} tone="sky" />
+        <div className="pt-3 border-t border-border/60">
+          <Stat
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(s.dp_charges_usd)}
+            tone="fuchsia"
+          />
+        </div>
       </div>
 
       <Button className="w-full mt-4" variant="secondary" onClick={onOpen}>
