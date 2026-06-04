@@ -82,10 +82,10 @@ const KIND_META: Record<
   { label: string; color: string; icon: typeof Plus }
 > = {
   add: { label: "Add Gold Balance", color: "text-emerald-400", icon: ArrowUpRight },
-  remove: { label: "Remove Gold Balance", color: "text-red-400", icon: ArrowDownRight },
+  remove: { label: "Remove Clean Gold", color: "text-red-400", icon: ArrowDownRight },
   adjust: { label: "Balance Adjustment", color: "text-amber-400", icon: Pencil },
-  discount: { label: "Discount Charge", color: "text-sky-400", icon: ArrowDownRight },
-  premium: { label: "Premium Charge", color: "text-fuchsia-400", icon: ArrowUpRight },
+  discount: { label: "Apply Discount", color: "text-sky-400", icon: ArrowDownRight },
+  premium: { label: "Apply Premium", color: "text-fuchsia-400", icon: ArrowUpRight },
 };
 
 type View =
