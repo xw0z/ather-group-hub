@@ -750,24 +750,17 @@ function ReportCompanyStatement({
         </header>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat label="Total Balance" value={fmtG(summary.total_balance_grams)} accent />
+          <Stat label="Total Gold Balance" value={fmtG(summary.total_balance_grams)} accent />
           <Stat
-            label="Clean Remaining"
+            label="Clean Gold Balance"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
           />
-          <Stat label="Discounted" value={fmtG(summary.discounted_grams)} tone="sky" />
-          <Stat label="Premium" value={fmtG(summary.premium_grams)} tone="fuchsia" />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/60">
-          <Stat label="Total Discount" value={fmtUSD(summary.total_discount_usd)} tone="sky" />
-          <Stat label="Total Premium" value={fmtUSD(summary.total_premium_usd)} tone="fuchsia" />
+          <Stat label="Discount / Premium Gold" value={fmtG(summary.dp_grams)} tone="sky" />
           <Stat
-            label="Net Result"
-            value={fmtUSD(summary.net_usd)}
-            tone={summary.net_usd >= 0 ? "ok" : "danger"}
-            accent
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(summary.dp_charges_usd)}
+            tone="fuchsia"
           />
         </div>
 
