@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Settings as SettingsIcon, Save, Lock } from "lucide-react";
+import { Settings as SettingsIcon, Save, Lock, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import {
   type SwapSettings,
 } from "@/lib/swap-settings.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
+import { useLang, type Lang } from "@/lib/purity-i18n";
 
 function Field({
   label,
