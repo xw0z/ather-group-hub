@@ -27,6 +27,8 @@ export const Route = createFileRoute("/desk/login")({
 
 function DeskLoginPage() {
   const navigate = useNavigate();
+  const { t } = useLang();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
