@@ -186,7 +186,7 @@ export function UserPermissionsEditor({
                                 type="button"
                                 onClick={() => toggleModuleAll(m, !allOn)}
                                 className="text-left hover:text-primary"
-                                title={allOn ? "Turn all off" : "Turn all on"}
+                                title={allOn ? tt("users.allOff") : tt("users.allOn")}
                               >
                                 {MODULE_LABELS[m]}
                               </button>
