@@ -1569,22 +1569,27 @@ export function ClientBreakdown({
       if (!blob) throw new Error("Could not produce image.");
       const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
       const file = new File([blob], fileName, { type: "image/png" });
+      const shareText = `Gold Purity Report — Client ${data.clientCode}\n${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`;
       const nav = navigator as Navigator & {
         canShare?: (d: { files?: File[] }) => boolean;
         share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
       };
-      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+      // Try native share with file (mobile -> WhatsApp appears in share sheet)
+      if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
         try {
           await nav.share({
             files: [file],
             title: `Gold Purity Report — Client ${data.clientCode}`,
-            text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
+            text: shareText,
           });
           return;
-        } catch {
-          /* fall through to download */
+        } catch (e) {
+          // user cancelled or share failed — do not auto-download
+          if ((e as DOMException)?.name === "AbortError") return;
         }
       }
+      // Fallback: open WhatsApp with text (image cannot be attached via URL)
+      // Also offer the image as a download so the user can attach it manually.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -1592,7 +1597,13 @@ export function ClientBreakdown({
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
     } catch (err) {
       console.error("[purity] shareClientImage failed:", err);
       alert(
