@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { assertSwapUser } from "@/lib/swap-clients.functions";
 
 const usernameRule = z
   .string()
@@ -20,21 +22,48 @@ async function assertSwapAdmin(userId: string) {
   if (!data?.is_admin) throw new Error("Only a Swap admin can manage users.");
 }
 
-// Resolve a swap username to its auth email so users can log in by username.
-export const resolveSwapUsernameToEmail = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ username: z.string().trim().min(1).max(64) }).parse(d))
+// Server-side username sign-in: looks up the email internally and verifies
+// the password against Supabase Auth, returning only session tokens.
+// The email is never returned to the caller.
+export const swapSignInWithUsername = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        username: z.string().trim().min(1).max(64),
+        password: z.string().min(1).max(128),
+      })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
+    const generic = "Invalid username or password.";
     const { data: profile, error } = await supabaseAdmin
       .from("swap_profiles")
       .select("id")
       .ilike("username", data.username)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!profile) throw new Error("Invalid username or password.");
+    if (!profile) throw new Error(generic);
+
     const { data: userRes, error: userErr } =
       await supabaseAdmin.auth.admin.getUserById(profile.id);
-    if (userErr || !userRes?.user?.email) throw new Error("Invalid username or password.");
-    return { email: userRes.user.email };
+    if (userErr || !userRes?.user?.email) throw new Error(generic);
+
+    // Verify password via an anon client (does not persist session server-side).
+    const anon = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: sess, error: signErr } = await anon.auth.signInWithPassword({
+      email: userRes.user.email,
+      password: data.password,
+    });
+    if (signErr || !sess.session) throw new Error(generic);
+
+    return {
+      access_token: sess.session.access_token,
+      refresh_token: sess.session.refresh_token,
+    };
   });
 
 // First-time setup: create the first admin if no swap users exist yet.
@@ -145,7 +174,8 @@ export const deleteSwapUser = createServerFn({ method: "POST" })
 
 export const listSwapUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_profiles")
       .select("id, username, email, is_admin, created_at")

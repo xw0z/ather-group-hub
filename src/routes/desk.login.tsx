@@ -9,7 +9,7 @@ import { useLang } from "@/lib/purity-i18n";
 import {
   bootstrapSwapAdmin,
   getCurrentSwapUser,
-  resolveSwapUsernameToEmail,
+  swapSignInWithUsername,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
 
@@ -70,9 +70,14 @@ function DeskLoginPage() {
     }
     setLoading(true);
     try {
-      const { email } = await resolveSwapUsernameToEmail({ data: { username: username.trim() } });
-      const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
-      if (signErr) throw signErr;
+      const tokens = await swapSignInWithUsername({
+        data: { username: username.trim(), password },
+      });
+      const { error: setErr } = await supabase.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      });
+      if (setErr) throw setErr;
       const me = await getCurrentSwapUser();
       if (!me.isSwapUser) {
         await supabase.auth.signOut();
@@ -98,12 +103,14 @@ function DeskLoginPage() {
     setLoading(true);
     try {
       await bootstrapSwapAdmin({ data: { username: username.trim(), password, email } });
-      const resolved = await resolveSwapUsernameToEmail({ data: { username: username.trim() } });
-      const { error: signErr } = await supabase.auth.signInWithPassword({
-        email: resolved.email,
-        password,
+      const tokens = await swapSignInWithUsername({
+        data: { username: username.trim(), password },
       });
-      if (signErr) throw signErr;
+      const { error: setErr } = await supabase.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      });
+      if (setErr) throw setErr;
       navigate({ to: "/desk/app/dashboard", replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.setupFailed"));

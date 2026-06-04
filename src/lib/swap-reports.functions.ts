@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { computeMargin } from "@/lib/swap-clients.functions";
+import { computeMargin, assertSwapUser } from "@/lib/swap-clients.functions";
 
 const dateStr = z
   .string()
@@ -29,7 +29,8 @@ export const getSwapFeeReport = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     const { data: client, error: cErr } = await supabaseAdmin
       .from("swap_clients")
       .select(
@@ -107,7 +108,8 @@ export const getSwapFeeReport = createServerFn({ method: "POST" })
 /** Management portfolio summary. */
 export const getPortfolioReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
       .select(
@@ -206,6 +208,7 @@ export const logReportGeneration = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ context, data }) => {
+    await assertSwapUser(context.userId);
     const username = await getUsername(context.userId);
     const { error } = await supabaseAdmin.from("swap_report_history").insert({
       report_type: data.report_type,
@@ -223,7 +226,8 @@ export const logReportGeneration = createServerFn({ method: "POST" })
 
 export const listReportHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_report_history")
       .select(
