@@ -350,11 +350,11 @@ function CompanyCard({
       </div>
 
       <div className="mt-4 space-y-3">
-        <Stat label="Total Gold Balance" value={fmtG(s.total_balance_grams)} accent />
         <Stat
-          label="Clean Gold Balance"
+          label="Total Gold (without Discount / Premium)"
           value={fmtG(s.clean_remaining_grams)}
           tone={s.clean_remaining_grams < 0 ? "danger" : "ok"}
+          accent
         />
         <Stat label="Discount / Premium Gold" value={fmtG(s.dp_grams)} tone="sky" />
         <div className="pt-3 border-t border-border/60">
