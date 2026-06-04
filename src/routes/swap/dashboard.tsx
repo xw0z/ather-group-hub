@@ -586,7 +586,7 @@ export function SwapDashboard({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold">Ather Margin &amp; Swap</p>
+              <p className="text-sm font-semibold">ATHER Desk</p>
               <Button variant="ghost" size="icon" onClick={() => setNavOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
