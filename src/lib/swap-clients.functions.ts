@@ -58,6 +58,18 @@ async function getUsername(userId: string): Promise<string> {
   return data?.username ?? "unknown";
 }
 
+// Membership gate: ensure caller is a Swap section user (since we use
+// supabaseAdmin and bypass RLS, this server-side check is required).
+export async function assertSwapUser(userId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("swap_profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: not a Swap user.");
+}
+
 type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
 // Forex/CFD swap rollover multipliers by weekday (UTC).
