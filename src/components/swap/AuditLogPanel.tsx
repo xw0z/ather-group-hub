@@ -57,16 +57,17 @@ type AuditEntry = {
 /* --------------------------- Friendly maps -------------------------- */
 
 const FIELD_LABELS: Record<string, string> = {
-  gold_kg: "Gold Balance",
-  usd_balance: "USD Balance",
-  annual_rate: "Long Swap Rate",
-  short_annual_rate: "Short Swap Rate",
-  margin_requirement_pct: "Margin Requirement",
-  position_type: "Position",
-  xauusd_price: "Gold Price",
-  code: "Client Code",
-  notes: "Client Name",
+  gold_kg: "audit.fieldGoldBalance",
+  usd_balance: "audit.fieldUsdBalance",
+  annual_rate: "audit.fieldLongSwap",
+  short_annual_rate: "audit.fieldShortSwap",
+  margin_requirement_pct: "audit.fieldMarginReq",
+  position_type: "audit.fieldPosition",
+  xauusd_price: "audit.fieldGoldPrice",
+  code: "audit.fieldClientCode",
+  notes: "audit.fieldClientName",
 };
+
 
 function fmtNum(n: number, d = 2) {
   return Number(n).toLocaleString(undefined, {
