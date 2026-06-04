@@ -343,37 +343,38 @@ export function AuditLogPanel() {
         if (r.action === "client_created" || r.action === "client_updated") {
           for (const [k, v] of Object.entries(det)) {
             if (k === "code") continue;
-            const label = FIELD_LABELS[k];
-            if (!label) continue;
-            extra.push({ label, value: fmtField(k, v) });
+            const labelKey = FIELD_LABELS[k];
+            if (!labelKey) continue;
+            extra.push({ label: tt(labelKey), value: fmtField(k, v) });
           }
         } else if (r.action === "settings_updated") {
           for (const [k, v] of Object.entries(det)) {
-            const label =
-              FIELD_LABELS[k] ??
-              k.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
+            const label = FIELD_LABELS[k]
+              ? tt(FIELD_LABELS[k])
+              : k.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
             extra.push({ label, value: typeof v === "object" ? JSON.stringify(v) : String(v) });
           }
         } else if (r.action === "fees_computed_manual") {
           const date = det.date as string | undefined;
           const count = det.count as number | undefined;
           const total = det.total as number | undefined;
-          if (date) extra.push({ label: "Date", value: date });
-          if (typeof count === "number") extra.push({ label: "Clients", value: String(count) });
+          if (date) extra.push({ label: tt("common.date"), value: date });
+          if (typeof count === "number") extra.push({ label: tt("audit.clients"), value: String(count) });
           if (typeof total === "number")
-            extra.push({ label: "Total Fees", value: fmtMoney(total) });
+            extra.push({ label: tt("audit.totalFees"), value: fmtMoney(total) });
         } else if (r.action === "report_generated" || r.action === "report_shared") {
           const t = det.type as string | undefined;
           const fmtType = det.format as string | undefined;
-          if (t) extra.push({ label: "Report Type", value: t.replace(/_/g, " ") });
-          if (fmtType) extra.push({ label: "Format", value: fmtType.toUpperCase() });
+          if (t) extra.push({ label: tt("audit.reportType"), value: t.replace(/_/g, " ") });
+          if (fmtType) extra.push({ label: tt("audit.format"), value: fmtType.toUpperCase() });
         }
 
         out.push({
           id: `a:${r.id}`,
           when: r.created_at,
           who: r.username || "system",
-          title: cfg.title,
+          title: tt(cfg.title),
+
           icon: cfg.icon,
           tone: cfg.tone,
           categories: cfg.categories,
