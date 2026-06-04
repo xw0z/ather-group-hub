@@ -51,17 +51,27 @@ async function waitForFonts() {
       fonts?: { load: (s: string) => Promise<unknown>; ready: Promise<unknown> };
     }).fonts;
     if (!f) return;
-    await Promise.all([
-      f.load("600 92px 'Montserrat'"),
-      f.load("700 92px 'Montserrat'"),
-      f.load("400 36px 'Inter'"),
-      f.load("500 36px 'Inter'"),
-      f.load("600 36px 'Inter'"),
-      f.load("700 36px 'Inter'"),
-      f.load("800 36px 'Inter'"),
-      f.load("400 92px 'Great Vibes'"),
-    ]);
-    await f.ready;
+    // Hard-cap font loading at 4s so a blocked Google Fonts CDN (corporate
+    // firewall, ad-blocker, offline) can never hang the share flow.
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 4000));
+    const load = (async () => {
+      await Promise.allSettled([
+        f.load("600 92px 'Montserrat'"),
+        f.load("700 92px 'Montserrat'"),
+        f.load("400 36px 'Inter'"),
+        f.load("500 36px 'Inter'"),
+        f.load("600 36px 'Inter'"),
+        f.load("700 36px 'Inter'"),
+        f.load("800 36px 'Inter'"),
+        f.load("400 92px 'Great Vibes'"),
+      ]);
+      try {
+        await f.ready;
+      } catch {
+        /* ignore */
+      }
+    })();
+    await Promise.race([load, timeout]);
   } catch (err) {
     console.error("[PurityReport] Font loading failed:", err);
   }
