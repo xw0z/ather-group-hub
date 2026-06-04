@@ -628,19 +628,28 @@ export function SwapDashboard({
         <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
           {effectiveTab === "dashboard" && (
             <>
-              <HomeTab
-                isAdmin={isAdmin}
-                livePrice={livePrice}
-                livePriceLoading={livePriceLoading}
-                onRefreshPrice={refreshPrice}
-                onPriceChanged={setLivePrice}
-              />
-              <MarginTab livePrice={livePrice} showLiveCard={false} />
+              {can(perms, "swap", "view") && (
+                <HomeTab
+                  isAdmin={isAdmin}
+                  livePrice={livePrice}
+                  livePriceLoading={livePriceLoading}
+                  onRefreshPrice={refreshPrice}
+                  onPriceChanged={setLivePrice}
+                />
+              )}
+              {can(perms, "margin", "view") && (
+                <MarginTab livePrice={livePrice} showLiveCard={false} />
+              )}
+              {!can(perms, "swap", "view") && !can(perms, "margin", "view") && (
+                <section className="rounded-xl border border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
+                  Select a module from the sidebar to get started.
+                </section>
+              )}
             </>
           )}
-          {effectiveTab === "purity" && <PurityDashboard inShell tripId={purityTripId} />}
-          {effectiveTab === "clients" && <ClientsTab livePrice={livePrice} />}
-          {effectiveTab === "swap-fees" && (
+          {effectiveTab === "purity" && can(perms, "purity", "view") && <PurityDashboard inShell tripId={purityTripId} />}
+          {effectiveTab === "clients" && can(perms, "swap", "view") && <ClientsTab livePrice={livePrice} />}
+          {effectiveTab === "swap-fees" && can(perms, "swap", "view") && (
             <HomeTab
               isAdmin={isAdmin}
               livePrice={livePrice}
@@ -649,7 +658,7 @@ export function SwapDashboard({
               onPriceChanged={setLivePrice}
             />
           )}
-          {effectiveTab === "margin" && (
+          {effectiveTab === "margin" && can(perms, "margin", "view") && (
             <MarginTab
               livePrice={livePrice}
               showLiveCard
@@ -659,13 +668,14 @@ export function SwapDashboard({
               onPriceChanged={setLivePrice}
             />
           )}
-          {effectiveTab === "premium" && <PremiumPanel />}
-          {effectiveTab === "reports" && <ReportsTab />}
+          {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
+          {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
             <UsersPanel currentUsername={username} />
           )}
-          {effectiveTab === "settings" && <SettingsTab />}
+          {effectiveTab === "settings" && can(perms, "settings", "view") && <SettingsTab />}
+          {effectiveTab === "profile" && <ProfileTab username={username} />}
         </main>
         <SwapFooter />
       </div>
