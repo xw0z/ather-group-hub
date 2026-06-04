@@ -32,6 +32,7 @@ type SwapUser = {
   username: string;
   email: string | null;
   is_admin: boolean;
+  is_manager?: boolean;
   created_at: string;
 };
 
@@ -80,8 +81,10 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
 
 /* -------------------- USER MANAGEMENT -------------------- */
 
-function roleOf(u: SwapUser): "Administrator" | "Staff" {
-  return u.is_admin ? "Administrator" : "Staff";
+function roleOf(u: SwapUser): "Administrator" | "Manager" | "Staff" {
+  if (u.is_admin) return "Administrator";
+  if (u.is_manager) return "Manager";
+  return "Staff";
 }
 
 function RoleBadge({ role }: { role: "Administrator" | "Manager" | "Staff" }) {
@@ -168,13 +171,13 @@ function UserManagement() {
 
     setSubmitting(true);
     try {
-      // Schema stores admin as a boolean. Manager maps to non-admin (Staff-tier).
       await createSwapUser({
         data: {
           username,
           password,
           email,
           is_admin: role === "Administrator",
+          is_manager: role === "Manager",
         },
       });
       toast.success(`User ${username} created`);
@@ -454,6 +457,7 @@ function MyAccount({ username }: { username: string }) {
   const [me, setMe] = useState<{
     email: string | null;
     isAdmin: boolean;
+    isManager: boolean;
     lastSignIn: string | null;
     createdAt: string | null;
   } | null>(null);
@@ -469,12 +473,14 @@ function MyAccount({ username }: { username: string }) {
       if (!u) return;
       const { data: profile } = await supabase
         .from("swap_profiles")
-        .select("is_admin")
+        .select("is_admin, is_manager")
         .eq("id", u.id)
         .maybeSingle();
+      const p = profile as { is_admin?: boolean; is_manager?: boolean } | null;
       setMe({
         email: u.email ?? null,
-        isAdmin: Boolean(profile?.is_admin),
+        isAdmin: Boolean(p?.is_admin),
+        isManager: Boolean(p?.is_manager),
         lastSignIn: u.last_sign_in_at ?? null,
         createdAt: u.created_at ?? null,
       });
@@ -509,7 +515,7 @@ function MyAccount({ username }: { username: string }) {
     }
   }
 
-  const role = me?.isAdmin ? "Administrator" : "Staff";
+  const role: "Administrator" | "Manager" | "Staff" = me?.isAdmin ? "Administrator" : me?.isManager ? "Manager" : "Staff";
 
   return (
     <section className="space-y-4">
