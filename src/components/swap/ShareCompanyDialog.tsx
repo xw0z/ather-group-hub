@@ -52,25 +52,27 @@ const fmtDate = (d: string) =>
 
 type Mode = "summary" | "statement";
 
-/* -------------------- Brand tokens (matches ATHER Desk premium identity) -------------------- */
+/* -------------------- Brand tokens — MATCHES Margin report identity --------------------
+   These are the exact colors/fonts used by ReportsCenter (Margin/Swap/Portfolio exports).
+   Do not introduce a different palette here. */
 
-const BRAND_NAVY = "#0b1224";
-const BRAND_NAVY_2 = "#142042";
-const BRAND_NAVY_3 = "#1d2c5c";
-const BRAND_GOLD = "#c9a24a";
-const BRAND_GOLD_SOFT = "#e6c878";
-const INK = "#0f172a";
-const INK_SOFT = "#475569";
-const MUTED = "#94a3b8";
-const LINE = "#e5e7eb";
-const LINE_SOFT = "#eef1f6";
-const ROW_ALT = "#f7f9fc";
-const SURFACE = "#ffffff";
-const DANGER = "#dc2626";
-const OK = "#059669";
+const BG = "#1a1a1a";
+const CARD = "#222222";
+const CARD_2 = "#2a2a2a";
+const BORDER = "#2f2f2f";
+const BORDER_SOFT = "#2a2a2a";
+const TEXT = "#f4f1ec";
+const TEXT_MUTED = "#9a9a9a";
+const TEXT_SOFT = "#d9d4cc";
+const TEXT_FAINT = "#7a7a7a";
+const EMBER = "#e85d3a";
+const EMBER_DEEP = "#c64a2d";
+const DANGER = "#ef4444";
+const OK = "#22c55e";
 
 const baseFont =
-  "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+  "Epilogue, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+const displayFont = "Urbanist, " + baseFont;
 
 /* -------------------- Component -------------------- */
 
@@ -92,7 +94,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
     QRCode.toDataURL(url, {
       margin: 0,
       width: 220,
-      color: { dark: BRAND_NAVY, light: "#ffffff" },
+      color: { dark: "#1a1a1a", light: "#ffffff" },
     })
       .then(setQr)
       .catch(() => setQr(""));
@@ -117,7 +119,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
       const dataUrl = await toPng(node, {
         pixelRatio: 3,
         cacheBust: true,
-        backgroundColor: "#ffffff",
+        backgroundColor: BG,
       });
 
       const blob = await (await fetch(dataUrl)).blob();
@@ -273,27 +275,24 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
   );
 }
 
-/* -------------------- Branded sub-components -------------------- */
+/* -------------------- Brand header — pixel-matches ReportsCenter brandHeader() -------------------- */
 
-function Brand({ inverse = false }: { inverse?: boolean }) {
-  const fg = inverse ? "#ffffff" : INK;
-  const sub = inverse ? "rgba(255,255,255,0.65)" : MUTED;
+function Brand({ subtitle }: { subtitle: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <div
         style={{
-          width: 54,
-          height: 54,
-          borderRadius: 14,
-          background: `linear-gradient(135deg, ${BRAND_GOLD}, ${BRAND_GOLD_SOFT})`,
-          color: BRAND_NAVY,
+          width: 38,
+          height: 38,
+          borderRadius: 8,
+          background: `linear-gradient(135deg, ${EMBER}, ${EMBER_DEEP})`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontWeight: 900,
-          fontSize: 26,
-          letterSpacing: 1,
-          boxShadow: "0 6px 18px rgba(201,162,74,0.35)",
+          fontWeight: 800,
+          color: BG,
+          fontSize: 18,
+          fontFamily: displayFont,
         }}
       >
         A
@@ -301,87 +300,73 @@ function Brand({ inverse = false }: { inverse?: boolean }) {
       <div>
         <div
           style={{
-            fontSize: 24,
-            fontWeight: 900,
-            letterSpacing: 4,
-            color: fg,
+            fontFamily: displayFont,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            fontSize: 18,
             lineHeight: 1,
+            color: TEXT,
           }}
         >
-          ATHER
+          ATHER GROUP
         </div>
         <div
           style={{
-            fontSize: 10,
-            color: sub,
-            letterSpacing: 2,
-            marginTop: 6,
-            fontWeight: 600,
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            marginTop: 3,
           }}
         >
-          DESK · PRECIOUS METALS
+          {subtitle}
         </div>
       </div>
     </div>
   );
 }
 
-function StatPill({
+/* -------------------- Row primitive — matches ReportsCenter row() -------------------- */
+
+function Row({
   label,
   value,
-  tone = "default",
+  valueColor,
+  emphasize,
 }: {
   label: string;
   value: string;
-  tone?: "default" | "danger" | "ok" | "gold";
+  valueColor?: string;
+  emphasize?: boolean;
 }) {
-  const valueColor =
-    tone === "danger"
-      ? DANGER
-      : tone === "ok"
-        ? OK
-        : tone === "gold"
-          ? BRAND_GOLD
-          : INK;
   return (
     <div
       style={{
-        flex: 1,
-        background: SURFACE,
-        border: `1px solid ${LINE}`,
-        borderRadius: 14,
-        padding: "18px 20px",
-        boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        padding: "10px 0",
+        borderBottom: emphasize ? "none" : `1px solid ${BORDER_SOFT}`,
       }}
     >
-      <div
-        style={{
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: 1.6,
-          color: MUTED,
-          fontWeight: 700,
-        }}
-      >
+      <span style={{ fontSize: 13, color: TEXT_MUTED, letterSpacing: "0.02em" }}>
         {label}
-      </div>
-      <div
+      </span>
+      <span
         style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: valueColor,
-          marginTop: 8,
+          fontSize: emphasize ? 20 : 15,
+          color: valueColor ?? TEXT,
+          fontWeight: emphasize ? 700 : 600,
           fontVariantNumeric: "tabular-nums",
-          letterSpacing: -0.3,
         }}
       >
         {value}
-      </div>
+      </span>
     </div>
   );
 }
 
-/* -------------------- The unified premium report -------------------- */
+/* -------------------- The unified premium report — Margin visual family -------------------- */
 
 const ReportCard = ({
   ref,
@@ -405,638 +390,376 @@ const ReportCard = ({
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
+  const subtitle =
+    reportType === "STATEMENT"
+      ? "Discount / Premium Statement"
+      : "Discount / Premium Report";
+
   return (
     <div
       ref={ref}
       style={{
-        width: 1080,
-        background: "#f5f7fb",
-        color: INK,
+        width: 780,
+        background: BG,
+        color: TEXT,
         fontFamily: baseFont,
-        padding: 0,
+        padding: "32px 36px 28px",
       }}
     >
-      {/* Header band — dark navy with gold accent */}
+      {/* Header — matches Margin brandHeader + clientHeaderHtml */}
+      <Brand subtitle={subtitle} />
+
       <div
         style={{
-          background: `linear-gradient(135deg, ${BRAND_NAVY} 0%, ${BRAND_NAVY_2} 60%, ${BRAND_NAVY_3} 100%)`,
-          padding: "44px 56px 56px",
-          position: "relative",
-          borderBottom: `4px solid ${BRAND_GOLD}`,
+          marginTop: 22,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 16,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <Brand inverse />
-          <div style={{ textAlign: "right" }}>
-            <div
-              style={{
-                display: "inline-block",
-                background: "rgba(201,162,74,0.15)",
-                border: `1px solid ${BRAND_GOLD}`,
-                color: BRAND_GOLD_SOFT,
-                padding: "6px 14px",
-                borderRadius: 999,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 2,
-              }}
-            >
-              DISCOUNT / PREMIUM · {reportType}
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "rgba(255,255,255,0.55)",
-                marginTop: 12,
-                letterSpacing: 1.2,
-              }}
-            >
-              GENERATED
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                marginTop: 3,
-                color: "#fff",
-              }}
-            >
-              {generatedAt}
-            </div>
-          </div>
-        </div>
-
-        {/* Company name block */}
-        <div style={{ marginTop: 36 }}>
+        <div>
           <div
             style={{
               fontSize: 11,
-              color: BRAND_GOLD_SOFT,
-              letterSpacing: 2,
-              fontWeight: 700,
+              color: TEXT_MUTED,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
             }}
           >
-            COMPANY
+            Company
           </div>
           <div
             style={{
-              fontSize: 40,
-              fontWeight: 900,
-              marginTop: 6,
-              color: "#fff",
-              letterSpacing: -0.8,
-              lineHeight: 1.1,
+              fontSize: 22,
+              fontWeight: 700,
+              marginTop: 2,
+              letterSpacing: "-0.01em",
+              color: TEXT,
+              fontFamily: displayFont,
             }}
           >
             {summary.company.name}
           </div>
         </div>
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: "44px 56px 48px" }}>
-        {/* Hero card — Available Gold (without discount / premium) */}
-        <div
-          style={{
-            borderRadius: 20,
-            padding: "40px 44px",
-            background: `linear-gradient(135deg, ${BRAND_NAVY} 0%, ${BRAND_NAVY_3} 100%)`,
-            color: "#fff",
-            boxShadow: "0 18px 40px -18px rgba(11,18,36,0.55)",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* gold ribbon */}
+        <div style={{ textAlign: "right" }}>
           <div
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              background: `linear-gradient(90deg, ${BRAND_GOLD}, ${BRAND_GOLD_SOFT}, ${BRAND_GOLD})`,
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: 24,
+              fontSize: 11,
+              color: TEXT_MUTED,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
             }}
           >
-            <div>
+            Snapshot
+          </div>
+          <div style={{ fontSize: 13, color: TEXT_SOFT, marginTop: 4 }}>
+            {generatedAt}
+          </div>
+        </div>
+      </div>
+
+      {/* Hero — Available Gold (without discount / premium) */}
+      <div
+        style={{
+          marginTop: 18,
+          padding: "22px 20px",
+          background: CARD,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 10,
+          textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            background: `linear-gradient(90deg, ${EMBER}, ${EMBER_DEEP})`,
+          }}
+        />
+        <div
+          style={{
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+          }}
+        >
+          Available Gold
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            color: TEXT_FAINT,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginTop: 4,
+          }}
+        >
+          Without discount / premium
+        </div>
+        <div
+          style={{
+            fontSize: 38,
+            fontWeight: 800,
+            marginTop: 10,
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "-0.01em",
+            color: summary.clean_remaining_grams < 0 ? DANGER : EMBER,
+            fontFamily: displayFont,
+          }}
+        >
+          {fmtGNum(summary.clean_remaining_grams)}
+          <span
+            style={{
+              fontSize: 18,
+              color: TEXT_SOFT,
+              marginLeft: 8,
+              fontWeight: 700,
+            }}
+          >
+            g
+          </span>
+        </div>
+      </div>
+
+      {/* Summary block — matches Margin's row() card */}
+      <div
+        style={{
+          marginTop: 16,
+          padding: "4px 16px",
+          background: CARD,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 10,
+        }}
+      >
+        <Row
+          label="Total Balance"
+          value={fmtG(summary.total_balance_grams)}
+          valueColor={summary.total_balance_grams < 0 ? DANGER : undefined}
+        />
+        <Row
+          label="Discount / Premium Gold"
+          value={fmtG(summary.dp_grams)}
+          valueColor={EMBER}
+        />
+        <Row
+          label="Available Gold (without D/P)"
+          value={fmtG(summary.clean_remaining_grams)}
+          valueColor={summary.clean_remaining_grams < 0 ? DANGER : undefined}
+        />
+        <Row label="Transactions" value={String(dpTxs.length)} />
+        <Row
+          label="Total Discount / Premium (USD)"
+          value={fmtUSD(summary.dp_charges_usd)}
+          valueColor={summary.dp_charges_usd < 0 ? DANGER : OK}
+          emphasize
+        />
+      </div>
+
+      {/* Transactions table — matches Margin/Swap table style */}
+      <div style={{ marginTop: 18 }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            marginBottom: 8,
+          }}
+        >
+          — Discount / Premium Transactions —
+        </div>
+
+        {dpTxs.length === 0 ? (
+          <div
+            style={{
+              padding: 18,
+              textAlign: "center",
+              color: TEXT_MUTED,
+              fontSize: 13,
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 10,
+            }}
+          >
+            No discount or premium transactions recorded.
+          </div>
+        ) : (
+          <div
+            style={{
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 10,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 1fr",
+                padding: "10px 14px",
+                background: CARD_2,
+                fontSize: 11,
+                color: TEXT_MUTED,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              <span>Date</span>
+              <span>Type</span>
+              <span style={{ textAlign: "right" }}>Weight</span>
+              <span style={{ textAlign: "right" }}>$/oz</span>
+              <span style={{ textAlign: "right" }}>USD</span>
+            </div>
+            {dpTxs.map((t) => (
               <div
+                key={t.id}
                 style={{
-                  fontSize: 11,
-                  letterSpacing: 3,
-                  color: BRAND_GOLD,
-                  fontWeight: 800,
+                  display: "grid",
+                  gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 1fr",
+                  padding: "9px 14px",
+                  borderTop: `1px solid ${BORDER_SOFT}`,
+                  fontSize: 13,
+                  alignItems: "center",
                 }}
               >
-                AVAILABLE GOLD
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.6)",
-                  marginTop: 4,
-                  letterSpacing: 1,
-                }}
-              >
-                Without discount / premium
-              </div>
-              <div
-                style={{
-                  fontSize: 64,
-                  fontWeight: 900,
-                  marginTop: 18,
-                  fontVariantNumeric: "tabular-nums",
-                  letterSpacing: -1.5,
-                  lineHeight: 1,
-                  color: "#fff",
-                }}
-              >
-                {fmtGNum(summary.clean_remaining_grams)}
                 <span
                   style={{
-                    fontSize: 26,
-                    color: BRAND_GOLD_SOFT,
-                    marginLeft: 10,
+                    color: TEXT_SOFT,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {fmtDate(t.created_at)}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.12em",
+                    color: t.kind === "discount" ? OK : EMBER,
+                  }}
+                >
+                  {t.kind === "discount" ? "DISCOUNT" : "PREMIUM"}
+                </span>
+                <span
+                  style={{
+                    textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
+                    color: TEXT,
+                    fontWeight: 600,
+                  }}
+                >
+                  {fmtGNum(Number(t.grams))} g
+                </span>
+                <span
+                  style={{
+                    textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
+                    color: TEXT_SOFT,
+                  }}
+                >
+                  {t.per_oz != null
+                    ? `$${Number(t.per_oz).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "—"}
+                </span>
+                <span
+                  style={{
+                    textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
+                    color: TEXT,
                     fontWeight: 700,
                   }}
                 >
-                  g
+                  {t.amount_usd != null
+                    ? fmtUSD(Number(t.amount_usd))
+                    : "—"}
                 </span>
               </div>
-            </div>
-            <div
-              style={{
-                textAlign: "right",
-                paddingBottom: 8,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  letterSpacing: 2,
-                  color: "rgba(255,255,255,0.55)",
-                  fontWeight: 700,
-                }}
-              >
-                TOTAL BALANCE
-              </div>
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  color: "#fff",
-                  marginTop: 6,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {fmtG(summary.total_balance_grams)}
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Stat row */}
-        <div style={{ display: "flex", gap: 14, marginTop: 18 }}>
-          <StatPill
-            label="Discount / Premium Gold"
-            value={fmtG(summary.dp_grams)}
-            tone="gold"
-          />
-          <StatPill
-            label="Discount / Premium (USD)"
-            value={fmtUSD(summary.dp_charges_usd)}
-            tone={summary.dp_charges_usd < 0 ? "danger" : "default"}
-          />
-          <StatPill
-            label="Transactions"
-            value={String(dpTxs.length)}
-          />
-        </div>
-
-        {/* Transactions table */}
-        <div style={{ marginTop: 36 }}>
+      {/* Footer — matches Margin brandFooter() exactly, with QR on the side */}
+      <div
+        style={{
+          marginTop: 22,
+          paddingTop: 14,
+          borderTop: `1px solid ${BORDER_SOFT}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
+        <div style={{ flex: 1, textAlign: "center" }}>
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 14,
+              fontSize: 10,
+              color: TEXT_FAINT,
+              fontStyle: "italic",
             }}
           >
-            <div
-              style={{
-                fontSize: 11,
-                color: INK_SOFT,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                fontWeight: 700,
-              }}
-            >
-              Discount / Premium Transactions
-            </div>
-            <div
-              style={{
-                height: 1,
-                flex: 1,
-                background: LINE,
-                marginLeft: 16,
-              }}
-            />
-          </div>
-
-          {dpTxs.length === 0 ? (
-            <div
-              style={{
-                padding: 28,
-                borderRadius: 14,
-                border: `1px dashed ${LINE}`,
-                color: MUTED,
-                textAlign: "center",
-                fontSize: 13,
-                background: SURFACE,
-              }}
-            >
-              No discount or premium transactions recorded.
-            </div>
-          ) : (
-            <div
-              style={{
-                borderRadius: 14,
-                overflow: "hidden",
-                border: `1px solid ${LINE}`,
-                background: SURFACE,
-                boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 13,
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: BRAND_NAVY,
-                      color: "#fff",
-                      textAlign: "left",
-                    }}
-                  >
-                    <th
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: 700,
-                      }}
-                    >
-                      DATE
-                    </th>
-                    <th
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: 700,
-                      }}
-                    >
-                      TYPE
-                    </th>
-                    <th
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: 700,
-                        textAlign: "right",
-                      }}
-                    >
-                      WEIGHT (g)
-                    </th>
-                    <th
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: 700,
-                        textAlign: "right",
-                      }}
-                    >
-                      PRICE ($/oz)
-                    </th>
-                    <th
-                      style={{
-                        padding: "14px 16px",
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: 700,
-                        textAlign: "right",
-                      }}
-                    >
-                      AMOUNT (USD)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dpTxs.map((t, i) => (
-                    <tr
-                      key={t.id}
-                      style={{
-                        background: i % 2 === 0 ? SURFACE : ROW_ALT,
-                        borderBottom: `1px solid ${LINE_SOFT}`,
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "14px 16px",
-                          color: INK_SOFT,
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {fmtDate(t.created_at)}
-                      </td>
-                      <td style={{ padding: "14px 16px" }}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 800,
-                            letterSpacing: 1.2,
-                            background:
-                              t.kind === "discount"
-                                ? "rgba(2,132,199,0.10)"
-                                : "rgba(192,38,211,0.10)",
-                            color: t.kind === "discount" ? "#0369a1" : "#a21caf",
-                            border: `1px solid ${
-                              t.kind === "discount"
-                                ? "rgba(2,132,199,0.25)"
-                                : "rgba(192,38,211,0.25)"
-                            }`,
-                          }}
-                        >
-                          {t.kind === "discount" ? "DISCOUNT" : "PREMIUM"}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 16px",
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                          color: INK,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {fmtGNum(Number(t.grams))}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 16px",
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                          color: INK_SOFT,
-                        }}
-                      >
-                        {t.per_oz != null
-                          ? `$${Number(t.per_oz).toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}`
-                          : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "14px 16px",
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: 700,
-                          color: INK,
-                        }}
-                      >
-                        {t.amount_usd != null
-                          ? fmtUSD(Number(t.amount_usd))
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Premium totals summary card */}
-        <div
-          style={{
-            marginTop: 28,
-            borderRadius: 16,
-            border: `1px solid ${LINE}`,
-            background: SURFACE,
-            overflow: "hidden",
-            boxShadow: "0 4px 14px -8px rgba(15,23,42,0.18)",
-          }}
-        >
-          <div
-            style={{
-              background: `linear-gradient(90deg, ${BRAND_NAVY}, ${BRAND_NAVY_3})`,
-              color: "#fff",
-              padding: "14px 22px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                letterSpacing: 2.2,
-                fontWeight: 800,
-                color: BRAND_GOLD_SOFT,
-              }}
-            >
-              REPORT TOTALS
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: "rgba(255,255,255,0.6)",
-                letterSpacing: 1.2,
-              }}
-            >
-              ATHER DESK
-            </div>
+            Generated by ATHER Desk · values reflect data at time of export.
           </div>
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
+              marginTop: 10,
+              fontFamily: displayFont,
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              fontSize: 12,
+              color: TEXT_SOFT,
             }}
           >
-            <TotalCell
-              label="Available Gold"
-              sub="without D/P"
-              value={fmtG(summary.clean_remaining_grams)}
-            />
-            <TotalCell
-              label="Discount / Premium Gold"
-              sub="combined"
-              value={fmtG(summary.dp_grams)}
-              accent
-            />
-            <TotalCell
-              label="Total Discount / Premium"
-              sub="USD"
-              value={fmtUSD(summary.dp_charges_usd)}
-              last
-            />
+            ATHER GROUP
+          </div>
+          <div
+            style={{
+              fontSize: 10,
+              color: TEXT_FAINT,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginTop: 2,
+            }}
+          >
+            Confidential Client Report
           </div>
         </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            marginTop: 32,
-            paddingTop: 22,
-            borderTop: `1px solid ${LINE}`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
+        {qr ? (
+          <div style={{ textAlign: "center" }}>
+            <img
+              src={qr}
+              alt=""
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 6,
+                background: "#fff",
+                padding: 3,
+              }}
+            />
             <div
               style={{
-                fontSize: 15,
-                fontWeight: 800,
-                color: BRAND_NAVY,
-                letterSpacing: 0.5,
+                fontSize: 8,
+                color: TEXT_FAINT,
+                marginTop: 4,
+                letterSpacing: "0.14em",
               }}
             >
-              ather.group
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: MUTED,
-                marginTop: 5,
-                letterSpacing: 0.5,
-              }}
-            >
-              Generated by ATHER Desk · {generatedAt}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: MUTED,
-                marginTop: 3,
-                letterSpacing: 0.4,
-              }}
-            >
-              This document is a system-generated report. Values reflect data at
-              time of export.
+              SCAN · VERIFY
             </div>
           </div>
-          {qr ? (
-            <div style={{ textAlign: "center" }}>
-              <img
-                src={qr}
-                alt=""
-                style={{
-                  width: 82,
-                  height: 82,
-                  borderRadius: 8,
-                  background: "#fff",
-                  padding: 4,
-                  border: `1px solid ${LINE}`,
-                }}
-              />
-              <div
-                style={{
-                  fontSize: 8,
-                  color: MUTED,
-                  marginTop: 4,
-                  letterSpacing: 1.2,
-                }}
-              >
-                SCAN · VERIFY
-              </div>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </div>
   );
 };
-
-function TotalCell({
-  label,
-  sub,
-  value,
-  accent,
-  last,
-}: {
-  label: string;
-  sub: string;
-  value: string;
-  accent?: boolean;
-  last?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: "22px 24px",
-        borderRight: last ? "none" : `1px solid ${LINE_SOFT}`,
-        background: accent ? "#fdfaf1" : SURFACE,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: 1.6,
-          color: MUTED,
-          fontWeight: 700,
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 9,
-          color: MUTED,
-          marginTop: 2,
-          letterSpacing: 0.8,
-        }}
-      >
-        {sub}
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: accent ? BRAND_GOLD : INK,
-          marginTop: 10,
-          fontVariantNumeric: "tabular-nums",
-          letterSpacing: -0.3,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
