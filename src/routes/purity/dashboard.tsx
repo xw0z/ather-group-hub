@@ -1556,22 +1556,23 @@ export function ClientBreakdown({
     try {
       const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
       const data = buildReportData(r);
-      // Render at scale 3 then export as JPEG — keeps file under ~5MB so
-      // mobile share sheets (WhatsApp, etc.) reliably accept it.
       const canvas = await renderPurityReportToCanvas(data, { scale: 3 });
+      // PNG works in both mobile share sheets and the Windows Share dialog
+      // (which lists WhatsApp). Keep quality high.
       const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
+        canvas.toBlob((b) => resolve(b), "image/png"),
       );
       if (!blob) throw new Error("Could not produce image.");
-      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.jpg`;
-      const file = new File([blob], fileName, { type: "image/jpeg" });
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
       const shareText = `Gold Purity Report — Client ${data.clientCode}\n${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`;
       const nav = navigator as Navigator & {
         canShare?: (d: { files?: File[] }) => boolean;
         share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
       };
-      // Native share sheet (mobile -> WhatsApp, etc.)
-      if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
+      // Native share sheet — mobile shows WhatsApp; Windows 10/11 Chrome/Edge
+      // opens the Windows Share dialog which lists WhatsApp.
+      if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
         try {
           await nav.share({
             files: [file],
@@ -1581,16 +1582,14 @@ export function ClientBreakdown({
           return;
         } catch (e) {
           if ((e as DOMException)?.name === "AbortError") return;
+          // fall through to clipboard + WhatsApp Web
         }
       }
-      // Desktop fallback: copy the image to the clipboard (PNG required for
-      // clipboard) and open WhatsApp Web so the user can paste directly.
+      // Fallback (browsers without Web Share API for files): copy image to
+      // clipboard and open WhatsApp Web so the user can paste it.
       try {
-        const pngBlob: Blob | null = await new Promise((resolve) =>
-          canvas.toBlob((b) => resolve(b), "image/png"),
-        );
-        if (pngBlob && "clipboard" in navigator && "write" in navigator.clipboard) {
-          await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+        if ("clipboard" in navigator && "write" in navigator.clipboard) {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
           alert(
             "Image copied to clipboard.\n\nWhatsApp Web will open — paste (Ctrl+V / Cmd+V) into the chat.",
           );
