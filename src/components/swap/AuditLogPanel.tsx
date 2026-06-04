@@ -167,7 +167,7 @@ const TONE_BG: Record<Tone, string> = {
 /* ============================ Component ============================ */
 
 const FILTERS: { key: "all" | Category; label: string }[] = [
-const FILTERS: { key: "all" | Category; label: string }[] = [
+
   { key: "all", label: "audit.all" },
   { key: "clients", label: "audit.clients" },
   { key: "balances", label: "audit.balances" },
