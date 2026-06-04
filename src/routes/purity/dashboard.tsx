@@ -1556,20 +1556,21 @@ export function ClientBreakdown({
     try {
       const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
       const data = buildReportData(r);
-      // High-quality render: scale 4 over the 2480px base = ~9920px wide canvas.
-      const canvas = await renderPurityReportToCanvas(data, { scale: 4 });
+      // Render at scale 3 then export as JPEG — keeps file under ~5MB so
+      // mobile share sheets (WhatsApp, etc.) reliably accept it.
+      const canvas = await renderPurityReportToCanvas(data, { scale: 3 });
       const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/png"),
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
       );
       if (!blob) throw new Error("Could not produce image.");
-      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.jpg`;
+      const file = new File([blob], fileName, { type: "image/jpeg" });
       const shareText = `Gold Purity Report — Client ${data.clientCode}\n${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`;
       const nav = navigator as Navigator & {
         canShare?: (d: { files?: File[] }) => boolean;
         share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
       };
-      // Try native share with file (mobile -> WhatsApp appears in share sheet)
+      // Native share sheet (mobile -> WhatsApp, etc.)
       if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
         try {
           await nav.share({
@@ -1579,26 +1580,27 @@ export function ClientBreakdown({
           });
           return;
         } catch (e) {
-          // user cancelled or share failed — do not auto-download
           if ((e as DOMException)?.name === "AbortError") return;
         }
       }
-      // Fallback: open WhatsApp with text (image cannot be attached via URL)
-      // Also offer the image as a download so the user can attach it manually.
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // Try share without file (text only) — still opens the share sheet
+      if (nav.share) {
+        try {
+          await nav.share({
+            title: `Gold Purity Report — Client ${data.clientCode}`,
+            text: shareText,
+          });
+          return;
+        } catch (e) {
+          if ((e as DOMException)?.name === "AbortError") return;
+        }
+      }
+      // Desktop fallback: open WhatsApp Web with prefilled text
       window.open(
         `https://wa.me/?text=${encodeURIComponent(shareText)}`,
         "_blank",
         "noopener,noreferrer",
       );
-
     } catch (err) {
       console.error("[purity] shareClientImage failed:", err);
       alert(
