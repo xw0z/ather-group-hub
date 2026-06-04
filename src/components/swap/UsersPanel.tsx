@@ -107,11 +107,13 @@ function fmtDate(d: string | null | undefined) {
 }
 
 function UserManagement() {
+  const { t: tt } = useLang();
   const [users, setUsers] = useState<SwapUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+
 
   // form
   const [username, setUsername] = useState("");
