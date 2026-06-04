@@ -121,19 +121,20 @@ type EventConfig = {
 };
 
 const EVENT_CONFIG: Record<string, EventConfig> = {
-  client_created: { title: "Client Created", icon: UserPlus, tone: "green", categories: ["clients"] },
-  client_updated: { title: "Client Updated", icon: Pencil, tone: "orange", categories: ["clients"] },
-  client_deleted: { title: "Client Deleted", icon: Trash2, tone: "red", categories: ["clients"] },
-  user_login: { title: "User Login", icon: LogIn, tone: "green", categories: ["users"] },
-  user_logout: { title: "User Logout", icon: LogOut, tone: "neutral", categories: ["users"] },
-  user_created: { title: "User Created", icon: UserPlus, tone: "green", categories: ["users"] },
-  user_deleted: { title: "User Deleted", icon: Trash2, tone: "red", categories: ["users"] },
-  report_generated: { title: "Report Generated", icon: FileText, tone: "green", categories: ["reports"] },
-  report_shared: { title: "Report Shared", icon: Share2, tone: "blue", categories: ["reports"] },
-  settings_updated: { title: "Settings Updated", icon: SettingsIcon, tone: "orange", categories: ["clients"] },
-  fees_computed_manual: { title: "Swap Fees Computed", icon: Calculator, tone: "blue", categories: ["swap"] },
-  xau_price_set: { title: "Gold Price Updated", icon: TrendingUp, tone: "blue", categories: ["margin"] },
+  client_created: { title: "audit.evClientCreated", icon: UserPlus, tone: "green", categories: ["clients"] },
+  client_updated: { title: "audit.evClientUpdated", icon: Pencil, tone: "orange", categories: ["clients"] },
+  client_deleted: { title: "audit.evClientDeleted", icon: Trash2, tone: "red", categories: ["clients"] },
+  user_login: { title: "audit.evUserLogin", icon: LogIn, tone: "green", categories: ["users"] },
+  user_logout: { title: "audit.evUserLogout", icon: LogOut, tone: "neutral", categories: ["users"] },
+  user_created: { title: "audit.evUserCreated", icon: UserPlus, tone: "green", categories: ["users"] },
+  user_deleted: { title: "audit.evUserDeleted", icon: Trash2, tone: "red", categories: ["users"] },
+  report_generated: { title: "audit.evReportGenerated", icon: FileText, tone: "green", categories: ["reports"] },
+  report_shared: { title: "audit.evReportShared", icon: Share2, tone: "blue", categories: ["reports"] },
+  settings_updated: { title: "audit.evSettingsUpdated", icon: SettingsIcon, tone: "orange", categories: ["clients"] },
+  fees_computed_manual: { title: "audit.evSwapComputed", icon: Calculator, tone: "blue", categories: ["swap"] },
+  xau_price_set: { title: "audit.evGoldPriceUpdated", icon: TrendingUp, tone: "blue", categories: ["margin"] },
 };
+
 
 function fallbackConfig(action: string): EventConfig {
   return {
