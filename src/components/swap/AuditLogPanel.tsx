@@ -229,14 +229,14 @@ export function AuditLogPanel() {
         const aUsd = Number(r.old_usd_balance ?? 0);
         const bUsd = Number(r.new_usd_balance ?? 0);
         if (aUsd !== bUsd) {
-          ch.push({ label: "USD Balance", oldText: fmtMoney(aUsd), newText: fmtMoney(bUsd) });
+          ch.push({ label: tt("audit.fieldUsdBalance"), oldText: fmtMoney(aUsd), newText: fmtMoney(bUsd) });
           cats.add("balances");
         }
         const aKg = Number(r.old_gold_kg ?? 0);
         const bKg = Number(r.new_gold_kg ?? 0);
         if (aKg !== bKg) {
           ch.push({
-            label: "Gold Balance",
+            label: tt("audit.fieldGoldBalance"),
             oldText: `${fmtNum(aKg * 1000, 0)} g`,
             newText: `${fmtNum(bKg * 1000, 0)} g`,
           });
@@ -246,7 +246,7 @@ export function AuditLogPanel() {
         const bPct = Number(r.new_margin_pct ?? 0);
         if (aPct !== bPct) {
           ch.push({
-            label: "Margin Requirement",
+            label: tt("audit.fieldMarginReq"),
             oldText: `${fmtNum(aPct)}%`,
             newText: `${fmtNum(bPct)}%`,
           });
@@ -256,7 +256,7 @@ export function AuditLogPanel() {
         const bXau = Number(r.new_xauusd_price ?? 0);
         if (aXau !== bXau && (aXau > 0 || bXau > 0)) {
           ch.push({
-            label: "Gold Price",
+            label: tt("audit.fieldGoldPrice"),
             oldText: aXau > 0 ? `${fmtMoney(aXau)} / oz` : "—",
             newText: bXau > 0 ? `${fmtMoney(bXau)} / oz` : "—",
           });
@@ -266,7 +266,7 @@ export function AuditLogPanel() {
         const bReq = Number(r.new_required_margin ?? 0);
         if (aReq !== bReq && (aReq > 0 || bReq > 0)) {
           ch.push({
-            label: "Required Margin",
+            label: tt("audit.requiredMargin"),
             oldText: fmtMoney(aReq),
             newText: fmtMoney(bReq),
           });
@@ -277,10 +277,9 @@ export function AuditLogPanel() {
           statusChanged && (r.new_status === "needed" || r.new_status === "critical");
         if (statusChanged) {
           ch.push({
-            label: "audit.marginStatusChanged",
+            label: tt("audit.marginStatusChanged"),
             oldText: statusLabel(r.old_status),
             newText: statusLabel(r.new_status),
-
             highlight: critical,
           });
           cats.add("margin");
@@ -291,8 +290,9 @@ export function AuditLogPanel() {
 
         const c = byId.get(r.client_id);
         const title = statusChanged
-          ? "Margin Status Changed"
+          ? tt("audit.marginStatusChanged")
           : ch.length === 1
+
             ? `${ch[0].label} Changed`
             : "Client Updated";
         const tone: Tone = critical ? "red" : statusChanged ? "orange" : "orange";
