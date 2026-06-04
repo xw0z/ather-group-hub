@@ -2437,66 +2437,275 @@ function Stat({ label, value, accent, tone }: { label: string; value: string; ac
 /* ---------------------------- PROFILE ---------------------------- */
 
 function ProfileTab({ username }: { username: string }) {
+  const navigate = useNavigate();
+
+  // Profile fields
+  const [loading, setLoading] = useState(true);
+  const [uname, setUname] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [lastSignIn, setLastSignIn] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [profileErr, setProfileErr] = useState<string | null>(null);
+
+  // Password fields
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState<string | null>(null);
+  const [pwdErr, setPwdErr] = useState<string | null>(null);
+  const [savingPwd, setSavingPwd] = useState(false);
 
-  async function save(e: FormEvent) {
+  const [copied, setCopied] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await getSwapOwnProfile();
+        if (cancelled) return;
+        setUname(p.username ?? "");
+        setEmail(p.email ?? "");
+        setPhone(p.phone ?? "");
+        setIsAdmin(p.isAdmin);
+        setCreatedAt(p.createdAt);
+        setLastSignIn(p.lastSignInAt);
+        setUserId(p.id);
+      } catch (e) {
+        setProfileErr(e instanceof Error ? e.message : "Failed to load profile.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveProfile(e: FormEvent) {
     e.preventDefault();
-    setMsg(null);
-    setErr(null);
-    if (pwd.length < 6) return setErr("Password must be at least 6 characters.");
-    if (pwd !== pwd2) return setErr("Passwords don't match.");
-    setSaving(true);
+    setProfileMsg(null);
+    setProfileErr(null);
+    setSavingProfile(true);
+    try {
+      await updateSwapOwnProfile({
+        data: {
+          username: uname.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+        },
+      });
+      invalidate(CK.users, CK.activity);
+      setProfileMsg("Profile updated.");
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function savePassword(e: FormEvent) {
+    e.preventDefault();
+    setPwdMsg(null);
+    setPwdErr(null);
+    if (pwd.length < 6) return setPwdErr("Password must be at least 6 characters.");
+    if (pwd !== pwd2) return setPwdErr("Passwords don't match.");
+    setSavingPwd(true);
     try {
       await updateSwapOwnPassword({ data: { password: pwd } });
       setPwd("");
       setPwd2("");
-      setMsg("Password updated.");
+      setPwdMsg("Password updated.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Failed.");
+      setPwdErr(e instanceof Error ? e.message : "Failed.");
     } finally {
-      setSaving(false);
+      setSavingPwd(false);
     }
   }
 
-  return (
-    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
-      <div>
-        <h2 className="text-sm font-semibold">Profile</h2>
-        <p className="text-[11px] text-muted-foreground">
-          Signed in as <span className="font-mono">{username}</span>
-        </p>
-      </div>
+  async function copyId() {
+    try {
+      await navigator.clipboard.writeText(userId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  }
 
-      <form onSubmit={save} className="space-y-3 max-w-sm">
-        <div>
-          <Label className="text-xs">New password</Label>
-          <Input
-            type="password"
-            value={pwd}
-            onChange={(e) => setPwd(e.target.value)}
-            placeholder="••••••••"
-          />
+  async function doSignOut() {
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      navigate({ to: "/desk/login", replace: true });
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  const initial = (uname || username || "?").slice(0, 1).toUpperCase();
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString() : "—";
+
+  return (
+    <div className="space-y-4">
+      {/* Header card */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-full bg-primary/15 text-primary grid place-items-center text-lg font-semibold">
+            {initial}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-semibold truncate">
+                {uname || username}
+              </h2>
+              {isAdmin && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                  Admin
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {email || "No email set"}
+              {phone ? ` · ${phone}` : ""}
+            </p>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Confirm new password</Label>
-          <Input
-            type="password"
-            value={pwd2}
-            onChange={(e) => setPwd2(e.target.value)}
-            placeholder="••••••••"
-          />
+      </section>
+
+      {/* Account info */}
+      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Account</h3>
+        <form onSubmit={saveProfile} className="space-y-3 max-w-md">
+          <div>
+            <Label className="text-xs">Username</Label>
+            <Input
+              value={uname}
+              onChange={(e) => setUname(e.target.value)}
+              placeholder="username"
+              disabled={loading}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Letters, numbers, . _ - only
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs">Email</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={loading}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Used for sign-in and notifications.
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs">Phone number</Label>
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1 555 123 4567"
+              disabled={loading}
+            />
+          </div>
+          {profileErr && <p className="text-sm text-destructive">{profileErr}</p>}
+          {profileMsg && <p className="text-sm text-primary">{profileMsg}</p>}
+          <Button type="submit" disabled={savingProfile || loading}>
+            {savingProfile ? "Saving…" : "Save changes"}
+          </Button>
+        </form>
+      </section>
+
+      {/* Password */}
+      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Password</h3>
+        <form onSubmit={savePassword} className="space-y-3 max-w-md">
+          <div>
+            <Label className="text-xs">New password</Label>
+            <Input
+              type={showPwd ? "text" : "password"}
+              value={pwd}
+              onChange={(e) => setPwd(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Confirm new password</Label>
+            <Input
+              type={showPwd ? "text" : "password"}
+              value={pwd2}
+              onChange={(e) => setPwd2(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={showPwd}
+              onChange={(e) => setShowPwd(e.target.checked)}
+            />
+            Show password
+          </label>
+          {pwdErr && <p className="text-sm text-destructive">{pwdErr}</p>}
+          {pwdMsg && <p className="text-sm text-primary">{pwdMsg}</p>}
+          <Button type="submit" disabled={savingPwd}>
+            {savingPwd ? "Saving…" : "Change password"}
+          </Button>
+        </form>
+      </section>
+
+      {/* Details */}
+      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-2">
+        <h3 className="text-sm font-semibold">Details</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <div className="text-muted-foreground">Role</div>
+            <div className="font-medium">{isAdmin ? "Administrator" : "Member"}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Member since</div>
+            <div className="font-medium">{fmtDate(createdAt)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Last sign-in</div>
+            <div className="font-medium">{fmtDate(lastSignIn)}</div>
+          </div>
+          <div className="min-w-0">
+            <div className="text-muted-foreground">User ID</div>
+            <button
+              type="button"
+              onClick={copyId}
+              className="font-mono text-[11px] truncate block w-full text-left hover:text-primary"
+              title="Copy ID"
+            >
+              {copied ? "Copied!" : userId || "—"}
+            </button>
+          </div>
         </div>
-        {err && <p className="text-sm text-destructive">{err}</p>}
-        {msg && <p className="text-sm text-primary">{msg}</p>}
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Change password"}
+      </section>
+
+      {/* Danger zone */}
+      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold">Session</h3>
+        <p className="text-[11px] text-muted-foreground">
+          Sign out of this device. You'll need to log in again to continue.
+        </p>
+        <Button variant="outline" onClick={doSignOut} disabled={signingOut}>
+          <LogOut className="h-4 w-4 mr-2" />
+          {signingOut ? "Signing out…" : "Sign out"}
         </Button>
-      </form>
-    </section>
+      </section>
+    </div>
   );
 }
 
