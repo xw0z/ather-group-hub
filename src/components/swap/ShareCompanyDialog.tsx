@@ -221,6 +221,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
             summary={summary}
             qr={qr}
             generatedAt={generatedAt}
+            txs={txs}
           />
           {txs && (
             <StatementCard
