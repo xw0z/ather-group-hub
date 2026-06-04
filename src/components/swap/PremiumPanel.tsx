@@ -133,10 +133,15 @@ export function PremiumPanel() {
   };
 
   const removeCompany = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}" and all its transactions?`)) return;
-    await deletePremiumCompany({ data: { id } });
-    if (view.kind !== "list") setView({ kind: "list" });
-    refresh();
+    try {
+      await deletePremiumCompany({ data: { id } });
+      toast.success(`Deleted "${name}"`);
+      if (view.kind !== "list") setView({ kind: "list" });
+      refresh();
+    } catch (err) {
+      console.error("deletePremiumCompany failed", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete company");
+    }
   };
 
   if (view.kind === "company") {
