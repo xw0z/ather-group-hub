@@ -41,6 +41,7 @@ import {
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 import { useLang, type Lang } from "@/lib/purity-i18n";
 import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
+import { BackupButton } from "@/components/BackupButton";
 
 // Legacy /purity/dashboard URL — keep redirecting users into the unified
 // ATHER DESK shell at /desk/app/purity. The actual Purity module UI is
@@ -414,11 +415,15 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
     }
     return (
       <div dir={dir} className="space-y-4">
-        {TabStrip}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">{TabStrip}</div>
+          {isAdmin && <BackupButton app="purity" />}
+        </div>
         <div className="space-y-5">{Content}</div>
       </div>
     );
   }
+
 
   // Standalone (legacy) mode preserves the original Purity chrome. The
   // /purity/dashboard route now redirects to /desk/app/purity, so this is

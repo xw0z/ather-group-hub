@@ -57,6 +57,7 @@ import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
+import { BackupButton } from "@/components/BackupButton";
 import { PurityDashboard } from "@/routes/purity/dashboard";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
@@ -574,16 +575,18 @@ export function SwapDashboard({
             <NavBtn key={n.key} item={n} active={effectiveTab === n.key} onClick={() => setTab(n.key)} />
           ))}
         </nav>
-        <div className="p-3 border-t border-border/60">
+        <div className="p-3 border-t border-border/60 space-y-2">
+          {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
           <p className="text-[11px] text-muted-foreground truncate">
             {username}
             {isAdmin && " · admin"}
           </p>
-          <Button variant="ghost" size="sm" className="w-full justify-start mt-1" onClick={signOut}>
+          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" /> Sign out
           </Button>
         </div>
       </aside>
+
 
       {/* Mobile drawer */}
       {navOpen && (
