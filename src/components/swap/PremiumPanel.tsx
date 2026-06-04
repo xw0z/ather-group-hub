@@ -57,6 +57,7 @@ import {
   type PremiumKind,
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
+import { ShareCompanyDialog } from "./ShareCompanyDialog";
 
 const fmtG = (n: number) =>
   `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} g`;
