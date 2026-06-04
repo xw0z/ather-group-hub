@@ -101,13 +101,13 @@ function fmtField(key: string, v: unknown): string {
 }
 
 function statusLabel(s: string | null): string {
-  // Returns an i18n key; render with t()
-  if (!s) return "common.dash";
-  if (s === "enough" || s === "safe") return "margin.safe";
-  if (s === "warning") return "margin.warning";
-  if (s === "critical") return "margin.critical";
-  return "margin.needed";
+  if (!s) return "—";
+  if (s === "enough" || s === "safe") return "Safe";
+  if (s === "warning") return "Warning";
+  if (s === "critical") return "Critical";
+  return "Margin Needed";
 }
+
 
 
 
