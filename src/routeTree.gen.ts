@@ -36,6 +36,7 @@ import { Route as DeskAppDiscountPremiumRouteImport } from './routes/desk.app.di
 import { Route as DeskAppDashboardRouteImport } from './routes/desk.app.dashboard'
 import { Route as DeskAppAuditRouteImport } from './routes/desk.app.audit'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
+import { Route as DeskAppPurityTripsTripIdRouteImport } from './routes/desk.app.purity.trips.$tripId'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
   id: '/unauthorized',
@@ -173,6 +174,12 @@ const ApiPublicHooksSwapDailyFeesRoute =
     path: '/api/public/hooks/swap-daily-fees',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DeskAppPurityTripsTripIdRoute =
+  DeskAppPurityTripsTripIdRouteImport.update({
+    id: '/trips/$tripId',
+    path: '/trips/$tripId',
+    getParentRoute: () => DeskAppPurityRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -193,7 +200,7 @@ export interface FileRoutesByFullPath {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
-  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/purity': typeof DeskAppPurityRouteWithChildren
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -222,7 +230,7 @@ export interface FileRoutesByTo {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
-  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/purity': typeof DeskAppPurityRouteWithChildren
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -231,6 +239,7 @@ export interface FileRoutesByTo {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,7 +261,7 @@ export interface FileRoutesById {
   '/desk/app/dashboard': typeof DeskAppDashboardRoute
   '/desk/app/discount-premium': typeof DeskAppDiscountPremiumRoute
   '/desk/app/margin': typeof DeskAppMarginRoute
-  '/desk/app/purity': typeof DeskAppPurityRoute
+  '/desk/app/purity': typeof DeskAppPurityRouteWithChildren
   '/desk/app/reports': typeof DeskAppReportsRoute
   '/desk/app/settings': typeof DeskAppSettingsRoute
   '/desk/app/swap': typeof DeskAppSwapRoute
@@ -261,6 +270,7 @@ export interface FileRoutesById {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/app/purity/trips/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/app/purity/trips/$tripId'
   id:
     | '__root__'
     | '/'
@@ -350,6 +362,7 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/app/purity/trips/$tripId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -371,7 +384,7 @@ export interface RootRouteChildren {
   DeskAppDashboardRoute: typeof DeskAppDashboardRoute
   DeskAppDiscountPremiumRoute: typeof DeskAppDiscountPremiumRoute
   DeskAppMarginRoute: typeof DeskAppMarginRoute
-  DeskAppPurityRoute: typeof DeskAppPurityRoute
+  DeskAppPurityRoute: typeof DeskAppPurityRouteWithChildren
   DeskAppReportsRoute: typeof DeskAppReportsRoute
   DeskAppSettingsRoute: typeof DeskAppSettingsRoute
   DeskAppSwapRoute: typeof DeskAppSwapRoute
@@ -573,8 +586,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSwapDailyFeesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/app/purity/trips/$tripId': {
+      id: '/desk/app/purity/trips/$tripId'
+      path: '/trips/$tripId'
+      fullPath: '/desk/app/purity/trips/$tripId'
+      preLoaderRoute: typeof DeskAppPurityTripsTripIdRouteImport
+      parentRoute: typeof DeskAppPurityRoute
+    }
   }
 }
+
+interface DeskAppPurityRouteChildren {
+  DeskAppPurityTripsTripIdRoute: typeof DeskAppPurityTripsTripIdRoute
+}
+
+const DeskAppPurityRouteChildren: DeskAppPurityRouteChildren = {
+  DeskAppPurityTripsTripIdRoute: DeskAppPurityTripsTripIdRoute,
+}
+
+const DeskAppPurityRouteWithChildren = DeskAppPurityRoute._addFileChildren(
+  DeskAppPurityRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -595,7 +627,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeskAppDashboardRoute: DeskAppDashboardRoute,
   DeskAppDiscountPremiumRoute: DeskAppDiscountPremiumRoute,
   DeskAppMarginRoute: DeskAppMarginRoute,
-  DeskAppPurityRoute: DeskAppPurityRoute,
+  DeskAppPurityRoute: DeskAppPurityRouteWithChildren,
   DeskAppReportsRoute: DeskAppReportsRoute,
   DeskAppSettingsRoute: DeskAppSettingsRoute,
   DeskAppSwapRoute: DeskAppSwapRoute,
@@ -608,13 +640,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

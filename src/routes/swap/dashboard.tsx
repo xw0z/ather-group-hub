@@ -407,9 +407,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "nav.dashboard", icon: Home },
-  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
   { key: "clients", label: "nav.clients", icon: UsersIcon, module: "swap" },
   { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
+  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
   { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
   { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
   { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
@@ -423,9 +423,11 @@ const NAV_ITEMS: NavItem[] = [
 export function SwapDashboard({
   tab: tabProp,
   swapView,
+  purityTripId,
 }: {
   tab?: Tab;
   swapView?: "clients" | "fees";
+  purityTripId?: string;
 } = {}) {
   const navigate = useNavigate();
   // Tab can come from prop (new /desk/app/* routes) or legacy ?tab= search.
@@ -633,7 +635,7 @@ export function SwapDashboard({
               <MarginTab livePrice={livePrice} showLiveCard={false} />
             </>
           )}
-          {effectiveTab === "purity" && <PurityDashboard inShell />}
+          {effectiveTab === "purity" && <PurityDashboard inShell tripId={purityTripId} />}
           {effectiveTab === "clients" && <ClientsTab livePrice={livePrice} />}
           {effectiveTab === "swap-fees" && (
             <HomeTab
