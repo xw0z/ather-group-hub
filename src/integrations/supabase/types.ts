@@ -578,6 +578,7 @@ export type Database = {
           default_report_format: string
           default_short_annual_rate: number
           id: string
+          language: string
           report_footer_text: string | null
           safe_threshold_pct: number
           show_logo_on_reports: boolean
@@ -600,6 +601,7 @@ export type Database = {
           default_report_format?: string
           default_short_annual_rate?: number
           id?: string
+          language?: string
           report_footer_text?: string | null
           safe_threshold_pct?: number
           show_logo_on_reports?: boolean
@@ -622,6 +624,7 @@ export type Database = {
           default_report_format?: string
           default_short_annual_rate?: number
           id?: string
+          language?: string
           report_footer_text?: string | null
           safe_threshold_pct?: number
           show_logo_on_reports?: boolean
