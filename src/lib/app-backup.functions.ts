@@ -26,7 +26,30 @@ const SWAP_TABLES = [
   "user_module_permissions",
 ] as const;
 
-async function canBackup(userId: string, _app: "purity" | "swap"): Promise<boolean> {
+const MARGIN_TABLES = ["swap_margin_history"] as const;
+
+const PREMIUM_TABLES = [
+  "swap_premium_companies",
+  "swap_premium_transactions",
+] as const;
+
+export const SCOPES = ["purity", "swap", "margin", "premium"] as const;
+export type BackupScope = (typeof SCOPES)[number];
+
+function tablesFor(scope: BackupScope): readonly string[] {
+  switch (scope) {
+    case "purity":
+      return PURITY_TABLES;
+    case "swap":
+      return SWAP_TABLES;
+    case "margin":
+      return MARGIN_TABLES;
+    case "premium":
+      return PREMIUM_TABLES;
+  }
+}
+
+async function canBackup(userId: string, _app: BackupScope): Promise<boolean> {
   // Platform admins and Managers (swap_profiles.is_manager) can back up/restore any app.
   const { data: swap } = await supabaseAdmin
     .from("swap_profiles")
