@@ -37,15 +37,19 @@ import {
 } from "@/lib/purity-users.functions";
 import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activity";
 import { useLang, type Lang } from "@/lib/purity-i18n";
+import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
 
+// Legacy /purity/dashboard URL — keep redirecting users into the unified
+// ATHER DESK shell at /desk/app/purity. The actual Purity module UI is
+// rendered by `<PurityDashboard inShell />` from inside the DESK shell.
 export const Route = createFileRoute("/purity/dashboard")({
   head: () => ({
     meta: [
-      { title: "Purity — Dashboard" },
+      { title: "ATHER DESK — Purity" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: PurityDashboard,
+  component: LegacyDeskRedirect,
 });
 
 export type PurityFormat = "3" | "4";
