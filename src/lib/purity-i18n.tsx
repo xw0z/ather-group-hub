@@ -760,7 +760,7 @@ const ar: Dict = {
   "users.security": "الأمان",
   "users.administrator": "مسؤول",
   "users.manager": "مدير",
-  "users.staff": "موظف",
+  "users.staff": "مستخدم",
   "users.fullAccess": "وصول كامل",
   "users.managerAccess": "العملاء، التقارير، الهامش، المبادلة، التدقيق",
   "users.staffAccess": "العملاء والتقارير فقط",
