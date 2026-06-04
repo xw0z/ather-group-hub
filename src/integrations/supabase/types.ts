@@ -22,7 +22,7 @@ export type Database = {
           entity_id: string | null
           entity_type: string
           id: string
-          user_id: string
+          user_id: string | null
           username: string
         }
         Insert: {
@@ -32,7 +32,7 @@ export type Database = {
           entity_id?: string | null
           entity_type: string
           id?: string
-          user_id: string
+          user_id?: string | null
           username: string
         }
         Update: {
@@ -42,7 +42,7 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
           username?: string
         }
         Relationships: []
@@ -55,7 +55,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           purity_format: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -64,7 +64,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           purity_format?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -73,7 +73,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           purity_format?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -165,7 +165,7 @@ export type Database = {
           notes: string | null
           receiver_company: string | null
           scrap_weight: number | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           actual_purity?: number | null
@@ -179,7 +179,7 @@ export type Database = {
           notes?: string | null
           receiver_company?: string | null
           scrap_weight?: number | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           actual_purity?: number | null
@@ -193,7 +193,7 @@ export type Database = {
           notes?: string | null
           receiver_company?: string | null
           scrap_weight?: number | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
