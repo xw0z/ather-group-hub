@@ -58,6 +58,7 @@ import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
 import { BackupButton } from "@/components/BackupButton";
+import { RestoreButton } from "@/components/RestoreButton";
 import { PurityDashboard } from "@/routes/purity/dashboard";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
