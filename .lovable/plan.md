@@ -1,130 +1,85 @@
+
+# Integrate Purity into ATHER DESK
+
 ## Goal
+Purity stops being a standalone app. It becomes a module inside the ATHER DESK shell (sidebar, header, profile, theme), and language becomes a global setting that drives all modules.
 
-Merge the currently separate **Purity** dashboard (`/purity/*`) and **Ather Margin & Swap** dashboard (`/swap/*`) into a single unified admin platform with one login, one user database, one audit log, one reports center, and per-user **module permissions**.
+## 1. Audit what Purity owns today
 
----
+Before changes, confirm the current Purity surface:
+- `src/routes/purity/index.tsx`, `purity/dashboard.tsx`, `purity/trips.$tripId.tsx`
+- `src/lib/purity-i18n.tsx` (own language provider, wraps Purity in `__root.tsx`)
+- `src/components/PurityReport.tsx` and any Purity-only header/profile UI inside those routes
 
-## Modules & permission matrix
+I will read these to map every Purity-specific chrome element (header, profile menu, language switcher) that needs to be removed.
 
-Each user gets an assigned set of modules. Per module, fine-grained permissions:
+## 2. Move Purity under the DESK shell
 
-| Permission | Meaning |
-|---|---|
-| `view` | See the module in sidebar + open it |
-| `create` | Add new records |
-| `edit` | Modify existing records |
-| `delete` | Remove records |
-| `export` | Download reports / CSVs |
-| `share` | Send WhatsApp / shareable links |
+- Mount Purity content at `/desk/app/purity` (already a route). Replace its current passthrough with the real Purity dashboard rendered **inside** the existing DESK layout used by Swap/Margin/Dashboard — same sidebar, top bar, profile menu, logout, dark theme, card style, spacing, fonts.
+- Add a Trip detail route under the DESK tree: `/desk/app/purity/trips/$tripId` (new file `src/routes/desk.app.purity.trips.$tripId.tsx`) so deep links keep working without leaving the shell.
+- In `src/routes/__root.tsx`, drop the `PurityLanguageProvider` wrapper (Purity routes will read from the global language provider instead). Keep `hideChrome` logic as-is — DESK routes already hide the marketing chrome.
+- Strip every Purity-specific header/profile/language-switcher block from the Purity components. They render only content (trips, suppliers, search, Bafleh status, purity tracking, reports) — the shell provides chrome.
+- Leave old `/purity` and `/purity/dashboard` URLs as legacy redirects via the existing `LegacyDeskRedirect` pattern (signed in → `/desk/app/purity`, signed out → `/desk/login`). Trip deep links `/purity/trips/$tripId` redirect to `/desk/app/purity/trips/$tripId`.
 
-Modules: `purity`, `margin`, `swap`, `premium`, `reports`, `audit`, `users`, `settings`.
+## 3. One global profile
 
-Administrators implicitly get everything (no row needed; `is_admin = true` short-circuits all checks).
+- Delete the Purity-only profile section. The DESK shell's profile menu (already used by Swap/Margin) is the single source for username, role, and sign-out across all modules.
 
----
+## 4. Global language (EN / AR / FR)
 
-## Database changes (one migration)
+- Add a `language` column to `swap_settings` (existing per-tenant settings table) — values `'en' | 'ar' | 'fr'`, default `'en'`. (Migration in a dedicated section below.)
+- Create `src/lib/i18n.tsx`: a single `LanguageProvider` + `useLanguage()` hook. Loads the saved language from `swap_settings` on mount, persists changes via an existing settings server fn, and sets `<html lang>` + `dir="rtl"` for Arabic.
+- Wrap the DESK shell (the layout used at `/desk/app/*`) with this provider so Dashboard, Purity, Margin, Swap, Discount/Premium, Reports, Audit, Users, and Settings all consume it.
+- Move the language selector into **Settings → General**. Remove the Purity language switcher entirely.
+- Migrate Purity's existing translation dictionary out of `purity-i18n.tsx` into the new global `i18n` module under a `purity.*` namespace. Add matching `swap.*`, `margin.*`, `common.*` keys for strings that currently appear in those modules. EN/AR/FR coverage for nav labels, common buttons (Save, Cancel, Delete, Edit), and module headers. Component-level string migration in Swap/Margin can roll out incrementally — i18n infra ships now, untranslated keys fall back to English.
 
-1. **Unify profiles** — keep `swap_profiles` as the single profile table (already linked to `auth.users`). Backfill any `purity_profiles` users into it; drop `purity_profiles` after.
-2. **New table `user_module_permissions`**:
-   - `user_id uuid → auth.users`
-   - `module text` (enum-checked: purity/margin/swap/premium/reports/audit/users/settings)
-   - `can_view bool`, `can_create bool`, `can_edit bool`, `can_delete bool`, `can_export bool`, `can_share bool`
-   - PK `(user_id, module)`
-   - RLS: user can read their own row; admins can read/write all (via existing `is_swap_user` + new `is_swap_admin` security-definer).
-3. **Update existing RLS** on `purity_*` tables to check membership in unified profiles + `has_module_permission(uid, 'purity', 'view')` instead of separate purity_profiles.
-4. **Audit log unification** — keep `swap_activity_log`, add a `module text` column; migrate `purity_activity_log` rows in then drop it.
+## 5. Sidebar + permission gating
 
----
+- The DESK sidebar already lists modules. Add **Purity** to the sidebar nav between Dashboard and Margin.
+- Gate every sidebar item by `useMyPermissions()` (already in the project). A user with only `purity` permission sees: Dashboard, Purity, Profile. Swap, Margin, Discount/Premium, Reports, Audit, Users, Settings are hidden unless their respective module flag allows view.
+- Confirm `user_module_permissions` has a `purity` enum value (`app_module`). If not, add it in the migration.
 
-## Routing & auth changes
+## 6. Database migration
 
-- **Single login page** at `/login` (replace `/swap/index.tsx` + `/purity/index.tsx` logins). Both old routes redirect to `/login`.
-- **Single authenticated shell** at new route `/_authenticated/app/*` with a unified sidebar listing only modules the user has `view` permission for.
-- Move existing dashboards under one shell:
-  - `/app/purity` → current PurityDashboard panels
-  - `/app/margin`, `/app/swap`, `/app/premium`, `/app/clients/:id`, `/app/reports`, `/app/audit`, `/app/users`, `/app/settings`
-- Old `/purity/dashboard` and `/swap/dashboard` redirect into the new shell (preserve bookmarks).
-- **Route guard** (`beforeLoad` on each module route) calls `requireModulePermission('purity', 'view')` server-fn → throws `redirect({ to: '/unauthorized' })` if denied.
-- New `/unauthorized` page with same dark theme.
+```sql
+-- 1. Add purity to the app_module enum if missing
+ALTER TYPE public.app_module ADD VALUE IF NOT EXISTS 'purity';
 
----
-
-## Permission enforcement (defense in depth)
-
-1. **Client sidebar**: filter nav items by `useModulePermissions()` hook (loaded once at app shell mount, cached).
-2. **Route guard**: `beforeLoad` redirects to `/unauthorized`.
-3. **Server functions**: every mutating server-fn calls a shared `assertPermission(ctx, module, action)` helper that reads `user_module_permissions` (or `is_admin`) and throws on miss. This is the real security boundary — RLS is the backstop.
-4. **UI affordances**: Create/Edit/Delete/Export/Share buttons hidden when the corresponding permission is false.
-
----
-
-## User Management redesign
-
-Add a **Module Permissions** section to each user card in `UsersPanel`:
-
-```
-┌─ Module Permissions ───────────────────────────┐
-│  Module      View Create Edit Delete Export Share │
-│  Purity       [x]  [x]   [x]  [ ]    [x]   [x]   │
-│  Margin       [ ]  [ ]   [ ]  [ ]    [ ]   [ ]   │
-│  Swap         [ ]  [ ]   [ ]  [ ]    [ ]   [ ]   │
-│  …                                               │
-│                              [Save Permissions]  │
-└──────────────────────────────────────────────────┘
+-- 2. Add global language to swap_settings
+ALTER TABLE public.swap_settings
+  ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en'
+  CHECK (language IN ('en','ar','fr'));
 ```
 
-Quick-apply presets dropdown: "Purity only", "Swap full", "Reports viewer", "Administrator".
+No new tables, no new RLS — `swap_settings` already has policies.
 
-Seed initial permissions per your spec:
-- **Wassim, SIF, Moussa** → purity only (view/create/edit/export/share)
-- **Salah** → purity + margin + swap + reports (view/create/edit/export/share, no delete)
-- **Khalil** → `is_admin = true` (everything)
-
----
-
-## Branding
-
-Unified shell uses the existing Ather dark theme (already shared across Swap module). Purity panels keep their internal styling but adopt the same sidebar, header, and card primitives. Sidebar shows an Ather logo + user avatar + module switcher.
-
----
-
-## File plan
+## 7. Files touched
 
 **New**
-- `supabase/migrations/<ts>_unify_platform.sql` (profiles unify + permissions table + RLS + audit migration)
-- `src/lib/permissions.ts` (shared `MODULES`, `ACTIONS`, `PermissionMap` types)
-- `src/lib/permissions.functions.ts` (`getMyPermissions`, `setUserPermissions`, `assertPermission`)
-- `src/routes/login.tsx` (unified login)
-- `src/routes/unauthorized.tsx`
-- `src/routes/_authenticated/app/route.tsx` (shell + sidebar)
-- `src/routes/_authenticated/app/{purity,margin,swap,premium,reports,audit,users,settings}.tsx`
-- `src/routes/_authenticated/app/clients.$clientId.tsx`
-- `src/components/app/AppSidebar.tsx`
-- `src/components/app/PermissionGate.tsx` + `usePermissions` hook
-- `src/components/swap/UserPermissionsEditor.tsx`
+- `src/lib/i18n.tsx` — global language provider + dictionary
+- `src/routes/desk.app.purity.trips.$tripId.tsx` — trip detail inside the shell
 
 **Edited**
-- `src/routes/__root.tsx` (single auth listener already there)
-- `src/routes/purity/index.tsx`, `src/routes/swap/index.tsx` → redirect to `/login`
-- `src/routes/purity/dashboard.tsx`, `src/routes/swap/dashboard.tsx` → redirect to `/app/…`
-- `src/components/swap/UsersPanel.tsx` (add permissions editor section)
-- All `*.functions.ts` mutating server fns → wrap with `assertPermission`
+- `src/routes/__root.tsx` — drop `PurityLanguageProvider`
+- `src/routes/desk.app.purity.tsx` — render the real Purity dashboard in-shell
+- `src/components/PurityReport.tsx` and Purity dashboard internals — remove Purity header/profile/language UI; use global i18n
+- `src/routes/purity/index.tsx`, `purity/dashboard.tsx`, `purity/trips.$tripId.tsx` — convert to `LegacyDeskRedirect`
+- DESK shell sidebar component — add Purity entry, gate items by `useMyPermissions()`
+- `src/components/swap/SettingsPanel.tsx` — add Language selector (EN / AR / FR), persists via settings server fn
+- `src/lib/swap-settings.functions.ts` — extend `updateSwapSettings` to accept `language`
 
-**Removed**
-- `src/routes/swap/clients.$clientId.tsx` (moved into shell)
+**Removed (effectively)**
+- `src/lib/purity-i18n.tsx` — superseded by `src/lib/i18n.tsx`; dictionary migrated, file deleted
 
----
+## 8. Verification
 
-## Estimated scope
+After implementation:
+- Sign in → land on `/desk/app/dashboard` (unchanged).
+- Click Purity in the sidebar → URL becomes `/desk/app/purity`, same header/sidebar/profile/theme as Swap.
+- Switch language in Settings to Arabic → entire shell flips to AR + RTL, including the Purity page.
+- Old links: `/purity`, `/purity/dashboard`, `/purity/trips/<id>` all redirect (signed in → DESK Purity; signed out → `/desk/login`).
+- A user with only `purity` permission sees just Dashboard + Purity + Profile in the sidebar.
 
-~25 file changes + 1 migration. This is a large refactor that touches auth, routing, RLS, and every server function. I'll ship it in one go but it's the biggest change in the project so far.
+## Out of scope (call out)
 
----
-
-## Confirm before I start
-
-1. **Login URL**: I'm proposing `/login` as the single entry. Old `/purity` and `/swap` URLs will redirect there. OK?
-2. **New dashboard URL**: `/app/<module>` (e.g. `/app/swap`). OK, or do you prefer keeping `/swap/dashboard`, `/purity/dashboard` and just adding cross-module nav?
-3. **Permission seeding**: I'll seed the five users you named with the permissions listed above. If any of those usernames don't exist yet I'll create them disabled and you can set passwords. OK?
-4. **Audit log**: merge purity audit rows into the swap audit table (single log). Confirm OK to drop `purity_activity_log` after migration.
+Full string-by-string translation of every Swap/Margin/Reports screen into AR/FR is a long content-translation task. This plan ships the infra + nav/common labels; module-internal strings will land incrementally. Confirm if you want me to also translate every existing screen in this same change — that roughly doubles the scope.

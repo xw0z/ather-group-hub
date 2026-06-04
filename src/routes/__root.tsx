@@ -5,7 +5,7 @@ import appCss from "../styles.css?url";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { PurityLanguageProvider } from "@/lib/purity-i18n";
+import { LanguageProvider } from "@/lib/purity-i18n";
 
 
 function NotFoundComponent() {
@@ -92,18 +92,14 @@ function RootComponent() {
   const hideChrome = isPurity || isSwap || isDesk;
   return (
     <QueryClientProvider client={queryClient}>
-      {!hideChrome && <SiteHeader />}
-      <main className={hideChrome ? "" : "pt-20"}>
-        {isPurity ? (
-          <PurityLanguageProvider>
-            <Outlet />
-          </PurityLanguageProvider>
-        ) : (
+      <LanguageProvider>
+        {!hideChrome && <SiteHeader />}
+        <main className={hideChrome ? "" : "pt-20"}>
           <Outlet />
-        )}
-      </main>
-      {!hideChrome && <SiteFooter />}
-      {!hideChrome && <WhatsAppButton />}
+        </main>
+        {!hideChrome && <SiteFooter />}
+        {!hideChrome && <WhatsAppButton />}
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

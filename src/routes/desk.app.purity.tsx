@@ -1,7 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { SwapDashboard } from "./swap/dashboard";
 
 export const Route = createFileRoute("/desk/app/purity")({
-  beforeLoad: () => {
-    throw redirect({ to: "/purity/dashboard" });
-  },
+  head: () => ({
+    meta: [
+      { title: "ATHER DESK — Purity" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+  component: () => <SwapDashboard tab="purity" />,
 });

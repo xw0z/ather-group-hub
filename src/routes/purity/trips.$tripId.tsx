@@ -64,7 +64,7 @@ function TripDetailPage() {
     supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return;
       if (!data.session) {
-        navigate({ to: "/purity", replace: true });
+        navigate({ to: "/desk/login", replace: true });
         return;
       }
       setEmail(data.session.user.email ?? "");
@@ -79,7 +79,7 @@ function TripDetailPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    navigate({ to: "/purity", replace: true });
+    navigate({ to: "/desk/login", replace: true });
   }
 
   async function reload() {
@@ -104,7 +104,7 @@ function TripDetailPage() {
       departure_date: trip.departure_date,
       name: tripDisplayName(trip),
     }, trip.id);
-    navigate({ to: "/purity/dashboard", replace: true });
+    navigate({ to: "/desk/app/purity", replace: true });
   }
 
   if (!ready) {
@@ -121,7 +121,7 @@ function TripDetailPage() {
         <PurityDetailHeader email={email} onSignOut={handleSignOut} />
         <div className="flex-1 mx-auto max-w-3xl px-4 py-10 text-center text-sm text-muted-foreground">
           Trip not found.{" "}
-          <Link to="/purity/dashboard" className="text-primary underline">
+          <Link to="/desk/app/purity" className="text-primary underline">
             Back to dashboard
           </Link>
         </div>
@@ -152,7 +152,7 @@ function TripDetailPage() {
       <main className="flex-1 mx-auto max-w-3xl w-full px-4 py-5 space-y-4">
         <div className="flex items-center justify-between gap-2">
           <Link
-            to="/purity/dashboard"
+            to="/desk/app/purity"
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> All trips
@@ -223,7 +223,7 @@ function PurityDetailHeader({
   return (
     <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between gap-3">
-        <Link to="/purity/dashboard" className="flex items-center gap-2">
+        <Link to="/desk/app/purity" className="flex items-center gap-2">
           <Scale className="h-5 w-5 text-primary" />
           <div>
             <div className="text-sm font-semibold leading-none">Purity</div>

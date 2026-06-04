@@ -1,8 +1,15 @@
+// Global ATHER DESK i18n provider.
+// Originally lived in `purity-i18n` but now powers the entire platform.
+// All modules (Dashboard, Purity, Margin, Swap, Discount/Premium, Reports,
+// Audit, Users, Settings) share this provider via `LanguageProvider` in
+// `src/routes/__root.tsx`. Language is persisted globally in `swap_settings`
+// and cached per-browser in localStorage for instant first paint.
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Lang = "en" | "ar" | "fr";
 
-const STORAGE_KEY = "purity_lang";
+const STORAGE_KEY = "desk_lang";
 
 type Dict = Record<string, string>;
 
@@ -377,14 +384,41 @@ export function readStoredLang(): Lang {
   return v === "ar" || v === "fr" ? v : "en";
 }
 
-export function PurityLanguageProvider({ children }: { children: ReactNode }) {
+export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => readStoredLang());
 
+  // Mirror to <html lang> / <html dir>
   useEffect(() => {
     if (typeof window === "undefined") return;
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
+
+  // On mount, hydrate from the server-side global setting (if signed in).
+  // The localStorage cache provides the instant first paint; this just keeps
+  // the browser in sync with the platform-wide value chosen in Settings.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getSwapSettings } = await import("@/lib/swap-settings.functions");
+        const r = await getSwapSettings();
+        const s = (r.settings as unknown as { language?: string }).language;
+        if (!cancelled && (s === "en" || s === "ar" || s === "fr")) {
+          if (s !== readStoredLang()) {
+            window.localStorage.setItem(STORAGE_KEY, s);
+            window.dispatchEvent(new Event("desk-lang-change"));
+          }
+          setLangState(s);
+        }
+      } catch {
+        /* unauthenticated or settings missing — keep local cache */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Sync across tabs and across components in the same tab
   useEffect(() => {
@@ -394,9 +428,12 @@ export function PurityLanguageProvider({ children }: { children: ReactNode }) {
     };
     const onCustom = () => setLangState(readStoredLang());
     window.addEventListener("storage", onStorage);
+    window.addEventListener("desk-lang-change", onCustom);
+    // Back-compat with old event name
     window.addEventListener("purity-lang-change", onCustom);
     return () => {
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("desk-lang-change", onCustom);
       window.removeEventListener("purity-lang-change", onCustom);
     };
   }, []);
@@ -404,7 +441,7 @@ export function PurityLanguageProvider({ children }: { children: ReactNode }) {
   const setLang = (l: Lang) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, l);
-      window.dispatchEvent(new Event("purity-lang-change"));
+      window.dispatchEvent(new Event("desk-lang-change"));
     }
     setLangState(l);
   };
@@ -414,6 +451,9 @@ export function PurityLanguageProvider({ children }: { children: ReactNode }) {
 
   return <LangCtx.Provider value={{ lang, setLang, t, dir }}>{children}</LangCtx.Provider>;
 }
+
+// Back-compat alias so legacy imports keep working.
+export const PurityLanguageProvider = LanguageProvider;
 
 export function useLang(): Ctx {
   const ctx = useContext(LangCtx);
@@ -429,3 +469,6 @@ export function useLang(): Ctx {
   }
   return ctx;
 }
+
+// Alias for the new platform-wide naming.
+export const useLanguage = useLang;

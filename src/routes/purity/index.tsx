@@ -5,5 +5,5 @@ export const Route = createFileRoute("/purity/")({
   head: () => ({
     meta: [{ name: "robots", content: "noindex, nofollow" }],
   }),
-  component: LegacyDeskRedirect,
+  component: () => <LegacyDeskRedirect signedInTo="/desk/app/purity" />,
 });
