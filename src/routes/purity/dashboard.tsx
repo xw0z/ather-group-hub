@@ -1583,21 +1583,24 @@ export function ClientBreakdown({
           if ((e as DOMException)?.name === "AbortError") return;
         }
       }
-      // Try share without file (text only) — still opens the share sheet
-      if (nav.share) {
-        try {
-          await nav.share({
-            title: `Gold Purity Report — Client ${data.clientCode}`,
-            text: shareText,
-          });
-          return;
-        } catch (e) {
-          if ((e as DOMException)?.name === "AbortError") return;
+      // Desktop fallback: copy the image to the clipboard (PNG required for
+      // clipboard) and open WhatsApp Web so the user can paste directly.
+      try {
+        const pngBlob: Blob | null = await new Promise((resolve) =>
+          canvas.toBlob((b) => resolve(b), "image/png"),
+        );
+        if (pngBlob && "clipboard" in navigator && "write" in navigator.clipboard) {
+          // @ts-expect-error ClipboardItem is widely supported in modern browsers
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+          alert(
+            "Image copied to clipboard.\n\nWhatsApp Web will open — paste (Ctrl+V / Cmd+V) into the chat.",
+          );
         }
+      } catch (clipErr) {
+        console.warn("[purity] clipboard copy failed:", clipErr);
       }
-      // Desktop fallback: open WhatsApp Web with prefilled text
       window.open(
-        `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+        `https://web.whatsapp.com/send?text=${encodeURIComponent(shareText)}`,
         "_blank",
         "noopener,noreferrer",
       );
