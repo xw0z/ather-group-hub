@@ -271,13 +271,14 @@ export function AuditLogPanel() {
           statusChanged && (r.new_status === "needed" || r.new_status === "critical");
         if (statusChanged) {
           ch.push({
-            label: "Margin Status",
-            oldText: statusLabel(r.old_status),
-            newText: statusLabel(r.new_status),
+            label: "audit.marginStatusChanged",
+            oldText: statusLabelKey(r.old_status),
+            newText: statusLabelKey(r.new_status),
             highlight: critical,
           });
           cats.add("margin");
         }
+
 
         if (ch.length === 0) continue;
 
