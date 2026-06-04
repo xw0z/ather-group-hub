@@ -1,8 +1,15 @@
+// Global ATHER DESK i18n provider.
+// Originally lived in `purity-i18n` but now powers the entire platform.
+// All modules (Dashboard, Purity, Margin, Swap, Discount/Premium, Reports,
+// Audit, Users, Settings) share this provider via `LanguageProvider` in
+// `src/routes/__root.tsx`. Language is persisted globally in `swap_settings`
+// and cached per-browser in localStorage for instant first paint.
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Lang = "en" | "ar" | "fr";
 
-const STORAGE_KEY = "purity_lang";
+const STORAGE_KEY = "desk_lang";
 
 type Dict = Record<string, string>;
 
