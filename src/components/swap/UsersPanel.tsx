@@ -155,13 +155,14 @@ function UserManagement() {
     e.preventDefault();
     setError(null);
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(tt("users.pwdMin"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(tt("users.pwdMismatch"));
       return;
     }
+
     setSubmitting(true);
     try {
       // Schema stores admin as a boolean. Manager maps to non-admin (Staff-tier).
