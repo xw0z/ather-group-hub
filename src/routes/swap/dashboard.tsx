@@ -404,6 +404,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: Home },
+  { key: "purity", label: "Purity", icon: Scale, module: "purity" },
   { key: "clients", label: "Clients", icon: UsersIcon, module: "swap" },
   { key: "swap-fees", label: "Swap Fees", icon: DollarSign, module: "swap" },
   { key: "margin", label: "Margin", icon: ShieldCheck, module: "margin" },
