@@ -1754,23 +1754,108 @@ function MarginTab({
                         </span>
                       ) : null}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => shareMargin(c)}
-                      disabled={sharingId === c.id}
-                      className="shrink-0"
-                    >
-                      <Share2 className="h-4 w-4 mr-1 text-primary" />
-                      {sharingId === c.id ? "Sharing…" : "Share"}
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          editingId === c.id ? cancelEdit() : startEdit(c)
+                        }
+                      >
+                        <Pencil className="h-4 w-4 mr-1 text-primary" />
+                        {editingId === c.id ? "Cancel" : "Edit"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => shareMargin(c)}
+                        disabled={sharingId === c.id}
+                      >
+                        <Share2 className="h-4 w-4 mr-1 text-primary" />
+                        {sharingId === c.id ? "Sharing…" : "Share"}
+                      </Button>
+                    </div>
                   </div>
-                  <MarginDetails
-                    goldKg={Number(c.gold_kg ?? 0)}
-                    xau={xauForCalc}
-                    marginPct={Number(c.margin_requirement_pct ?? 20)}
-                    margin={margin}
-                  />
+                  {editingId === c.id ? (
+                    <div className="mt-3 rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">USD balance</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editBalance}
+                            onChange={(e) => setEditBalance(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Gold (g)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editGoldGrams}
+                            onChange={(e) => setEditGoldGrams(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Margin %</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editMarginPct}
+                            onChange={(e) => setEditMarginPct(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">XAUUSD override</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Use live price"
+                            value={editXau}
+                            onChange={(e) => setEditXau(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Position</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={editPositionType === "long" ? "default" : "outline"}
+                              onClick={() => setEditPositionType("long")}
+                            >
+                              Long
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={editPositionType === "short" ? "default" : "outline"}
+                              onClick={() => setEditPositionType("short")}
+                            >
+                              Short
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                          <X className="h-4 w-4 mr-1" />Cancel
+                        </Button>
+                        <Button size="sm" onClick={() => saveEdit(c)} disabled={savingId === c.id}>
+                          <Check className="h-4 w-4 mr-1" />
+                          {savingId === c.id ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <MarginDetails
+                      goldKg={Number(c.gold_kg ?? 0)}
+                      xau={xauForCalc}
+                      marginPct={Number(c.margin_requirement_pct ?? 20)}
+                      margin={margin}
+                    />
+                  )}
                 </li>
               );
             })}
