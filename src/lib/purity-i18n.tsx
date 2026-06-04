@@ -1155,7 +1155,7 @@ const fr: Dict = {
   "users.security": "Sécurité",
   "users.administrator": "Administrateur",
   "users.manager": "Manager",
-  "users.staff": "Personnel",
+  "users.staff": "Utilisateur",
   "users.fullAccess": "Accès complet",
   "users.managerAccess": "Clients, Rapports, Marge, Swap, Audit",
   "users.staffAccess": "Clients et Rapports uniquement",
