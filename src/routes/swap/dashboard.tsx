@@ -407,9 +407,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "nav.dashboard", icon: Home },
-  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
   { key: "clients", label: "nav.clients", icon: UsersIcon, module: "swap" },
   { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
+  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
   { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
   { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
   { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
