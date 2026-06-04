@@ -452,6 +452,8 @@ export function SwapDashboard({
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const { perms } = useMyPermissions();
+  const { t } = useLang();
+
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
