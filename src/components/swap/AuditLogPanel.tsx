@@ -414,10 +414,10 @@ export function AuditLogPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ScrollText className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">Audit Log</h2>
+          <h2 className="text-base font-semibold">{tt("audit.title")}</h2>
         </div>
         <Button size="sm" variant="outline" onClick={() => load(true)}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+          <RefreshCw className="h-4 w-4 mr-1" /> {tt("common.refresh")}
         </Button>
       </div>
 
@@ -425,7 +425,7 @@ export function AuditLogPanel() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by client code, name, or user…"
+          placeholder={tt("audit.searchPh")}
           className="h-9"
         />
         <div className="flex flex-wrap gap-1.5">
@@ -440,18 +440,19 @@ export function AuditLogPanel() {
                   : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
-              {f.label}
+              {tt(f.label)}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{tt("common.loading")}</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {entries.length === 0 ? "No activity yet." : "No entries match your filters."}
+          {entries.length === 0 ? tt("audit.noActivity") : tt("audit.noMatch")}
         </p>
+
       ) : (
         <ul className="space-y-2">
           {filtered.map((e) => (
