@@ -579,8 +579,8 @@ export function SwapDashboard({
           ))}
         </nav>
         <div className="p-3 border-t border-border/60 space-y-2">
-          {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
-          {isAdmin && <RestoreButton app="swap" className="w-full justify-start" />}
+          {canBackup && <BackupButton app="swap" className="w-full justify-start" />}
+          {canBackup && <RestoreButton app="swap" className="w-full justify-start" />}
           <p className="text-[11px] text-muted-foreground truncate">
             {username}
             {isAdmin && " · admin"}
@@ -611,8 +611,8 @@ export function SwapDashboard({
               ))}
             </nav>
             <div className="pt-3 border-t border-border/60 mt-3 space-y-2">
-              {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
-              {isAdmin && <RestoreButton app="swap" className="w-full justify-start" />}
+              {canBackup && <BackupButton app="swap" className="w-full justify-start" />}
+              {canBackup && <RestoreButton app="swap" className="w-full justify-start" />}
               <p className="text-[11px] text-muted-foreground truncate">
                 {username}
                 {isAdmin && " · admin"}
@@ -633,7 +633,7 @@ export function SwapDashboard({
             </Button>
             <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
             <div className="flex items-center gap-1">
-              {isAdmin && (
+              {canBackup && (
                 <>
                   <BackupButton
                     app={effectiveTab === "purity" ? "purity" : "swap"}
