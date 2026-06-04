@@ -439,9 +439,12 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
               <div className="text-[11px] text-muted-foreground">{email}</div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin && <BackupButton app="purity" />}
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
+            </Button>
+          </div>
         </div>
         <div className="mx-auto max-w-3xl px-2 pb-2">{TabStrip}</div>
       </header>
