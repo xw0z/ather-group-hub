@@ -1478,7 +1478,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           />
                           <Stat
                             label={isShort ? "Daily benefit" : "Daily fee"}
-                            value={`${isShort ? "+" : "-"}$${fmt(daily)}`}
+                            value={`${isShort ? "+" : "-"}$${fmt(Math.abs(daily))}`}
                             tone={isShort ? "positive" : "negative"}
                           />
                         </div>
