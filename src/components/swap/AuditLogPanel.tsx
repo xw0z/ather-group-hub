@@ -274,8 +274,9 @@ export function AuditLogPanel() {
         if (statusChanged) {
           ch.push({
             label: "audit.marginStatusChanged",
-            oldText: statusLabelKey(r.old_status),
-            newText: statusLabelKey(r.new_status),
+            oldText: statusLabel(r.old_status),
+            newText: statusLabel(r.new_status),
+
             highlight: critical,
           });
           cats.add("margin");
