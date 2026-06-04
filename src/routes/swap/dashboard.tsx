@@ -610,6 +610,7 @@ export function SwapDashboard({
             </nav>
             <div className="pt-3 border-t border-border/60 mt-3 space-y-2">
               {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
+              {isAdmin && <RestoreButton app="swap" className="w-full justify-start" />}
               <p className="text-[11px] text-muted-foreground truncate">
                 {username}
                 {isAdmin && " · admin"}
