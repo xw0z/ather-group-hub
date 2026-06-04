@@ -49,7 +49,7 @@ export const Route = createFileRoute("/purity/dashboard")({
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: LegacyDeskRedirect,
+  component: () => <LegacyDeskRedirect signedInTo="/desk/app/purity" />,
 });
 
 export type PurityFormat = "3" | "4";
