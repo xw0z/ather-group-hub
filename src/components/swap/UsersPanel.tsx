@@ -131,7 +131,8 @@ function UserManagement() {
       const { data: auth } = await supabase.auth.getUser();
       setCurrentUserId(auth.user?.id ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load users.");
+      setError(e instanceof Error ? e.message : tt("users.failedLoad"));
+
     } finally {
       setLoading(false);
     }
