@@ -1683,34 +1683,34 @@ export function ClientBreakdown({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="h-7 px-2"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => shareClientImage(r)}
                   disabled={busyKey !== null}
                   title="Share image report (WhatsApp)"
+                  aria-label="Share image report"
                 >
                   {busyKey === `img:${r.name}` ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Share2 className="h-3.5 w-3.5" />
                   )}
-                  <span className="ml-1 text-[11px]">Share</span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="h-7 px-2"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => shareClientPDF(r)}
                   disabled={busyKey !== null}
                   title="Download PDF report"
+                  aria-label="Download PDF report"
                 >
                   {busyKey === `pdf:${r.name}` ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <FileDown className="h-3.5 w-3.5" />
                   )}
-                  <span className="ml-1 text-[11px]">PDF</span>
                 </Button>
 
 
