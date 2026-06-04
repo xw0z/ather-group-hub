@@ -414,11 +414,15 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
     }
     return (
       <div dir={dir} className="space-y-4">
-        {TabStrip}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">{TabStrip}</div>
+          {isAdmin && <BackupButton app="purity" />}
+        </div>
         <div className="space-y-5">{Content}</div>
       </div>
     );
   }
+
 
   // Standalone (legacy) mode preserves the original Purity chrome. The
   // /purity/dashboard route now redirects to /desk/app/purity, so this is
