@@ -26,14 +26,20 @@ const SWAP_TABLES = [
   "user_module_permissions",
 ] as const;
 
-async function isAdmin(userId: string, app: "purity" | "swap"): Promise<boolean> {
-  const table = app === "purity" ? "purity_profiles" : "swap_profiles";
-  const { data } = await supabaseAdmin
-    .from(table)
+async function isAdmin(userId: string, _app: "purity" | "swap"): Promise<boolean> {
+  // Platform admin (swap_profiles.is_admin) can back up any app.
+  const { data: swap } = await supabaseAdmin
+    .from("swap_profiles")
     .select("is_admin")
     .eq("id", userId)
     .maybeSingle();
-  return Boolean((data as { is_admin?: boolean } | null)?.is_admin);
+  if ((swap as { is_admin?: boolean } | null)?.is_admin) return true;
+  const { data: purity } = await supabaseAdmin
+    .from("purity_profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  return Boolean((purity as { is_admin?: boolean } | null)?.is_admin);
 }
 
 async function dumpTables(tables: readonly string[]) {
