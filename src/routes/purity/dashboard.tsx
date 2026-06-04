@@ -234,6 +234,7 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canBackup, setCanBackup] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
   type FullTab = "trips" | "clients" | "search" | "users" | "logs" | "profile";
@@ -266,7 +267,10 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
         const hasPurityPerm = can(myPerms ?? undefined, "purity", "view");
         try {
           const me = await getCurrentPurityUser();
-          if (!cancelled) setIsAdmin(me.isAdmin);
+          if (!cancelled) {
+            setIsAdmin(me.isAdmin);
+            setCanBackup(Boolean(me.canBackup));
+          }
         } catch {
           if (!isPlatformAdmin && !hasPurityPerm) {
             navigate({ to: "/unauthorized", replace: true });
@@ -418,7 +422,7 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
       <div dir={dir} className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex-1 min-w-0">{TabStrip}</div>
-          {isAdmin && (
+          {canBackup && (
             <div className="flex items-center gap-2">
               <BackupButton app="purity" />
               <RestoreButton app="purity" />
@@ -446,8 +450,8 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && <BackupButton app="purity" />}
-            {isAdmin && <RestoreButton app="purity" />}
+            {canBackup && <BackupButton app="purity" />}
+            {canBackup && <RestoreButton app="purity" />}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
             </Button>

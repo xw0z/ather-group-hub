@@ -458,6 +458,7 @@ export function SwapDashboard({
 
   const [ready, setReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canBackup, setCanBackup] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
@@ -510,6 +511,7 @@ export function SwapDashboard({
           return;
         }
         setIsAdmin(me.isAdmin);
+        setCanBackup(Boolean(me.canBackup));
         setUsername(me.username ?? "");
         setReady(true);
       } catch {
@@ -577,8 +579,8 @@ export function SwapDashboard({
           ))}
         </nav>
         <div className="p-3 border-t border-border/60 space-y-2">
-          {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
-          {isAdmin && <RestoreButton app="swap" className="w-full justify-start" />}
+          {canBackup && <BackupButton app="swap" className="w-full justify-start" />}
+          {canBackup && <RestoreButton app="swap" className="w-full justify-start" />}
           <p className="text-[11px] text-muted-foreground truncate">
             {username}
             {isAdmin && " · admin"}
@@ -609,8 +611,8 @@ export function SwapDashboard({
               ))}
             </nav>
             <div className="pt-3 border-t border-border/60 mt-3 space-y-2">
-              {isAdmin && <BackupButton app="swap" className="w-full justify-start" />}
-              {isAdmin && <RestoreButton app="swap" className="w-full justify-start" />}
+              {canBackup && <BackupButton app="swap" className="w-full justify-start" />}
+              {canBackup && <RestoreButton app="swap" className="w-full justify-start" />}
               <p className="text-[11px] text-muted-foreground truncate">
                 {username}
                 {isAdmin && " · admin"}
@@ -631,7 +633,7 @@ export function SwapDashboard({
             </Button>
             <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
             <div className="flex items-center gap-1">
-              {isAdmin && (
+              {canBackup && (
                 <>
                   <BackupButton
                     app={effectiveTab === "purity" ? "purity" : "swap"}

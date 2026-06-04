@@ -26,14 +26,15 @@ const SWAP_TABLES = [
   "user_module_permissions",
 ] as const;
 
-async function isAdmin(userId: string, _app: "purity" | "swap"): Promise<boolean> {
-  // Platform admin (swap_profiles.is_admin) can back up any app.
+async function canBackup(userId: string, _app: "purity" | "swap"): Promise<boolean> {
+  // Platform admins and Managers (swap_profiles.is_manager) can back up/restore any app.
   const { data: swap } = await supabaseAdmin
     .from("swap_profiles")
-    .select("is_admin")
+    .select("is_admin, is_manager")
     .eq("id", userId)
     .maybeSingle();
-  if ((swap as { is_admin?: boolean } | null)?.is_admin) return true;
+  const s = swap as { is_admin?: boolean; is_manager?: boolean } | null;
+  if (s?.is_admin || s?.is_manager) return true;
   const { data: purity } = await supabaseAdmin
     .from("purity_profiles")
     .select("is_admin")
@@ -61,7 +62,7 @@ export const backupApp = createServerFn({ method: "POST" })
     z.object({ app: z.enum(["purity", "swap"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const admin = await isAdmin(context.userId, data.app);
+    const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can create backups.");
     const tables = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
     const dump = await dumpTables(tables);
@@ -89,7 +90,7 @@ export const restoreApp = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const admin = await isAdmin(context.userId, data.app);
+    const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can restore backups.");
 
     let parsed: {

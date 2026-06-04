@@ -237,15 +237,18 @@ export const getCurrentSwapUser = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("swap_profiles")
-      .select("id, username, email, is_admin")
+      .select("id, username, email, is_admin, is_manager")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    const row = data as { username?: string; email?: string | null; is_admin?: boolean; is_manager?: boolean } | null;
     return {
       id: context.userId,
-      username: data?.username ?? null,
-      email: data?.email ?? null,
-      isAdmin: Boolean(data?.is_admin),
-      isSwapUser: Boolean(data),
+      username: row?.username ?? null,
+      email: row?.email ?? null,
+      isAdmin: Boolean(row?.is_admin),
+      isManager: Boolean(row?.is_manager),
+      canBackup: Boolean(row?.is_admin || row?.is_manager),
+      isSwapUser: Boolean(row),
     };
   });

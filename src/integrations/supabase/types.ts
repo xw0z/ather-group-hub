@@ -504,6 +504,7 @@ export type Database = {
           email: string | null
           id: string
           is_admin: boolean
+          is_manager: boolean
           phone: string | null
           username: string
         }
@@ -512,6 +513,7 @@ export type Database = {
           email?: string | null
           id: string
           is_admin?: boolean
+          is_manager?: boolean
           phone?: string | null
           username: string
         }
@@ -520,6 +522,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_admin?: boolean
+          is_manager?: boolean
           phone?: string | null
           username?: string
         }
