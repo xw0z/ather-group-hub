@@ -111,7 +111,8 @@ async function logActivity(
 
 export const listSwapClients = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_clients")
       .select(
@@ -140,6 +141,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     const { data: row, error } = await supabaseAdmin
       .from("swap_clients")
       .insert({
@@ -189,6 +191,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     const patch: {
       code?: string;
       usd_balance?: number;
@@ -289,6 +292,7 @@ export const deleteSwapClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     const { data: row } = await supabaseAdmin
       .from("swap_clients")
       .select("code")
@@ -304,7 +308,8 @@ export const deleteSwapClient = createServerFn({ method: "POST" })
 
 export const listSwapActivityLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_activity_log")
       .select("id, user_id, username, action, entity_type, entity_id, details, created_at")
@@ -316,7 +321,8 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
 
 export const listTodaySwapFees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const today = new Date().toISOString().slice(0, 10);
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
@@ -384,7 +390,8 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
 export const getSwapClientHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     const { data: client, error: cErr } = await supabaseAdmin
       .from("swap_clients")
       .select(
@@ -603,7 +610,8 @@ export const listSwapMarginHistory = createServerFn({ method: "GET" })
   .inputValidator((d) =>
     z.object({ client_id: z.string().uuid().optional() }).parse(d ?? {}),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
     let q = supabaseAdmin
       .from("swap_margin_history")
       .select("*")
@@ -645,6 +653,7 @@ async function lastSnapshot() {
 export const getLiveXauPrice = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const last = await lastSnapshot();
     // If the last snapshot is a manual override less than 30 min old, prefer it.
     if (last && last.source === "manual") {
