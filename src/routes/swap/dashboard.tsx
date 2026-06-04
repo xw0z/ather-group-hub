@@ -404,17 +404,18 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", icon: Home },
-  { key: "purity", label: "Purity", icon: Scale, module: "purity" },
-  { key: "clients", label: "Clients", icon: UsersIcon, module: "swap" },
-  { key: "swap-fees", label: "Swap Fees", icon: DollarSign, module: "swap" },
-  { key: "margin", label: "Margin", icon: ShieldCheck, module: "margin" },
-  { key: "premium", label: "Discount / Premium", icon: TrendingUp, module: "premium" },
-  { key: "reports", label: "Reports", icon: FileText, module: "reports" },
-  { key: "audit", label: "Audit Log", icon: ScrollText, module: "audit", adminOnly: true },
-  { key: "users", label: "Users", icon: UserPlus, module: "users", adminOnly: true },
-  { key: "settings", label: "Settings", icon: SettingsIcon, module: "settings" },
+  { key: "dashboard", label: "nav.dashboard", icon: Home },
+  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
+  { key: "clients", label: "nav.clients", icon: UsersIcon, module: "swap" },
+  { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
+  { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
+  { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
+  { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
+  { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
+  { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
+  { key: "settings", label: "nav.settings", icon: SettingsIcon, module: "settings" },
 ];
+
 
 
 export function SwapDashboard({
