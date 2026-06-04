@@ -515,7 +515,7 @@ function MyAccount({ username }: { username: string }) {
     }
   }
 
-  const role = me?.isAdmin ? "Administrator" : "Staff";
+  const role: "Administrator" | "Manager" | "Staff" = me?.isAdmin ? "Administrator" : me?.isManager ? "Manager" : "Staff";
 
   return (
     <section className="space-y-4">
