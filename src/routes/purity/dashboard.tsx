@@ -605,7 +605,7 @@ function TripsTab({
     resetForm();
     setShowNew(false);
     await reloadTrips();
-    navigate({ to: "/purity/trips/$tripId", params: { tripId: tripRow.id } });
+    navigate({ to: "/desk/app/purity/trips/$tripId", params: { tripId: tripRow.id } });
   }
 
   async function deleteTrip(id: string) {
