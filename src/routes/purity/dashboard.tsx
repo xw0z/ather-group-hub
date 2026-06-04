@@ -18,6 +18,8 @@ import {
   Check,
   X,
   FileClock,
+  FileDown,
+  Loader2,
   UserCircle,
   KeyRound,
   Link2,
@@ -1425,6 +1427,8 @@ export function ClientBreakdown({
   clients: Client[];
   pieces: Piece[];
 }) {
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
   const rows = useMemo(() => {
     const map = new Map<
       string,
@@ -1543,52 +1547,64 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
-    const data = buildReportData(r);
-    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
-    // We rendered at intrinsic 2480px wide × scale 2 ≈ 4960px → resample to ~3500px wide PNG
-    const TARGET_W = 3500;
-    const ratio = TARGET_W / canvas.width;
-    const out = document.createElement("canvas");
-    out.width = TARGET_W;
-    out.height = Math.round(canvas.height * ratio);
-    const octx = out.getContext("2d");
-    if (octx) {
-      octx.imageSmoothingEnabled = true;
-      octx.imageSmoothingQuality = "high";
-      octx.drawImage(canvas, 0, 0, out.width, out.height);
-    }
-    const blob: Blob | null = await new Promise((resolve) =>
-      (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
-    );
-    if (!blob) return;
-    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
-    const file = new File([blob], fileName, { type: "image/png" });
-    const nav = navigator as Navigator & {
-      canShare?: (d: { files?: File[] }) => boolean;
-      share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
-    };
-    if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-      try {
-        await nav.share({
-          files: [file],
-          title: `Gold Purity Report — Client ${data.clientCode}`,
-          text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
-        });
-        return;
-      } catch {
-        /* fall through to download */
+    setBusyKey(`img:${r.name}`);
+    try {
+      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+      const data = buildReportData(r);
+      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+      const TARGET_W = 3500;
+      const ratio = TARGET_W / canvas.width;
+      const out = document.createElement("canvas");
+      out.width = TARGET_W;
+      out.height = Math.round(canvas.height * ratio);
+      const octx = out.getContext("2d");
+      if (octx) {
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = "high";
+        octx.drawImage(canvas, 0, 0, out.width, out.height);
       }
+      const blob: Blob | null = await new Promise((resolve) =>
+        (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
+      );
+      if (!blob) throw new Error("Could not produce image.");
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: { files?: File[] }) => boolean;
+        share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        try {
+          await nav.share({
+            files: [file],
+            title: `Gold Purity Report — Client ${data.clientCode}`,
+            text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
+          });
+          return;
+        } catch {
+          /* fall through to download */
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[purity] shareClientImage failed:", err);
+      alert(
+        `Could not generate the image report.\n\n${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    } finally {
+      setBusyKey(null);
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
+
 
   async function shareClientPDF(r: {
     name: string;
@@ -1597,33 +1613,49 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    const [{ renderPurityReportToCanvas }, { jsPDF }] = await Promise.all([
-      import("@/components/PurityReport"),
-      import("jspdf"),
-    ]);
-    const data = buildReportData(r);
-    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const doc = new jsPDF({
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-      compress: true,
-    });
-    const W = 210;
-    const H = 297;
-    const ratio = canvas.height / canvas.width;
-    const imgH = W * ratio;
-    if (imgH <= H) {
-      doc.addImage(imgData, "JPEG", 0, (H - imgH) / 2, W, imgH, undefined, "FAST");
-    } else {
-      // scale down to fit page height
-      const imgW = H / ratio;
-      doc.addImage(imgData, "JPEG", (W - imgW) / 2, 0, imgW, H, undefined, "FAST");
+    setBusyKey(`pdf:${r.name}`);
+    try {
+      const [{ renderPurityReportToCanvas }, jspdfMod] = await Promise.all([
+        import("@/components/PurityReport"),
+        import("jspdf"),
+      ]);
+      const JsPDFCtor =
+        (jspdfMod as { jsPDF?: typeof import("jspdf").jsPDF }).jsPDF ??
+        (jspdfMod as { default?: typeof import("jspdf").jsPDF }).default;
+      if (!JsPDFCtor) throw new Error("PDF library failed to load.");
+      const data = buildReportData(r);
+      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const doc = new JsPDFCtor({
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+        compress: true,
+      });
+      const W = 210;
+      const H = 297;
+      const ratio = canvas.height / canvas.width;
+      const imgH = W * ratio;
+      if (imgH <= H) {
+        doc.addImage(imgData, "JPEG", 0, (H - imgH) / 2, W, imgH, undefined, "FAST");
+      } else {
+        const imgW = H / ratio;
+        doc.addImage(imgData, "JPEG", (W - imgW) / 2, 0, imgW, H, undefined, "FAST");
+      }
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error("[purity] shareClientPDF failed:", err);
+      alert(
+        `Could not generate the PDF.\n\n${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    } finally {
+      setBusyKey(null);
     }
-    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
-    doc.save(fileName);
   }
+
 
 
   return (
@@ -1649,24 +1681,37 @@ export function ClientBreakdown({
                 </div>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   className="h-7 px-2"
                   onClick={() => shareClientImage(r)}
+                  disabled={busyKey !== null}
                   title="Share image report (WhatsApp)"
                 >
-                  <Share2 className="h-3.5 w-3.5" />
+                  {busyKey === `img:${r.name}` ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Share2 className="h-3.5 w-3.5" />
+                  )}
+                  <span className="ml-1 text-[11px]">Share</span>
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   className="h-7 px-2"
                   onClick={() => shareClientPDF(r)}
-                  title="Download vector PDF (print quality)"
+                  disabled={busyKey !== null}
+                  title="Download PDF report"
                 >
-                  <FileClock className="h-3.5 w-3.5" />
+                  {busyKey === `pdf:${r.name}` ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="h-3.5 w-3.5" />
+                  )}
+                  <span className="ml-1 text-[11px]">PDF</span>
                 </Button>
+
 
               </div>
             </div>
