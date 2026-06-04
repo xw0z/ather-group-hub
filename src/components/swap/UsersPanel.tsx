@@ -281,14 +281,17 @@ function UserManagement() {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold">{r}</span>
+                      <span className="font-semibold">
+                        {r === "Administrator" ? tt("users.administrator") : r === "Manager" ? tt("users.manager") : tt("users.staff")}
+                      </span>
                       {role === r && <ShieldCheck className="h-3 w-3 text-primary" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      {r === "Administrator" && "Full access"}
-                      {r === "Manager" && "Clients, Reports, Margin, Swap, Audit"}
-                      {r === "Staff" && "Clients & Reports only"}
+                      {r === "Administrator" && tt("users.fullAccess")}
+                      {r === "Manager" && tt("users.managerAccess")}
+                      {r === "Staff" && tt("users.staffAccess")}
                     </span>
+
                   </button>
                 ))}
               </div>
