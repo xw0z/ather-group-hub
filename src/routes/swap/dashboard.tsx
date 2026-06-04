@@ -45,7 +45,11 @@ import {
   setManualXauPrice,
   updateSwapClient,
 } from "@/lib/swap-clients.functions";
-import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
+import {
+  updateSwapOwnPassword,
+  getSwapOwnProfile,
+  updateSwapOwnProfile,
+} from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
