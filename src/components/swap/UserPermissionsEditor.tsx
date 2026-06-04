@@ -17,15 +17,17 @@ import {
   setUserPermissions,
 } from "@/lib/permissions.functions";
 import { invalidate, CK } from "@/lib/swap-cache";
+import { useLang } from "@/lib/purity-i18n";
 
-const ACTION_LABELS: Record<Action, string> = {
-  view: "View",
-  create: "Create",
-  edit: "Edit",
-  delete: "Delete",
-  export: "Export",
-  share: "Share",
+const ACTION_LABEL_KEYS: Record<Action, string> = {
+  view: "users.permView",
+  create: "users.permCreate",
+  edit: "users.permEdit",
+  delete: "users.permDelete",
+  export: "common.share",
+  share: "users.permShare",
 };
+
 
 type Preset = "none" | "purity_only" | "swap_full" | "reports_viewer" | "admin";
 
@@ -53,11 +55,13 @@ export function UserPermissionsEditor({
   username: string;
   onChanged?: () => void;
 }) {
+  const { t: tt } = useLang();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [perms, setPerms] = useState<PermissionMap>({});
+
 
   useEffect(() => {
     if (!open) return;
@@ -132,16 +136,17 @@ export function UserPermissionsEditor({
       {open && (
         <div className="space-y-2">
           {loading ? (
-            <p className="text-xs text-muted-foreground">Loading…</p>
+            <p className="text-xs text-muted-foreground">{tt("common.loading")}</p>
           ) : (
             <>
               <div className="flex flex-wrap gap-1.5">
-                <PresetBtn label="Purity only" onClick={() => applyPresetTo("purity_only")} />
-                <PresetBtn label="Swap full" onClick={() => applyPresetTo("swap_full")} />
-                <PresetBtn label="Reports viewer" onClick={() => applyPresetTo("reports_viewer")} />
-                <PresetBtn label="Administrator" onClick={() => applyPresetTo("admin")} />
-                <PresetBtn label="Clear" onClick={() => applyPresetTo("none")} />
+                <PresetBtn label={tt("users.presetPurity")} onClick={() => applyPresetTo("purity_only")} />
+                <PresetBtn label={tt("users.presetSwapFull")} onClick={() => applyPresetTo("swap_full")} />
+                <PresetBtn label={tt("users.presetReports")} onClick={() => applyPresetTo("reports_viewer")} />
+                <PresetBtn label={tt("users.presetAdmin")} onClick={() => applyPresetTo("admin")} />
+                <PresetBtn label={tt("users.presetClear")} onClick={() => applyPresetTo("none")} />
               </div>
+
 
               <label className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 cursor-pointer">
                 <input
@@ -164,8 +169,9 @@ export function UserPermissionsEditor({
                         <th className="text-left px-2 py-1.5 font-medium">Module</th>
                         {ACTIONS.map((a) => (
                           <th key={a} className="px-1 py-1.5 font-medium text-center">
-                            {ACTION_LABELS[a]}
+                            {tt(ACTION_LABEL_KEYS[a])}
                           </th>
+
                         ))}
                       </tr>
                     </thead>
@@ -180,7 +186,7 @@ export function UserPermissionsEditor({
                                 type="button"
                                 onClick={() => toggleModuleAll(m, !allOn)}
                                 className="text-left hover:text-primary"
-                                title={allOn ? "Turn all off" : "Turn all on"}
+                                title={allOn ? tt("users.allOff") : tt("users.allOn")}
                               >
                                 {MODULE_LABELS[m]}
                               </button>
@@ -209,7 +215,7 @@ export function UserPermissionsEditor({
               <div className="flex justify-end">
                 <Button size="sm" className="h-7 text-xs" onClick={save} disabled={saving}>
                   <Save className="h-3 w-3 mr-1" />
-                  {saving ? "Saving…" : "Save Permissions"}
+                  {saving ? tt("common.saving") : tt("users.savePerms")}
                 </Button>
               </div>
             </>

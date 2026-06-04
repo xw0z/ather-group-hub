@@ -57,6 +57,8 @@ import { PurityDashboard } from "@/routes/purity/dashboard";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
+import { useLang } from "@/lib/purity-i18n";
+
 
 const TAB_VALUES = [
   "dashboard",
@@ -404,17 +406,18 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", icon: Home },
-  { key: "purity", label: "Purity", icon: Scale, module: "purity" },
-  { key: "clients", label: "Clients", icon: UsersIcon, module: "swap" },
-  { key: "swap-fees", label: "Swap Fees", icon: DollarSign, module: "swap" },
-  { key: "margin", label: "Margin", icon: ShieldCheck, module: "margin" },
-  { key: "premium", label: "Discount / Premium", icon: TrendingUp, module: "premium" },
-  { key: "reports", label: "Reports", icon: FileText, module: "reports" },
-  { key: "audit", label: "Audit Log", icon: ScrollText, module: "audit", adminOnly: true },
-  { key: "users", label: "Users", icon: UserPlus, module: "users", adminOnly: true },
-  { key: "settings", label: "Settings", icon: SettingsIcon, module: "settings" },
+  { key: "dashboard", label: "nav.dashboard", icon: Home },
+  { key: "purity", label: "nav.purity", icon: Scale, module: "purity" },
+  { key: "clients", label: "nav.clients", icon: UsersIcon, module: "swap" },
+  { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
+  { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
+  { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
+  { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
+  { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
+  { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
+  { key: "settings", label: "nav.settings", icon: SettingsIcon, module: "settings" },
 ];
+
 
 
 export function SwapDashboard({
@@ -449,6 +452,8 @@ export function SwapDashboard({
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const { perms } = useMyPermissions();
+  const { t } = useLang();
+
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
@@ -514,7 +519,8 @@ export function SwapDashboard({
   if (!ready) {
     return (
       <main className="min-h-screen bg-background text-foreground grid place-items-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+
       </main>
     );
   }
@@ -524,7 +530,7 @@ export function SwapDashboard({
     if (!n.module) return true; // dashboard always visible
     return can(perms, n.module, "view");
   });
-  const currentLabel = NAV_ITEMS.find((n) => n.key === tab)?.label ?? "Dashboard";
+  const currentLabel = t(NAV_ITEMS.find((n) => n.key === tab)?.label ?? "nav.dashboard");
 
   // Permission gate: if the user can't view the requested tab, fall back to dashboard
   const requested = NAV_ITEMS.find((n) => n.key === tab);
@@ -672,6 +678,7 @@ function NavBtn({
   onClick: () => void;
 }) {
   const Icon = item.icon;
+  const { t } = useLang();
   return (
     <button
       onClick={onClick}
@@ -682,10 +689,11 @@ function NavBtn({
       }`}
     >
       <Icon className="h-4 w-4 mr-2.5" />
-      {item.label}
+      {t(item.label)}
     </button>
   );
 }
+
 
 function ReportsTab() {
   return <ReportsCenter />;

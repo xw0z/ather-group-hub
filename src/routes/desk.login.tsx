@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/purity-i18n";
 import {
   bootstrapSwapAdmin,
   getCurrentSwapUser,
   resolveSwapUsernameToEmail,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
+
 
 export const Route = createFileRoute("/desk/login")({
   head: () => ({
@@ -25,6 +27,8 @@ export const Route = createFileRoute("/desk/login")({
 
 function DeskLoginPage() {
   const navigate = useNavigate();
+  const { t } = useLang();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -60,8 +64,9 @@ function DeskLoginPage() {
     e.preventDefault();
     setError(null);
     if (!username || !password) {
-      setError("Enter your username and password.");
+      setError(t("login.enterCreds"));
       return;
+
     }
     setLoading(true);
     try {
@@ -71,11 +76,12 @@ function DeskLoginPage() {
       const me = await getCurrentSwapUser();
       if (!me.isSwapUser) {
         await supabase.auth.signOut();
-        throw new Error("This account is not authorized on ATHER DESK.");
+        throw new Error(t("auth.notAuthorized"));
       }
       navigate({ to: "/desk/app/dashboard", replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+      setError(err instanceof Error ? err.message : t("auth.signInFailed"));
+
     } finally {
       setLoading(false);
     }
@@ -85,8 +91,9 @@ function DeskLoginPage() {
     e.preventDefault();
     setError(null);
     if (!username || !password) {
-      setError("Pick a username and password.");
+      setError(t("auth.bootstrapPick"));
       return;
+
     }
     setLoading(true);
     try {
@@ -99,7 +106,8 @@ function DeskLoginPage() {
       if (signErr) throw signErr;
       navigate({ to: "/desk/app/dashboard", replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed.");
+      setError(err instanceof Error ? err.message : t("auth.setupFailed"));
+
     } finally {
       setLoading(false);
     }
@@ -114,57 +122,56 @@ function DeskLoginPage() {
           </div>
           <div>
             <p className="font-display text-xl tracking-[0.25em]">ATHER DESK</p>
-            <p className="text-xs text-muted-foreground">Internal workspace · staff only</p>
+            <p className="text-xs text-muted-foreground">{t("auth.staffOnly")}</p>
           </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-8">
           {needsBootstrap ? (
             <>
-              <h1 className="font-display text-2xl mb-2">Create the first admin</h1>
-              <p className="text-sm text-muted-foreground mb-8">
-                No users exist yet. Set up the first administrator account.
-              </p>
+              <h1 className="font-display text-2xl mb-2">{t("auth.bootstrapTitle")}</h1>
+              <p className="text-sm text-muted-foreground mb-8">{t("auth.bootstrapDesc")}</p>
               <form onSubmit={handleBootstrap} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">{t("login.username")}</Label>
                   <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email (optional)</Label>
+                  <Label htmlFor="email">{t("auth.emailOpt")}</Label>
                   <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t("login.password")}</Label>
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                 </div>
                 {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full bg-ember text-ember-foreground hover:bg-ember/90">
-                  {loading ? "Setting up…" : "Create admin & sign in"}
+                  {loading ? t("auth.bootstrapWait") : t("auth.bootstrapSubmit")}
                 </Button>
               </form>
             </>
           ) : (
             <>
-              <h1 className="font-display text-2xl mb-2">Sign in</h1>
-              <p className="text-sm text-muted-foreground mb-8">One account for every ATHER DESK module.</p>
+              <h1 className="font-display text-2xl mb-2">{t("login.title")}</h1>
+              <p className="text-sm text-muted-foreground mb-8">{t("auth.oneAccount")}</p>
               <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">{t("login.username")}</Label>
                   <Input id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t("login.password")}</Label>
                   <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                 </div>
                 {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full bg-ember text-ember-foreground hover:bg-ember/90">
-                  {loading ? "Please wait…" : "Sign in"}
+                  {loading ? t("login.wait") : t("login.submit")}
                 </Button>
               </form>
             </>
           )}
         </div>
+
 
         <p className="text-xs text-muted-foreground text-center mt-6 tracking-[0.2em]">
           PURITY · MARGIN · SWAP · DISCOUNT/PREMIUM · REPORTS

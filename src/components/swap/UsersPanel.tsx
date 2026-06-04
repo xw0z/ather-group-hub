@@ -22,6 +22,8 @@ import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
 import { UserPermissionsEditor } from "@/components/swap/UserPermissionsEditor";
+import { useLang } from "@/lib/purity-i18n";
+
 
 
 
@@ -37,23 +39,24 @@ type Section = "users" | "account" | "security";
 
 export function UsersPanel({ currentUsername }: { currentUsername: string }) {
   const [section, setSection] = useState<Section>("users");
+  const { t: tt } = useLang();
 
   const tabs: { key: Section; label: string; icon: typeof UsersIcon }[] = [
-    { key: "users", label: "User Management", icon: UsersIcon },
-    { key: "account", label: "My Account", icon: UserCircle },
-    { key: "security", label: "Security", icon: Shield },
+    { key: "users", label: tt("users.management"), icon: UsersIcon },
+    { key: "account", label: tt("users.myAccount"), icon: UserCircle },
+    { key: "security", label: tt("users.security"), icon: Shield },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5 p-1 rounded-lg bg-muted/40 border border-border/60 w-fit">
-        {tabs.map((t) => {
-          const Icon = t.icon;
-          const active = section === t.key;
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = section === tab.key;
           return (
             <button
-              key={t.key}
-              onClick={() => setSection(t.key)}
+              key={tab.key}
+              onClick={() => setSection(tab.key)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 active
                   ? "bg-background text-foreground shadow-sm"
@@ -61,7 +64,7 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {t.label}
+              {tab.label}
             </button>
           );
         })}
@@ -74,6 +77,7 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
   );
 }
 
+
 /* -------------------- USER MANAGEMENT -------------------- */
 
 function roleOf(u: SwapUser): "Administrator" | "Staff" {
@@ -81,20 +85,23 @@ function roleOf(u: SwapUser): "Administrator" | "Staff" {
 }
 
 function RoleBadge({ role }: { role: "Administrator" | "Manager" | "Staff" }) {
+  const { t: tt } = useLang();
   const styles: Record<string, string> = {
     Administrator: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     Manager: "bg-blue-500/15 text-blue-400 border-blue-500/30",
     Staff: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
+  const label = role === "Administrator" ? tt("users.administrator") : role === "Manager" ? tt("users.manager") : tt("users.staff");
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-semibold ${styles[role]}`}
     >
       {role === "Administrator" && <ShieldCheck className="h-3 w-3" />}
-      {role}
+      {label}
     </span>
   );
 }
+
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
@@ -103,11 +110,13 @@ function fmtDate(d: string | null | undefined) {
 }
 
 function UserManagement() {
+  const { t: tt } = useLang();
   const [users, setUsers] = useState<SwapUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+
 
   // form
   const [username, setUsername] = useState("");
@@ -125,7 +134,8 @@ function UserManagement() {
       const { data: auth } = await supabase.auth.getUser();
       setCurrentUserId(auth.user?.id ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load users.");
+      setError(e instanceof Error ? e.message : tt("users.failedLoad"));
+
     } finally {
       setLoading(false);
     }
@@ -148,13 +158,14 @@ function UserManagement() {
     e.preventDefault();
     setError(null);
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(tt("users.pwdMin"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(tt("users.pwdMismatch"));
       return;
     }
+
     setSubmitting(true);
     try {
       // Schema stores admin as a boolean. Manager maps to non-admin (Staff-tier).
@@ -171,7 +182,8 @@ function UserManagement() {
       resetForm();
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user.");
+      setError(err instanceof Error ? err.message : tt("users.failedCreate"));
+
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +197,8 @@ function UserManagement() {
       invalidate(CK.users, CK.activity);
       load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete user.");
+      toast.error(err instanceof Error ? err.message : tt("users.failedDelete"));
+
     }
   }
 
@@ -195,7 +208,7 @@ function UserManagement() {
         <div>
           <h2 className="text-base font-semibold flex items-center gap-2">
             <UsersIcon className="h-4 w-4 text-primary" />
-            User Management
+            {tt("users.management")}
           </h2>
           <p className="text-xs text-muted-foreground">
             {users.length} user{users.length === 1 ? "" : "s"} with access to the platform
@@ -203,8 +216,9 @@ function UserManagement() {
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <UserPlus className="h-4 w-4 mr-1" />
-          {showForm ? "Cancel" : "Add User"}
+          {showForm ? tt("common.cancel") : tt("users.addUser")}
         </Button>
+
       </div>
 
       {showForm && (
@@ -217,25 +231,25 @@ function UserManagement() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Username</Label>
+              <Label className="text-xs">{tt("login.username")}</Label>
               <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. salah"
+                placeholder={tt("users.usernamePh")}
                 required
               />
             </div>
             <div>
-              <Label className="text-xs">Email (optional)</Label>
+              <Label className="text-xs">{tt("auth.emailOpt")}</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
+                placeholder={tt("users.emailPh")}
               />
             </div>
             <div>
-              <Label className="text-xs">Password</Label>
+              <Label className="text-xs">{tt("login.password")}</Label>
               <Input
                 type="password"
                 value={password}
@@ -245,7 +259,7 @@ function UserManagement() {
               />
             </div>
             <div>
-              <Label className="text-xs">Confirm Password</Label>
+              <Label className="text-xs">{tt("profile.confirmPwd")}</Label>
               <Input
                 type="password"
                 value={confirm}
@@ -255,8 +269,9 @@ function UserManagement() {
               />
             </div>
             <div className="sm:col-span-2">
-              <Label className="text-xs mb-1.5 block">Role</Label>
+              <Label className="text-xs mb-1.5 block">{tt("users.role")}</Label>
               <div className="grid grid-cols-3 gap-2">
+
                 {(["Administrator", "Manager", "Staff"] as const).map((r) => (
                   <button
                     key={r}
@@ -269,14 +284,17 @@ function UserManagement() {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold">{r}</span>
+                      <span className="font-semibold">
+                        {r === "Administrator" ? tt("users.administrator") : r === "Manager" ? tt("users.manager") : tt("users.staff")}
+                      </span>
                       {role === r && <ShieldCheck className="h-3 w-3 text-primary" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      {r === "Administrator" && "Full access"}
-                      {r === "Manager" && "Clients, Reports, Margin, Swap, Audit"}
-                      {r === "Staff" && "Clients & Reports only"}
+                      {r === "Administrator" && tt("users.fullAccess")}
+                      {r === "Manager" && tt("users.managerAccess")}
+                      {r === "Staff" && tt("users.staffAccess")}
                     </span>
+
                   </button>
                 ))}
               </div>
@@ -289,12 +307,13 @@ function UserManagement() {
           )}
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" size="sm" onClick={resetForm}>
-              Cancel
+              {tt("common.cancel")}
             </Button>
             <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? "Creating…" : "Create User"}
+              {submitting ? tt("common.creating") : tt("users.createUser")}
             </Button>
           </div>
+
         </form>
       )}
 

@@ -24,6 +24,8 @@ import {
   listSwapMarginHistory,
 } from "@/lib/swap-clients.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
+import { useLang } from "@/lib/purity-i18n";
+
 
 /* ------------------------------ Types ------------------------------ */
 
@@ -55,16 +57,17 @@ type AuditEntry = {
 /* --------------------------- Friendly maps -------------------------- */
 
 const FIELD_LABELS: Record<string, string> = {
-  gold_kg: "Gold Balance",
-  usd_balance: "USD Balance",
-  annual_rate: "Long Swap Rate",
-  short_annual_rate: "Short Swap Rate",
-  margin_requirement_pct: "Margin Requirement",
-  position_type: "Position",
-  xauusd_price: "Gold Price",
-  code: "Client Code",
-  notes: "Client Name",
+  gold_kg: "audit.fieldGoldBalance",
+  usd_balance: "audit.fieldUsdBalance",
+  annual_rate: "audit.fieldLongSwap",
+  short_annual_rate: "audit.fieldShortSwap",
+  margin_requirement_pct: "audit.fieldMarginReq",
+  position_type: "audit.fieldPosition",
+  xauusd_price: "audit.fieldGoldPrice",
+  code: "audit.fieldClientCode",
+  notes: "audit.fieldClientName",
 };
+
 
 function fmtNum(n: number, d = 2) {
   return Number(n).toLocaleString(undefined, {
@@ -105,6 +108,9 @@ function statusLabel(s: string | null): string {
   return "Margin Needed";
 }
 
+
+
+
 /* ------------------------ Event type config ------------------------ */
 
 type EventConfig = {
@@ -115,19 +121,20 @@ type EventConfig = {
 };
 
 const EVENT_CONFIG: Record<string, EventConfig> = {
-  client_created: { title: "Client Created", icon: UserPlus, tone: "green", categories: ["clients"] },
-  client_updated: { title: "Client Updated", icon: Pencil, tone: "orange", categories: ["clients"] },
-  client_deleted: { title: "Client Deleted", icon: Trash2, tone: "red", categories: ["clients"] },
-  user_login: { title: "User Login", icon: LogIn, tone: "green", categories: ["users"] },
-  user_logout: { title: "User Logout", icon: LogOut, tone: "neutral", categories: ["users"] },
-  user_created: { title: "User Created", icon: UserPlus, tone: "green", categories: ["users"] },
-  user_deleted: { title: "User Deleted", icon: Trash2, tone: "red", categories: ["users"] },
-  report_generated: { title: "Report Generated", icon: FileText, tone: "green", categories: ["reports"] },
-  report_shared: { title: "Report Shared", icon: Share2, tone: "blue", categories: ["reports"] },
-  settings_updated: { title: "Settings Updated", icon: SettingsIcon, tone: "orange", categories: ["clients"] },
-  fees_computed_manual: { title: "Swap Fees Computed", icon: Calculator, tone: "blue", categories: ["swap"] },
-  xau_price_set: { title: "Gold Price Updated", icon: TrendingUp, tone: "blue", categories: ["margin"] },
+  client_created: { title: "audit.evClientCreated", icon: UserPlus, tone: "green", categories: ["clients"] },
+  client_updated: { title: "audit.evClientUpdated", icon: Pencil, tone: "orange", categories: ["clients"] },
+  client_deleted: { title: "audit.evClientDeleted", icon: Trash2, tone: "red", categories: ["clients"] },
+  user_login: { title: "audit.evUserLogin", icon: LogIn, tone: "green", categories: ["users"] },
+  user_logout: { title: "audit.evUserLogout", icon: LogOut, tone: "neutral", categories: ["users"] },
+  user_created: { title: "audit.evUserCreated", icon: UserPlus, tone: "green", categories: ["users"] },
+  user_deleted: { title: "audit.evUserDeleted", icon: Trash2, tone: "red", categories: ["users"] },
+  report_generated: { title: "audit.evReportGenerated", icon: FileText, tone: "green", categories: ["reports"] },
+  report_shared: { title: "audit.evReportShared", icon: Share2, tone: "blue", categories: ["reports"] },
+  settings_updated: { title: "audit.evSettingsUpdated", icon: SettingsIcon, tone: "orange", categories: ["clients"] },
+  fees_computed_manual: { title: "audit.evSwapComputed", icon: Calculator, tone: "blue", categories: ["swap"] },
+  xau_price_set: { title: "audit.evGoldPriceUpdated", icon: TrendingUp, tone: "blue", categories: ["margin"] },
 };
+
 
 function fallbackConfig(action: string): EventConfig {
   return {
@@ -160,21 +167,24 @@ const TONE_BG: Record<Tone, string> = {
 /* ============================ Component ============================ */
 
 const FILTERS: { key: "all" | Category; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "clients", label: "Clients" },
-  { key: "balances", label: "Balances" },
-  { key: "margin", label: "Margin" },
-  { key: "swap", label: "Swap" },
-  { key: "users", label: "Users" },
-  { key: "reports", label: "Reports" },
+
+  { key: "all", label: "audit.all" },
+  { key: "clients", label: "audit.clients" },
+  { key: "balances", label: "audit.balances" },
+  { key: "margin", label: "audit.margin" },
+  { key: "swap", label: "audit.swap" },
+  { key: "users", label: "audit.users" },
+  { key: "reports", label: "audit.reports" },
 ];
 
 export function AuditLogPanel() {
+  const { t: tt } = useLang();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [filter, setFilter] = useState<"all" | Category>("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<AuditEntry | null>(null);
+
 
   async function load(force = false) {
     setLoading(true);
@@ -219,14 +229,14 @@ export function AuditLogPanel() {
         const aUsd = Number(r.old_usd_balance ?? 0);
         const bUsd = Number(r.new_usd_balance ?? 0);
         if (aUsd !== bUsd) {
-          ch.push({ label: "USD Balance", oldText: fmtMoney(aUsd), newText: fmtMoney(bUsd) });
+          ch.push({ label: tt("audit.fieldUsdBalance"), oldText: fmtMoney(aUsd), newText: fmtMoney(bUsd) });
           cats.add("balances");
         }
         const aKg = Number(r.old_gold_kg ?? 0);
         const bKg = Number(r.new_gold_kg ?? 0);
         if (aKg !== bKg) {
           ch.push({
-            label: "Gold Balance",
+            label: tt("audit.fieldGoldBalance"),
             oldText: `${fmtNum(aKg * 1000, 0)} g`,
             newText: `${fmtNum(bKg * 1000, 0)} g`,
           });
@@ -236,7 +246,7 @@ export function AuditLogPanel() {
         const bPct = Number(r.new_margin_pct ?? 0);
         if (aPct !== bPct) {
           ch.push({
-            label: "Margin Requirement",
+            label: tt("audit.fieldMarginReq"),
             oldText: `${fmtNum(aPct)}%`,
             newText: `${fmtNum(bPct)}%`,
           });
@@ -246,7 +256,7 @@ export function AuditLogPanel() {
         const bXau = Number(r.new_xauusd_price ?? 0);
         if (aXau !== bXau && (aXau > 0 || bXau > 0)) {
           ch.push({
-            label: "Gold Price",
+            label: tt("audit.fieldGoldPrice"),
             oldText: aXau > 0 ? `${fmtMoney(aXau)} / oz` : "—",
             newText: bXau > 0 ? `${fmtMoney(bXau)} / oz` : "—",
           });
@@ -256,7 +266,7 @@ export function AuditLogPanel() {
         const bReq = Number(r.new_required_margin ?? 0);
         if (aReq !== bReq && (aReq > 0 || bReq > 0)) {
           ch.push({
-            label: "Required Margin",
+            label: tt("audit.requiredMargin"),
             oldText: fmtMoney(aReq),
             newText: fmtMoney(bReq),
           });
@@ -267,7 +277,7 @@ export function AuditLogPanel() {
           statusChanged && (r.new_status === "needed" || r.new_status === "critical");
         if (statusChanged) {
           ch.push({
-            label: "Margin Status",
+            label: tt("audit.marginStatusChanged"),
             oldText: statusLabel(r.old_status),
             newText: statusLabel(r.new_status),
             highlight: critical,
@@ -275,14 +285,17 @@ export function AuditLogPanel() {
           cats.add("margin");
         }
 
+
         if (ch.length === 0) continue;
 
         const c = byId.get(r.client_id);
         const title = statusChanged
-          ? "Margin Status Changed"
+          ? tt("audit.marginStatusChanged")
           : ch.length === 1
-            ? `${ch[0].label} Changed`
-            : "Client Updated";
+
+            ? ch[0].label
+            : tt("audit.evClientUpdated");
+
         const tone: Tone = critical ? "red" : statusChanged ? "orange" : "orange";
 
         // Track this client_id + timestamp bucket for dedupe vs activity log
@@ -331,37 +344,38 @@ export function AuditLogPanel() {
         if (r.action === "client_created" || r.action === "client_updated") {
           for (const [k, v] of Object.entries(det)) {
             if (k === "code") continue;
-            const label = FIELD_LABELS[k];
-            if (!label) continue;
-            extra.push({ label, value: fmtField(k, v) });
+            const labelKey = FIELD_LABELS[k];
+            if (!labelKey) continue;
+            extra.push({ label: tt(labelKey), value: fmtField(k, v) });
           }
         } else if (r.action === "settings_updated") {
           for (const [k, v] of Object.entries(det)) {
-            const label =
-              FIELD_LABELS[k] ??
-              k.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
+            const label = FIELD_LABELS[k]
+              ? tt(FIELD_LABELS[k])
+              : k.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
             extra.push({ label, value: typeof v === "object" ? JSON.stringify(v) : String(v) });
           }
         } else if (r.action === "fees_computed_manual") {
           const date = det.date as string | undefined;
           const count = det.count as number | undefined;
           const total = det.total as number | undefined;
-          if (date) extra.push({ label: "Date", value: date });
-          if (typeof count === "number") extra.push({ label: "Clients", value: String(count) });
+          if (date) extra.push({ label: tt("common.date"), value: date });
+          if (typeof count === "number") extra.push({ label: tt("audit.clients"), value: String(count) });
           if (typeof total === "number")
-            extra.push({ label: "Total Fees", value: fmtMoney(total) });
+            extra.push({ label: tt("audit.totalFees"), value: fmtMoney(total) });
         } else if (r.action === "report_generated" || r.action === "report_shared") {
           const t = det.type as string | undefined;
           const fmtType = det.format as string | undefined;
-          if (t) extra.push({ label: "Report Type", value: t.replace(/_/g, " ") });
-          if (fmtType) extra.push({ label: "Format", value: fmtType.toUpperCase() });
+          if (t) extra.push({ label: tt("audit.reportType"), value: t.replace(/_/g, " ") });
+          if (fmtType) extra.push({ label: tt("audit.format"), value: fmtType.toUpperCase() });
         }
 
         out.push({
           id: `a:${r.id}`,
           when: r.created_at,
           who: r.username || "system",
-          title: cfg.title,
+          title: tt(cfg.title),
+
           icon: cfg.icon,
           tone: cfg.tone,
           categories: cfg.categories,
@@ -400,10 +414,10 @@ export function AuditLogPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ScrollText className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">Audit Log</h2>
+          <h2 className="text-base font-semibold">{tt("audit.title")}</h2>
         </div>
         <Button size="sm" variant="outline" onClick={() => load(true)}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+          <RefreshCw className="h-4 w-4 mr-1" /> {tt("common.refresh")}
         </Button>
       </div>
 
@@ -411,7 +425,7 @@ export function AuditLogPanel() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by client code, name, or user…"
+          placeholder={tt("audit.searchPh")}
           className="h-9"
         />
         <div className="flex flex-wrap gap-1.5">
@@ -426,18 +440,19 @@ export function AuditLogPanel() {
                   : "border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
-              {f.label}
+              {tt(f.label)}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{tt("common.loading")}</p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {entries.length === 0 ? "No activity yet." : "No entries match your filters."}
+          {entries.length === 0 ? tt("audit.noActivity") : tt("audit.noMatch")}
         </p>
+
       ) : (
         <ul className="space-y-2">
           {filtered.map((e) => (
