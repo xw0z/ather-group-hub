@@ -114,6 +114,8 @@ export function SettingsPanel() {
       });
       invalidate(CK.settings, CK.activity, CK.clients);
       setSettings(r.settings);
+      // Apply language change immediately across the whole DESK shell.
+      setLang(r.settings.language);
       setInfo(
         applyChoice
           ? "Saved. Defaults applied to all existing clients."
@@ -162,6 +164,48 @@ export function SettingsPanel() {
         </p>
       )}
       {info && <p className="text-sm text-green-600">{info}</p>}
+
+      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Languages className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Language</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Controls the display language for every ATHER DESK module (Dashboard, Purity, Margin,
+          Swap, Discount/Premium, Reports, Audit, Users, Settings).
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {(["en", "ar", "fr"] as const).map((code) => {
+            const labels: Record<Lang, string> = { en: "English", ar: "العربية", fr: "Français" };
+            const active = settings.language === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                disabled={readOnly}
+                onClick={() => {
+                  patch("language", code);
+                  // Live-preview the change before saving for instant feedback.
+                  setLang(code);
+                }}
+                className={`rounded-md border p-3 text-sm transition-colors ${
+                  active
+                    ? "border-primary bg-primary/10 font-semibold"
+                    : "border-border/60 hover:border-border"
+                } ${readOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                {labels[code]}
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                  {code}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Save settings to persist the language for the whole platform.
+        </p>
+      </section>
 
       <Section title="Swap fees">
         <Field label="Default long / buy annual rate %">
