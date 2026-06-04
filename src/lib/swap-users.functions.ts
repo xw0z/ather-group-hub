@@ -56,7 +56,7 @@ export const bootstrapSwapAdmin = createServerFn({ method: "POST" })
     if ((count ?? 0) > 0) throw new Error("Swap is already initialized.");
 
     const username = data.username.toLowerCase();
-    const authEmail = data.email && data.email !== "" ? data.email : `${username}@swap.local`;
+    const authEmail = data.email && data.email !== "" ? data.email : `${username}@ather.group`;
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: authEmail,
@@ -110,7 +110,7 @@ export const createSwapUser = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) throw new Error("Username already taken.");
 
-    const authEmail = data.email && data.email !== "" ? data.email : `${username}@swap.local`;
+    const authEmail = data.email && data.email !== "" ? data.email : `${username}@ather.group`;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: authEmail,
       password: data.password,
