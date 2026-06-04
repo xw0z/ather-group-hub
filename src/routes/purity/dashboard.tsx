@@ -1425,6 +1425,8 @@ export function ClientBreakdown({
   clients: Client[];
   pieces: Piece[];
 }) {
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
   const rows = useMemo(() => {
     const map = new Map<
       string,
