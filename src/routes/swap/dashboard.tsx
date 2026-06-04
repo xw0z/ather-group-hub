@@ -1514,6 +1514,55 @@ function MarginTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBalance, setEditBalance] = useState("");
+  const [editGoldGrams, setEditGoldGrams] = useState("");
+  const [editXau, setEditXau] = useState("");
+  const [editMarginPct, setEditMarginPct] = useState("");
+  const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  function startEdit(c: SwapClient) {
+    setEditingId(c.id);
+    setEditBalance(String(c.usd_balance));
+    setEditGoldGrams(String((Number(c.gold_kg ?? 0)) * 1000));
+    setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
+    setEditMarginPct(String(c.margin_requirement_pct ?? 20));
+    setEditPositionType((c.position_type ?? "long") as "long" | "short");
+    setError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(c: SwapClient) {
+    setSavingId(c.id);
+    setError(null);
+    try {
+      await updateSwapClient({
+        data: {
+          id: c.id,
+          code: c.code,
+          usd_balance: parseFloat(editBalance) || 0,
+          gold_kg: (parseFloat(editGoldGrams) || 0) / 1000,
+          xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
+          margin_requirement_pct: parseFloat(editMarginPct) || 20,
+          annual_rate: Number(c.annual_rate),
+          short_annual_rate: Number(c.short_annual_rate ?? 2.5),
+          position_type: editPositionType,
+        },
+      });
+      invalidate(CK.todayFees, CK.margin, CK.activity, CK.clients);
+      const data = await listSwapClients();
+      setClients(data as SwapClient[]);
+      setEditingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setSavingId(null);
+    }
+  }
 
   async function shareMargin(c: SwapClient) {
     setSharingId(c.id);
@@ -1705,23 +1754,108 @@ function MarginTab({
                         </span>
                       ) : null}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => shareMargin(c)}
-                      disabled={sharingId === c.id}
-                      className="shrink-0"
-                    >
-                      <Share2 className="h-4 w-4 mr-1 text-primary" />
-                      {sharingId === c.id ? "Sharing…" : "Share"}
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          editingId === c.id ? cancelEdit() : startEdit(c)
+                        }
+                      >
+                        <Pencil className="h-4 w-4 mr-1 text-primary" />
+                        {editingId === c.id ? "Cancel" : "Edit"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => shareMargin(c)}
+                        disabled={sharingId === c.id}
+                      >
+                        <Share2 className="h-4 w-4 mr-1 text-primary" />
+                        {sharingId === c.id ? "Sharing…" : "Share"}
+                      </Button>
+                    </div>
                   </div>
-                  <MarginDetails
-                    goldKg={Number(c.gold_kg ?? 0)}
-                    xau={xauForCalc}
-                    marginPct={Number(c.margin_requirement_pct ?? 20)}
-                    margin={margin}
-                  />
+                  {editingId === c.id ? (
+                    <div className="mt-3 rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">USD balance</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editBalance}
+                            onChange={(e) => setEditBalance(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Gold (g)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editGoldGrams}
+                            onChange={(e) => setEditGoldGrams(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Margin %</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={editMarginPct}
+                            onChange={(e) => setEditMarginPct(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">XAUUSD override</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Use live price"
+                            value={editXau}
+                            onChange={(e) => setEditXau(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Position</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={editPositionType === "long" ? "default" : "outline"}
+                              onClick={() => setEditPositionType("long")}
+                            >
+                              Long
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={editPositionType === "short" ? "default" : "outline"}
+                              onClick={() => setEditPositionType("short")}
+                            >
+                              Short
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                          <X className="h-4 w-4 mr-1" />Cancel
+                        </Button>
+                        <Button size="sm" onClick={() => saveEdit(c)} disabled={savingId === c.id}>
+                          <Check className="h-4 w-4 mr-1" />
+                          {savingId === c.id ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <MarginDetails
+                      goldKg={Number(c.gold_kg ?? 0)}
+                      xau={xauForCalc}
+                      marginPct={Number(c.margin_requirement_pct ?? 20)}
+                      margin={margin}
+                    />
+                  )}
                 </li>
               );
             })}
