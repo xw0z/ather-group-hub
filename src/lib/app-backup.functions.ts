@@ -59,11 +59,17 @@ export const backupApp = createServerFn({ method: "POST" })
     if (!admin) throw new Error("Only administrators can create backups.");
     const tables = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
     const dump = await dumpTables(tables);
+    // Return as a JSON string to bypass serialization validation of dynamic table rows.
     return {
       app: data.app,
       generatedAt: new Date().toISOString(),
-      version: 1,
-      tables: dump as Record<string, Array<Record<string, unknown>>>,
+      json: JSON.stringify({
+        app: data.app,
+        generatedAt: new Date().toISOString(),
+        version: 1,
+        tables: dump,
+      }),
     };
   });
+
 
