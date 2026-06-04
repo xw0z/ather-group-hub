@@ -1590,7 +1590,6 @@ export function ClientBreakdown({
           canvas.toBlob((b) => resolve(b), "image/png"),
         );
         if (pngBlob && "clipboard" in navigator && "write" in navigator.clipboard) {
-          // @ts-expect-error ClipboardItem is widely supported in modern browsers
           await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
           alert(
             "Image copied to clipboard.\n\nWhatsApp Web will open — paste (Ctrl+V / Cmd+V) into the chat.",
