@@ -364,7 +364,7 @@ const en: Dict = {
   "users.security": "Security",
   "users.administrator": "Administrator",
   "users.manager": "Manager",
-  "users.staff": "Staff",
+  "users.staff": "User",
   "users.fullAccess": "Full access",
   "users.managerAccess": "Clients, Reports, Margin, Swap, Audit",
   "users.staffAccess": "Clients & Reports only",
