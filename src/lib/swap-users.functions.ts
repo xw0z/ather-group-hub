@@ -195,15 +195,17 @@ export const updateSwapUser = createServerFn({ method: "POST" })
         username: usernameRule.optional(),
         email: z.string().email().max(255).optional().or(z.literal("")),
         is_admin: z.boolean().optional(),
+        is_manager: z.boolean().optional(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
-    const patch: { username?: string; email?: string | null; is_admin?: boolean } = {};
+    const patch: { username?: string; email?: string | null; is_admin?: boolean; is_manager?: boolean } = {};
     if (data.username !== undefined) patch.username = data.username.toLowerCase();
     if (data.email !== undefined) patch.email = data.email === "" ? null : data.email;
     if (data.is_admin !== undefined) patch.is_admin = data.is_admin;
+    if (data.is_manager !== undefined) patch.is_manager = data.is_manager;
     if (Object.keys(patch).length > 0) {
       const { error } = await supabaseAdmin
         .from("swap_profiles")
