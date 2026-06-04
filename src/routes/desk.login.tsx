@@ -64,8 +64,9 @@ function DeskLoginPage() {
     e.preventDefault();
     setError(null);
     if (!username || !password) {
-      setError("Enter your username and password.");
+      setError(t("login.enterCreds"));
       return;
+
     }
     setLoading(true);
     try {
