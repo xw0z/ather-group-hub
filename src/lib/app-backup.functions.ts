@@ -82,12 +82,12 @@ async function dumpTables(tables: readonly string[]) {
 export const backupApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ app: z.enum(["purity", "swap"]) }).parse(d),
+    z.object({ app: z.enum(SCOPES) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can create backups.");
-    const tables = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
+    const tables = tablesFor(data.app);
     const dump = await dumpTables(tables);
     // Return as a JSON string to bypass serialization validation of dynamic table rows.
     return {
@@ -107,7 +107,7 @@ export const restoreApp = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        app: z.enum(["purity", "swap"]),
+        app: z.enum(SCOPES),
         payload: z.string().min(2).max(50_000_000),
       })
       .parse(d),
@@ -134,7 +134,7 @@ export const restoreApp = createServerFn({ method: "POST" })
       );
     }
 
-    const allowed = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
+    const allowed = tablesFor(data.app);
     const report: Record<string, { inserted: number; skipped?: string }> = {};
 
     for (const table of allowed) {
