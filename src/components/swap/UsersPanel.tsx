@@ -85,20 +85,23 @@ function roleOf(u: SwapUser): "Administrator" | "Staff" {
 }
 
 function RoleBadge({ role }: { role: "Administrator" | "Manager" | "Staff" }) {
+  const { t: tt } = useLang();
   const styles: Record<string, string> = {
     Administrator: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     Manager: "bg-blue-500/15 text-blue-400 border-blue-500/30",
     Staff: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
+  const label = role === "Administrator" ? tt("users.administrator") : role === "Manager" ? tt("users.manager") : tt("users.staff");
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-semibold ${styles[role]}`}
     >
       {role === "Administrator" && <ShieldCheck className="h-3 w-3" />}
-      {role}
+      {label}
     </span>
   );
 }
+
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
