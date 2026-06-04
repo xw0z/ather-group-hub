@@ -293,8 +293,9 @@ export function AuditLogPanel() {
           ? tt("audit.marginStatusChanged")
           : ch.length === 1
 
-            ? `${ch[0].label} Changed`
-            : "Client Updated";
+            ? ch[0].label
+            : tt("audit.evClientUpdated");
+
         const tone: Tone = critical ? "red" : statusChanged ? "orange" : "orange";
 
         // Track this client_id + timestamp bucket for dedupe vs activity log
