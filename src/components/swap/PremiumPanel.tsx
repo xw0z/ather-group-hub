@@ -431,10 +431,15 @@ function CompanyDetail({
   }
 
   const handleDeleteTx = async (id: string) => {
-    if (!confirm("Delete this transaction?")) return;
-    await deletePremiumTransaction({ data: { id } });
-    reload();
-    onChanged();
+    try {
+      await deletePremiumTransaction({ data: { id } });
+      toast.success("Transaction deleted");
+      reload();
+      onChanged();
+    } catch (err) {
+      console.error("deletePremiumTransaction failed", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete transaction");
+    }
   };
 
   return (
