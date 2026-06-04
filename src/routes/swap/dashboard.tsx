@@ -259,6 +259,17 @@ async function shareClientMarginReport(
       maximumFractionDigits: d,
     });
 
+  const esc = (s: string | null | undefined) =>
+    s == null
+      ? ""
+      : String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
+
   const action = tier === "safe"
     ? { label: "Extra Available", value: money(Math.max(0, diff)), color: "#22c55e" }
     : { label: "Amount To Add", value: money(Math.abs(diff)), color: "#ef4444" };
@@ -297,7 +308,7 @@ async function shareClientMarginReport(
     <div style="margin-top:22px;display:flex;justify-content:space-between;gap:16px">
       <div>
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Client Code</div>
-        <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${client.code}</div>
+        <div style="font-size:22px;font-weight:700;margin-top:2px;letter-spacing:-0.01em">${esc(client.code)}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">Snapshot</div>

@@ -46,10 +46,20 @@ async function getUsername(userId: string): Promise<string> {
 const SETTINGS_COLS =
   "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
 
+async function assertSwapUser(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("swap_profiles")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!data) throw new Error("Forbidden");
+}
+
 export const getSwapSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
+    await assertSwapUser(userId);
     const admin = await isAdmin(userId);
     const { data, error } = await supabaseAdmin
       .from("swap_settings")
@@ -63,6 +73,21 @@ export const getSwapSettings = createServerFn({ method: "GET" })
       s.xau_api_key = s.xau_api_key ? "••••••••" : null;
     }
     return { settings: s, isAdmin: admin };
+  });
+
+// Narrow, cross-module endpoint that returns only the platform language.
+// Used by purity-i18n to keep all desk modules in sync without exposing
+// swap-specific configuration.
+export const getPlatformLanguage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { data, error } = await supabaseAdmin
+      .from("swap_settings")
+      .select("language")
+      .eq("id", "global")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { language: (data?.language ?? "en") as "en" | "ar" | "fr" };
   });
 
 const patchSchema = z

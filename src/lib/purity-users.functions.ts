@@ -83,7 +83,16 @@ export const deletePurityUser = createServerFn({ method: "POST" })
 
 export const listPurityUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    // Require purity workspace membership — prevents cross-module enumeration
+    // of purity user emails/usernames by swap-only or non-purity accounts.
+    const { data: self } = await supabaseAdmin
+      .from("purity_profiles")
+      .select("id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (!self) throw new Error("Forbidden");
+
     const { data, error } = await supabaseAdmin
       .from("purity_profiles")
       .select("id, username, email, created_at")
