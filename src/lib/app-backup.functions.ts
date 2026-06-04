@@ -37,14 +37,14 @@ async function isAdmin(userId: string, app: "purity" | "swap"): Promise<boolean>
 }
 
 async function dumpTables(tables: readonly string[]) {
-  const out: Record<string, unknown[]> = {};
+  const out: Record<string, Array<Record<string, unknown>>> = {};
   for (const t of tables) {
-    const { data, error } = await supabaseAdmin
-      .from(t)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabaseAdmin.from(t as any) as any)
       .select("*")
       .limit(100000);
     if (error) throw new Error(`Failed to read ${t}: ${error.message}`);
-    out[t] = data ?? [];
+    out[t] = (data ?? []) as Array<Record<string, unknown>>;
   }
   return out;
 }
@@ -63,6 +63,7 @@ export const backupApp = createServerFn({ method: "POST" })
       app: data.app,
       generatedAt: new Date().toISOString(),
       version: 1,
-      tables: dump,
+      tables: dump as Record<string, Array<Record<string, unknown>>>,
     };
   });
+
