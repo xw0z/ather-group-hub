@@ -81,8 +81,10 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
 
 /* -------------------- USER MANAGEMENT -------------------- */
 
-function roleOf(u: SwapUser): "Administrator" | "Staff" {
-  return u.is_admin ? "Administrator" : "Staff";
+function roleOf(u: SwapUser): "Administrator" | "Manager" | "Staff" {
+  if (u.is_admin) return "Administrator";
+  if (u.is_manager) return "Manager";
+  return "Staff";
 }
 
 function RoleBadge({ role }: { role: "Administrator" | "Manager" | "Staff" }) {
