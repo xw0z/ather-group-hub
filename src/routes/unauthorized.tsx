@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/purity-i18n";
 
 export const Route = createFileRoute("/unauthorized")({
   head: () => ({
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/unauthorized")({
 
 function UnauthorizedPage() {
   const navigate = useNavigate();
+  const { t } = useLang();
   return (
     <main className="min-h-screen bg-background text-foreground grid place-items-center px-4">
       <div className="max-w-md w-full rounded-xl border border-border/60 bg-card p-6 text-center space-y-4">
@@ -21,21 +23,19 @@ function UnauthorizedPage() {
           <ShieldAlert className="h-6 w-6 text-destructive" />
         </div>
         <div className="space-y-1">
-          <h1 className="text-lg font-semibold">Unauthorized</h1>
-          <p className="text-sm text-muted-foreground">
-            You don't have permission to access this module. Contact your administrator
-            if you think this is a mistake.
-          </p>
+          <h1 className="text-lg font-semibold">{t("unauth.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("unauth.desc")}</p>
         </div>
         <div className="flex gap-2 justify-center">
           <Button variant="outline" size="sm" onClick={() => navigate({ to: "/swap/dashboard", search: { tab: "dashboard" } })}>
-            Back to dashboard
+            {t("unauth.back")}
           </Button>
           <Button size="sm" onClick={() => navigate({ to: "/" })}>
-            Home
+            {t("unauth.home")}
           </Button>
         </div>
       </div>
     </main>
   );
 }
+
