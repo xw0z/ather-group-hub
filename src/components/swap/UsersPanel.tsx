@@ -179,7 +179,8 @@ function UserManagement() {
       resetForm();
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user.");
+      setError(err instanceof Error ? err.message : tt("users.failedCreate"));
+
     } finally {
       setSubmitting(false);
     }
