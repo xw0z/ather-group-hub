@@ -17,15 +17,17 @@ import {
   setUserPermissions,
 } from "@/lib/permissions.functions";
 import { invalidate, CK } from "@/lib/swap-cache";
+import { useLang } from "@/lib/purity-i18n";
 
-const ACTION_LABELS: Record<Action, string> = {
-  view: "View",
-  create: "Create",
-  edit: "Edit",
-  delete: "Delete",
-  export: "Export",
-  share: "Share",
+const ACTION_LABEL_KEYS: Record<Action, string> = {
+  view: "users.permView",
+  create: "users.permCreate",
+  edit: "users.permEdit",
+  delete: "users.permDelete",
+  export: "common.share",
+  share: "users.permShare",
 };
+
 
 type Preset = "none" | "purity_only" | "swap_full" | "reports_viewer" | "admin";
 
