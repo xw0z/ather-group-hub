@@ -21,6 +21,7 @@ import {
   FileText,
   Settings as SettingsIcon,
   Menu,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ import { useMyPermissions } from "@/hooks/use-my-permissions";
 
 const TAB_VALUES = [
   "dashboard",
+  "purity",
   "clients",
   "swap-fees",
   "margin",
@@ -72,6 +74,7 @@ type Tab = (typeof TAB_VALUES)[number];
 // Map each tab to its canonical /desk/app/* URL.
 export const TAB_TO_DESK_PATH: Record<Tab, string> = {
   dashboard: "/desk/app/dashboard",
+  purity: "/desk/app/purity",
   clients: "/desk/app/swap",
   "swap-fees": "/desk/app/swap",
   margin: "/desk/app/margin",
