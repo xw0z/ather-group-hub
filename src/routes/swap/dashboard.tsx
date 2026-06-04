@@ -259,6 +259,17 @@ async function shareClientMarginReport(
       maximumFractionDigits: d,
     });
 
+  const esc = (s: string | null | undefined) =>
+    s == null
+      ? ""
+      : String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
+
   const action = tier === "safe"
     ? { label: "Extra Available", value: money(Math.max(0, diff)), color: "#22c55e" }
     : { label: "Amount To Add", value: money(Math.abs(diff)), color: "#ef4444" };
