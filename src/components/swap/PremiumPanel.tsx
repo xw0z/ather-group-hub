@@ -32,6 +32,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import {
   listPremiumCompanies,
   listCompanyTransactions,
   listAllTransactions,
@@ -121,10 +133,15 @@ export function PremiumPanel() {
   };
 
   const removeCompany = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}" and all its transactions?`)) return;
-    await deletePremiumCompany({ data: { id } });
-    if (view.kind !== "list") setView({ kind: "list" });
-    refresh();
+    try {
+      await deletePremiumCompany({ data: { id } });
+      toast.success(`Deleted "${name}"`);
+      if (view.kind !== "list") setView({ kind: "list" });
+      refresh();
+    } catch (err) {
+      console.error("deletePremiumCompany failed", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete company");
+    }
   };
 
   if (view.kind === "company") {
@@ -298,9 +315,27 @@ function CompanyCard({
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEditStart}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5 text-red-400" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7">
+                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete "{s.company.name}"?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the company and all its transactions.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </div>
@@ -414,10 +449,15 @@ function CompanyDetail({
   }
 
   const handleDeleteTx = async (id: string) => {
-    if (!confirm("Delete this transaction?")) return;
-    await deletePremiumTransaction({ data: { id } });
-    reload();
-    onChanged();
+    try {
+      await deletePremiumTransaction({ data: { id } });
+      toast.success("Transaction deleted");
+      reload();
+      onChanged();
+    } catch (err) {
+      console.error("deletePremiumTransaction failed", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete transaction");
+    }
   };
 
   return (
@@ -524,9 +564,25 @@ function TxRow({ t, onDelete }: { t: PremiumTx; onDelete: () => void }) {
           <p className="text-xs text-muted-foreground mt-1 truncate">{t.notes}</p>
         )}
       </div>
-      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onDelete}>
-        <Trash2 className="h-4 w-4 text-red-400" />
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-8 w-8">
+            <Trash2 className="h-4 w-4 text-red-400" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </li>
   );
 }
