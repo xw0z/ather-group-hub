@@ -57,6 +57,8 @@ import { PurityDashboard } from "@/routes/purity/dashboard";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
+import { useLang } from "@/lib/purity-i18n";
+
 
 const TAB_VALUES = [
   "dashboard",
