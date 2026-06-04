@@ -57,6 +57,7 @@ import {
   type PremiumKind,
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
+import { ShareCompanyDialog } from "./ShareCompanyDialog";
 
 const fmtG = (n: number) =>
   `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} g`;
@@ -303,7 +304,14 @@ function CompanyCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-primary shrink-0" />
-              <h3 className="font-semibold truncate">{s.company.name}</h3>
+              <button
+                type="button"
+                onClick={onOpen}
+                className="font-semibold truncate text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer"
+                title="Open company"
+              >
+                {s.company.name}
+              </button>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {s.tx_count} transaction{s.tx_count === 1 ? "" : "s"}
@@ -312,6 +320,7 @@ function CompanyCard({
         )}
         {!editing && (
           <div className="flex gap-1">
+            <ShareCompanyDialog summary={s} />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEditStart}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
