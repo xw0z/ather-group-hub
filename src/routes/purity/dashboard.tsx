@@ -876,7 +876,7 @@ function TripCard({
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden flex items-stretch">
       <Link
-        to="/purity/trips/$tripId"
+        to="/desk/app/purity/trips/$tripId"
         params={{ tripId: trip.id }}
         className="flex-1 min-w-0 flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
       >
