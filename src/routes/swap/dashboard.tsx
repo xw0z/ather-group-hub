@@ -627,6 +627,7 @@ export function SwapDashboard({
               <MarginTab livePrice={livePrice} showLiveCard={false} />
             </>
           )}
+          {effectiveTab === "purity" && <PurityDashboard inShell />}
           {effectiveTab === "clients" && <ClientsTab livePrice={livePrice} />}
           {effectiveTab === "swap-fees" && (
             <HomeTab
