@@ -9,7 +9,7 @@ export function RestoreButton({
   label = "Restore",
   className,
 }: {
-  app: "purity" | "swap";
+  app: "purity" | "swap" | "margin" | "premium";
   label?: string;
   className?: string;
 }) {

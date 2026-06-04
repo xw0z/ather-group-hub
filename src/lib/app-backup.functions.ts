@@ -26,7 +26,30 @@ const SWAP_TABLES = [
   "user_module_permissions",
 ] as const;
 
-async function canBackup(userId: string, _app: "purity" | "swap"): Promise<boolean> {
+const MARGIN_TABLES = ["swap_margin_history"] as const;
+
+const PREMIUM_TABLES = [
+  "swap_premium_companies",
+  "swap_premium_transactions",
+] as const;
+
+export const SCOPES = ["purity", "swap", "margin", "premium"] as const;
+export type BackupScope = (typeof SCOPES)[number];
+
+function tablesFor(scope: BackupScope): readonly string[] {
+  switch (scope) {
+    case "purity":
+      return PURITY_TABLES;
+    case "swap":
+      return SWAP_TABLES;
+    case "margin":
+      return MARGIN_TABLES;
+    case "premium":
+      return PREMIUM_TABLES;
+  }
+}
+
+async function canBackup(userId: string, _app: BackupScope): Promise<boolean> {
   // Platform admins and Managers (swap_profiles.is_manager) can back up/restore any app.
   const { data: swap } = await supabaseAdmin
     .from("swap_profiles")
@@ -59,12 +82,12 @@ async function dumpTables(tables: readonly string[]) {
 export const backupApp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ app: z.enum(["purity", "swap"]) }).parse(d),
+    z.object({ app: z.enum(SCOPES) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can create backups.");
-    const tables = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
+    const tables = tablesFor(data.app);
     const dump = await dumpTables(tables);
     // Return as a JSON string to bypass serialization validation of dynamic table rows.
     return {
@@ -84,7 +107,7 @@ export const restoreApp = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        app: z.enum(["purity", "swap"]),
+        app: z.enum(SCOPES),
         payload: z.string().min(2).max(50_000_000),
       })
       .parse(d),
@@ -111,7 +134,7 @@ export const restoreApp = createServerFn({ method: "POST" })
       );
     }
 
-    const allowed = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
+    const allowed = tablesFor(data.app);
     const report: Record<string, { inserted: number; skipped?: string }> = {};
 
     for (const table of allowed) {
