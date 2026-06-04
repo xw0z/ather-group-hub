@@ -504,6 +504,7 @@ export type Database = {
           email: string | null
           id: string
           is_admin: boolean
+          phone: string | null
           username: string
         }
         Insert: {
@@ -511,6 +512,7 @@ export type Database = {
           email?: string | null
           id: string
           is_admin?: boolean
+          phone?: string | null
           username: string
         }
         Update: {
@@ -518,6 +520,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_admin?: boolean
+          phone?: string | null
           username?: string
         }
         Relationships: []
