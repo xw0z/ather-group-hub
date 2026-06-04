@@ -76,11 +76,12 @@ function DeskLoginPage() {
       const me = await getCurrentSwapUser();
       if (!me.isSwapUser) {
         await supabase.auth.signOut();
-        throw new Error("This account is not authorized on ATHER DESK.");
+        throw new Error(t("auth.notAuthorized"));
       }
       navigate({ to: "/desk/app/dashboard", replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+      setError(err instanceof Error ? err.message : t("auth.signInFailed"));
+
     } finally {
       setLoading(false);
     }
