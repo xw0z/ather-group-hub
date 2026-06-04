@@ -379,201 +379,26 @@ const Footer = ({ qr, generatedAt }: { qr: string; generatedAt: string }) => (
   </div>
 );
 
-const SummaryCard = ({
-  ref,
-  summary,
-  qr,
-  generatedAt,
-}: {
-  ref: React.RefObject<HTMLDivElement | null>;
-  summary: CompanySummary;
-  qr: string;
-  generatedAt: string;
-}) => (
-  <div
-    ref={ref}
-    style={{
-      width: 1080,
-      padding: 56,
-      background: "#ffffff",
-      color: BRAND_INK,
-      fontFamily: baseFont,
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        paddingBottom: 24,
-        borderBottom: `2px solid ${BRAND_DARK}`,
-      }}
-    >
-      <Brand />
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 11, color: BRAND_MUTED, letterSpacing: 1 }}>
-          GENERATED
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>
-          {generatedAt}
-        </div>
-      </div>
-    </div>
-
-    <div style={{ marginTop: 28 }}>
-      <div
-        style={{
-          fontSize: 12,
-          color: BRAND_MUTED,
-          letterSpacing: 1.5,
-          textTransform: "uppercase",
-        }}
-      >
-        Company
-      </div>
-      <div style={{ fontSize: 34, fontWeight: 800, marginTop: 4, letterSpacing: -0.5 }}>
-        {summary.company.name}
-      </div>
-    </div>
-
-    {/* Available Gold highlight */}
-    <div
-      style={{
-        marginTop: 28,
-        borderRadius: 16,
-        padding: 32,
-        background: `linear-gradient(135deg, ${BRAND_DARK}, #1e2746)`,
-        color: "#fff",
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: 3,
-          color: BRAND_ACCENT,
-          fontWeight: 700,
-        }}
-      >
-        AVAILABLE GOLD
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: "rgba(255,255,255,0.6)",
-          marginTop: 2,
-          letterSpacing: 1,
-        }}
-      >
-        (without discount / premium)
-      </div>
-      <div
-        style={{
-          fontSize: 56,
-          fontWeight: 800,
-          marginTop: 10,
-          fontVariantNumeric: "tabular-nums",
-          letterSpacing: -1,
-        }}
-      >
-        {fmtG(summary.clean_remaining_grams)}
-      </div>
-    </div>
-
-    <div
-      style={{
-        marginTop: 24,
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 12,
-      }}
-    >
-      <StatBox
-        label="Total Gold Balance"
-        value={fmtG(summary.total_balance_grams)}
-        tone="accent"
-      />
-      <StatBox
-        label="Clean Gold Balance"
-        value={fmtG(summary.clean_remaining_grams)}
-        tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
-      />
-      <StatBox
-        label="Discount / Premium Gold"
-        value={fmtG(summary.dp_grams)}
-        tone="sky"
-      />
-      <StatBox
-        label="Total D/P Charges"
-        value={fmtUSD(summary.dp_charges_usd)}
-        tone="fuchsia"
-      />
-    </div>
-
-    <div
-      style={{
-        marginTop: 24,
-        padding: 18,
-        borderRadius: 12,
-        border: `1px solid ${BRAND_LINE}`,
-        display: "flex",
-        justifyContent: "space-between",
-        fontSize: 13,
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 10, color: BRAND_MUTED, letterSpacing: 1 }}>
-          TRANSACTIONS
-        </div>
-        <div style={{ fontWeight: 700, marginTop: 4 }}>{summary.tx_count}</div>
-      </div>
-    </div>
-
-    <Footer qr={qr} generatedAt={generatedAt} />
-  </div>
-);
-
-const StatementCard = ({
-  ref,
+function ReportBody({
   summary,
   txs,
   qr,
   generatedAt,
 }: {
-  ref: React.RefObject<HTMLDivElement | null>;
   summary: CompanySummary;
-  txs: PremiumTx[];
+  txs: PremiumTx[] | null;
   qr: string;
   generatedAt: string;
-}) => {
-  // Build chronological running balance
-  const sorted = [...txs].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-  let running = 0;
-  const rows = sorted.map((t) => {
-    const g = Number(t.grams) || 0;
-    if (t.kind === "add") running += g;
-    else if (t.kind === "remove") running -= g;
-    else if (t.kind === "adjust") running += g;
-    // discount/premium do not affect total gold balance
-    return { t, balance: running };
-  });
-
-  const first = sorted[0]?.created_at;
-  const last = sorted[sorted.length - 1]?.created_at;
+}) {
+  const dpTxs = (txs ?? [])
+    .filter((t) => t.kind === "discount" || t.kind === "premium")
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
 
   return (
-    <div
-      ref={ref}
-      style={{
-        width: 1080,
-        padding: 56,
-        background: "#ffffff",
-        color: BRAND_INK,
-        fontFamily: baseFont,
-      }}
-    >
+    <>
       <div
         style={{
           display: "flex",
@@ -594,7 +419,7 @@ const StatementCard = ({
         </div>
       </div>
 
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 28 }}>
         <div
           style={{
             fontSize: 12,
@@ -603,228 +428,278 @@ const StatementCard = ({
             textTransform: "uppercase",
           }}
         >
-          Statement · Company
+          Company
         </div>
-        <div style={{ fontSize: 30, fontWeight: 800, marginTop: 4 }}>
+        <div
+          style={{
+            fontSize: 34,
+            fontWeight: 800,
+            marginTop: 4,
+            letterSpacing: -0.5,
+          }}
+        >
           {summary.company.name}
         </div>
       </div>
 
+      {/* Total Gold (without D/P) highlight */}
       <div
         style={{
-          marginTop: 20,
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr 1fr",
-          gap: 10,
+          marginTop: 28,
+          borderRadius: 16,
+          padding: 32,
+          background: `linear-gradient(135deg, ${BRAND_DARK}, #1e2746)`,
+          color: "#fff",
+          textAlign: "center",
         }}
       >
-        <StatBox
-          label="Total Gold"
-          value={fmtG(summary.total_balance_grams)}
-          tone="accent"
-        />
-        <StatBox
-          label="Clean Gold"
-          value={fmtG(summary.clean_remaining_grams)}
-          tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
-        />
-        <StatBox label="D/P Gold" value={fmtG(summary.dp_grams)} tone="sky" />
-        <StatBox
-          label="D/P Charges"
-          value={fmtUSD(summary.dp_charges_usd)}
-          tone="fuchsia"
-        />
-      </div>
-
-      <div
-        style={{
-          marginTop: 16,
-          padding: 14,
-          borderRadius: 10,
-          background: "#fafbfc",
-          border: `1px solid ${BRAND_LINE}`,
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 12,
-        }}
-      >
-        <div>
-          <span style={{ color: BRAND_MUTED }}>Transactions: </span>
-          <strong>{txs.length}</strong>
-        </div>
-        <div>
-          <span style={{ color: BRAND_MUTED }}>First: </span>
-          <strong>{first ? fmtDateOnly(first) : "—"}</strong>
-        </div>
-        <div>
-          <span style={{ color: BRAND_MUTED }}>Last: </span>
-          <strong>{last ? fmtDateOnly(last) : "—"}</strong>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <table
+        <div
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
             fontSize: 12,
+            letterSpacing: 3,
+            color: BRAND_ACCENT,
+            fontWeight: 700,
           }}
         >
-          <thead>
-            <tr
-              style={{
-                background: BRAND_DARK,
-                color: "#fff",
-                textAlign: "left",
-              }}
-            >
-              <th style={{ padding: "10px 12px", fontSize: 10, letterSpacing: 1 }}>
-                DATE
-              </th>
-              <th style={{ padding: "10px 12px", fontSize: 10, letterSpacing: 1 }}>
-                TYPE
-              </th>
-              <th style={{ padding: "10px 12px", fontSize: 10, letterSpacing: 1 }}>
-                NOTES
-              </th>
-              <th
-                style={{
-                  padding: "10px 12px",
-                  fontSize: 10,
-                  letterSpacing: 1,
-                  textAlign: "right",
-                }}
-              >
-                WEIGHT (g)
-              </th>
-              <th
-                style={{
-                  padding: "10px 12px",
-                  fontSize: 10,
-                  letterSpacing: 1,
-                  textAlign: "right",
-                }}
-              >
-                D/P
-              </th>
-              <th
-                style={{
-                  padding: "10px 12px",
-                  fontSize: 10,
-                  letterSpacing: 1,
-                  textAlign: "right",
-                }}
-              >
-                BALANCE (g)
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ t, balance }, i) => (
+          TOTAL GOLD
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: "rgba(255,255,255,0.65)",
+            marginTop: 2,
+            letterSpacing: 1,
+          }}
+        >
+          (without discount / premium)
+        </div>
+        <div
+          style={{
+            fontSize: 56,
+            fontWeight: 800,
+            marginTop: 10,
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: -1,
+          }}
+        >
+          {fmtG(summary.clean_remaining_grams)}
+        </div>
+      </div>
+
+      {/* Discount / Premium transactions */}
+      <div style={{ marginTop: 32 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: BRAND_MUTED,
+            letterSpacing: 1.5,
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}
+        >
+          Discount / Premium Transactions
+        </div>
+
+        {dpTxs.length === 0 ? (
+          <div
+            style={{
+              padding: 18,
+              borderRadius: 10,
+              border: `1px dashed ${BRAND_LINE}`,
+              color: BRAND_MUTED,
+              textAlign: "center",
+              fontSize: 13,
+            }}
+          >
+            No discount or premium transactions recorded.
+          </div>
+        ) : (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: 13,
+            }}
+          >
+            <thead>
               <tr
-                key={t.id}
                 style={{
-                  background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
-                  borderBottom: `1px solid ${BRAND_LINE}`,
+                  background: BRAND_DARK,
+                  color: "#fff",
+                  textAlign: "left",
                 }}
               >
-                <td style={{ padding: "8px 12px", color: BRAND_MUTED }}>
-                  {fmtDate(t.created_at)}
-                </td>
-                <td
+                <th style={{ padding: "10px 12px", fontSize: 10, letterSpacing: 1 }}>
+                  DATE
+                </th>
+                <th style={{ padding: "10px 12px", fontSize: 10, letterSpacing: 1 }}>
+                  TYPE
+                </th>
+                <th
                   style={{
-                    padding: "8px 12px",
-                    fontWeight: 600,
-                    color:
-                      t.kind === "add"
-                        ? "#059669"
-                        : t.kind === "remove"
-                          ? "#dc2626"
-                          : t.kind === "discount"
-                            ? "#0284c7"
-                            : t.kind === "premium"
-                              ? "#c026d3"
-                              : "#b45309",
+                    padding: "10px 12px",
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    textAlign: "right",
                   }}
                 >
-                  {t.kind.toUpperCase()}
-                </td>
-                <td
+                  WEIGHT (g)
+                </th>
+                <th
                   style={{
-                    padding: "8px 12px",
-                    color: BRAND_INK,
-                    maxWidth: 280,
+                    padding: "10px 12px",
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    textAlign: "right",
                   }}
                 >
-                  {t.notes ?? "—"}
+                  PRICE ($/oz)
+                </th>
+                <th
+                  style={{
+                    padding: "10px 12px",
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    textAlign: "right",
+                  }}
+                >
+                  AMOUNT (USD)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {dpTxs.map((t, i) => (
+                <tr
+                  key={t.id}
+                  style={{
+                    background: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                    borderBottom: `1px solid ${BRAND_LINE}`,
+                  }}
+                >
+                  <td style={{ padding: "10px 12px", color: BRAND_MUTED }}>
+                    {fmtDate(t.created_at)}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      fontWeight: 600,
+                      color: t.kind === "discount" ? "#0284c7" : "#c026d3",
+                    }}
+                  >
+                    {t.kind === "discount" ? "DISCOUNT" : "PREMIUM"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      textAlign: "right",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {Number(t.grams).toFixed(3)}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      textAlign: "right",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {t.per_oz != null ? `$${Number(t.per_oz).toFixed(2)}` : "—"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      textAlign: "right",
+                      fontVariantNumeric: "tabular-nums",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t.amount_usd != null ? fmtUSD(Number(t.amount_usd)) : "—"}
+                  </td>
+                </tr>
+              ))}
+              <tr
+                style={{
+                  background: BRAND_DARK,
+                  color: "#fff",
+                  fontWeight: 700,
+                }}
+              >
+                <td colSpan={4} style={{ padding: "12px", letterSpacing: 1 }}>
+                  TOTAL DISCOUNT / PREMIUM (USD)
                 </td>
                 <td
                   style={{
-                    padding: "8px 12px",
+                    padding: "12px",
                     textAlign: "right",
                     fontVariantNumeric: "tabular-nums",
+                    fontSize: 15,
                   }}
                 >
-                  {Number(t.grams).toFixed(3)}
-                </td>
-                <td
-                  style={{
-                    padding: "8px 12px",
-                    textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {t.amount_usd != null ? fmtUSD(Number(t.amount_usd)) : "—"}
-                </td>
-                <td
-                  style={{
-                    padding: "8px 12px",
-                    textAlign: "right",
-                    fontWeight: 600,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {balance.toFixed(3)}
+                  {fmtUSD(summary.dp_charges_usd)}
                 </td>
               </tr>
-            ))}
-            <tr style={{ background: BRAND_DARK, color: "#fff", fontWeight: 700 }}>
-              <td colSpan={3} style={{ padding: "12px" }}>
-                TOTALS
-              </td>
-              <td
-                style={{
-                  padding: "12px",
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {summary.total_balance_grams.toFixed(3)}
-              </td>
-              <td
-                style={{
-                  padding: "12px",
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {fmtUSD(summary.dp_charges_usd)}
-              </td>
-              <td
-                style={{
-                  padding: "12px",
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {summary.clean_remaining_grams.toFixed(3)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        )}
       </div>
 
       <Footer qr={qr} generatedAt={generatedAt} />
-    </div>
+    </>
   );
-};
+}
+
+const SummaryCard = ({
+  ref,
+  summary,
+  qr,
+  generatedAt,
+  txs,
+}: {
+  ref: React.RefObject<HTMLDivElement | null>;
+  summary: CompanySummary;
+  qr: string;
+  generatedAt: string;
+  txs: PremiumTx[] | null;
+}) => (
+  <div
+    ref={ref}
+    style={{
+      width: 1080,
+      padding: 56,
+      background: "#ffffff",
+      color: BRAND_INK,
+      fontFamily: baseFont,
+    }}
+  >
+    <ReportBody summary={summary} txs={txs} qr={qr} generatedAt={generatedAt} />
+  </div>
+);
+
+const StatementCard = ({
+  ref,
+  summary,
+  txs,
+  qr,
+  generatedAt,
+}: {
+  ref: React.RefObject<HTMLDivElement | null>;
+  summary: CompanySummary;
+  txs: PremiumTx[];
+  qr: string;
+  generatedAt: string;
+}) => (
+  <div
+    ref={ref}
+    style={{
+      width: 1080,
+      padding: 56,
+      background: "#ffffff",
+      color: BRAND_INK,
+      fontFamily: baseFont,
+    }}
+  >
+    <ReportBody summary={summary} txs={txs} qr={qr} generatedAt={generatedAt} />
+  </div>
+);
+
