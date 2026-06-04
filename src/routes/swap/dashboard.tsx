@@ -626,10 +626,18 @@ export function SwapDashboard({
             <Button variant="ghost" size="icon" onClick={() => setNavOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
-            <p className="text-sm font-semibold truncate">{currentLabel}</p>
-            <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
+            <div className="flex items-center gap-1">
+              {isAdmin && (
+                <BackupButton
+                  app={effectiveTab === "purity" ? "purity" : "swap"}
+                  label=""
+                />
+              )}
+              <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </header>
 
