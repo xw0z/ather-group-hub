@@ -304,12 +304,13 @@ function UserManagement() {
           )}
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" size="sm" onClick={resetForm}>
-              Cancel
+              {tt("common.cancel")}
             </Button>
             <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? "Creating…" : "Create User"}
+              {submitting ? tt("common.creating") : tt("users.createUser")}
             </Button>
           </div>
+
         </form>
       )}
 
