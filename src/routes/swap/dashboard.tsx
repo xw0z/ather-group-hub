@@ -677,6 +677,7 @@ function NavBtn({
   onClick: () => void;
 }) {
   const Icon = item.icon;
+  const { t } = useLang();
   return (
     <button
       onClick={onClick}
@@ -687,10 +688,11 @@ function NavBtn({
       }`}
     >
       <Icon className="h-4 w-4 mr-2.5" />
-      {item.label}
+      {t(item.label)}
     </button>
   );
 }
+
 
 function ReportsTab() {
   return <ReportsCenter />;
