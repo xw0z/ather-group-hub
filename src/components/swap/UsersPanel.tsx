@@ -39,23 +39,24 @@ type Section = "users" | "account" | "security";
 
 export function UsersPanel({ currentUsername }: { currentUsername: string }) {
   const [section, setSection] = useState<Section>("users");
+  const { t: tt } = useLang();
 
   const tabs: { key: Section; label: string; icon: typeof UsersIcon }[] = [
-    { key: "users", label: "User Management", icon: UsersIcon },
-    { key: "account", label: "My Account", icon: UserCircle },
-    { key: "security", label: "Security", icon: Shield },
+    { key: "users", label: tt("users.management"), icon: UsersIcon },
+    { key: "account", label: tt("users.myAccount"), icon: UserCircle },
+    { key: "security", label: tt("users.security"), icon: Shield },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5 p-1 rounded-lg bg-muted/40 border border-border/60 w-fit">
-        {tabs.map((t) => {
-          const Icon = t.icon;
-          const active = section === t.key;
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = section === tab.key;
           return (
             <button
-              key={t.key}
-              onClick={() => setSection(t.key)}
+              key={tab.key}
+              onClick={() => setSection(tab.key)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 active
                   ? "bg-background text-foreground shadow-sm"
@@ -63,7 +64,7 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {t.label}
+              {tab.label}
             </button>
           );
         })}
@@ -75,6 +76,7 @@ export function UsersPanel({ currentUsername }: { currentUsername: string }) {
     </div>
   );
 }
+
 
 /* -------------------- USER MANAGEMENT -------------------- */
 
