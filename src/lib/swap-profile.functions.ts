@@ -121,11 +121,3 @@ export const updateSwapOwnProfile = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const signOutAllSwapSessions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { error } = await supabaseAdmin.auth.admin.signOut(context.userId, "global");
-    if (error) throw new Error(error.message);
-    await logActivity(context.userId, "signed_out_all", null);
-    return { ok: true };
-  });
