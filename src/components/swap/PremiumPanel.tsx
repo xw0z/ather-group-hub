@@ -479,26 +479,22 @@ function CompanyDetail({
           <h2 className="text-xl font-bold">{summary.company.name}</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-          <Stat label="Total Balance" value={fmtG(summary.total_balance_grams)} accent />
+          <Stat label="Total Gold Balance" value={fmtG(summary.total_balance_grams)} accent />
           <Stat
-            label="Clean Remaining"
+            label="Clean Gold Balance"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
           />
-          <Stat label="Discounted" value={fmtG(summary.discounted_grams)} tone="sky" />
-          <Stat label="Premium" value={fmtG(summary.premium_grams)} tone="fuchsia" />
-          <Stat label="Total Discount" value={fmtUSD(summary.total_discount_usd)} tone="sky" />
-          <Stat label="Total Premium" value={fmtUSD(summary.total_premium_usd)} tone="fuchsia" />
-          <div className="col-span-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Net Result
-            </p>
-            <p
-              className={`text-2xl font-bold tabular-nums mt-0.5 ${summary.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-            >
-              {fmtUSD(summary.net_usd)}
-            </p>
-          </div>
+          <Stat
+            label="Discount / Premium Gold"
+            value={fmtG(summary.dp_grams)}
+            tone="sky"
+          />
+          <Stat
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(summary.dp_charges_usd)}
+            tone="fuchsia"
+          />
         </div>
       </div>
 
