@@ -234,6 +234,7 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canBackup, setCanBackup] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
 
   type FullTab = "trips" | "clients" | "search" | "users" | "logs" | "profile";
