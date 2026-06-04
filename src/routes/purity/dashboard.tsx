@@ -403,6 +403,13 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
   // In-shell mode: render only the tab strip + content; the ATHER DESK shell
   // provides the header, sidebar, profile menu, sign-out, theme and footer.
   if (inShell) {
+    if (tripId) {
+      return (
+        <div dir={dir}>
+          <TripDetailInline tripId={tripId} />
+        </div>
+      );
+    }
     return (
       <div dir={dir} className="space-y-4">
         {TabStrip}
