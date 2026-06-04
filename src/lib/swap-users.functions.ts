@@ -125,6 +125,7 @@ export const createSwapUser = createServerFn({ method: "POST" })
         password: z.string().min(6).max(128),
         email: z.string().email().max(255).optional().or(z.literal("")),
         is_admin: z.boolean().optional(),
+        is_manager: z.boolean().optional(),
       })
       .parse(d),
   )
