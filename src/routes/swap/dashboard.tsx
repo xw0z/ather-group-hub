@@ -418,6 +418,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
   { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
   { key: "settings", label: "nav.settings", icon: SettingsIcon, module: "settings" },
+  { key: "profile", label: "Profile", icon: UserCircle },
 ];
 
 
