@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/purity-i18n";
 import {
   bootstrapSwapAdmin,
   getCurrentSwapUser,
   resolveSwapUsernameToEmail,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
+
 
 export const Route = createFileRoute("/desk/login")({
   head: () => ({
