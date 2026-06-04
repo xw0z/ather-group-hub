@@ -22,9 +22,6 @@ async function assertSwapAdmin(userId: string) {
   if (!data?.is_admin) throw new Error("Only a Swap admin can manage users.");
 }
 
-// Resolve a swap username to its auth email so users can log in by username.
-export const resolveSwapUsernameToEmail = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ username: z.string().trim().min(1).max(64) }).parse(d))
 // Server-side username sign-in: looks up the email internally and verifies
 // the password against Supabase Auth, returning only session tokens.
 // The email is never returned to the caller.
