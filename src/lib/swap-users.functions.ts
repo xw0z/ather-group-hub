@@ -174,7 +174,8 @@ export const deleteSwapUser = createServerFn({ method: "POST" })
 
 export const listSwapUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_profiles")
       .select("id, username, email, is_admin, created_at")
