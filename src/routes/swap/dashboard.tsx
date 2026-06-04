@@ -554,10 +554,10 @@ export function SwapDashboard({
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight truncate">
-                Ather Margin
+                ATHER
               </p>
               <p className="text-[11px] text-muted-foreground leading-tight">
-                &amp; Swap
+                Desk
               </p>
             </div>
           </div>
