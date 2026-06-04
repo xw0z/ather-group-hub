@@ -62,7 +62,7 @@ export const backupApp = createServerFn({ method: "POST" })
     z.object({ app: z.enum(["purity", "swap"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const admin = await isAdmin(context.userId, data.app);
+    const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can create backups.");
     const tables = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
     const dump = await dumpTables(tables);
@@ -90,7 +90,7 @@ export const restoreApp = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const admin = await isAdmin(context.userId, data.app);
+    const admin = await canBackup(context.userId, data.app);
     if (!admin) throw new Error("Only administrators can restore backups.");
 
     let parsed: {
