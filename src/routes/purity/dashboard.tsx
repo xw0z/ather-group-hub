@@ -1551,20 +1551,10 @@ export function ClientBreakdown({
     try {
       const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
       const data = buildReportData(r);
-      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
-      const TARGET_W = 3500;
-      const ratio = TARGET_W / canvas.width;
-      const out = document.createElement("canvas");
-      out.width = TARGET_W;
-      out.height = Math.round(canvas.height * ratio);
-      const octx = out.getContext("2d");
-      if (octx) {
-        octx.imageSmoothingEnabled = true;
-        octx.imageSmoothingQuality = "high";
-        octx.drawImage(canvas, 0, 0, out.width, out.height);
-      }
+      // High-quality render: scale 4 over the 2480px base = ~9920px wide canvas.
+      const canvas = await renderPurityReportToCanvas(data, { scale: 4 });
       const blob: Blob | null = await new Promise((resolve) =>
-        (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
+        canvas.toBlob((b) => resolve(b), "image/png"),
       );
       if (!blob) throw new Error("Could not produce image.");
       const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
