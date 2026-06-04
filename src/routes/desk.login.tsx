@@ -106,7 +106,8 @@ function DeskLoginPage() {
       if (signErr) throw signErr;
       navigate({ to: "/desk/app/dashboard", replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed.");
+      setError(err instanceof Error ? err.message : t("auth.setupFailed"));
+
     } finally {
       setLoading(false);
     }
