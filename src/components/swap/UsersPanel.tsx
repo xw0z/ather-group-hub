@@ -457,6 +457,7 @@ function MyAccount({ username }: { username: string }) {
   const [me, setMe] = useState<{
     email: string | null;
     isAdmin: boolean;
+    isManager: boolean;
     lastSignIn: string | null;
     createdAt: string | null;
   } | null>(null);
@@ -472,12 +473,14 @@ function MyAccount({ username }: { username: string }) {
       if (!u) return;
       const { data: profile } = await supabase
         .from("swap_profiles")
-        .select("is_admin")
+        .select("is_admin, is_manager")
         .eq("id", u.id)
         .maybeSingle();
+      const p = profile as { is_admin?: boolean; is_manager?: boolean } | null;
       setMe({
         email: u.email ?? null,
-        isAdmin: Boolean(profile?.is_admin),
+        isAdmin: Boolean(p?.is_admin),
+        isManager: Boolean(p?.is_manager),
         lastSignIn: u.last_sign_in_at ?? null,
         createdAt: u.created_at ?? null,
       });
