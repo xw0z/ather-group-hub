@@ -511,6 +511,7 @@ export function SwapDashboard({
           return;
         }
         setIsAdmin(me.isAdmin);
+        setCanBackup(Boolean(me.canBackup));
         setUsername(me.username ?? "");
         setReady(true);
       } catch {
