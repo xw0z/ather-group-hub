@@ -315,9 +315,27 @@ function CompanyCard({
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEditStart}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5 text-red-400" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7">
+                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete "{s.company.name}"?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the company and all its transactions.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </div>
