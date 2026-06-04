@@ -51,6 +51,7 @@ export function SettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const { setLang } = useLang();
 
   async function load() {
     setLoading(true);
