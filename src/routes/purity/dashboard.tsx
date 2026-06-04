@@ -1611,33 +1611,49 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    const [{ renderPurityReportToCanvas }, { jsPDF }] = await Promise.all([
-      import("@/components/PurityReport"),
-      import("jspdf"),
-    ]);
-    const data = buildReportData(r);
-    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const doc = new jsPDF({
-      unit: "mm",
-      format: "a4",
-      orientation: "portrait",
-      compress: true,
-    });
-    const W = 210;
-    const H = 297;
-    const ratio = canvas.height / canvas.width;
-    const imgH = W * ratio;
-    if (imgH <= H) {
-      doc.addImage(imgData, "JPEG", 0, (H - imgH) / 2, W, imgH, undefined, "FAST");
-    } else {
-      // scale down to fit page height
-      const imgW = H / ratio;
-      doc.addImage(imgData, "JPEG", (W - imgW) / 2, 0, imgW, H, undefined, "FAST");
+    setBusyKey(`pdf:${r.name}`);
+    try {
+      const [{ renderPurityReportToCanvas }, jspdfMod] = await Promise.all([
+        import("@/components/PurityReport"),
+        import("jspdf"),
+      ]);
+      const JsPDFCtor =
+        (jspdfMod as { jsPDF?: typeof import("jspdf").jsPDF }).jsPDF ??
+        (jspdfMod as { default?: typeof import("jspdf").jsPDF }).default;
+      if (!JsPDFCtor) throw new Error("PDF library failed to load.");
+      const data = buildReportData(r);
+      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const doc = new JsPDFCtor({
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+        compress: true,
+      });
+      const W = 210;
+      const H = 297;
+      const ratio = canvas.height / canvas.width;
+      const imgH = W * ratio;
+      if (imgH <= H) {
+        doc.addImage(imgData, "JPEG", 0, (H - imgH) / 2, W, imgH, undefined, "FAST");
+      } else {
+        const imgW = H / ratio;
+        doc.addImage(imgData, "JPEG", (W - imgW) / 2, 0, imgW, H, undefined, "FAST");
+      }
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error("[purity] shareClientPDF failed:", err);
+      alert(
+        `Could not generate the PDF.\n\n${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    } finally {
+      setBusyKey(null);
     }
-    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
-    doc.save(fileName);
   }
+
 
 
   return (
