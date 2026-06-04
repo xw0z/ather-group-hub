@@ -1545,52 +1545,64 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
-    const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
-    const data = buildReportData(r);
-    const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
-    // We rendered at intrinsic 2480px wide × scale 2 ≈ 4960px → resample to ~3500px wide PNG
-    const TARGET_W = 3500;
-    const ratio = TARGET_W / canvas.width;
-    const out = document.createElement("canvas");
-    out.width = TARGET_W;
-    out.height = Math.round(canvas.height * ratio);
-    const octx = out.getContext("2d");
-    if (octx) {
-      octx.imageSmoothingEnabled = true;
-      octx.imageSmoothingQuality = "high";
-      octx.drawImage(canvas, 0, 0, out.width, out.height);
-    }
-    const blob: Blob | null = await new Promise((resolve) =>
-      (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
-    );
-    if (!blob) return;
-    const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
-    const file = new File([blob], fileName, { type: "image/png" });
-    const nav = navigator as Navigator & {
-      canShare?: (d: { files?: File[] }) => boolean;
-      share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
-    };
-    if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-      try {
-        await nav.share({
-          files: [file],
-          title: `Gold Purity Report — Client ${data.clientCode}`,
-          text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
-        });
-        return;
-      } catch {
-        /* fall through to download */
+    setBusyKey(`img:${r.name}`);
+    try {
+      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+      const data = buildReportData(r);
+      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+      const TARGET_W = 3500;
+      const ratio = TARGET_W / canvas.width;
+      const out = document.createElement("canvas");
+      out.width = TARGET_W;
+      out.height = Math.round(canvas.height * ratio);
+      const octx = out.getContext("2d");
+      if (octx) {
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = "high";
+        octx.drawImage(canvas, 0, 0, out.width, out.height);
       }
+      const blob: Blob | null = await new Promise((resolve) =>
+        (octx ? out : canvas).toBlob((b) => resolve(b), "image/png"),
+      );
+      if (!blob) throw new Error("Could not produce image.");
+      const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: { files?: File[] }) => boolean;
+        share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+        try {
+          await nav.share({
+            files: [file],
+            title: `Gold Purity Report — Client ${data.clientCode}`,
+            text: `Client ${data.clientCode} · ${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`,
+          });
+          return;
+        } catch {
+          /* fall through to download */
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[purity] shareClientImage failed:", err);
+      alert(
+        `Could not generate the image report.\n\n${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    } finally {
+      setBusyKey(null);
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
+
 
   async function shareClientPDF(r: {
     name: string;
