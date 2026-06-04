@@ -78,4 +78,65 @@ export const backupApp = createServerFn({ method: "POST" })
     };
   });
 
+export const restoreApp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        app: z.enum(["purity", "swap"]),
+        payload: z.string().min(2).max(50_000_000),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await isAdmin(context.userId, data.app);
+    if (!admin) throw new Error("Only administrators can restore backups.");
+
+    let parsed: {
+      app?: string;
+      tables?: Record<string, Array<Record<string, unknown>>>;
+    };
+    try {
+      parsed = JSON.parse(data.payload);
+    } catch {
+      throw new Error("Invalid backup file: not valid JSON.");
+    }
+    if (!parsed?.tables || typeof parsed.tables !== "object") {
+      throw new Error("Invalid backup file: missing 'tables'.");
+    }
+    if (parsed.app && parsed.app !== data.app) {
+      throw new Error(
+        `Backup is for '${parsed.app}', but you are restoring into '${data.app}'.`,
+      );
+    }
+
+    const allowed = data.app === "purity" ? PURITY_TABLES : SWAP_TABLES;
+    const report: Record<string, { inserted: number; skipped?: string }> = {};
+
+    for (const table of allowed) {
+      const rows = parsed.tables[table];
+      if (!Array.isArray(rows) || rows.length === 0) {
+        report[table] = { inserted: 0, skipped: "no rows" };
+        continue;
+      }
+      const chunkSize = 500;
+      let inserted = 0;
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabaseAdmin.from(table as any) as any).upsert(
+          chunk,
+          { onConflict: "id" },
+        );
+        if (error)
+          throw new Error(`Failed to restore ${table}: ${error.message}`);
+        inserted += chunk.length;
+      }
+      report[table] = { inserted };
+    }
+
+    return { app: data.app, restoredAt: new Date().toISOString(), report };
+  });
+
+
 

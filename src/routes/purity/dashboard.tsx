@@ -42,6 +42,7 @@ import { logActivity, loadActivity, type ActivityRow } from "@/lib/purity-activi
 import { useLang, type Lang } from "@/lib/purity-i18n";
 import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
 import { BackupButton } from "@/components/BackupButton";
+import { RestoreButton } from "@/components/RestoreButton";
 
 // Legacy /purity/dashboard URL — keep redirecting users into the unified
 // ATHER DESK shell at /desk/app/purity. The actual Purity module UI is
@@ -417,7 +418,12 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
       <div dir={dir} className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex-1 min-w-0">{TabStrip}</div>
-          {isAdmin && <BackupButton app="purity" />}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <BackupButton app="purity" />
+              <RestoreButton app="purity" />
+            </div>
+          )}
         </div>
         <div className="space-y-5">{Content}</div>
       </div>
@@ -441,6 +447,7 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && <BackupButton app="purity" />}
+            {isAdmin && <RestoreButton app="purity" />}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-1" /> {t("app.signOut")}
             </Button>
