@@ -422,7 +422,7 @@ export function PurityDashboard({ inShell = false, tripId }: { inShell?: boolean
       <div dir={dir} className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex-1 min-w-0">{TabStrip}</div>
-          {isAdmin && (
+          {canBackup && (
             <div className="flex items-center gap-2">
               <BackupButton app="purity" />
               <RestoreButton app="purity" />
