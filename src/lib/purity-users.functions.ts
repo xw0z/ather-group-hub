@@ -102,11 +102,20 @@ export const getCurrentPurityUser = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     const username = data?.username ?? null;
+    const isAdmin = username?.toLowerCase() === ADMIN_USERNAME;
+    // Swap admins/managers can also backup/restore Purity.
+    const { data: swap } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("is_admin, is_manager")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const s = swap as { is_admin?: boolean; is_manager?: boolean } | null;
     return {
       id: context.userId,
       username,
       email: data?.email ?? null,
-      isAdmin: username?.toLowerCase() === ADMIN_USERNAME,
+      isAdmin,
+      canBackup: Boolean(isAdmin || s?.is_admin || s?.is_manager),
     };
   });
 
