@@ -579,8 +579,12 @@ export function SwapDashboard({
           ))}
         </nav>
         <div className="p-3 border-t border-border/60 space-y-2">
-          {canBackup && <BackupButton app="swap" className="w-full justify-start" />}
-          {canBackup && <RestoreButton app="swap" className="w-full justify-start" />}
+          {canBackup && (
+            <div className="flex items-center gap-2">
+              <BackupButton app="swap" />
+              <RestoreButton app="swap" />
+            </div>
+          )}
           <p className="text-[11px] text-muted-foreground truncate">
             {username}
             {isAdmin && " · admin"}
