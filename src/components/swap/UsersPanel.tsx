@@ -171,13 +171,13 @@ function UserManagement() {
 
     setSubmitting(true);
     try {
-      // Schema stores admin as a boolean. Manager maps to non-admin (Staff-tier).
       await createSwapUser({
         data: {
           username,
           password,
           email,
           is_admin: role === "Administrator",
+          is_manager: role === "Manager",
         },
       });
       toast.success(`User ${username} created`);
