@@ -53,6 +53,7 @@ import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
+import { PurityDashboard } from "@/routes/purity/dashboard";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
