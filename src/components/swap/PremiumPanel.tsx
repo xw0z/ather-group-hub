@@ -82,10 +82,10 @@ const KIND_META: Record<
   { label: string; color: string; icon: typeof Plus }
 > = {
   add: { label: "Add Gold Balance", color: "text-emerald-400", icon: ArrowUpRight },
-  remove: { label: "Remove Gold Balance", color: "text-red-400", icon: ArrowDownRight },
+  remove: { label: "Remove Clean Gold", color: "text-red-400", icon: ArrowDownRight },
   adjust: { label: "Balance Adjustment", color: "text-amber-400", icon: Pencil },
-  discount: { label: "Discount Charge", color: "text-sky-400", icon: ArrowDownRight },
-  premium: { label: "Premium Charge", color: "text-fuchsia-400", icon: ArrowUpRight },
+  discount: { label: "Apply Discount", color: "text-sky-400", icon: ArrowDownRight },
+  premium: { label: "Apply Premium", color: "text-fuchsia-400", icon: ArrowUpRight },
 };
 
 type View =
@@ -340,28 +340,21 @@ function CompanyCard({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Stat label="Total Balance" value={fmtG(s.total_balance_grams)} accent />
+      <div className="mt-4 space-y-3">
+        <Stat label="Total Gold Balance" value={fmtG(s.total_balance_grams)} accent />
         <Stat
-          label="Clean Remaining"
+          label="Clean Gold Balance"
           value={fmtG(s.clean_remaining_grams)}
           tone={s.clean_remaining_grams < 0 ? "danger" : "ok"}
         />
-        <Stat label="Discounted" value={fmtG(s.discounted_grams)} tone="sky" />
-        <Stat label="Premium" value={fmtG(s.premium_grams)} tone="fuchsia" />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 pt-3 border-t border-border/60">
-        <Stat label="Total Discount" value={fmtUSD(s.total_discount_usd)} tone="sky" small />
-        <Stat label="Total Premium" value={fmtUSD(s.total_premium_usd)} tone="fuchsia" small />
-      </div>
-      <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/60">
-        <span className="text-xs text-muted-foreground">Net Result</span>
-        <span
-          className={`text-base font-bold tabular-nums ${s.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-        >
-          {fmtUSD(s.net_usd)}
-        </span>
+        <Stat label="Discount / Premium Gold" value={fmtG(s.dp_grams)} tone="sky" />
+        <div className="pt-3 border-t border-border/60">
+          <Stat
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(s.dp_charges_usd)}
+            tone="fuchsia"
+          />
+        </div>
       </div>
 
       <Button className="w-full mt-4" variant="secondary" onClick={onOpen}>
@@ -486,26 +479,22 @@ function CompanyDetail({
           <h2 className="text-xl font-bold">{summary.company.name}</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-          <Stat label="Total Balance" value={fmtG(summary.total_balance_grams)} accent />
+          <Stat label="Total Gold Balance" value={fmtG(summary.total_balance_grams)} accent />
           <Stat
-            label="Clean Remaining"
+            label="Clean Gold Balance"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
           />
-          <Stat label="Discounted" value={fmtG(summary.discounted_grams)} tone="sky" />
-          <Stat label="Premium" value={fmtG(summary.premium_grams)} tone="fuchsia" />
-          <Stat label="Total Discount" value={fmtUSD(summary.total_discount_usd)} tone="sky" />
-          <Stat label="Total Premium" value={fmtUSD(summary.total_premium_usd)} tone="fuchsia" />
-          <div className="col-span-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Net Result
-            </p>
-            <p
-              className={`text-2xl font-bold tabular-nums mt-0.5 ${summary.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-            >
-              {fmtUSD(summary.net_usd)}
-            </p>
-          </div>
+          <Stat
+            label="Discount / Premium Gold"
+            value={fmtG(summary.dp_grams)}
+            tone="sky"
+          />
+          <Stat
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(summary.dp_charges_usd)}
+            tone="fuchsia"
+          />
         </div>
       </div>
 
@@ -761,24 +750,17 @@ function ReportCompanyStatement({
         </header>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat label="Total Balance" value={fmtG(summary.total_balance_grams)} accent />
+          <Stat label="Total Gold Balance" value={fmtG(summary.total_balance_grams)} accent />
           <Stat
-            label="Clean Remaining"
+            label="Clean Gold Balance"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
           />
-          <Stat label="Discounted" value={fmtG(summary.discounted_grams)} tone="sky" />
-          <Stat label="Premium" value={fmtG(summary.premium_grams)} tone="fuchsia" />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/60">
-          <Stat label="Total Discount" value={fmtUSD(summary.total_discount_usd)} tone="sky" />
-          <Stat label="Total Premium" value={fmtUSD(summary.total_premium_usd)} tone="fuchsia" />
+          <Stat label="Discount / Premium Gold" value={fmtG(summary.dp_grams)} tone="sky" />
           <Stat
-            label="Net Result"
-            value={fmtUSD(summary.net_usd)}
-            tone={summary.net_usd >= 0 ? "ok" : "danger"}
-            accent
+            label="Total Discount / Premium Charges"
+            value={fmtUSD(summary.dp_charges_usd)}
+            tone="fuchsia"
           />
         </div>
 
@@ -832,14 +814,11 @@ function ReportAllCompanies({
       (acc, s) => {
         acc.balance += s.total_balance_grams;
         acc.clean += s.clean_remaining_grams;
-        acc.disc_g += s.discounted_grams;
-        acc.prem_g += s.premium_grams;
-        acc.disc += s.total_discount_usd;
-        acc.prem += s.total_premium_usd;
-        acc.net += s.net_usd;
+        acc.dp_g += s.dp_grams;
+        acc.dp_usd += s.dp_charges_usd;
         return acc;
       },
-      { balance: 0, clean: 0, disc_g: 0, prem_g: 0, disc: 0, prem: 0, net: 0 },
+      { balance: 0, clean: 0, dp_g: 0, dp_usd: 0 },
     );
   }, [summaries]);
 
@@ -861,13 +840,10 @@ function ReportAllCompanies({
           <thead>
             <tr className="text-left text-xs text-muted-foreground border-b border-border/60">
               <th className="py-2">Company</th>
-              <th className="text-right">Balance</th>
-              <th className="text-right">Clean</th>
-              <th className="text-right">Disc. g</th>
-              <th className="text-right">Prem. g</th>
-              <th className="text-right">Discount $</th>
-              <th className="text-right">Premium $</th>
-              <th className="text-right">Net</th>
+              <th className="text-right">Total Gold</th>
+              <th className="text-right">Clean Gold</th>
+              <th className="text-right">D/P Gold</th>
+              <th className="text-right">D/P Charges</th>
             </tr>
           </thead>
           <tbody>
@@ -879,21 +855,10 @@ function ReportAllCompanies({
                   {s.clean_remaining_grams.toFixed(2)}
                 </td>
                 <td className="text-right tabular-nums text-sky-400">
-                  {s.discounted_grams.toFixed(2)}
+                  {s.dp_grams.toFixed(2)}
                 </td>
                 <td className="text-right tabular-nums text-fuchsia-400">
-                  {s.premium_grams.toFixed(2)}
-                </td>
-                <td className="text-right tabular-nums text-sky-400">
-                  {fmtUSD(s.total_discount_usd)}
-                </td>
-                <td className="text-right tabular-nums text-fuchsia-400">
-                  {fmtUSD(s.total_premium_usd)}
-                </td>
-                <td
-                  className={`text-right tabular-nums font-semibold ${s.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                >
-                  {fmtUSD(s.net_usd)}
+                  {fmtUSD(s.dp_charges_usd)}
                 </td>
               </tr>
             ))}
@@ -902,19 +867,10 @@ function ReportAllCompanies({
               <td className="text-right tabular-nums">{totals.balance.toFixed(2)}</td>
               <td className="text-right tabular-nums">{totals.clean.toFixed(2)}</td>
               <td className="text-right tabular-nums text-sky-400">
-                {totals.disc_g.toFixed(2)}
+                {totals.dp_g.toFixed(2)}
               </td>
               <td className="text-right tabular-nums text-fuchsia-400">
-                {totals.prem_g.toFixed(2)}
-              </td>
-              <td className="text-right tabular-nums text-sky-400">{fmtUSD(totals.disc)}</td>
-              <td className="text-right tabular-nums text-fuchsia-400">
-                {fmtUSD(totals.prem)}
-              </td>
-              <td
-                className={`text-right tabular-nums ${totals.net >= 0 ? "text-emerald-400" : "text-red-400"}`}
-              >
-                {fmtUSD(totals.net)}
+                {fmtUSD(totals.dp_usd)}
               </td>
             </tr>
           </tbody>

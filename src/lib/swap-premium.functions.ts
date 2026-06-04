@@ -28,12 +28,9 @@ export type PremiumTx = {
 export type CompanySummary = {
   company: PremiumCompany;
   total_balance_grams: number;
-  discounted_grams: number;
-  premium_grams: number;
+  dp_grams: number; // combined discount + premium grams
   clean_remaining_grams: number;
-  total_discount_usd: number;
-  total_premium_usd: number;
-  net_usd: number; // premium - discount
+  dp_charges_usd: number; // combined discount + premium $ charges
   tx_count: number;
 };
 
@@ -55,33 +52,25 @@ export const listPremiumCompanies = createServerFn({ method: "GET" })
     const summaries: CompanySummary[] = (companies ?? []).map((c) => {
       const list = (txs ?? []).filter((t) => t.company_id === c.id);
       let bal = 0,
-        disc_g = 0,
-        prem_g = 0,
-        disc_usd = 0,
-        prem_usd = 0;
+        dp_g = 0,
+        dp_usd = 0;
       for (const t of list) {
         const g = Number(t.grams) || 0;
         const usd = Number(t.amount_usd) || 0;
         if (t.kind === "add") bal += g;
         else if (t.kind === "remove") bal -= g;
         else if (t.kind === "adjust") bal += g;
-        else if (t.kind === "discount") {
-          disc_g += g;
-          disc_usd += usd;
-        } else if (t.kind === "premium") {
-          prem_g += g;
-          prem_usd += usd;
+        else if (t.kind === "discount" || t.kind === "premium") {
+          dp_g += g;
+          dp_usd += usd;
         }
       }
       return {
         company: c as PremiumCompany,
         total_balance_grams: bal,
-        discounted_grams: disc_g,
-        premium_grams: prem_g,
-        clean_remaining_grams: bal - disc_g - prem_g,
-        total_discount_usd: disc_usd,
-        total_premium_usd: prem_usd,
-        net_usd: prem_usd - disc_usd,
+        dp_grams: dp_g,
+        clean_remaining_grams: bal - dp_g,
+        dp_charges_usd: dp_usd,
         tx_count: list.length,
       };
     });
