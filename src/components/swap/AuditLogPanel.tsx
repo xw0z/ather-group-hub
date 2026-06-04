@@ -24,6 +24,8 @@ import {
   listSwapMarginHistory,
 } from "@/lib/swap-clients.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
+import { useLang } from "@/lib/purity-i18n";
+
 
 /* ------------------------------ Types ------------------------------ */
 
