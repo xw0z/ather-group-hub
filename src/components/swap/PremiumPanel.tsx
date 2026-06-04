@@ -814,14 +814,11 @@ function ReportAllCompanies({
       (acc, s) => {
         acc.balance += s.total_balance_grams;
         acc.clean += s.clean_remaining_grams;
-        acc.disc_g += s.discounted_grams;
-        acc.prem_g += s.premium_grams;
-        acc.disc += s.total_discount_usd;
-        acc.prem += s.total_premium_usd;
-        acc.net += s.net_usd;
+        acc.dp_g += s.dp_grams;
+        acc.dp_usd += s.dp_charges_usd;
         return acc;
       },
-      { balance: 0, clean: 0, disc_g: 0, prem_g: 0, disc: 0, prem: 0, net: 0 },
+      { balance: 0, clean: 0, dp_g: 0, dp_usd: 0 },
     );
   }, [summaries]);
 
@@ -843,13 +840,10 @@ function ReportAllCompanies({
           <thead>
             <tr className="text-left text-xs text-muted-foreground border-b border-border/60">
               <th className="py-2">Company</th>
-              <th className="text-right">Balance</th>
-              <th className="text-right">Clean</th>
-              <th className="text-right">Disc. g</th>
-              <th className="text-right">Prem. g</th>
-              <th className="text-right">Discount $</th>
-              <th className="text-right">Premium $</th>
-              <th className="text-right">Net</th>
+              <th className="text-right">Total Gold</th>
+              <th className="text-right">Clean Gold</th>
+              <th className="text-right">D/P Gold</th>
+              <th className="text-right">D/P Charges</th>
             </tr>
           </thead>
           <tbody>
@@ -861,21 +855,10 @@ function ReportAllCompanies({
                   {s.clean_remaining_grams.toFixed(2)}
                 </td>
                 <td className="text-right tabular-nums text-sky-400">
-                  {s.discounted_grams.toFixed(2)}
+                  {s.dp_grams.toFixed(2)}
                 </td>
                 <td className="text-right tabular-nums text-fuchsia-400">
-                  {s.premium_grams.toFixed(2)}
-                </td>
-                <td className="text-right tabular-nums text-sky-400">
-                  {fmtUSD(s.total_discount_usd)}
-                </td>
-                <td className="text-right tabular-nums text-fuchsia-400">
-                  {fmtUSD(s.total_premium_usd)}
-                </td>
-                <td
-                  className={`text-right tabular-nums font-semibold ${s.net_usd >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                >
-                  {fmtUSD(s.net_usd)}
+                  {fmtUSD(s.dp_charges_usd)}
                 </td>
               </tr>
             ))}
@@ -884,19 +867,10 @@ function ReportAllCompanies({
               <td className="text-right tabular-nums">{totals.balance.toFixed(2)}</td>
               <td className="text-right tabular-nums">{totals.clean.toFixed(2)}</td>
               <td className="text-right tabular-nums text-sky-400">
-                {totals.disc_g.toFixed(2)}
+                {totals.dp_g.toFixed(2)}
               </td>
               <td className="text-right tabular-nums text-fuchsia-400">
-                {totals.prem_g.toFixed(2)}
-              </td>
-              <td className="text-right tabular-nums text-sky-400">{fmtUSD(totals.disc)}</td>
-              <td className="text-right tabular-nums text-fuchsia-400">
-                {fmtUSD(totals.prem)}
-              </td>
-              <td
-                className={`text-right tabular-nums ${totals.net >= 0 ? "text-emerald-400" : "text-red-400"}`}
-              >
-                {fmtUSD(totals.net)}
+                {fmtUSD(totals.dp_usd)}
               </td>
             </tr>
           </tbody>
