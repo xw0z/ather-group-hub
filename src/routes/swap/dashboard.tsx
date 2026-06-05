@@ -795,13 +795,18 @@ function HomeTab({
   }, []);
 
   const totalLive = useMemo(
-    () => data?.rows.reduce((s, r) => s + r.base_daily_fee, 0) ?? 0,
+    () => data?.rows.reduce((s, r) => s + (r.live_daily_fee ?? 0), 0) ?? 0,
     [data],
   );
   const totalToday = useMemo(
     () => data?.rows.reduce((s, r) => s + (r.today_fee ?? 0), 0) ?? 0,
     [data],
   );
+  const visibleLiveSum = totalLive;
+  const liveMismatch = data
+    ? Math.abs(visibleLiveSum - totalLive) > 0.01
+    : false;
+
 
   return (
     <div className="space-y-4">
