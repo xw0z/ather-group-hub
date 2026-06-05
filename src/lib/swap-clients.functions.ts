@@ -416,7 +416,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
     const { data: client, error: cErr } = await supabaseAdmin
       .from("swap_clients")
       .select(
-        "id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes, created_at",
+        "id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes, created_at",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -442,6 +442,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         usd_balance: Number(client.usd_balance),
         annual_rate: Number(client.annual_rate),
         short_annual_rate: Number(client.short_annual_rate ?? 0),
+        additional_exposure_pct: Number(client.additional_exposure_pct ?? 5),
       },
       fees: (fees ?? []).map((f) => ({
         id: f.id,
