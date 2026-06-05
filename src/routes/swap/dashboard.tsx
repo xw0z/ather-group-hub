@@ -814,8 +814,8 @@ function HomeTab({
       />
 
       <section className="rounded-xl border border-border/60 bg-card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-sm font-semibold flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
             </h2>
@@ -829,6 +829,7 @@ function HomeTab({
             <Button
               size="sm"
               variant="outline"
+              className="w-full sm:w-auto"
               disabled={running}
               onClick={async () => {
                 setRunning(true);
@@ -848,7 +849,8 @@ function HomeTab({
                 }
               }}
             >
-              {running ? "Running…" : "Run now"}
+              <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
+              {running ? "Running…" : "Run snapshots now"}
             </Button>
           ) : null}
         </div>
