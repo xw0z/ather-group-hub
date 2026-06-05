@@ -126,6 +126,7 @@ type SwapClient = {
   margin_requirement_pct: number;
   annual_rate: number;
   short_annual_rate: number;
+  additional_exposure_pct: number;
   position_type: "long" | "short";
   notes: string | null;
   created_at: string;
