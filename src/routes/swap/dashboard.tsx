@@ -1148,6 +1148,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     setEditBalance(String(c.usd_balance));
     setEditGoldAmount(String((c.gold_kg ?? 0) * 1000));
     setEditAddExp(String(c.additional_exposure_pct ?? 5));
+    setEditLongRate(String(c.annual_rate ?? 5.4));
+    setEditShortRate(String(c.short_annual_rate ?? 2.5));
     setEditPositionType((c.position_type ?? "long") as "long" | "short");
     setEditNotes(c.notes ?? "");
   }
@@ -1160,6 +1162,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           usd_balance: parseFloat(editBalance) || 0,
           gold_kg: (parseFloat(editGoldAmount) || 0) / 1000,
           additional_exposure_pct: parseFloat(editAddExp) || 5,
+          annual_rate: parseFloat(editLongRate) || 0,
+          short_annual_rate: parseFloat(editShortRate) || 0,
           position_type: editPositionType,
           notes: editNotes.trim() || null,
         },
