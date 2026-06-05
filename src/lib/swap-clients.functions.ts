@@ -490,7 +490,7 @@ export async function runDailyFeeJob() {
   const today = new Date().toISOString().slice(0, 10);
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
-    .select("id, usd_balance, annual_rate, short_annual_rate, position_type");
+    .select("id, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type");
   if (error) throw new Error(error.message);
 
   const nowIso = new Date().toISOString();
@@ -498,6 +498,7 @@ export async function runDailyFeeJob() {
   const rows = (clients ?? []).map((c) => {
     const positionType = (c.position_type ?? "long") as "long" | "short";
     const effRate = effectiveAnnualRate(c);
+    const effBal = effectiveBalance(Number(c.usd_balance), c.additional_exposure_pct);
     return {
       client_id: c.id,
       fee_date: today,
@@ -505,7 +506,7 @@ export async function runDailyFeeJob() {
       usd_balance: Number(c.usd_balance),
       annual_rate: effRate,
       position_type: positionType,
-      daily_fee: ((Number(c.usd_balance) * effRate) / 100 / 365) * multiplier,
+      daily_fee: ((effBal * effRate) / 100 / 365) * multiplier,
       created_at: nowIso,
     };
   });
