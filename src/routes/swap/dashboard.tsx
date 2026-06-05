@@ -2000,6 +2000,13 @@ function MarginDetails({
         </span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-xs">
+        <div className="col-span-2">
+          <Row
+            label="USD Balance"
+            value={fmtMoney(usdBalance)}
+            accent={usdBalance < 0 ? "red" : usdBalance > 0 ? "green" : undefined}
+          />
+        </div>
         <Row
           label="Gold balance"
           value={`${fmt(goldKg * 1000, 0)} g`}
