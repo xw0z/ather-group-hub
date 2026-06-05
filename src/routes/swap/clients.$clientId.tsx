@@ -235,54 +235,86 @@ function SwapClientDetail() {
                     className="rounded-md border border-border/60 p-3 bg-background"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium flex items-center gap-2">
-                          <span>{f.fee_date}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              isShort
-                                ? "bg-red-500/15 text-red-600"
-                                : "bg-green-500/15 text-green-600"
-                            }`}
-                          >
-                            {isShort ? "Short / Sell" : "Long / Buy"}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Snapshot: {fmtSnapshot(f.created_at)}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Balance ${fmt(f.usd_balance)} · {fmt(f.annual_rate)}%/yr
-                          {f.xauusd_price ? ` · XAUUSD $${fmt(f.xauusd_price)}` : ""}
-                        </div>
-                        <div className="text-sm mt-1">
-                          {isShort ? "Benefit credited: " : "Fee charged: "}
-                          <span
-                            className={`font-semibold ${
-                              isShort ? "text-red-600" : "text-green-600"
-                            }`}
-                          >
-                            {isShort ? "+" : "-"}${fmt(f.daily_fee)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyMsg(f.id, msg)}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        <span>{f.fee_date}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            isShort
+                              ? "bg-red-500/15 text-red-600"
+                              : "bg-green-500/15 text-green-600"
+                          }`}
                         >
-                          {copiedId === f.id ? (
-                            <Check className="h-4 w-4 mr-1" />
-                          ) : (
-                            <Copy className="h-4 w-4 mr-1" />
-                          )}
-                          {copiedId === f.id ? "Copied" : "Copy"}
-                        </Button>
-                        <Button size="sm" onClick={() => shareMsg(msg)}>
-                          <Share2 className="h-4 w-4 mr-1" /> Share
-                        </Button>
+                          {isShort ? "Short / Sell" : "Long / Buy"}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {f.day_multiplier}× day
+                        </span>
                       </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Snapshot: {fmtSnapshot(f.created_at)}
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px]">
+                        <div className="rounded px-2 py-1 bg-muted/40">
+                          <div className="text-muted-foreground">USD Balance</div>
+                          <div className={`font-semibold ${f.usd_balance < 0 ? "text-red-600" : f.usd_balance > 0 ? "text-green-600" : ""}`}>
+                            {money(f.usd_balance)}
+                          </div>
+                        </div>
+                        <div className="rounded px-2 py-1 bg-muted/40">
+                          <div className="text-muted-foreground">Add. Exposure</div>
+                          <div className="font-semibold">{fmt(f.additional_exposure_pct)}%</div>
+                        </div>
+                        <div className="rounded px-2 py-1 bg-primary/10 col-span-2">
+                          <div className="text-muted-foreground">Effective Balance</div>
+                          <div className="font-semibold">${fmt(Math.abs(f.effective_balance))}</div>
+                        </div>
+                        <div className="rounded px-2 py-1 bg-muted/40">
+                          <div className="text-muted-foreground">Rate</div>
+                          <div className="font-semibold">{fmt(f.annual_rate)}% / year</div>
+                        </div>
+                        <div className="rounded px-2 py-1 bg-muted/40">
+                          <div className="text-muted-foreground">Day Multiplier</div>
+                          <div className="font-semibold">{f.day_multiplier}×</div>
+                        </div>
+                        <div className="rounded px-2 py-1 bg-muted/40 col-span-2">
+                          <div className="text-muted-foreground">XAUUSD Snapshot</div>
+                          <div className="font-semibold">
+                            {f.xauusd_price !== null ? `$${fmt(f.xauusd_price)}` : "—"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-sm mt-2">
+                        {isShort ? "Benefit credited: " : "Fee charged: "}
+                        <span
+                          className={`font-semibold ${
+                            isShort ? "text-red-600" : "text-green-600"
+                          }`}
+                        >
+                          {isShort ? "+" : "-"}${fmt(Math.abs(f.daily_fee))}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyMsg(f.id, msg)}
+                      >
+                        {copiedId === f.id ? (
+                          <Check className="h-4 w-4 mr-1" />
+                        ) : (
+                          <Copy className="h-4 w-4 mr-1" />
+                        )}
+                        {copiedId === f.id ? "Copied" : "Copy"}
+                      </Button>
+                      <Button size="sm" onClick={() => shareMsg(msg)}>
+                        <Share2 className="h-4 w-4 mr-1" /> Share
+                      </Button>
+                    </div>
+
                     </div>
                   </li>
                 );

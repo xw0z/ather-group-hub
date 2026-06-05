@@ -349,7 +349,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
 
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .select("client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type")
+      .select(
+        "client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, additional_exposure_pct, effective_balance, day_multiplier",
+      )
       .order("fee_date", { ascending: false });
     if (fErr) throw new Error(fErr.message);
 
@@ -386,6 +388,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
         const baseDaily = (effBal * effRate) / 100 / 365;
         const liveDaily = baseDaily * todayMultiplier;
+
         return {
           id: c.id,
           code: c.code,
@@ -399,6 +402,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           effective_annual_rate: effRate,
           today_fee: t ? Number(t.daily_fee) : null,
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
+          today_multiplier: t?.day_multiplier ?? todayMultiplier,
           last_fee: l ? Number(l.daily_fee) : null,
           last_fee_date: l?.fee_date ?? null,
           base_daily_fee: baseDaily,
@@ -407,6 +411,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
       }),
     };
   });
+
 
 export const getSwapClientHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -426,7 +431,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
       .select(
-        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at",
+        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, additional_exposure_pct, effective_balance, day_multiplier, created_at",
       )
       .eq("client_id", data.id)
       .order("fee_date", { ascending: false })
@@ -451,11 +456,21 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         daily_fee: Number(f.daily_fee),
         usd_balance: Number(f.usd_balance),
         annual_rate: Number(f.annual_rate),
+        additional_exposure_pct: Number(f.additional_exposure_pct ?? 5),
+        effective_balance:
+          f.effective_balance !== null && f.effective_balance !== undefined
+            ? Number(f.effective_balance)
+            : Number(f.usd_balance) *
+              (1 + Number(f.additional_exposure_pct ?? 5) / 100),
+        day_multiplier:
+          f.day_multiplier ??
+          swapDayMultiplier(new Date(`${f.fee_date}T00:00:00Z`)),
         position_type: (f.position_type ?? "long") as "long" | "short",
         created_at: f.created_at,
       })),
     };
   });
+
 
 // Manual trigger for admins to compute today's fees on demand.
 export const computeSwapFeesNow = createServerFn({ method: "POST" })
@@ -536,6 +551,9 @@ export async function runDailyFeeJob() {
     xauusd_price: number | null;
     usd_balance: number;
     annual_rate: number;
+    additional_exposure_pct: number;
+    effective_balance: number;
+    day_multiplier: number;
     position_type: "long" | "short";
     daily_fee: number;
     created_at: string;
@@ -544,7 +562,8 @@ export async function runDailyFeeJob() {
   for (const c of clients ?? []) {
     const positionType = (c.position_type ?? "long") as "long" | "short";
     const effRate = effectiveAnnualRate(c);
-    const effBal = effectiveBalance(Number(c.usd_balance), c.additional_exposure_pct);
+    const addExp = Number(c.additional_exposure_pct ?? 5);
+    const effBal = effectiveBalance(Number(c.usd_balance), addExp);
     const last = lastDateByClient.get(c.id) ?? null;
     const dates = last === today ? [today] : datesBetween(last, today);
     for (const d of dates) {
@@ -556,12 +575,16 @@ export async function runDailyFeeJob() {
         xauusd_price: d === today ? xauusd : null,
         usd_balance: Number(c.usd_balance),
         annual_rate: effRate,
+        additional_exposure_pct: addExp,
+        effective_balance: effBal,
+        day_multiplier: mult,
         position_type: positionType,
         daily_fee: ((effBal * effRate) / 100 / 365) * mult,
         created_at: nowIso,
       });
     }
   }
+
 
   if (rows.length > 0) {
     const { error: upErr } = await supabaseAdmin

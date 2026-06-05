@@ -795,13 +795,18 @@ function HomeTab({
   }, []);
 
   const totalLive = useMemo(
-    () => data?.rows.reduce((s, r) => s + r.base_daily_fee, 0) ?? 0,
+    () => data?.rows.reduce((s, r) => s + (r.live_daily_fee ?? 0), 0) ?? 0,
     [data],
   );
   const totalToday = useMemo(
     () => data?.rows.reduce((s, r) => s + (r.today_fee ?? 0), 0) ?? 0,
     [data],
   );
+  const visibleLiveSum = totalLive;
+  const liveMismatch = data
+    ? Math.abs(visibleLiveSum - totalLive) > 0.01
+    : false;
+
 
   return (
     <div className="space-y-4">
@@ -859,13 +864,23 @@ function HomeTab({
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-md bg-muted/40 px-3 py-2">
             <div className="text-[11px] text-muted-foreground">Total today (snapshot)</div>
-            <div className="font-semibold">${fmt(totalToday)}</div>
+            <div className={`font-semibold ${totalToday < 0 ? "text-red-600" : totalToday > 0 ? "text-green-600" : ""}`}>
+              {totalToday < 0 ? "-" : totalToday > 0 ? "+" : ""}${fmt(Math.abs(totalToday))}
+            </div>
           </div>
           <div className="rounded-md bg-muted/40 px-3 py-2">
             <div className="text-[11px] text-muted-foreground">Total live (current balances)</div>
-            <div className="font-semibold">${fmt(totalLive)}</div>
+            <div className={`font-semibold ${totalLive < 0 ? "text-red-600" : totalLive > 0 ? "text-green-600" : ""}`}>
+              {totalLive < 0 ? "-" : totalLive > 0 ? "+" : ""}${fmt(Math.abs(totalLive))}
+            </div>
           </div>
         </div>
+        {isAdmin && liveMismatch ? (
+          <p className="mt-2 text-[11px] text-amber-600">
+            ⚠ Total Live does not match sum of visible client fees. Reload to refresh.
+          </p>
+        ) : null}
+
       </section>
 
       <section className="rounded-xl border border-border/60 bg-card p-4">
