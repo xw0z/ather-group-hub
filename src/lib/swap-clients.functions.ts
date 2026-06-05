@@ -405,7 +405,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           today_multiplier: t?.day_multiplier ?? todayMultiplier,
           last_fee: l ? Number(l.daily_fee) : null,
           last_fee_date: l?.fee_date ?? null,
-          base_daily_fee: signed,
+          base_daily_fee: baseDaily,
           live_daily_fee: liveDaily,
         };
       }),
