@@ -1501,8 +1501,26 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           onChange={(e) => setEditAddExp(e.target.value)}
                         />
                       </div>
+                      <div>
+                        <Label className="text-xs">Long annual rate (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editLongRate}
+                          onChange={(e) => setEditLongRate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Short annual rate (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editShortRate}
+                          onChange={(e) => setEditShortRate(e.target.value)}
+                        />
+                      </div>
                       <p className="col-span-2 text-[11px] text-muted-foreground">
-                        Margin % is edited in the Margin page. Swap rates are edited in the Swap Fees page.
+                        Margin % is edited in the Margin page.
                       </p>
                     </div>
                   ) : (
@@ -1525,6 +1543,14 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         <div className="rounded px-2 py-1.5 bg-muted/40">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Add. Exp.</div>
                           <div className="font-semibold">{fmt(Number(c.additional_exposure_pct ?? 5))}%</div>
+                        </div>
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Long rate</div>
+                          <div className="font-semibold text-green-600">{fmt(Number(c.annual_rate ?? 0))}%/yr</div>
+                        </div>
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Short rate</div>
+                          <div className="font-semibold text-red-600">{fmt(Number(c.short_annual_rate ?? 0))}%/yr</div>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-2" data-share-hide>
