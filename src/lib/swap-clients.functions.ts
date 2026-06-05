@@ -382,7 +382,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const l = latestByClient.get(c.id);
         const positionType = (c.position_type ?? "long") as "long" | "short";
         const effRate = effectiveAnnualRate(c);
-        const baseDaily = (Number(c.usd_balance) * effRate) / 100 / 365;
+        const addExp = Number(c.additional_exposure_pct ?? 5);
+        const effBal = effectiveBalance(Number(c.usd_balance), addExp);
+        const baseDaily = (effBal * effRate) / 100 / 365;
         const liveDaily = baseDaily * todayMultiplier;
         return {
           id: c.id,
@@ -392,6 +394,8 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           usd_balance: Number(c.usd_balance),
           annual_rate: Number(c.annual_rate),
           short_annual_rate: Number(c.short_annual_rate ?? 0),
+          additional_exposure_pct: addExp,
+          effective_balance: effBal,
           effective_annual_rate: effRate,
           today_fee: t ? Number(t.daily_fee) : null,
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
