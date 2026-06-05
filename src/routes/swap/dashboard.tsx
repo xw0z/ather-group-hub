@@ -1048,19 +1048,23 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MarginLogFilter>("all");
 
-  // Add form — base client fields only
+  // Add form — base client fields
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [goldAmount, setGoldAmount] = useState("0");
   const [addExp, setAddExp] = useState("5");
+  const [longRate, setLongRate] = useState("5.4");
+  const [shortRate, setShortRate] = useState("2.5");
   const [positionType, setPositionType] = useState<"long" | "short">("long");
   const [notes, setNotes] = useState("");
 
-  // Edit form — base client fields only
+  // Edit form — base client fields
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [editGoldAmount, setEditGoldAmount] = useState("0");
   const [editAddExp, setEditAddExp] = useState("5");
+  const [editLongRate, setEditLongRate] = useState("5.4");
+  const [editShortRate, setEditShortRate] = useState("2.5");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
   const [editNotes, setEditNotes] = useState("");
   const [sharingId, setSharingId] = useState<string | null>(null);
@@ -1117,6 +1121,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           usd_balance: parseFloat(balance) || 0,
           gold_kg: (parseFloat(goldAmount) || 0) / 1000,
           additional_exposure_pct: parseFloat(addExp) || 5,
+          annual_rate: parseFloat(longRate) || 0,
+          short_annual_rate: parseFloat(shortRate) || 0,
           position_type: positionType,
           notes: notes.trim() || null,
         },
@@ -1125,6 +1131,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setBalance("");
       setGoldAmount("0");
       setAddExp("5");
+      setLongRate("5.4");
+      setShortRate("2.5");
       setPositionType("long");
       setNotes("");
       setShowForm(false);
@@ -1140,6 +1148,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     setEditBalance(String(c.usd_balance));
     setEditGoldAmount(String((c.gold_kg ?? 0) * 1000));
     setEditAddExp(String(c.additional_exposure_pct ?? 5));
+    setEditLongRate(String(c.annual_rate ?? 5.4));
+    setEditShortRate(String(c.short_annual_rate ?? 2.5));
     setEditPositionType((c.position_type ?? "long") as "long" | "short");
     setEditNotes(c.notes ?? "");
   }
@@ -1152,6 +1162,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           usd_balance: parseFloat(editBalance) || 0,
           gold_kg: (parseFloat(editGoldAmount) || 0) / 1000,
           additional_exposure_pct: parseFloat(editAddExp) || 5,
+          annual_rate: parseFloat(editLongRate) || 0,
+          short_annual_rate: parseFloat(editShortRate) || 0,
           position_type: editPositionType,
           notes: editNotes.trim() || null,
         },
@@ -1316,6 +1328,28 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                 Used to compute Effective Balance for daily swap fees. Default 5.00%.
               </p>
             </div>
+            <div>
+              <Label className="text-xs">Long annual rate (%)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={longRate}
+                onChange={(e) => setLongRate(e.target.value)}
+                placeholder="5.40"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Short annual rate (%)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={shortRate}
+                onChange={(e) => setShortRate(e.target.value)}
+                placeholder="2.50"
+              />
+            </div>
             <div className="col-span-2">
               <Button type="submit" className="w-full">Save client</Button>
             </div>
@@ -1467,8 +1501,26 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           onChange={(e) => setEditAddExp(e.target.value)}
                         />
                       </div>
+                      <div>
+                        <Label className="text-xs">Long annual rate (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editLongRate}
+                          onChange={(e) => setEditLongRate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Short annual rate (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editShortRate}
+                          onChange={(e) => setEditShortRate(e.target.value)}
+                        />
+                      </div>
                       <p className="col-span-2 text-[11px] text-muted-foreground">
-                        Margin % is edited in the Margin page. Swap rates are edited in the Swap Fees page.
+                        Margin % is edited in the Margin page.
                       </p>
                     </div>
                   ) : (
@@ -1491,6 +1543,14 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         <div className="rounded px-2 py-1.5 bg-muted/40">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Add. Exp.</div>
                           <div className="font-semibold">{fmt(Number(c.additional_exposure_pct ?? 5))}%</div>
+                        </div>
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Long rate</div>
+                          <div className="font-semibold text-green-600">{fmt(Number(c.annual_rate ?? 0))}%/yr</div>
+                        </div>
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Short rate</div>
+                          <div className="font-semibold text-red-600">{fmt(Number(c.short_annual_rate ?? 0))}%/yr</div>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-2" data-share-hide>
