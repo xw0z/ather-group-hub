@@ -1954,11 +1954,13 @@ function MarginDetails({
   xau,
   marginPct,
   margin,
+  usdBalance,
 }: {
   goldKg: number;
   xau: number | null;
   marginPct: number;
   margin: ReturnType<typeof computeMargin>;
+  usdBalance: number;
 }) {
   const tier = margin.tier;
   const tierBorder =
