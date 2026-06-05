@@ -1048,19 +1048,23 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MarginLogFilter>("all");
 
-  // Add form — base client fields only
+  // Add form — base client fields
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [goldAmount, setGoldAmount] = useState("0");
   const [addExp, setAddExp] = useState("5");
+  const [longRate, setLongRate] = useState("5.4");
+  const [shortRate, setShortRate] = useState("2.5");
   const [positionType, setPositionType] = useState<"long" | "short">("long");
   const [notes, setNotes] = useState("");
 
-  // Edit form — base client fields only
+  // Edit form — base client fields
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [editGoldAmount, setEditGoldAmount] = useState("0");
   const [editAddExp, setEditAddExp] = useState("5");
+  const [editLongRate, setEditLongRate] = useState("5.4");
+  const [editShortRate, setEditShortRate] = useState("2.5");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
   const [editNotes, setEditNotes] = useState("");
   const [sharingId, setSharingId] = useState<string | null>(null);
