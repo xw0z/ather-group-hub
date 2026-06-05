@@ -126,6 +126,7 @@ type SwapClient = {
   margin_requirement_pct: number;
   annual_rate: number;
   short_annual_rate: number;
+  additional_exposure_pct: number;
   position_type: "long" | "short";
   notes: string | null;
   created_at: string;
@@ -652,22 +653,6 @@ export function SwapDashboard({
             </Button>
             <p className="text-sm font-semibold truncate flex-1 text-center">{currentLabel}</p>
             <div className="flex items-center gap-1">
-              {canBackup && (() => {
-                const scope =
-                  effectiveTab === "purity"
-                    ? "purity"
-                    : effectiveTab === "margin"
-                      ? "margin"
-                      : effectiveTab === "premium"
-                        ? "premium"
-                        : "swap";
-                return (
-                  <>
-                    <BackupButton app={scope} label="" />
-                    <RestoreButton app={scope} label="" />
-                  </>
-                );
-              })()}
               <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -709,34 +694,16 @@ export function SwapDashboard({
             />
           )}
           {effectiveTab === "margin" && can(perms, "margin", "view") && (
-            <>
-              {canBackup && (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <BackupButton app="margin" label="Backup margin" />
-                  <RestoreButton app="margin" label="Restore margin" />
-                </div>
-              )}
-              <MarginTab
-                livePrice={livePrice}
-                showLiveCard
-                isAdmin={isAdmin}
-                livePriceLoading={livePriceLoading}
-                onRefreshPrice={refreshPrice}
-                onPriceChanged={setLivePrice}
-              />
-            </>
+            <MarginTab
+              livePrice={livePrice}
+              showLiveCard
+              isAdmin={isAdmin}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+            />
           )}
-          {effectiveTab === "premium" && can(perms, "premium", "view") && (
-            <>
-              {canBackup && (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <BackupButton app="premium" label="Backup premium" />
-                  <RestoreButton app="premium" label="Restore premium" />
-                </div>
-              )}
-              <PremiumPanel />
-            </>
-          )}
+          {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
           {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
@@ -878,76 +845,19 @@ function HomeTab({
             No clients yet — add one in the Clients tab.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {data.rows.map((r) => {
-              const isShort = r.position_type === "short";
-              const amountLabel = isShort ? "Benefit today" : "Fee today";
-              const snapPrefix = isShort ? "today benefit" : "today fee";
-              const lastPrefix = isShort ? "last benefit" : "last fee";
-              return (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate({ to: "/swap/clients/$clientId", params: { clientId: r.id } })
-                    }
-                    className="w-full text-left rounded-md border border-border/60 p-3 bg-background hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium flex items-center gap-2 flex-wrap">
-                          <span>{r.code}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              isShort
-                                ? "bg-red-500/15 text-red-600"
-                                : "bg-green-500/15 text-green-600"
-                            }`}
-                          >
-                            {isShort ? "Short / Sell" : "Long / Buy"}
-                          </span>
-                        </div>
-                        {r.notes ? (
-                          <div className="text-[11px] text-muted-foreground break-words mt-0.5">
-                            ({r.notes})
-                          </div>
-                        ) : null}
-                        <div className="text-[11px] text-muted-foreground">
-                          ${fmt(r.usd_balance)} · {fmt(r.effective_annual_rate)}%/yr{" "}
-                          {isShort ? "(benefit)" : "(fee)"}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div
-                          className={`font-semibold ${
-                            isShort ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          {isShort ? "+" : "-"}${fmt(Math.abs(Number(r.base_daily_fee) || 0))}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {amountLabel}:{" "}
-                          {r.today_fee !== null
-                            ? `${snapPrefix} $${fmt(r.today_fee)}`
-                            : r.last_fee !== null
-                              ? `${lastPrefix} ${r.last_fee_date} $${fmt(r.last_fee)}`
-                              : "no snapshot yet"}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
+          <SwapFeesList
+            rows={data.rows}
+            todayMultiplier={data.todayMultiplier}
+            onUpdated={load}
+            onOpenHistory={(id) => navigate({ to: "/swap/clients/$clientId", params: { clientId: id } })}
+          />
         )}
         <p className="text-[11px] text-muted-foreground mt-3">
-          Formula: USD balance × annual rate% ÷ 365 × day multiplier. Long positions are
+          Formula: <span className="font-medium">Effective Balance × annual rate% ÷ 365 × day multiplier</span>,
+          where Effective Balance = USD Balance × (1 + Additional Exposure ÷ 100). Long positions are
           charged a fee using the long annual rate; Short positions receive a benefit credit
           using the short annual benefit rate. Mon/Tue/Thu/Fri = 1 day, Wednesday = 3 days
-          (covers the weekend in advance), Sat/Sun = 0. No additional swap is charged or
-          credited on Saturday or Sunday.
+          (covers the weekend in advance), Sat/Sun = 0.
           {data ? (
             <>
               {" "}Today&apos;s multiplier: <span className="font-medium">{data.todayMultiplier}×</span>.
@@ -959,37 +869,200 @@ function HomeTab({
   );
 }
 
+type SwapFeeRow = Awaited<ReturnType<typeof listTodaySwapFees>>["rows"][number];
+
+function SwapFeesList({
+  rows,
+  todayMultiplier,
+  onUpdated,
+  onOpenHistory,
+}: {
+  rows: SwapFeeRow[];
+  todayMultiplier: number;
+  onUpdated: () => void;
+  onOpenHistory: (id: string) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLong, setEditLong] = useState("");
+  const [editShort, setEditShort] = useState("");
+  const [editAddExp, setEditAddExp] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  function startEdit(r: SwapFeeRow) {
+    setEditingId(r.id);
+    setEditLong(String(r.annual_rate));
+    setEditShort(String(r.short_annual_rate));
+    setEditAddExp(String(r.additional_exposure_pct ?? 5));
+    setErr(null);
+  }
+
+  async function save(id: string) {
+    setSavingId(id);
+    setErr(null);
+    try {
+      await updateSwapClient({
+        data: {
+          id,
+          annual_rate: parseFloat(editLong) || 0,
+          short_annual_rate: parseFloat(editShort) || 0,
+          additional_exposure_pct: parseFloat(editAddExp) || 5,
+        },
+      });
+      invalidate(CK.todayFees, CK.clients, CK.activity);
+      setEditingId(null);
+      onUpdated();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  return (
+    <ul className="space-y-2">
+      {err && <p className="text-sm text-destructive">{err}</p>}
+      {rows.map((r) => {
+        const isShort = r.position_type === "short";
+        const isEditing = editingId === r.id;
+        const effBal = r.effective_balance ?? r.usd_balance * (1 + (r.additional_exposure_pct ?? 5) / 100);
+        return (
+          <li
+            key={r.id}
+            className="rounded-md border border-border/60 p-3 bg-background"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium flex items-center gap-2 flex-wrap">
+                  <span className="truncate">{r.code}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded ${
+                      isShort
+                        ? "bg-red-500/15 text-red-600"
+                        : "bg-green-500/15 text-green-600"
+                    }`}
+                  >
+                    {isShort ? "Short / Sell" : "Long / Buy"}
+                  </span>
+                </div>
+                {r.notes && (
+                  <div className="text-[11px] text-muted-foreground break-words mt-0.5">
+                    {r.notes}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                {isEditing ? (
+                  <>
+                    <Button size="icon" variant="ghost" onClick={() => save(r.id)} disabled={savingId === r.id}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
+                      <Pencil className="h-4 w-4 mr-1 text-primary" /> Edit
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => onOpenHistory(r.id)}>
+                      <ScrollText className="h-4 w-4 mr-1 text-primary" /> History
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {isEditing ? (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Long %/yr</Label>
+                  <Input type="number" step="0.01" value={editLong} onChange={(e) => setEditLong(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Short %/yr</Label>
+                  <Input type="number" step="0.01" value={editShort} onChange={(e) => setEditShort(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Add. Exp. %</Label>
+                  <Input type="number" step="0.01" value={editAddExp} onChange={(e) => setEditAddExp(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">USD balance</div>
+                    <div className={`font-semibold ${r.usd_balance < 0 ? "text-red-600" : r.usd_balance > 0 ? "text-green-600" : ""}`}>
+                      {fmtMoney(r.usd_balance)}
+                    </div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Additional exposure</div>
+                    <div className="font-semibold">{fmt(r.additional_exposure_pct ?? 5)}%</div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-primary/10 col-span-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Effective balance</div>
+                    <div className={`font-semibold ${effBal < 0 ? "text-red-600" : effBal > 0 ? "text-green-600" : ""}`}>
+                      {fmtMoney(effBal)}
+                    </div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Long rate</div>
+                    <div className="font-semibold">{fmt(r.annual_rate)}%/yr</div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Short rate</div>
+                    <div className="font-semibold">{fmt(r.short_annual_rate)}%/yr</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-sm">
+                  <div className="text-[11px] text-muted-foreground">
+                    Day multiplier: <span className="font-medium">{todayMultiplier}×</span>
+                    {todayMultiplier === 3 ? " (Wednesday — covers weekend)" : ""}
+                  </div>
+                  <div className={`font-semibold ${isShort ? "text-green-600" : "text-red-600"}`}>
+                    {isShort ? "+" : "-"}${fmt(Math.abs(Number(r.live_daily_fee) || 0))}
+                    <span className="text-[11px] text-muted-foreground font-normal ml-1">today</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /* ---------------------------- CLIENTS ---------------------------- */
 
 type MarginLogFilter = "all" | "enough" | "needed";
 
 function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<SwapClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<MarginLogFilter>("all");
 
+  // Add form — base client fields only
   const [code, setCode] = useState("");
   const [balance, setBalance] = useState("");
   const [goldAmount, setGoldAmount] = useState("0");
-  const [xau, setXau] = useState("");
-  const [marginPct, setMarginPct] = useState("20");
-  const [rate, setRate] = useState("5.4");
-  const [shortRate, setShortRate] = useState("2.5");
+  const [addExp, setAddExp] = useState("5");
   const [positionType, setPositionType] = useState<"long" | "short">("long");
   const [notes, setNotes] = useState("");
 
+  // Edit form — base client fields only
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editCode, setEditCode] = useState("");
   const [editBalance, setEditBalance] = useState("");
   const [editGoldAmount, setEditGoldAmount] = useState("0");
-  const [editXau, setEditXau] = useState("");
-  const [editMarginPct, setEditMarginPct] = useState("20");
-  const [editRate, setEditRate] = useState("");
-  const [editShortRate, setEditShortRate] = useState("");
+  const [editAddExp, setEditAddExp] = useState("5");
   const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
-  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const [editNotes, setEditNotes] = useState("");
   const [sharingId, setSharingId] = useState<string | null>(null);
 
   async function share(c: SwapClient) {
@@ -1043,10 +1116,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           code: code.trim(),
           usd_balance: parseFloat(balance) || 0,
           gold_kg: (parseFloat(goldAmount) || 0) / 1000,
-          xauusd_price: xau.trim() === "" ? null : parseFloat(xau) || 0,
-          margin_requirement_pct: parseFloat(marginPct) || 20,
-          annual_rate: parseFloat(rate) || 5.4,
-          short_annual_rate: parseFloat(shortRate) || 2.5,
+          additional_exposure_pct: parseFloat(addExp) || 5,
           position_type: positionType,
           notes: notes.trim() || null,
         },
@@ -1054,11 +1124,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       setCode("");
       setBalance("");
       setGoldAmount("0");
-      
-      setXau("");
-      setMarginPct("20");
-      setRate("5.4");
-      setShortRate("2.5");
+      setAddExp("5");
       setPositionType("long");
       setNotes("");
       setShowForm(false);
@@ -1071,14 +1137,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
 
   function startEdit(c: SwapClient) {
     setEditingId(c.id);
-    setEditCode(c.code);
     setEditBalance(String(c.usd_balance));
     setEditGoldAmount(String((c.gold_kg ?? 0) * 1000));
-    setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
-    setEditMarginPct(String(c.margin_requirement_pct ?? 20));
-    setEditRate(String(c.annual_rate));
-    setEditShortRate(String(c.short_annual_rate ?? 2.5));
+    setEditAddExp(String(c.additional_exposure_pct ?? 5));
     setEditPositionType((c.position_type ?? "long") as "long" | "short");
+    setEditNotes(c.notes ?? "");
   }
 
   async function saveEdit(id: string) {
@@ -1086,14 +1149,11 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
       await updateSwapClient({
         data: {
           id,
-          code: editCode.trim(),
           usd_balance: parseFloat(editBalance) || 0,
           gold_kg: (parseFloat(editGoldAmount) || 0) / 1000,
-          xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
-          margin_requirement_pct: parseFloat(editMarginPct) || 20,
-          annual_rate: parseFloat(editRate) || 5.4,
-          short_annual_rate: parseFloat(editShortRate) || 2.5,
+          additional_exposure_pct: parseFloat(editAddExp) || 5,
           position_type: editPositionType,
+          notes: editNotes.trim() || null,
         },
       });
       setEditingId(null);
@@ -1115,18 +1175,13 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
     }
   }
 
-  // Live XAU price overrides any per-client saved price for margin math.
   const effectiveXau = (c: SwapClient): number | null => {
     if (livePrice && livePrice.price > 0) return livePrice.price;
     return c.xauusd_price !== null ? Number(c.xauusd_price) : null;
   };
 
-  // Aggregate margin totals
-  const totals = useMemo(() => {
-    let required = 0;
-    let available = 0;
-    let shortage = 0;
-    let needingCount = 0;
+  const needingCount = useMemo(() => {
+    let n = 0;
     for (const c of clients) {
       const m = computeMargin({
         usd_balance: Number(c.usd_balance),
@@ -1134,14 +1189,9 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
         xauusd_price: effectiveXau(c),
         margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
       });
-      required += m.requiredMargin;
-      available += m.availableMargin;
-      if (m.status === "needed") {
-        shortage += Math.abs(m.difference);
-        needingCount += 1;
-      }
+      if (m.status === "needed") n++;
     }
-    return { required, available, shortage, needingCount };
+    return n;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, livePrice]);
 
@@ -1161,43 +1211,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
 
   return (
     <div className="space-y-4">
-      {/* Margin totals */}
-      <section className="rounded-xl border border-border/60 bg-card p-4">
-        <h2 className="text-sm font-semibold flex items-center gap-2 mb-3">
-          <ShieldCheck className="h-4 w-4 text-primary" /> Margin overview
-        </h2>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-md bg-muted/40 px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">Total required</div>
-            <div className="font-semibold">${fmt(totals.required)}</div>
-          </div>
-          <div className="rounded-md bg-muted/40 px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">Total available</div>
-            <div className="font-semibold">${fmt(totals.available)}</div>
-          </div>
-          <div
-            className={`rounded-md px-3 py-2 ${
-              totals.shortage > 0
-                ? "bg-red-500/15 text-red-600"
-                : "bg-green-500/15 text-green-600"
-            }`}
-          >
-            <div className="text-[11px] opacity-80">Total shortage</div>
-            <div className="font-semibold">${fmt(totals.shortage)}</div>
-          </div>
-          <div
-            className={`rounded-md px-3 py-2 ${
-              totals.needingCount > 0
-                ? "bg-red-500/15 text-red-600"
-                : "bg-green-500/15 text-green-600"
-            }`}
-          >
-            <div className="text-[11px] opacity-80">Clients needing margin</div>
-            <div className="font-semibold">{totals.needingCount}</div>
-          </div>
-        </div>
-      </section>
-
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold">Clients</h2>
@@ -1206,7 +1219,6 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           </Button>
         </div>
 
-        {/* Filters */}
         <div className="flex gap-1 mb-3 flex-wrap">
           {(["all", "enough", "needed"] as MarginLogFilter[]).map((f) => (
             <button
@@ -1226,8 +1238,8 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
               {f === "all"
                 ? `All (${clients.length})`
                 : f === "enough"
-                  ? `Enough margin (${clients.length - totals.needingCount})`
-                  : `Margin needed (${totals.needingCount})`}
+                  ? `Enough margin (${clients.length - needingCount})`
+                  : `Margin needed (${needingCount})`}
             </button>
           ))}
         </div>
@@ -1237,6 +1249,10 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
             <div className="col-span-2">
               <Label className="text-xs">Client code</Label>
               <Input value={code} onChange={(e) => setCode(e.target.value)} required />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Client name</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Display name" />
             </div>
             <div className="col-span-2">
               <Label className="text-xs">Position type</Label>
@@ -1250,7 +1266,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                       : "border-border/60 text-muted-foreground"
                   }`}
                 >
-                  Long / Buy (fee)
+                  Long / Buy
                 </button>
                 <button
                   type="button"
@@ -1261,7 +1277,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                       : "border-border/60 text-muted-foreground"
                   }`}
                 >
-                  Short / Sell (benefit)
+                  Short / Sell
                 </button>
               </div>
             </div>
@@ -1277,75 +1293,37 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
               />
             </div>
             <div>
-              <Label className="text-xs">
-                {positionType === "short" ? "Short benefit %/yr" : "Long fee %/yr"}
-              </Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={positionType === "short" ? shortRate : rate}
-                onChange={(e) =>
-                  positionType === "short"
-                    ? setShortRate(e.target.value)
-                    : setRate(e.target.value)
-                }
-              />
-            </div>
-            <div>
               <Label className="text-xs">Gold balance (grams)</Label>
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={goldAmount}
-                  onChange={(e) => setGoldAmount(e.target.value)}
-                  placeholder="0"
-                  className="flex-1"
-                />
-                <span className="text-sm text-muted-foreground px-2">g</span>
-              </div>
-              {(parseFloat(goldAmount) || 0) > 100000 && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  ⚠ Over 100,000 g (100 kg). Please verify.
-                </p>
-              )}
-            </div>
-            <div>
-              <Label className="text-xs">XAUUSD price ($/oz)</Label>
               <Input
                 type="number"
                 inputMode="decimal"
-                value={xau}
-                onChange={(e) => setXau(e.target.value)}
-                placeholder="auto"
+                value={goldAmount}
+                onChange={(e) => setGoldAmount(e.target.value)}
+                placeholder="0"
               />
             </div>
             <div className="col-span-2">
-              <Label className="text-xs">Margin requirement (%)</Label>
+              <Label className="text-xs">Additional Exposure (%)</Label>
               <Input
                 type="number"
                 inputMode="decimal"
-                value={marginPct}
-                onChange={(e) => setMarginPct(e.target.value)}
-                placeholder="20"
+                step="0.01"
+                value={addExp}
+                onChange={(e) => setAddExp(e.target.value)}
+                placeholder="5.00"
               />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Used to compute Effective Balance for daily swap fees. Default 5.00%.
+              </p>
             </div>
             <div className="col-span-2">
-              <Label className="text-xs">Name</Label>
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
-            <div className="col-span-2">
-              <Button type="submit" className="w-full">
-                Save client
-              </Button>
+              <Button type="submit" className="w-full">Save client</Button>
             </div>
           </form>
         )}
 
         {error && (
-          <p className="text-sm text-destructive mb-2" role="alert">
-            {error}
-          </p>
+          <p className="text-sm text-destructive mb-2" role="alert">{error}</p>
         )}
 
         {loading ? (
@@ -1356,73 +1334,74 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
           <ul className="space-y-2">
             {filteredClients.map((c) => {
               const isEditing = editingId === c.id;
-              const xauForCalc = effectiveXau(c);
               const margin = computeMargin({
                 usd_balance: Number(c.usd_balance),
                 gold_kg: Number(c.gold_kg ?? 0),
-                xauusd_price: xauForCalc,
+                xauusd_price: effectiveXau(c),
                 margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
               });
-              const needsMargin = margin.status === "needed";
+              const isShort = (c.position_type ?? "long") === "short";
+              const usd = Number(c.usd_balance);
               return (
                 <li
                   key={c.id}
-                  ref={(el) => {
-                    if (el) cardRefs.current.set(c.id, el);
-                    else cardRefs.current.delete(c.id);
-                  }}
                   className="rounded-md border border-border/60 p-3 bg-background"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    {isEditing ? (
-                      <Input
-                        value={editCode}
-                        onChange={(e) => setEditCode(e.target.value)}
-                        className="max-w-[160px]"
-                      />
-                    ) : (
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium flex items-center gap-2 flex-wrap">
-                        <span>{c.code}</span>
-                        {needsMargin && (
-                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
-                            ⚠ Margin needed
-                          </span>
-                        )}
+                        <span className="truncate">{c.code}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            isShort
+                              ? "bg-red-500/15 text-red-600"
+                              : "bg-green-500/15 text-green-600"
+                          }`}
+                        >
+                          {isShort ? "Short / Sell" : "Long / Buy"}
+                        </span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                            margin.tier === "safe"
+                              ? "bg-green-500/15 text-green-600"
+                              : margin.tier === "warning"
+                                ? "bg-amber-500/15 text-amber-600"
+                                : margin.tier === "critical"
+                                  ? "bg-red-600/20 text-red-700"
+                                  : "bg-red-500/15 text-red-600"
+                          }`}
+                        >
+                          {margin.tier === "safe"
+                            ? "✓ Safe"
+                            : margin.tier === "warning"
+                              ? "⚠ Warning"
+                              : margin.tier === "critical"
+                                ? "⛔ Critical"
+                                : "⚠ Margin needed"}
+                        </span>
                       </div>
-                    )}
-                    <div className="flex gap-1" data-share-hide>
+                      {c.notes && (
+                        <div className="text-[11px] text-muted-foreground break-words mt-0.5">
+                          {c.notes}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0" data-share-hide>
                       {isEditing ? (
                         <>
                           <Button size="icon" variant="ghost" onClick={() => saveEdit(c.id)}>
                             <Check className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditingId(null)}
-                          >
+                          <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
                             <X className="h-4 w-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => share(c)}
-                            disabled={sharingId === c.id}
-                            title="Share margin report"
-                          >
-                            <Share2 className="h-4 w-4 text-primary" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => startEdit(c)}>
+                          <Button size="icon" variant="ghost" onClick={() => startEdit(c)} title="Edit base info">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => remove(c.id, c.code)}
-                          >
+                          <Button size="icon" variant="ghost" onClick={() => remove(c.id, c.code)} title="Delete">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>
@@ -1430,9 +1409,12 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                     </div>
                   </div>
 
-
                   {isEditing ? (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="col-span-2">
+                        <Label className="text-xs">Client name</Label>
+                        <Input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
+                      </div>
                       <div className="col-span-2">
                         <Label className="text-xs">Position type</Label>
                         <div className="grid grid-cols-2 gap-2 mt-1">
@@ -1469,101 +1451,75 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">
-                          {editPositionType === "short" ? "Short benefit %" : "Long fee %"}
-                        </Label>
+                        <Label className="text-xs">Gold balance (g)</Label>
                         <Input
                           type="number"
-                          value={editPositionType === "short" ? editShortRate : editRate}
-                          onChange={(e) =>
-                            editPositionType === "short"
-                              ? setEditShortRate(e.target.value)
-                              : setEditRate(e.target.value)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Gold balance (grams)</Label>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            value={editGoldAmount}
-                            onChange={(e) => setEditGoldAmount(e.target.value)}
-                            className="flex-1"
-                          />
-                          <span className="text-sm text-muted-foreground px-2">g</span>
-                        </div>
-                        {(parseFloat(editGoldAmount) || 0) > 100000 && (
-                          <p className="text-[11px] text-amber-600 mt-1">
-                            ⚠ Over 100,000 g (100 kg). Please verify.
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <Label className="text-xs">XAUUSD ($/oz)</Label>
-                        <Input
-                          type="number"
-                          value={editXau}
-                          onChange={(e) => setEditXau(e.target.value)}
+                          value={editGoldAmount}
+                          onChange={(e) => setEditGoldAmount(e.target.value)}
                         />
                       </div>
                       <div className="col-span-2">
-                        <Label className="text-xs">Margin requirement (%)</Label>
+                        <Label className="text-xs">Additional Exposure (%)</Label>
                         <Input
                           type="number"
-                          value={editMarginPct}
-                          onChange={(e) => setEditMarginPct(e.target.value)}
+                          step="0.01"
+                          value={editAddExp}
+                          onChange={(e) => setEditAddExp(e.target.value)}
                         />
                       </div>
+                      <p className="col-span-2 text-[11px] text-muted-foreground">
+                        Margin % is edited in the Margin page. Swap rates are edited in the Swap Fees page.
+                      </p>
                     </div>
-                  ) : (() => {
-                    const isShort = (c.position_type ?? "long") === "short";
-                    const effRate = isShort
-                      ? Number(c.short_annual_rate ?? 0)
-                      : Number(c.annual_rate);
-                    const daily = (Number(c.usd_balance) * effRate) / 100 / 365;
-                    return (
-                      <>
-                        <div className="mt-2">
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              isShort
-                                ? "bg-red-500/15 text-red-600"
-                                : "bg-green-500/15 text-green-600"
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">USD bal</div>
+                          <div
+                            className={`font-semibold ${
+                              usd < 0 ? "text-red-600" : usd > 0 ? "text-green-600" : ""
                             }`}
                           >
-                            {isShort ? "Short / Sell" : "Long / Buy"}
-                          </span>
+                            {fmtMoney(usd)}
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                          <Stat
-                            label="USD balance"
-                            value={fmtMoney(Number(c.usd_balance))}
-                          />
-                          <Stat
-                            label={isShort ? "Benefit rate" : "Fee rate"}
-                            value={`${fmt(effRate)}%`}
-                          />
-                          <Stat
-                            label={isShort ? "Daily benefit" : "Daily fee"}
-                            value={`${isShort ? "+" : "-"}$${fmt(Math.abs(daily))}`}
-                            tone={isShort ? "positive" : "negative"}
-                          />
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Gold bal</div>
+                          <div className="font-semibold">{fmt(Number(c.gold_kg ?? 0) * 1000, 0)} g</div>
                         </div>
-
-                        {/* Margin Details */}
-                        <MarginDetails
-                          goldKg={Number(c.gold_kg ?? 0)}
-                          xau={xauForCalc}
-                          marginPct={Number(c.margin_requirement_pct ?? 20)}
-                          margin={margin}
-                          usdBalance={Number(c.usd_balance ?? 0)}
-                        />
-                      </>
-                    );
-                  })()}
-                  {c.notes && (
-                    <div className="text-[11px] text-muted-foreground mt-2">{c.notes}</div>
+                        <div className="rounded px-2 py-1.5 bg-muted/40">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Add. Exp.</div>
+                          <div className="font-semibold">{fmt(Number(c.additional_exposure_pct ?? 5))}%</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-2" data-share-hide>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate({ to: "/desk/app/margin" })}
+                        >
+                          <ShieldCheck className="h-4 w-4 mr-1 text-primary" /> View Margin
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          onClick={() => navigate({ to: "/desk/app/swap", search: { view: "fees" } as any })}
+                        >
+                          <DollarSign className="h-4 w-4 mr-1 text-primary" /> View Swap
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => share(c)}
+                          disabled={sharingId === c.id}
+                        >
+                          <Share2 className="h-4 w-4 mr-1 text-primary" />
+                          {sharingId === c.id ? "Sharing…" : "Share Report"}
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </li>
               );
@@ -1599,18 +1555,14 @@ function MarginTab({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [editGoldGrams, setEditGoldGrams] = useState("");
-  const [editXau, setEditXau] = useState("");
   const [editMarginPct, setEditMarginPct] = useState("");
-  const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
   const [savingId, setSavingId] = useState<string | null>(null);
 
   function startEdit(c: SwapClient) {
     setEditingId(c.id);
     setEditBalance(String(c.usd_balance));
     setEditGoldGrams(String((Number(c.gold_kg ?? 0)) * 1000));
-    setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
     setEditMarginPct(String(c.margin_requirement_pct ?? 20));
-    setEditPositionType((c.position_type ?? "long") as "long" | "short");
     setError(null);
   }
 
@@ -1625,14 +1577,9 @@ function MarginTab({
       await updateSwapClient({
         data: {
           id: c.id,
-          code: c.code,
           usd_balance: parseFloat(editBalance) || 0,
           gold_kg: (parseFloat(editGoldGrams) || 0) / 1000,
-          xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
           margin_requirement_pct: parseFloat(editMarginPct) || 20,
-          annual_rate: Number(c.annual_rate),
-          short_annual_rate: Number(c.short_annual_rate ?? 2.5),
-          position_type: editPositionType,
         },
       });
       invalidate(CK.todayFees, CK.margin, CK.activity, CK.clients);
@@ -1645,6 +1592,7 @@ function MarginTab({
       setSavingId(null);
     }
   }
+
 
   async function shareMargin(c: SwapClient) {
     setSharingId(c.id);
@@ -1888,38 +1836,11 @@ function MarginTab({
                             onChange={(e) => setEditMarginPct(e.target.value)}
                           />
                         </div>
-                        <div>
-                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">XAUUSD override</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="Use live price"
-                            value={editXau}
-                            onChange={(e) => setEditXau(e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Position</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={editPositionType === "long" ? "default" : "outline"}
-                              onClick={() => setEditPositionType("long")}
-                            >
-                              Long
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={editPositionType === "short" ? "default" : "outline"}
-                              onClick={() => setEditPositionType("short")}
-                            >
-                              Short
-                            </Button>
-                          </div>
-                        </div>
                       </div>
+                      <p className="text-[11px] text-muted-foreground -mt-1">
+                        Position type and rates are edited in their dedicated pages.
+                      </p>
+
                       <div className="flex justify-end gap-2 pt-1">
                         <Button size="sm" variant="ghost" onClick={cancelEdit}>
                           <X className="h-4 w-4 mr-1" />Cancel

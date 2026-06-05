@@ -1,0 +1,1 @@
+ALTER TABLE public.swap_clients ADD COLUMN IF NOT EXISTS additional_exposure_pct numeric NOT NULL DEFAULT 5.00;

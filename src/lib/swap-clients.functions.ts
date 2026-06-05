@@ -91,6 +91,16 @@ function effectiveAnnualRate(c: {
     : Number(c.annual_rate);
 }
 
+// Effective balance applies Additional Exposure (%) on top of USD balance.
+// effective = usd * (1 + additional_exposure_pct / 100). Default exposure 5%.
+export function effectiveBalance(
+  usdBalance: number,
+  additionalExposurePct: number | string | null | undefined,
+): number {
+  const pct = Number(additionalExposurePct ?? 5);
+  return Number(usdBalance) * (1 + pct / 100);
+}
+
 async function logActivity(
   userId: string,
   action: string,
@@ -116,7 +126,7 @@ export const listSwapClients = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("swap_clients")
       .select(
-        "id, code, usd_balance, gold_kg, xauusd_price, margin_requirement_pct, annual_rate, short_annual_rate, position_type, notes, created_by, created_at, updated_at",
+        "id, code, usd_balance, gold_kg, xauusd_price, margin_requirement_pct, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes, created_by, created_at, updated_at",
       )
       .order("code", { ascending: true });
     if (error) throw new Error(error.message);
@@ -135,6 +145,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        additional_exposure_pct: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
@@ -152,6 +163,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: data.margin_requirement_pct ?? 20,
         annual_rate: data.annual_rate ?? 5.4,
         short_annual_rate: data.short_annual_rate ?? 2.5,
+        additional_exposure_pct: data.additional_exposure_pct ?? 5,
         position_type: data.position_type ?? "long",
         notes: data.notes ?? null,
         created_by: context.userId,
@@ -167,6 +179,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
       margin_requirement_pct: row.margin_requirement_pct,
       annual_rate: row.annual_rate,
       short_annual_rate: row.short_annual_rate,
+      additional_exposure_pct: row.additional_exposure_pct,
       position_type: row.position_type,
     });
     return row;
@@ -185,6 +198,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        additional_exposure_pct: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
@@ -200,6 +214,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       margin_requirement_pct?: number;
       annual_rate?: number;
       short_annual_rate?: number;
+      additional_exposure_pct?: number;
       position_type?: "long" | "short";
       notes?: string | null;
     } = {};
@@ -211,6 +226,8 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       patch.margin_requirement_pct = data.margin_requirement_pct;
     if (data.annual_rate !== undefined) patch.annual_rate = data.annual_rate;
     if (data.short_annual_rate !== undefined) patch.short_annual_rate = data.short_annual_rate;
+    if (data.additional_exposure_pct !== undefined)
+      patch.additional_exposure_pct = data.additional_exposure_pct;
     if (data.position_type !== undefined) patch.position_type = data.position_type;
     if (data.notes !== undefined) patch.notes = data.notes;
 
@@ -326,7 +343,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes")
+      .select("id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes")
       .order("code");
     if (cErr) throw new Error(cErr.message);
 
@@ -365,7 +382,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const l = latestByClient.get(c.id);
         const positionType = (c.position_type ?? "long") as "long" | "short";
         const effRate = effectiveAnnualRate(c);
-        const baseDaily = (Number(c.usd_balance) * effRate) / 100 / 365;
+        const addExp = Number(c.additional_exposure_pct ?? 5);
+        const effBal = effectiveBalance(Number(c.usd_balance), addExp);
+        const baseDaily = (effBal * effRate) / 100 / 365;
         const liveDaily = baseDaily * todayMultiplier;
         return {
           id: c.id,
@@ -375,6 +394,8 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           usd_balance: Number(c.usd_balance),
           annual_rate: Number(c.annual_rate),
           short_annual_rate: Number(c.short_annual_rate ?? 0),
+          additional_exposure_pct: addExp,
+          effective_balance: effBal,
           effective_annual_rate: effRate,
           today_fee: t ? Number(t.daily_fee) : null,
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
@@ -395,7 +416,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
     const { data: client, error: cErr } = await supabaseAdmin
       .from("swap_clients")
       .select(
-        "id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes, created_at",
+        "id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes, created_at",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -421,6 +442,7 @@ export const getSwapClientHistory = createServerFn({ method: "GET" })
         usd_balance: Number(client.usd_balance),
         annual_rate: Number(client.annual_rate),
         short_annual_rate: Number(client.short_annual_rate ?? 0),
+        additional_exposure_pct: Number(client.additional_exposure_pct ?? 5),
       },
       fees: (fees ?? []).map((f) => ({
         id: f.id,
@@ -468,7 +490,7 @@ export async function runDailyFeeJob() {
   const today = new Date().toISOString().slice(0, 10);
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
-    .select("id, usd_balance, annual_rate, short_annual_rate, position_type");
+    .select("id, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type");
   if (error) throw new Error(error.message);
 
   const nowIso = new Date().toISOString();
@@ -476,6 +498,7 @@ export async function runDailyFeeJob() {
   const rows = (clients ?? []).map((c) => {
     const positionType = (c.position_type ?? "long") as "long" | "short";
     const effRate = effectiveAnnualRate(c);
+    const effBal = effectiveBalance(Number(c.usd_balance), c.additional_exposure_pct);
     return {
       client_id: c.id,
       fee_date: today,
@@ -483,7 +506,7 @@ export async function runDailyFeeJob() {
       usd_balance: Number(c.usd_balance),
       annual_rate: effRate,
       position_type: positionType,
-      daily_fee: ((Number(c.usd_balance) * effRate) / 100 / 365) * multiplier,
+      daily_fee: ((effBal * effRate) / 100 / 365) * multiplier,
       created_at: nowIso,
     };
   });

@@ -232,6 +232,7 @@ export type Database = {
       }
       swap_clients: {
         Row: {
+          additional_exposure_pct: number
           annual_rate: number
           code: string
           created_at: string
@@ -247,6 +248,7 @@ export type Database = {
           xauusd_price: number | null
         }
         Insert: {
+          additional_exposure_pct?: number
           annual_rate?: number
           code: string
           created_at?: string
@@ -262,6 +264,7 @@ export type Database = {
           xauusd_price?: number | null
         }
         Update: {
+          additional_exposure_pct?: number
           annual_rate?: number
           code?: string
           created_at?: string
