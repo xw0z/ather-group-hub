@@ -91,6 +91,16 @@ function effectiveAnnualRate(c: {
     : Number(c.annual_rate);
 }
 
+// Effective balance applies Additional Exposure (%) on top of USD balance.
+// effective = usd * (1 + additional_exposure_pct / 100). Default exposure 5%.
+export function effectiveBalance(
+  usdBalance: number,
+  additionalExposurePct: number | string | null | undefined,
+): number {
+  const pct = Number(additionalExposurePct ?? 5);
+  return Number(usdBalance) * (1 + pct / 100);
+}
+
 async function logActivity(
   userId: string,
   action: string,
