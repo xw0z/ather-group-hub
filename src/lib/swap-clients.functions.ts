@@ -126,7 +126,7 @@ export const listSwapClients = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("swap_clients")
       .select(
-        "id, code, usd_balance, gold_kg, xauusd_price, margin_requirement_pct, annual_rate, short_annual_rate, position_type, notes, created_by, created_at, updated_at",
+        "id, code, usd_balance, gold_kg, xauusd_price, margin_requirement_pct, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes, created_by, created_at, updated_at",
       )
       .order("code", { ascending: true });
     if (error) throw new Error(error.message);
