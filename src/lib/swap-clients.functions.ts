@@ -551,6 +551,9 @@ export async function runDailyFeeJob() {
     xauusd_price: number | null;
     usd_balance: number;
     annual_rate: number;
+    additional_exposure_pct: number;
+    effective_balance: number;
+    day_multiplier: number;
     position_type: "long" | "short";
     daily_fee: number;
     created_at: string;
@@ -559,7 +562,8 @@ export async function runDailyFeeJob() {
   for (const c of clients ?? []) {
     const positionType = (c.position_type ?? "long") as "long" | "short";
     const effRate = effectiveAnnualRate(c);
-    const effBal = effectiveBalance(Number(c.usd_balance), c.additional_exposure_pct);
+    const addExp = Number(c.additional_exposure_pct ?? 5);
+    const effBal = effectiveBalance(Number(c.usd_balance), addExp);
     const last = lastDateByClient.get(c.id) ?? null;
     const dates = last === today ? [today] : datesBetween(last, today);
     for (const d of dates) {
@@ -571,12 +575,16 @@ export async function runDailyFeeJob() {
         xauusd_price: d === today ? xauusd : null,
         usd_balance: Number(c.usd_balance),
         annual_rate: effRate,
+        additional_exposure_pct: addExp,
+        effective_balance: effBal,
+        day_multiplier: mult,
         position_type: positionType,
         daily_fee: ((effBal * effRate) / 100 / 365) * mult,
         created_at: nowIso,
       });
     }
   }
+
 
   if (rows.length > 0) {
     const { error: upErr } = await supabaseAdmin
