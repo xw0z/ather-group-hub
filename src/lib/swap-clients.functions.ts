@@ -349,7 +349,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
 
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .select("client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type")
+      .select(
+        "client_id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, additional_exposure_pct, effective_balance, day_multiplier",
+      )
       .order("fee_date", { ascending: false });
     if (fErr) throw new Error(fErr.message);
 
@@ -384,8 +386,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const effRate = effectiveAnnualRate(c);
         const addExp = Number(c.additional_exposure_pct ?? 5);
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
-        const baseDaily = (effBal * effRate) / 100 / 365;
-        const liveDaily = baseDaily * todayMultiplier;
+        const baseDaily = (Math.abs(effBal) * effRate) / 100 / 365;
+        const signed = positionType === "short" ? baseDaily : -baseDaily;
+        const liveDaily = signed * todayMultiplier;
         return {
           id: c.id,
           code: c.code,
@@ -399,14 +402,16 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
           effective_annual_rate: effRate,
           today_fee: t ? Number(t.daily_fee) : null,
           today_xauusd: t?.xauusd_price ? Number(t.xauusd_price) : null,
+          today_multiplier: t?.day_multiplier ?? todayMultiplier,
           last_fee: l ? Number(l.daily_fee) : null,
           last_fee_date: l?.fee_date ?? null,
-          base_daily_fee: baseDaily,
+          base_daily_fee: signed,
           live_daily_fee: liveDaily,
         };
       }),
     };
   });
+
 
 export const getSwapClientHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
