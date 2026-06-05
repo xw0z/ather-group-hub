@@ -1557,6 +1557,7 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                           xau={xauForCalc}
                           marginPct={Number(c.margin_requirement_pct ?? 20)}
                           margin={margin}
+                          usdBalance={Number(c.usd_balance ?? 0)}
                         />
                       </>
                     );
