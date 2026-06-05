@@ -343,7 +343,7 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
     const today = new Date().toISOString().slice(0, 10);
     const { data: clients, error: cErr } = await supabaseAdmin
       .from("swap_clients")
-      .select("id, code, usd_balance, annual_rate, short_annual_rate, position_type, notes")
+      .select("id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes")
       .order("code");
     if (cErr) throw new Error(cErr.message);
 
