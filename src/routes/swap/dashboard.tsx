@@ -35,6 +35,7 @@ import {
 } from "@/lib/swap-users.functions";
 import {
   computeMargin,
+  computeSwapFeesNow,
   createSwapClient,
   deleteSwapClient,
   getLiveXauPrice,
@@ -778,6 +779,7 @@ function HomeTab({
   const navigate = useNavigate();
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -812,15 +814,43 @@ function HomeTab({
       />
 
       <section className="rounded-xl border border-border/60 bg-card p-4">
-        <div>
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
-          </h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {data?.lastXauPrice
-              ? `XAUUSD ${fmt(data.lastXauPrice)} · last snapshot ${data.lastXauDate}`
-              : "No gold price snapshot yet."}
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Daily swap fees
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {data?.lastXauPrice
+                ? `XAUUSD ${fmt(data.lastXauPrice)} · last snapshot ${data.lastXauDate}`
+                : "No gold price snapshot yet."}
+            </p>
+          </div>
+          {isAdmin ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={running}
+              onClick={async () => {
+                setRunning(true);
+                try {
+                  const r = await computeSwapFeesNow();
+                  invalidate(CK.todayFees);
+                  await load();
+                  alert(
+                    `Snapshots written: ${r.count}${
+                      r.xauusd ? ` · XAUUSD $${fmt(r.xauusd)}` : ""
+                    }`,
+                  );
+                } catch (e) {
+                  alert(e instanceof Error ? e.message : "Failed");
+                } finally {
+                  setRunning(false);
+                }
+              }}
+            >
+              {running ? "Running…" : "Run now"}
+            </Button>
+          ) : null}
         </div>
 
 
