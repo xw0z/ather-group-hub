@@ -386,9 +386,9 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const effRate = effectiveAnnualRate(c);
         const addExp = Number(c.additional_exposure_pct ?? 5);
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
-        const baseDaily = (Math.abs(effBal) * effRate) / 100 / 365;
-        const signed = positionType === "short" ? baseDaily : -baseDaily;
-        const liveDaily = signed * todayMultiplier;
+        const baseDaily = (effBal * effRate) / 100 / 365;
+        const liveDaily = baseDaily * todayMultiplier;
+
         return {
           id: c.id,
           code: c.code,
