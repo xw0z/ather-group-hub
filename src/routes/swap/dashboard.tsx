@@ -779,6 +779,7 @@ function HomeTab({
   const navigate = useNavigate();
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
 
   async function load() {
     setLoading(true);
