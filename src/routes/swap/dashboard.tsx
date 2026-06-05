@@ -837,8 +837,8 @@ function HomeTab({
                   invalidate(CK.todayFees);
                   await load();
                   alert(
-                    `Snapshots written: ${r.written ?? 0}${
-                      r.backfilled ? ` (backfilled ${r.backfilled})` : ""
+                    `Snapshots written: ${r.count}${
+                      r.xauusd ? ` · XAUUSD $${fmt(r.xauusd)}` : ""
                     }`,
                   );
                 } catch (e) {
