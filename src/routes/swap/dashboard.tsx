@@ -710,34 +710,16 @@ export function SwapDashboard({
             />
           )}
           {effectiveTab === "margin" && can(perms, "margin", "view") && (
-            <>
-              {canBackup && (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <BackupButton app="margin" label="Backup margin" />
-                  <RestoreButton app="margin" label="Restore margin" />
-                </div>
-              )}
-              <MarginTab
-                livePrice={livePrice}
-                showLiveCard
-                isAdmin={isAdmin}
-                livePriceLoading={livePriceLoading}
-                onRefreshPrice={refreshPrice}
-                onPriceChanged={setLivePrice}
-              />
-            </>
+            <MarginTab
+              livePrice={livePrice}
+              showLiveCard
+              isAdmin={isAdmin}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+            />
           )}
-          {effectiveTab === "premium" && can(perms, "premium", "view") && (
-            <>
-              {canBackup && (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <BackupButton app="premium" label="Backup premium" />
-                  <RestoreButton app="premium" label="Restore premium" />
-                </div>
-              )}
-              <PremiumPanel />
-            </>
-          )}
+          {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
           {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
           {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
           {effectiveTab === "users" && isAdmin && (
