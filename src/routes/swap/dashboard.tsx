@@ -861,76 +861,19 @@ function HomeTab({
             No clients yet — add one in the Clients tab.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {data.rows.map((r) => {
-              const isShort = r.position_type === "short";
-              const amountLabel = isShort ? "Benefit today" : "Fee today";
-              const snapPrefix = isShort ? "today benefit" : "today fee";
-              const lastPrefix = isShort ? "last benefit" : "last fee";
-              return (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate({ to: "/swap/clients/$clientId", params: { clientId: r.id } })
-                    }
-                    className="w-full text-left rounded-md border border-border/60 p-3 bg-background hover:bg-muted/40 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium flex items-center gap-2 flex-wrap">
-                          <span>{r.code}</span>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              isShort
-                                ? "bg-red-500/15 text-red-600"
-                                : "bg-green-500/15 text-green-600"
-                            }`}
-                          >
-                            {isShort ? "Short / Sell" : "Long / Buy"}
-                          </span>
-                        </div>
-                        {r.notes ? (
-                          <div className="text-[11px] text-muted-foreground break-words mt-0.5">
-                            ({r.notes})
-                          </div>
-                        ) : null}
-                        <div className="text-[11px] text-muted-foreground">
-                          ${fmt(r.usd_balance)} · {fmt(r.effective_annual_rate)}%/yr{" "}
-                          {isShort ? "(benefit)" : "(fee)"}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div
-                          className={`font-semibold ${
-                            isShort ? "text-green-600" : "text-red-600"
-                          }`}
-                        >
-                          {isShort ? "+" : "-"}${fmt(Math.abs(Number(r.base_daily_fee) || 0))}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {amountLabel}:{" "}
-                          {r.today_fee !== null
-                            ? `${snapPrefix} $${fmt(r.today_fee)}`
-                            : r.last_fee !== null
-                              ? `${lastPrefix} ${r.last_fee_date} $${fmt(r.last_fee)}`
-                              : "no snapshot yet"}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-
+          <SwapFeesList
+            rows={data.rows}
+            todayMultiplier={data.todayMultiplier}
+            onUpdated={load}
+            onOpenHistory={(id) => navigate({ to: "/swap/clients/$clientId", params: { clientId: id } })}
+          />
         )}
         <p className="text-[11px] text-muted-foreground mt-3">
-          Formula: USD balance × annual rate% ÷ 365 × day multiplier. Long positions are
+          Formula: <span className="font-medium">Effective Balance × annual rate% ÷ 365 × day multiplier</span>,
+          where Effective Balance = USD Balance × (1 + Additional Exposure ÷ 100). Long positions are
           charged a fee using the long annual rate; Short positions receive a benefit credit
           using the short annual benefit rate. Mon/Tue/Thu/Fri = 1 day, Wednesday = 3 days
-          (covers the weekend in advance), Sat/Sun = 0. No additional swap is charged or
-          credited on Saturday or Sunday.
+          (covers the weekend in advance), Sat/Sun = 0.
           {data ? (
             <>
               {" "}Today&apos;s multiplier: <span className="font-medium">{data.todayMultiplier}×</span>.
@@ -939,6 +882,173 @@ function HomeTab({
         </p>
       </section>
     </div>
+  );
+}
+
+type SwapFeeRow = Awaited<ReturnType<typeof listTodaySwapFees>>["rows"][number];
+
+function SwapFeesList({
+  rows,
+  todayMultiplier,
+  onUpdated,
+  onOpenHistory,
+}: {
+  rows: SwapFeeRow[];
+  todayMultiplier: number;
+  onUpdated: () => void;
+  onOpenHistory: (id: string) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLong, setEditLong] = useState("");
+  const [editShort, setEditShort] = useState("");
+  const [editAddExp, setEditAddExp] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  function startEdit(r: SwapFeeRow) {
+    setEditingId(r.id);
+    setEditLong(String(r.annual_rate));
+    setEditShort(String(r.short_annual_rate));
+    setEditAddExp(String(r.additional_exposure_pct ?? 5));
+    setErr(null);
+  }
+
+  async function save(id: string) {
+    setSavingId(id);
+    setErr(null);
+    try {
+      await updateSwapClient({
+        data: {
+          id,
+          annual_rate: parseFloat(editLong) || 0,
+          short_annual_rate: parseFloat(editShort) || 0,
+          additional_exposure_pct: parseFloat(editAddExp) || 5,
+        },
+      });
+      invalidate(CK.todayFees, CK.clients, CK.activity);
+      setEditingId(null);
+      onUpdated();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to save.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  return (
+    <ul className="space-y-2">
+      {err && <p className="text-sm text-destructive">{err}</p>}
+      {rows.map((r) => {
+        const isShort = r.position_type === "short";
+        const isEditing = editingId === r.id;
+        const effBal = r.effective_balance ?? r.usd_balance * (1 + (r.additional_exposure_pct ?? 5) / 100);
+        return (
+          <li
+            key={r.id}
+            className="rounded-md border border-border/60 p-3 bg-background"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium flex items-center gap-2 flex-wrap">
+                  <span className="truncate">{r.code}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded ${
+                      isShort
+                        ? "bg-red-500/15 text-red-600"
+                        : "bg-green-500/15 text-green-600"
+                    }`}
+                  >
+                    {isShort ? "Short / Sell" : "Long / Buy"}
+                  </span>
+                </div>
+                {r.notes && (
+                  <div className="text-[11px] text-muted-foreground break-words mt-0.5">
+                    {r.notes}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                {isEditing ? (
+                  <>
+                    <Button size="icon" variant="ghost" onClick={() => save(r.id)} disabled={savingId === r.id}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
+                      <Pencil className="h-4 w-4 mr-1 text-primary" /> Edit
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => onOpenHistory(r.id)}>
+                      <ScrollText className="h-4 w-4 mr-1 text-primary" /> History
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {isEditing ? (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Long %/yr</Label>
+                  <Input type="number" step="0.01" value={editLong} onChange={(e) => setEditLong(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Short %/yr</Label>
+                  <Input type="number" step="0.01" value={editShort} onChange={(e) => setEditShort(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Add. Exp. %</Label>
+                  <Input type="number" step="0.01" value={editAddExp} onChange={(e) => setEditAddExp(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">USD balance</div>
+                    <div className={`font-semibold ${r.usd_balance < 0 ? "text-red-600" : r.usd_balance > 0 ? "text-green-600" : ""}`}>
+                      {fmtMoney(r.usd_balance)}
+                    </div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Additional exposure</div>
+                    <div className="font-semibold">{fmt(r.additional_exposure_pct ?? 5)}%</div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-primary/10 col-span-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Effective balance</div>
+                    <div className={`font-semibold ${effBal < 0 ? "text-red-600" : effBal > 0 ? "text-green-600" : ""}`}>
+                      {fmtMoney(effBal)}
+                    </div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Long rate</div>
+                    <div className="font-semibold">{fmt(r.annual_rate)}%/yr</div>
+                  </div>
+                  <div className="rounded px-2 py-1.5 bg-muted/40">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Short rate</div>
+                    <div className="font-semibold">{fmt(r.short_annual_rate)}%/yr</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-sm">
+                  <div className="text-[11px] text-muted-foreground">
+                    Day multiplier: <span className="font-medium">{todayMultiplier}×</span>
+                    {todayMultiplier === 3 ? " (Wednesday — covers weekend)" : ""}
+                  </div>
+                  <div className={`font-semibold ${isShort ? "text-green-600" : "text-red-600"}`}>
+                    {isShort ? "+" : "-"}${fmt(Math.abs(Number(r.live_daily_fee) || 0))}
+                    <span className="text-[11px] text-muted-foreground font-normal ml-1">today</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
