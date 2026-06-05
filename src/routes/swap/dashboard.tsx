@@ -1328,6 +1328,28 @@ function ClientsTab({ livePrice }: { livePrice: LiveXau | null }) {
                 Used to compute Effective Balance for daily swap fees. Default 5.00%.
               </p>
             </div>
+            <div>
+              <Label className="text-xs">Long annual rate (%)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={longRate}
+                onChange={(e) => setLongRate(e.target.value)}
+                placeholder="5.40"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Short annual rate (%)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={shortRate}
+                onChange={(e) => setShortRate(e.target.value)}
+                placeholder="2.50"
+              />
+            </div>
             <div className="col-span-2">
               <Button type="submit" className="w-full">Save client</Button>
             </div>
