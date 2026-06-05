@@ -283,10 +283,13 @@ export type Database = {
       }
       swap_daily_fees: {
         Row: {
+          additional_exposure_pct: number
           annual_rate: number
           client_id: string
           created_at: string
           daily_fee: number
+          day_multiplier: number | null
+          effective_balance: number | null
           fee_date: string
           id: string
           position_type: string
@@ -294,10 +297,13 @@ export type Database = {
           xauusd_price: number | null
         }
         Insert: {
+          additional_exposure_pct?: number
           annual_rate: number
           client_id: string
           created_at?: string
           daily_fee: number
+          day_multiplier?: number | null
+          effective_balance?: number | null
           fee_date: string
           id?: string
           position_type?: string
@@ -305,10 +311,13 @@ export type Database = {
           xauusd_price?: number | null
         }
         Update: {
+          additional_exposure_pct?: number
           annual_rate?: number
           client_id?: string
           created_at?: string
           daily_fee?: number
+          day_multiplier?: number | null
+          effective_balance?: number | null
           fee_date?: string
           id?: string
           position_type?: string
