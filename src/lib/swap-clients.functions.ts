@@ -198,6 +198,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        additional_exposure_pct: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
@@ -213,6 +214,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       margin_requirement_pct?: number;
       annual_rate?: number;
       short_annual_rate?: number;
+      additional_exposure_pct?: number;
       position_type?: "long" | "short";
       notes?: string | null;
     } = {};
@@ -224,6 +226,8 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       patch.margin_requirement_pct = data.margin_requirement_pct;
     if (data.annual_rate !== undefined) patch.annual_rate = data.annual_rate;
     if (data.short_annual_rate !== undefined) patch.short_annual_rate = data.short_annual_rate;
+    if (data.additional_exposure_pct !== undefined)
+      patch.additional_exposure_pct = data.additional_exposure_pct;
     if (data.position_type !== undefined) patch.position_type = data.position_type;
     if (data.notes !== undefined) patch.notes = data.notes;
 
