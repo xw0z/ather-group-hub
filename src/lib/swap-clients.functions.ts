@@ -145,6 +145,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: z.number().finite().min(0).max(100).optional(),
         annual_rate: z.number().finite().min(0).max(100).optional(),
         short_annual_rate: z.number().finite().min(0).max(100).optional(),
+        additional_exposure_pct: z.number().finite().min(0).max(100).optional(),
         position_type: positionTypeRule.optional(),
         notes: z.string().max(2000).optional().nullable(),
       })
@@ -162,6 +163,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
         margin_requirement_pct: data.margin_requirement_pct ?? 20,
         annual_rate: data.annual_rate ?? 5.4,
         short_annual_rate: data.short_annual_rate ?? 2.5,
+        additional_exposure_pct: data.additional_exposure_pct ?? 5,
         position_type: data.position_type ?? "long",
         notes: data.notes ?? null,
         created_by: context.userId,
@@ -177,6 +179,7 @@ export const createSwapClient = createServerFn({ method: "POST" })
       margin_requirement_pct: row.margin_requirement_pct,
       annual_rate: row.annual_rate,
       short_annual_rate: row.short_annual_rate,
+      additional_exposure_pct: row.additional_exposure_pct,
       position_type: row.position_type,
     });
     return row;
