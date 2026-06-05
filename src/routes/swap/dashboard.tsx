@@ -1461,18 +1461,14 @@ function MarginTab({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [editGoldGrams, setEditGoldGrams] = useState("");
-  const [editXau, setEditXau] = useState("");
   const [editMarginPct, setEditMarginPct] = useState("");
-  const [editPositionType, setEditPositionType] = useState<"long" | "short">("long");
   const [savingId, setSavingId] = useState<string | null>(null);
 
   function startEdit(c: SwapClient) {
     setEditingId(c.id);
     setEditBalance(String(c.usd_balance));
     setEditGoldGrams(String((Number(c.gold_kg ?? 0)) * 1000));
-    setEditXau(c.xauusd_price !== null ? String(c.xauusd_price) : "");
     setEditMarginPct(String(c.margin_requirement_pct ?? 20));
-    setEditPositionType((c.position_type ?? "long") as "long" | "short");
     setError(null);
   }
 
@@ -1487,14 +1483,9 @@ function MarginTab({
       await updateSwapClient({
         data: {
           id: c.id,
-          code: c.code,
           usd_balance: parseFloat(editBalance) || 0,
           gold_kg: (parseFloat(editGoldGrams) || 0) / 1000,
-          xauusd_price: editXau.trim() === "" ? null : parseFloat(editXau) || 0,
           margin_requirement_pct: parseFloat(editMarginPct) || 20,
-          annual_rate: Number(c.annual_rate),
-          short_annual_rate: Number(c.short_annual_rate ?? 2.5),
-          position_type: editPositionType,
         },
       });
       invalidate(CK.todayFees, CK.margin, CK.activity, CK.clients);
@@ -1507,6 +1498,7 @@ function MarginTab({
       setSavingId(null);
     }
   }
+
 
   async function shareMargin(c: SwapClient) {
     setSharingId(c.id);
