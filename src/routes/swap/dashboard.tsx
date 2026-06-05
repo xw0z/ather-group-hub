@@ -895,7 +895,7 @@ function HomeTab({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="font-medium truncate flex items-center gap-2">
+                        <div className="font-medium flex items-center gap-2 flex-wrap">
                           <span>{r.code}</span>
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -906,12 +906,12 @@ function HomeTab({
                           >
                             {isShort ? "Short / Sell" : "Long / Buy"}
                           </span>
-                          {r.notes ? (
-                            <span className="text-muted-foreground font-normal truncate">
-                              ({r.notes})
-                            </span>
-                          ) : null}
                         </div>
+                        {r.notes ? (
+                          <div className="text-[11px] text-muted-foreground break-words mt-0.5">
+                            ({r.notes})
+                          </div>
+                        ) : null}
                         <div className="text-[11px] text-muted-foreground">
                           ${fmt(r.usd_balance)} · {fmt(r.effective_annual_rate)}%/yr{" "}
                           {isShort ? "(benefit)" : "(fee)"}
