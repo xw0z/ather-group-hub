@@ -494,22 +494,74 @@ export async function runDailyFeeJob() {
   if (error) throw new Error(error.message);
 
   const nowIso = new Date().toISOString();
-  const multiplier = swapDayMultiplier(new Date());
-  const rows = (clients ?? []).map((c) => {
+
+  // Determine which dates to write. Default: just today.
+  // Backfill: for each client, fill any missing weekdays since their last
+  // snapshot up to today. Sat/Sun naturally skip (multiplier 0).
+  // Look back at most 14 days to bound the work.
+  const MAX_BACKFILL_DAYS = 14;
+  const { data: lastByClient } = await supabaseAdmin
+    .from("swap_daily_fees")
+    .select("client_id, fee_date")
+    .gte(
+      "fee_date",
+      new Date(Date.now() - MAX_BACKFILL_DAYS * 86400_000)
+        .toISOString()
+        .slice(0, 10),
+    )
+    .order("fee_date", { ascending: false });
+  const lastDateByClient = new Map<string, string>();
+  for (const r of lastByClient ?? []) {
+    if (!lastDateByClient.has(r.client_id))
+      lastDateByClient.set(r.client_id, r.fee_date);
+  }
+
+  function datesBetween(fromExclusive: string | null, toInclusive: string): string[] {
+    const out: string[] = [];
+    const end = new Date(`${toInclusive}T00:00:00Z`);
+    const start = fromExclusive
+      ? new Date(`${fromExclusive}T00:00:00Z`)
+      : new Date(end.getTime() - MAX_BACKFILL_DAYS * 86400_000);
+    const cursor = new Date(start.getTime() + 86400_000);
+    while (cursor.getTime() <= end.getTime()) {
+      out.push(cursor.toISOString().slice(0, 10));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return out;
+  }
+
+  const rows: Array<{
+    client_id: string;
+    fee_date: string;
+    xauusd_price: number | null;
+    usd_balance: number;
+    annual_rate: number;
+    position_type: "long" | "short";
+    daily_fee: number;
+    created_at: string;
+  }> = [];
+
+  for (const c of clients ?? []) {
     const positionType = (c.position_type ?? "long") as "long" | "short";
     const effRate = effectiveAnnualRate(c);
     const effBal = effectiveBalance(Number(c.usd_balance), c.additional_exposure_pct);
-    return {
-      client_id: c.id,
-      fee_date: today,
-      xauusd_price: xauusd,
-      usd_balance: Number(c.usd_balance),
-      annual_rate: effRate,
-      position_type: positionType,
-      daily_fee: ((effBal * effRate) / 100 / 365) * multiplier,
-      created_at: nowIso,
-    };
-  });
+    const last = lastDateByClient.get(c.id) ?? null;
+    const dates = last === today ? [today] : datesBetween(last, today);
+    for (const d of dates) {
+      const mult = swapDayMultiplier(new Date(`${d}T00:00:00Z`));
+      rows.push({
+        client_id: c.id,
+        fee_date: d,
+        // Only stamp live XAU on today's snapshot; backfilled rows leave it null.
+        xauusd_price: d === today ? xauusd : null,
+        usd_balance: Number(c.usd_balance),
+        annual_rate: effRate,
+        position_type: positionType,
+        daily_fee: ((effBal * effRate) / 100 / 365) * mult,
+        created_at: nowIso,
+      });
+    }
+  }
 
   if (rows.length > 0) {
     const { error: upErr } = await supabaseAdmin
