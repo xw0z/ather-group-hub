@@ -1742,38 +1742,11 @@ function MarginTab({
                             onChange={(e) => setEditMarginPct(e.target.value)}
                           />
                         </div>
-                        <div>
-                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">XAUUSD override</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="Use live price"
-                            value={editXau}
-                            onChange={(e) => setEditXau(e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Position</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={editPositionType === "long" ? "default" : "outline"}
-                              onClick={() => setEditPositionType("long")}
-                            >
-                              Long
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={editPositionType === "short" ? "default" : "outline"}
-                              onClick={() => setEditPositionType("short")}
-                            >
-                              Short
-                            </Button>
-                          </div>
-                        </div>
                       </div>
+                      <p className="text-[11px] text-muted-foreground -mt-1">
+                        Position type and rates are edited in their dedicated pages.
+                      </p>
+
                       <div className="flex justify-end gap-2 pt-1">
                         <Button size="sm" variant="ghost" onClick={cancelEdit}>
                           <X className="h-4 w-4 mr-1" />Cancel
