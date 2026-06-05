@@ -35,6 +35,7 @@ import {
 } from "@/lib/swap-users.functions";
 import {
   computeMargin,
+  computeSwapFeesNow,
   createSwapClient,
   deleteSwapClient,
   getLiveXauPrice,
