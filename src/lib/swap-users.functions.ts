@@ -43,13 +43,32 @@ export const swapSignInWithUsername = createServerFn({ method: "POST" })
       .ilike("username", data.username)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!profile) throw new Error(generic);
+    if (!profile) {
+      await recordAudit({
+        userId: null,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "unknown_username" },
+      });
+      throw new Error(generic);
+    }
 
     const { data: userRes, error: userErr } =
       await supabaseAdmin.auth.admin.getUserById(profile.id);
-    if (userErr || !userRes?.user?.email) throw new Error(generic);
+    if (userErr || !userRes?.user?.email) {
+      await recordAudit({
+        userId: profile.id,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "missing_auth_user" },
+      });
+      throw new Error(generic);
+    }
 
-    // Verify password via an anon client (does not persist session server-side).
     const anon = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
@@ -59,7 +78,25 @@ export const swapSignInWithUsername = createServerFn({ method: "POST" })
       email: userRes.user.email,
       password: data.password,
     });
-    if (signErr || !sess.session) throw new Error(generic);
+    if (signErr || !sess.session) {
+      await recordAudit({
+        userId: profile.id,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "bad_password" },
+      });
+      throw new Error(generic);
+    }
+
+    await recordAudit({
+      userId: profile.id,
+      username: data.username,
+      module: "auth",
+      action: "login_succeeded",
+      status: "success",
+    });
 
     return {
       access_token: sess.session.access_token,
