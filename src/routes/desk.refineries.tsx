@@ -19,11 +19,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
-  listClients, createClient, updateClient, getClient,
+  listClients, createClient, updateClient,
   listTransactions, createTransaction, settleTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard,
   getMyRefineryProfile, updateMyRefineryProfile,
-  type Refinery, type RefineryClient, type RefineryTransaction, type RefineryGoldBar,
+  type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
 } from "@/lib/refineries.functions";
 
