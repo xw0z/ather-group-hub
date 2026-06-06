@@ -667,11 +667,9 @@ async function sendDailyWhatsAppStatements(
     const mult = Number(f.day_multiplier ?? 1);
     const exposureFactorPct = 100 + addExp;
     const divider = "------------------------------";
-    const nameLine = c.notes ? `Name: ${c.notes}\n` : "";
     const body =
       `Swap Statement\n` +
       `Client: ${c.code}\n` +
-      nameLine +
       `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
       `Snapshot: ${snapshot}\n` +
       `XAUUSD: ${xau !== null ? `$${fmtNum(xau)}` : "—"}\n` +
