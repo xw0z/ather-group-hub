@@ -88,6 +88,27 @@ const TX_COLOR: Record<PremiumTx["kind"], string> = {
   premium: EMBER,
 };
 
+/** Build a single-line, professional note for discount/premium rows. */
+function formatTxNote(t: PremiumTx): string {
+  if (t.kind === "discount" || t.kind === "premium") {
+    const isPremium = t.kind === "premium";
+    const label = isPremium ? "Premium Applied" : "Discount Applied";
+    const sign = isPremium ? "+" : "-";
+    const rate = Number(t.per_oz ?? 0).toFixed(0);
+    const grams = (Number(t.grams) || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const valueAbs = Math.abs(Number(t.amount_usd ?? 0)).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const base = `${label} (${sign}${rate} USD/oz) | Gold: ${grams} g | Value: $${valueAbs}`;
+    return t.notes ? `${base} — ${t.notes}` : base;
+  }
+  return t.notes || "—";
+}
+
 /* -------------------- Component -------------------- */
 
 export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
