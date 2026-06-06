@@ -47,7 +47,7 @@ function fmtSnapshot(iso: string): string {
 
 function buildMessage(
   code: string,
-  _notes: string | null,
+  notes: string | null,
   feeDate: string,
   snapshotAt: string,
   balance: number,
@@ -55,30 +55,38 @@ function buildMessage(
   rate: number,
   xauusd: number | null,
   positionType: "long" | "short",
+  additionalExposurePct: number,
+  effectiveBalance: number,
+  dayMultiplier: number,
 ): string {
   const isShort = positionType === "short";
-  const absFee = Math.abs(dailyFee);
-  const dt = new Date(`${feeDate}T00:00:00Z`);
-  const isWed = dt.getUTCDay() === 3;
-  const baseFee = isWed ? absFee / 3 : absFee;
   const sign = isShort ? "+" : "-";
-  const amountLine = isShort
-    ? `Swap benefit credited: *+$${fmt(baseFee)}*`
-    : `Swap fee: *-$${fmt(baseFee)}*`;
-  const wedLine = isWed
-    ? `\nWednesday 3× applied: *${sign}$${fmt(absFee)}* charged`
-    : "";
+  const absFee = Math.abs(dailyFee);
+  const exposureFactor = 1 + additionalExposurePct / 100;
+  const absBal = Math.abs(balance);
+  const absEff = Math.abs(effectiveBalance);
+  const divider = "------------------------------";
+  const nameLine = notes ? `Name: ${notes}\n` : "";
+  const amountLabel = isShort ? "Swap Benefit Credited" : "Swap Fee Charged";
+
   return (
-    `Swap Statement — ${feeDate}\n` +
+    `Swap Statement\n` +
     `Client: ${code}\n` +
+    nameLine +
     `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
-    `Snapshot: ${fmtSnapshot(snapshotAt)}` +
-    (xauusd !== null ? ` · XAUUSD $${fmt(xauusd)}` : "") +
-    `\n\n` +
-    `Balance: ${money(balance)}\n` +
-    `Rate: ${fmt(rate)}% p.a.\n` +
-    amountLine +
-    wedLine
+    `Snapshot: ${fmtSnapshot(snapshotAt)}\n` +
+    `XAUUSD: ${xauusd !== null ? `$${fmt(xauusd)}` : "—"}\n` +
+    `\n${divider}\n\n` +
+    `USD Balance: ${money(balance)}\n` +
+    `Additional Exposure: ${fmt(additionalExposurePct)}%\n` +
+    `Effective Balance: $${fmt(absEff)}\n` +
+    `Calculation: $${fmt(absBal)} × ${fmt(exposureFactor * 100, 0)}% = $${fmt(absEff)}\n` +
+    `\n${divider}\n\n` +
+    `Annual Rate: ${fmt(rate)}% p.a.\n` +
+    `Day Multiplier: ${dayMultiplier}×\n` +
+    `${amountLabel}: *${sign}$${fmt(absFee)}*\n` +
+    `\n${divider}\n` +
+    `ATHER Desk · Generated automatically`
   );
 }
 
