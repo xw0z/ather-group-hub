@@ -2,20 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recordAudit } from "@/lib/swap-audit.server";
 
-async function logActivity(userId: string, action: string, details: unknown) {
-  const { data: prof } = await supabaseAdmin
-    .from("swap_profiles")
-    .select("username")
-    .eq("id", userId)
-    .maybeSingle();
-  await supabaseAdmin.from("swap_activity_log").insert({
-    user_id: userId,
-    username: prof?.username ?? "unknown",
+async function logActivity(
+  userId: string,
+  action: string,
+  details: unknown,
+  module: "auth" | "users" = "users",
+  oldValues?: unknown,
+  newValues?: unknown,
+) {
+  await recordAudit({
+    userId,
+    module,
     action,
     entity_type: "profile",
     entity_id: userId,
-    details: details as never,
+    old_values: oldValues ?? null,
+    new_values: newValues ?? null,
+    details,
   });
 }
 

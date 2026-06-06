@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeMargin, assertSwapUser } from "@/lib/swap-clients.functions";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 const dateStr = z
   .string()
@@ -228,6 +229,21 @@ export const logReportGeneration = createServerFn({ method: "POST" })
       details: (data.details ?? null) as never,
     });
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId: context.userId,
+      username,
+      module: "reports",
+      action: `report_${data.channel}`,
+      entity_type: "report",
+      entity_id: data.client_id ?? null,
+      details: {
+        report_type: data.report_type,
+        format: data.format,
+        channel: data.channel,
+        client_code: data.client_code ?? null,
+        ...(data.details ?? {}),
+      },
+    });
     return { ok: true };
   });
 
