@@ -38,7 +38,7 @@ async function isAdmin(userId: string): Promise<boolean> {
 
 
 const SETTINGS_COLS =
-  "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
+  "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, default_additional_exposure_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
 
 async function assertSwapUser(userId: string) {
   const { data } = await supabaseAdmin
