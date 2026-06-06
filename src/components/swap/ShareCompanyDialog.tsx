@@ -744,7 +744,7 @@ const StatementCard = ({
         padding: "32px 36px 28px",
       }}
     >
-      <Brand subtitle="Full Transaction Statement" />
+      <Brand subtitle="Gold Discount Balance" />
       <CompanyHeader name={summary.company.name} generatedAt={generatedAt} />
 
       <div style={{ marginTop: 18 }}>
