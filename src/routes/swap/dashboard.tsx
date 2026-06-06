@@ -804,21 +804,21 @@ function DashboardOverview({
       // Extras via direct supabase queries (best-effort)
       try {
         const todayStr = new Date().toISOString().slice(0, 10);
-        const [newClients, trips, marginCalls] = await Promise.all([
+        const [newClients, trips, pieces, marginCalls] = await Promise.all([
           supabase.from("swap_clients").select("id, created_at").gte("created_at", todayStr),
-          supabase.from("purity_trips").select("id, departure_date, gross_grams_total"),
-          supabase.from("swap_margin_history").select("id, created_at, status").gte("created_at", todayStr),
+          supabase.from("purity_trips").select("id, departure_date"),
+          supabase.from("purity_pieces").select("weight_grams"),
+          supabase.from("swap_margin_history").select("id, created_at, new_status").gte("created_at", todayStr),
         ]);
-        const purityGrams = (trips.data ?? []).reduce(
-          (s: number, t: { gross_grams_total?: number | null }) => s + (Number(t.gross_grams_total) || 0),
+        const purityGrams = (pieces.data ?? []).reduce(
+          (s: number, p) => s + (Number((p as { weight_grams?: number | null }).weight_grams) || 0),
           0,
         );
         const purityTripsToday = (trips.data ?? []).filter(
-          (t: { departure_date?: string | null; created_at?: string | null }) =>
-            (t.departure_date ?? "") === todayStr,
+          (t) => ((t as { departure_date?: string | null }).departure_date ?? "") === todayStr,
         ).length;
         const marginCallsToday = (marginCalls.data ?? []).filter(
-          (m: { status?: string | null }) => m.status === "needed",
+          (m) => (m as { new_status?: string | null }).new_status === "needed",
         ).length;
         if (alive)
           setExtras({
