@@ -586,6 +586,72 @@ function BrandFooter({ qr }: { qr: string }) {
   );
 }
 
+/* -------------------- Available (no D/P) hero highlight -------------------- */
+
+function AvailableHighlight({ grams }: { grams: number }) {
+  const positive = grams >= 0;
+  const color = positive ? OK : DANGER;
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: "26px 24px",
+        background: CARD,
+        border: `2px solid ${color}`,
+        borderRadius: 14,
+        textAlign: "center",
+        boxShadow: `0 0 0 4px ${color}22 inset`,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          color: TEXT_MUTED,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          fontWeight: 700,
+        }}
+      >
+        Available — No D/P
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: TEXT_FAINT,
+          marginTop: 4,
+        }}
+      >
+        Total available gold after excluding Discount / Premium effect
+      </div>
+      <div
+        style={{
+          fontSize: 48,
+          fontWeight: 900,
+          marginTop: 12,
+          fontVariantNumeric: "tabular-nums",
+          letterSpacing: "-0.02em",
+          color,
+          fontFamily: displayFont,
+          lineHeight: 1,
+        }}
+      >
+        {fmtGNum(grams)}
+        <span
+          style={{
+            fontSize: 22,
+            color,
+            marginLeft: 10,
+            fontWeight: 700,
+            opacity: 0.85,
+          }}
+        >
+          g
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /* -------------------- Summary card (one-page overview) -------------------- */
 
 const SummaryCard = ({
@@ -613,78 +679,9 @@ const SummaryCard = ({
       <Brand subtitle="Company Summary" />
       <CompanyHeader name={summary.company.name} generatedAt={generatedAt} />
 
-      {/* Hero — Available Gold */}
       <div
         style={{
           marginTop: 18,
-          padding: "22px 20px",
-          background: CARD,
-          border: `1px solid ${BORDER}`,
-          borderRadius: 10,
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 2,
-            background: `linear-gradient(90deg, ${EMBER}, ${EMBER_DEEP})`,
-          }}
-        />
-        <div
-          style={{
-            fontSize: 11,
-            color: TEXT_MUTED,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-          }}
-        >
-          Net Available Gold
-        </div>
-        <div
-          style={{
-            fontSize: 10,
-            color: TEXT_FAINT,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            marginTop: 4,
-          }}
-        >
-          Without discount / premium
-        </div>
-        <div
-          style={{
-            fontSize: 38,
-            fontWeight: 800,
-            marginTop: 10,
-            fontVariantNumeric: "tabular-nums",
-            letterSpacing: "-0.01em",
-            color: summary.clean_remaining_grams < 0 ? DANGER : EMBER,
-            fontFamily: displayFont,
-          }}
-        >
-          {fmtGNum(summary.clean_remaining_grams)}
-          <span
-            style={{
-              fontSize: 18,
-              color: TEXT_SOFT,
-              marginLeft: 8,
-              fontWeight: 700,
-            }}
-          >
-            g
-          </span>
-        </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 16,
           padding: "4px 16px",
           background: CARD,
           border: `1px solid ${BORDER}`,
@@ -692,19 +689,14 @@ const SummaryCard = ({
         }}
       >
         <Row
-          label="Total Gold (without D/P)"
-          value={fmtG(summary.clean_remaining_grams)}
-          valueColor={summary.clean_remaining_grams < 0 ? DANGER : undefined}
+          label="Total Balance"
+          value={fmtG(summary.total_balance_grams)}
+          valueColor={summary.total_balance_grams < 0 ? DANGER : undefined}
         />
         <Row
           label="Discount / Premium Gold"
           value={fmtG(summary.dp_grams)}
           valueColor={EMBER}
-        />
-        <Row
-          label="Total Balance"
-          value={fmtG(summary.total_balance_grams)}
-          valueColor={summary.total_balance_grams < 0 ? DANGER : undefined}
         />
         <Row
           label="Total Discount / Premium (USD)"
@@ -713,6 +705,8 @@ const SummaryCard = ({
           emphasize
         />
       </div>
+
+      <AvailableHighlight grams={summary.clean_remaining_grams} />
 
       <BrandFooter qr={qr} />
     </div>
@@ -753,67 +747,6 @@ const StatementCard = ({
       <Brand subtitle="Full Transaction Statement" />
       <CompanyHeader name={summary.company.name} generatedAt={generatedAt} />
 
-      {/* Compact totals */}
-      <div
-        style={{
-          marginTop: 16,
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 10,
-        }}
-      >
-        {[
-          {
-            l: "Total Balance",
-            v: fmtG(summary.total_balance_grams),
-            c: summary.total_balance_grams < 0 ? DANGER : TEXT,
-          },
-          { l: "D/P Gold", v: fmtG(summary.dp_grams), c: EMBER },
-          {
-            l: "Available (no D/P)",
-            v: fmtG(summary.clean_remaining_grams),
-            c: summary.clean_remaining_grams < 0 ? DANGER : TEXT,
-          },
-          {
-            l: "D/P Charges",
-            v: fmtUSD(summary.dp_charges_usd),
-            c: summary.dp_charges_usd < 0 ? DANGER : OK,
-          },
-        ].map((s) => (
-          <div
-            key={s.l}
-            style={{
-              padding: "12px 14px",
-              background: CARD,
-              border: `1px solid ${BORDER}`,
-              borderRadius: 10,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                color: TEXT_MUTED,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-              }}
-            >
-              {s.l}
-            </div>
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 16,
-                fontWeight: 700,
-                color: s.c,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {s.v}
-            </div>
-          </div>
-        ))}
-      </div>
-
       <div style={{ marginTop: 18 }}>
         <div
           style={{
@@ -853,7 +786,7 @@ const StatementCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.3fr 0.7fr 0.8fr 0.7fr 0.9fr 0.9fr 1.2fr",
+                gridTemplateColumns: "1fr 0.7fr 0.9fr 1fr 0.9fr 1.4fr",
                 padding: "10px 14px",
                 background: CARD_2,
                 fontSize: 10,
@@ -865,7 +798,6 @@ const StatementCard = ({
               <span>Date</span>
               <span>Type</span>
               <span style={{ textAlign: "right" }}>Weight</span>
-              <span style={{ textAlign: "right" }}>$/oz</span>
               <span style={{ textAlign: "right" }}>USD</span>
               <span>By</span>
               <span>Notes</span>
@@ -875,8 +807,7 @@ const StatementCard = ({
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns:
-                    "1.3fr 0.7fr 0.8fr 0.7fr 0.9fr 0.9fr 1.2fr",
+                  gridTemplateColumns: "1fr 0.7fr 0.9fr 1fr 0.9fr 1.4fr",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
                   fontSize: 12,
@@ -915,20 +846,6 @@ const StatementCard = ({
                   style={{
                     textAlign: "right",
                     fontVariantNumeric: "tabular-nums",
-                    color: TEXT_SOFT,
-                  }}
-                >
-                  {t.per_oz != null
-                    ? `$${Number(t.per_oz).toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "—"}
-                </span>
-                <span
-                  style={{
-                    textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
                     color: TEXT,
                     fontWeight: 700,
                   }}
@@ -955,7 +872,51 @@ const StatementCard = ({
         )}
       </div>
 
+      {/* Total Discount / Premium */}
+      <div
+        style={{
+          marginTop: 16,
+          padding: "14px 18px",
+          background: CARD,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 10,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: TEXT_MUTED,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+            }}
+          >
+            Total Discount / Premium
+          </div>
+          <div style={{ fontSize: 11, color: TEXT_FAINT, marginTop: 2 }}>
+            {fmtG(summary.dp_grams)} gold
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 800,
+            color: summary.dp_charges_usd < 0 ? DANGER : OK,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {fmtUSD(summary.dp_charges_usd)}
+        </div>
+      </div>
+
+      {/* Final highlighted result */}
+      <AvailableHighlight grams={summary.clean_remaining_grams} />
+
       <BrandFooter qr={qr} />
     </div>
   );
 };
+
