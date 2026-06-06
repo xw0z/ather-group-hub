@@ -88,10 +88,10 @@ export function SettingsPanel() {
       const p: Partial<SwapSettings> = {
         default_long_annual_rate: Number(settings.default_long_annual_rate),
         default_short_annual_rate: Number(settings.default_short_annual_rate),
-        wednesday_multiplier: Number(settings.wednesday_multiplier),
         skip_saturday: settings.skip_saturday,
         skip_sunday: settings.skip_sunday,
         default_margin_requirement_pct: Number(settings.default_margin_requirement_pct),
+        default_additional_exposure_pct: Number(settings.default_additional_exposure_pct),
         safe_threshold_pct: Number(settings.safe_threshold_pct),
         warning_threshold_pct: Number(settings.warning_threshold_pct),
         xau_api_provider: settings.xau_api_provider || null,
