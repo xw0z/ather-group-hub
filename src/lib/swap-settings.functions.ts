@@ -92,6 +92,7 @@ const patchSchema = z
     skip_saturday: z.boolean(),
     skip_sunday: z.boolean(),
     default_margin_requirement_pct: z.number().finite().min(0).max(100),
+    default_additional_exposure_pct: z.number().finite().min(0).max(100),
     safe_threshold_pct: z.number().finite().min(0).max(1000),
     warning_threshold_pct: z.number().finite().min(0).max(1000),
     xau_api_provider: z.string().trim().max(64).nullable(),
