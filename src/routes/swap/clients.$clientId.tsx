@@ -66,7 +66,6 @@ function buildMessage(
   const absBal = Math.abs(balance);
   const absEff = Math.abs(effectiveBalance);
   const divider = "------------------------------";
-  const nameLine = notes ? `Name: ${notes}\n` : "";
   const amountLabel = isShort ? "Swap Benefit Credited" : "Swap Fee Charged";
 
   return (
