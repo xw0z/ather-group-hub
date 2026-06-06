@@ -42,14 +42,13 @@ const fmtUSD = (n: number) => {
   return v < 0 ? `-$${s}` : `$${s}`;
 };
 
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const fmtDate = (d: string) => {
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 type Mode = "summary" | "statement";
 
