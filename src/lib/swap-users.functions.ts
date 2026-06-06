@@ -274,6 +274,11 @@ export const updateSwapUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
+    const { data: prev } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("username, email, is_admin, is_manager")
+      .eq("id", data.id)
+      .maybeSingle();
     const patch: { username?: string; email?: string | null; is_admin?: boolean; is_manager?: boolean } = {};
     if (data.username !== undefined) patch.username = data.username.toLowerCase();
     if (data.email !== undefined) patch.email = data.email === "" ? null : data.email;
@@ -292,6 +297,15 @@ export const updateSwapUser = createServerFn({ method: "POST" })
       });
       if (error) throw new Error(error.message);
     }
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_updated",
+      entity_type: "user",
+      entity_id: data.id,
+      old_values: prev ?? null,
+      new_values: patch,
+    });
     return { ok: true };
   });
 
@@ -306,6 +320,13 @@ export const resetSwapUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId: context.userId,
+      module: "auth",
+      action: "password_reset",
+      entity_type: "user",
+      entity_id: data.id,
+    });
     return { ok: true };
   });
 
