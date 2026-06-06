@@ -12,6 +12,7 @@ import {
   swapSignInWithUsername,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
+import { logUnauthAuditEvent } from "@/lib/swap-audit.functions";
 
 
 export const Route = createFileRoute("/desk/login")({
