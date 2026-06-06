@@ -34,7 +34,7 @@ export const updateSwapOwnPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
-    await logActivity(context.userId, "password_changed", null);
+    await logActivity(context.userId, "password_changed", null, "auth");
     return { ok: true };
   });
 
