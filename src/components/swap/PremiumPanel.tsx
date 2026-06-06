@@ -781,6 +781,7 @@ function ReportCompanyStatement({
                 <th className="py-2">Date</th>
                 <th>Type</th>
                 <th className="text-right">Grams</th>
+                <th className="text-right">$/oz</th>
                 <th className="text-right">Charge</th>
               </tr>
             </thead>
@@ -795,11 +796,15 @@ function ReportCompanyStatement({
                     {Number(t.grams).toFixed(2)}
                   </td>
                   <td className="text-right tabular-nums">
+                    {t.per_oz != null ? `$${Number(t.per_oz).toFixed(2)}` : "—"}
+                  </td>
+                  <td className="text-right tabular-nums">
                     {t.amount_usd != null ? fmtUSD(Number(t.amount_usd)) : "—"}
                   </td>
                 </tr>
               ))}
             </tbody>
+
 
           </table>
         </div>
