@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 export type SwapSettings = {
   default_long_annual_rate: number;
