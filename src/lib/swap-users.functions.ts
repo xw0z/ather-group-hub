@@ -142,6 +142,15 @@ export const bootstrapSwapAdmin = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       throw new Error(profErr.message);
     }
+    await recordAudit({
+      userId: created.user.id,
+      username,
+      module: "auth",
+      action: "bootstrap_admin",
+      entity_type: "user",
+      entity_id: created.user.id,
+      new_values: { username, is_admin: true },
+    });
     return { ok: true, username };
   });
 
@@ -197,6 +206,19 @@ export const createSwapUser = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       throw new Error(profErr.message);
     }
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_created",
+      entity_type: "user",
+      entity_id: created.user.id,
+      new_values: {
+        username,
+        email: data.email || null,
+        is_admin: Boolean(data.is_admin),
+        is_manager: Boolean(data.is_manager),
+      },
+    });
     return { ok: true, username };
   });
 
@@ -206,9 +228,22 @@ export const deleteSwapUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
     if (data.id === context.userId) throw new Error("You cannot delete yourself.");
+    const { data: prev } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("username, email, is_admin, is_manager")
+      .eq("id", data.id)
+      .maybeSingle();
     await supabaseAdmin.from("swap_profiles").delete().eq("id", data.id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_deleted",
+      entity_type: "user",
+      entity_id: data.id,
+      old_values: prev ?? null,
+    });
     return { ok: true };
   });
 
