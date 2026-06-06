@@ -12,7 +12,19 @@ import {
   swapSignInWithUsername,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
+import { getMyRefineryAssignment } from "@/lib/refineries.functions";
 
+
+async function postLoginRedirect(navigate: ReturnType<typeof useNavigate>) {
+  try {
+    const a = await getMyRefineryAssignment();
+    if (!a.isAdmin && a.refineryId) {
+      navigate({ to: "/desk/refineries", search: { r: a.refineryId, tab: "dashboard" }, replace: true });
+      return;
+    }
+  } catch { /* ignore */ }
+  navigate({ to: "/desk/app/dashboard", replace: true });
+}
 
 export const Route = createFileRoute("/desk/login")({
   head: () => ({
@@ -48,7 +60,7 @@ function DeskLoginPage() {
       if (!data.session) return;
       try {
         const me = await getCurrentSwapUser();
-        if (me.isSwapUser) navigate({ to: "/desk/app/dashboard", replace: true });
+        if (me.isSwapUser) await postLoginRedirect(navigate);
       } catch {
         /* not a platform user */
       }
@@ -83,7 +95,7 @@ function DeskLoginPage() {
         await supabase.auth.signOut();
         throw new Error(t("auth.notAuthorized"));
       }
-      navigate({ to: "/desk/app/dashboard", replace: true });
+      await postLoginRedirect(navigate);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.signInFailed"));
 

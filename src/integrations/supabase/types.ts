@@ -197,6 +197,378 @@ export type Database = {
         }
         Relationships: []
       }
+      refineries: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      refinery_clients: {
+        Row: {
+          created_at: string
+          da_balance: number
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          purity_balance: number
+          refinery_id: string
+          refining_fee_price: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          da_balance?: number
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          purity_balance?: number
+          refinery_id: string
+          refining_fee_price?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          da_balance?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          purity_balance?: number
+          refinery_id?: string
+          refining_fee_price?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_clients_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_stock: {
+        Row: {
+          da_stock: number
+          id: string
+          pure_gold_stock: number
+          refinery_id: string
+          updated_at: string
+        }
+        Insert: {
+          da_stock?: number
+          id?: string
+          pure_gold_stock?: number
+          refinery_id: string
+          updated_at?: string
+        }
+        Update: {
+          da_stock?: number
+          id?: string
+          pure_gold_stock?: number
+          refinery_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_stock_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: true
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_stock_movements: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          da_change: number
+          da_stock_after: number
+          da_stock_before: number
+          gold_change: number
+          gold_stock_after: number
+          gold_stock_before: number
+          id: string
+          movement_type: Database["public"]["Enums"]["refinery_movement_type"]
+          notes: string | null
+          refinery_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          da_change?: number
+          da_stock_after?: number
+          da_stock_before?: number
+          gold_change?: number
+          gold_stock_after?: number
+          gold_stock_before?: number
+          id?: string
+          movement_type: Database["public"]["Enums"]["refinery_movement_type"]
+          notes?: string | null
+          refinery_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          da_change?: number
+          da_stock_after?: number
+          da_stock_before?: number
+          gold_change?: number
+          gold_stock_after?: number
+          gold_stock_before?: number
+          id?: string
+          movement_type?: Database["public"]["Enums"]["refinery_movement_type"]
+          notes?: string | null
+          refinery_id?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_stock_movements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refinery_stock_movements_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refinery_stock_movements_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_transaction_gold_bars: {
+        Row: {
+          created_at: string
+          gross_weight: number
+          id: string
+          item_number: string | null
+          item_type: Database["public"]["Enums"]["refinery_bar_type"]
+          pure_weight: number
+          purity: number
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gross_weight?: number
+          id?: string
+          item_number?: string | null
+          item_type?: Database["public"]["Enums"]["refinery_bar_type"]
+          pure_weight?: number
+          purity?: number
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gross_weight?: number
+          id?: string
+          item_number?: string | null
+          item_type?: Database["public"]["Enums"]["refinery_bar_type"]
+          pure_weight?: number
+          purity?: number
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_transaction_gold_bars_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_transactions: {
+        Row: {
+          average_purity: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          da_amount: number
+          direction: Database["public"]["Enums"]["refinery_tx_direction"]
+          fee_price: number
+          id: string
+          new_da_balance: number | null
+          new_da_stock: number | null
+          new_gold_stock: number | null
+          new_purity_balance: number | null
+          notes: string | null
+          previous_da_balance: number | null
+          previous_da_stock: number | null
+          previous_gold_stock: number | null
+          previous_purity_balance: number | null
+          refinery_id: string
+          settled_at: string | null
+          status: Database["public"]["Enums"]["refinery_tx_status"]
+          total_gross_weight: number
+          total_pure_weight: number
+          total_refining_fee: number
+          transaction_date: string
+          transaction_number: string
+          transaction_type: Database["public"]["Enums"]["refinery_tx_type"]
+          updated_at: string
+        }
+        Insert: {
+          average_purity?: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          da_amount?: number
+          direction: Database["public"]["Enums"]["refinery_tx_direction"]
+          fee_price?: number
+          id?: string
+          new_da_balance?: number | null
+          new_da_stock?: number | null
+          new_gold_stock?: number | null
+          new_purity_balance?: number | null
+          notes?: string | null
+          previous_da_balance?: number | null
+          previous_da_stock?: number | null
+          previous_gold_stock?: number | null
+          previous_purity_balance?: number | null
+          refinery_id: string
+          settled_at?: string | null
+          status?: Database["public"]["Enums"]["refinery_tx_status"]
+          total_gross_weight?: number
+          total_pure_weight?: number
+          total_refining_fee?: number
+          transaction_date?: string
+          transaction_number: string
+          transaction_type: Database["public"]["Enums"]["refinery_tx_type"]
+          updated_at?: string
+        }
+        Update: {
+          average_purity?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          da_amount?: number
+          direction?: Database["public"]["Enums"]["refinery_tx_direction"]
+          fee_price?: number
+          id?: string
+          new_da_balance?: number | null
+          new_da_stock?: number | null
+          new_gold_stock?: number | null
+          new_purity_balance?: number | null
+          notes?: string | null
+          previous_da_balance?: number | null
+          previous_da_stock?: number | null
+          previous_gold_stock?: number | null
+          previous_purity_balance?: number | null
+          refinery_id?: string
+          settled_at?: string | null
+          status?: Database["public"]["Enums"]["refinery_tx_status"]
+          total_gross_weight?: number
+          total_pure_weight?: number
+          total_refining_fee?: number
+          transaction_date?: string
+          transaction_number?: string
+          transaction_type?: Database["public"]["Enums"]["refinery_tx_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refinery_transactions_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_users: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone: string | null
+          refinery_id: string
+          role: Database["public"]["Enums"]["refinery_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          refinery_id: string
+          role?: Database["public"]["Enums"]["refinery_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          refinery_id?: string
+          role?: Database["public"]["Enums"]["refinery_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_users_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_activity_log: {
         Row: {
           action: string
@@ -748,6 +1120,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_refinery: {
+        Args: { _rid: string; _uid: string }
+        Returns: boolean
+      }
       has_module_permission: {
         Args: {
           _action: string
@@ -758,7 +1134,47 @@ export type Database = {
       }
       is_platform_admin: { Args: { _uid: string }; Returns: boolean }
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
+      is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_settle_transaction: {
+        Args: { _tx_id: string }
+        Returns: {
+          average_purity: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          da_amount: number
+          direction: Database["public"]["Enums"]["refinery_tx_direction"]
+          fee_price: number
+          id: string
+          new_da_balance: number | null
+          new_da_stock: number | null
+          new_gold_stock: number | null
+          new_purity_balance: number | null
+          notes: string | null
+          previous_da_balance: number | null
+          previous_da_stock: number | null
+          previous_gold_stock: number | null
+          previous_purity_balance: number | null
+          refinery_id: string
+          settled_at: string | null
+          status: Database["public"]["Enums"]["refinery_tx_status"]
+          total_gross_weight: number
+          total_pure_weight: number
+          total_refining_fee: number
+          transaction_date: string
+          transaction_number: string
+          transaction_type: Database["public"]["Enums"]["refinery_tx_type"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "refinery_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      user_refinery_id: { Args: { _uid: string }; Returns: string }
     }
     Enums: {
       app_module:
@@ -770,6 +1186,18 @@ export type Database = {
         | "audit"
         | "users"
         | "settings"
+      refinery_bar_type: "bar" | "scrap"
+      refinery_movement_type:
+        | "receiving_da"
+        | "delivery_da"
+        | "receiving_gold"
+        | "delivery_gold"
+        | "adjustment"
+        | "reversal"
+      refinery_role: "manager" | "staff" | "viewer"
+      refinery_tx_direction: "receiving" | "delivery"
+      refinery_tx_status: "draft" | "pending" | "settled" | "cancelled"
+      refinery_tx_type: "da" | "gold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -907,6 +1335,19 @@ export const Constants = {
         "users",
         "settings",
       ],
+      refinery_bar_type: ["bar", "scrap"],
+      refinery_movement_type: [
+        "receiving_da",
+        "delivery_da",
+        "receiving_gold",
+        "delivery_gold",
+        "adjustment",
+        "reversal",
+      ],
+      refinery_role: ["manager", "staff", "viewer"],
+      refinery_tx_direction: ["receiving", "delivery"],
+      refinery_tx_status: ["draft", "pending", "settled", "cancelled"],
+      refinery_tx_type: ["da", "gold"],
     },
   },
 } as const

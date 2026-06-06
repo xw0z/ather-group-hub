@@ -22,6 +22,7 @@ import { Route as PurityIndexRouteImport } from './routes/purity/index'
 import { Route as DeskIndexRouteImport } from './routes/desk.index'
 import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
+import { Route as DeskRefineriesRouteImport } from './routes/desk.refineries'
 import { Route as DeskLoginRouteImport } from './routes/desk.login'
 import { Route as DeskAppIndexRouteImport } from './routes/desk.app.index'
 import { Route as SwapClientsClientIdRouteImport } from './routes/swap/clients.$clientId'
@@ -102,6 +103,11 @@ const SwapDashboardRoute = SwapDashboardRouteImport.update({
 const PurityDashboardRoute = PurityDashboardRouteImport.update({
   id: '/purity/dashboard',
   path: '/purity/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskRefineriesRoute = DeskRefineriesRouteImport.update({
+  id: '/desk/refineries',
+  path: '/desk/refineries',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeskLoginRoute = DeskLoginRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
+  '/desk/refineries': typeof DeskRefineriesRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
+  '/desk/refineries': typeof DeskRefineriesRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk': typeof DeskIndexRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
+  '/desk/refineries': typeof DeskRefineriesRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/margin'
     | '/unauthorized'
     | '/desk/login'
+    | '/desk/refineries'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk/'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/margin'
     | '/unauthorized'
     | '/desk/login'
+    | '/desk/refineries'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/margin'
     | '/unauthorized'
     | '/desk/login'
+    | '/desk/refineries'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk/'
@@ -387,6 +399,7 @@ export interface RootRouteChildren {
   MarginRoute: typeof MarginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   DeskLoginRoute: typeof DeskLoginRoute
+  DeskRefineriesRoute: typeof DeskRefineriesRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
   SwapDashboardRoute: typeof SwapDashboardRoute
   DeskIndexRoute: typeof DeskIndexRoute
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/purity/dashboard'
       fullPath: '/purity/dashboard'
       preLoaderRoute: typeof PurityDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/refineries': {
+      id: '/desk/refineries'
+      path: '/desk/refineries'
+      fullPath: '/desk/refineries'
+      preLoaderRoute: typeof DeskRefineriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desk/login': {
@@ -627,6 +647,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarginRoute: MarginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   DeskLoginRoute: DeskLoginRoute,
+  DeskRefineriesRoute: DeskRefineriesRoute,
   PurityDashboardRoute: PurityDashboardRoute,
   SwapDashboardRoute: SwapDashboardRoute,
   DeskIndexRoute: DeskIndexRoute,
@@ -651,13 +672,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
