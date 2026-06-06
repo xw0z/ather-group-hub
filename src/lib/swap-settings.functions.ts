@@ -11,6 +11,7 @@ export type SwapSettings = {
   skip_saturday: boolean;
   skip_sunday: boolean;
   default_margin_requirement_pct: number;
+  default_additional_exposure_pct: number;
   safe_threshold_pct: number;
   warning_threshold_pct: number;
   xau_api_provider: string | null;
@@ -37,7 +38,7 @@ async function isAdmin(userId: string): Promise<boolean> {
 
 
 const SETTINGS_COLS =
-  "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
+  "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, default_additional_exposure_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
 
 async function assertSwapUser(userId: string) {
   const { data } = await supabaseAdmin
@@ -91,6 +92,7 @@ const patchSchema = z
     skip_saturday: z.boolean(),
     skip_sunday: z.boolean(),
     default_margin_requirement_pct: z.number().finite().min(0).max(100),
+    default_additional_exposure_pct: z.number().finite().min(0).max(100),
     safe_threshold_pct: z.number().finite().min(0).max(1000),
     warning_threshold_pct: z.number().finite().min(0).max(1000),
     xau_api_provider: z.string().trim().max(64).nullable(),
@@ -166,6 +168,7 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
         annual_rate?: number;
         short_annual_rate?: number;
         margin_requirement_pct?: number;
+        additional_exposure_pct?: number;
       } = {};
       if (data.patch.default_long_annual_rate !== undefined)
         clientPatch.annual_rate = data.patch.default_long_annual_rate;
@@ -173,6 +176,8 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
         clientPatch.short_annual_rate = data.patch.default_short_annual_rate;
       if (data.patch.default_margin_requirement_pct !== undefined)
         clientPatch.margin_requirement_pct = data.patch.default_margin_requirement_pct;
+      if (data.patch.default_additional_exposure_pct !== undefined)
+        clientPatch.additional_exposure_pct = data.patch.default_additional_exposure_pct;
       if (Object.keys(clientPatch).length > 0) {
         const { error: cErr } = await supabaseAdmin
           .from("swap_clients")

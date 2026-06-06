@@ -88,10 +88,10 @@ export function SettingsPanel() {
       const p: Partial<SwapSettings> = {
         default_long_annual_rate: Number(settings.default_long_annual_rate),
         default_short_annual_rate: Number(settings.default_short_annual_rate),
-        wednesday_multiplier: Number(settings.wednesday_multiplier),
         skip_saturday: settings.skip_saturday,
         skip_sunday: settings.skip_sunday,
         default_margin_requirement_pct: Number(settings.default_margin_requirement_pct),
+        default_additional_exposure_pct: Number(settings.default_additional_exposure_pct),
         safe_threshold_pct: Number(settings.safe_threshold_pct),
         warning_threshold_pct: Number(settings.warning_threshold_pct),
         xau_api_provider: settings.xau_api_provider || null,
@@ -208,57 +208,33 @@ export function SettingsPanel() {
       </section>
 
       <Section title="Swap fees">
-        <Field label="Default long / buy annual rate %">
+        <Field label="Default Long Position Annual Fee %">
           <Input
             type="number"
-            step="0.01"
+            step="0.1"
             disabled={readOnly}
-            value={settings.default_long_annual_rate}
+            value={Number(settings.default_long_annual_rate).toFixed(1)}
             onChange={(e) =>
               patch("default_long_annual_rate", Number(e.target.value))
             }
           />
         </Field>
-        <Field label="Default short / sell annual benefit %">
+        <Field label="Default Short Position Annual Benefit %">
           <Input
             type="number"
-            step="0.01"
+            step="0.1"
             disabled={readOnly}
-            value={settings.default_short_annual_rate}
+            value={Number(settings.default_short_annual_rate).toFixed(1)}
             onChange={(e) =>
               patch("default_short_annual_rate", Number(e.target.value))
             }
           />
         </Field>
-        <Field label="Wednesday multiplier (×)">
-          <Input
-            type="number"
-            step="0.5"
-            disabled={readOnly}
-            value={settings.wednesday_multiplier}
-            onChange={(e) => patch("wednesday_multiplier", Number(e.target.value))}
-          />
-        </Field>
-        <div className="space-y-2 sm:col-span-2">
-          <Label className="text-xs text-muted-foreground">Weekend charging</Label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              disabled={readOnly}
-              checked={settings.skip_saturday}
-              onChange={(e) => patch("skip_saturday", e.target.checked)}
-            />
-            No Saturday fee
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              disabled={readOnly}
-              checked={settings.skip_sunday}
-              onChange={(e) => patch("skip_sunday", e.target.checked)}
-            />
-            No Sunday fee
-          </label>
+        <div className="sm:col-span-2 rounded-md border border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">Swap schedule (fixed):</span>{" "}
+          Wednesday swap is automatically charged as 3 days. Weekend fees
+          (Saturday &amp; Sunday) are automatically included through Wednesday
+          rollover. Monday, Tuesday, Thursday and Friday are charged as 1 day.
         </div>
       </Section>
 
@@ -268,27 +244,41 @@ export function SettingsPanel() {
             type="number"
             step="0.1"
             disabled={readOnly}
-            value={settings.default_margin_requirement_pct}
+            value={Number(settings.default_margin_requirement_pct).toFixed(1)}
             onChange={(e) =>
               patch("default_margin_requirement_pct", Number(e.target.value))
+            }
+          />
+        </Field>
+        <Field
+          label="Additional Exposure %"
+          hint="Additional exposure added on top of client credit balance before margin calculations. Effective Exposure = Credit Balance × (1 + Additional Exposure %)."
+        >
+          <Input
+            type="number"
+            step="0.1"
+            disabled={readOnly}
+            value={Number(settings.default_additional_exposure_pct ?? 5).toFixed(1)}
+            onChange={(e) =>
+              patch("default_additional_exposure_pct", Number(e.target.value))
             }
           />
         </Field>
         <Field label="Safe threshold % (margin level ≥)">
           <Input
             type="number"
-            step="1"
+            step="0.1"
             disabled={readOnly}
-            value={settings.safe_threshold_pct}
+            value={Number(settings.safe_threshold_pct).toFixed(1)}
             onChange={(e) => patch("safe_threshold_pct", Number(e.target.value))}
           />
         </Field>
         <Field label="Warning threshold % (margin level ≥)">
           <Input
             type="number"
-            step="1"
+            step="0.1"
             disabled={readOnly}
-            value={settings.warning_threshold_pct}
+            value={Number(settings.warning_threshold_pct).toFixed(1)}
             onChange={(e) => patch("warning_threshold_pct", Number(e.target.value))}
           />
         </Field>
@@ -299,6 +289,7 @@ export function SettingsPanel() {
           <Input value="Equity < 0" disabled />
         </Field>
       </Section>
+
 
       <Section title="Gold price (XAUUSD)">
         <Field label="API provider">

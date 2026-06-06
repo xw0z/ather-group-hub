@@ -609,6 +609,7 @@ export type Database = {
         Row: {
           company_name: string
           confidentiality_text: string
+          default_additional_exposure_pct: number
           default_long_annual_rate: number
           default_margin_requirement_pct: number
           default_report_format: string
@@ -632,6 +633,7 @@ export type Database = {
         Insert: {
           company_name?: string
           confidentiality_text?: string
+          default_additional_exposure_pct?: number
           default_long_annual_rate?: number
           default_margin_requirement_pct?: number
           default_report_format?: string
@@ -655,6 +657,7 @@ export type Database = {
         Update: {
           company_name?: string
           confidentiality_text?: string
+          default_additional_exposure_pct?: number
           default_long_annual_rate?: number
           default_margin_requirement_pct?: number
           default_report_format?: string
