@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recordAudit, type AuditModule } from "@/lib/swap-audit.server";
 
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
 const positionTypeRule = z.enum(["long", "short"]);
@@ -101,21 +102,50 @@ export function effectiveBalance(
   return Number(usdBalance) * (1 + pct / 100);
 }
 
+const ACTION_MODULE: Record<string, AuditModule> = {
+  client_created: "clients",
+  client_updated: "clients",
+  client_deleted: "clients",
+  fees_computed_manual: "swap",
+  xau_price_override: "margin",
+};
+
+function deriveModule(
+  action: string,
+  details: Record<string, Json> | null,
+): AuditModule {
+  if (ACTION_MODULE[action]) return ACTION_MODULE[action];
+  if (action === "client_updated" && details) {
+    if ("usd_balance" in details || "gold_kg" in details) return "financial";
+    if ("margin_requirement_pct" in details) return "margin";
+    if (
+      "annual_rate" in details ||
+      "short_annual_rate" in details ||
+      "additional_exposure_pct" in details
+    )
+      return "swap";
+  }
+  return "clients";
+}
+
 async function logActivity(
   userId: string,
   action: string,
   entity_type: string | null,
   entity_id: string | null,
   details: Record<string, Json> | null,
+  oldValues?: Record<string, Json> | null,
+  newValues?: Record<string, Json> | null,
 ) {
-  const username = await getUsername(userId);
-  await supabaseAdmin.from("swap_activity_log").insert({
-    user_id: userId,
-    username,
+  await recordAudit({
+    userId,
+    module: deriveModule(action, details),
     action,
     entity_type,
     entity_id,
-    details: details as Json,
+    old_values: oldValues ?? null,
+    new_values: newValues ?? null,
+    details: details ?? null,
   });
 }
 
@@ -301,9 +331,31 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       }
     }
 
-    await logActivity(context.userId, "client_updated", "client", row.id, patch as Record<string, Json>);
+    await logActivity(
+      context.userId,
+      "client_updated",
+      "client",
+      row.id,
+      patch as Record<string, Json>,
+      (existing ?? null) as Record<string, Json> | null,
+      {
+        usd_balance: row.usd_balance,
+        gold_kg: row.gold_kg,
+        xauusd_price: row.xauusd_price,
+        margin_requirement_pct: row.margin_requirement_pct,
+        annual_rate: row.annual_rate,
+        short_annual_rate: row.short_annual_rate,
+        additional_exposure_pct: row.additional_exposure_pct,
+        position_type: row.position_type,
+        code: row.code,
+        notes: row.notes,
+      } as Record<string, Json>,
+    );
     return row;
   });
+
+
+
 
 export const deleteSwapClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -329,7 +381,9 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
     await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_activity_log")
-      .select("id, user_id, username, action, entity_type, entity_id, details, created_at")
+      .select(
+        "id, user_id, username, action, module, status, entity_type, entity_id, details, old_values, new_values, ip_address, user_agent, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 export type SwapSettings = {
   default_long_annual_rate: number;
@@ -34,14 +35,6 @@ async function isAdmin(userId: string): Promise<boolean> {
   return !!data?.is_admin;
 }
 
-async function getUsername(userId: string): Promise<string> {
-  const { data } = await supabaseAdmin
-    .from("swap_profiles")
-    .select("username")
-    .eq("id", userId)
-    .maybeSingle();
-  return data?.username ?? "unknown";
-}
 
 const SETTINGS_COLS =
   "default_long_annual_rate, default_short_annual_rate, wednesday_multiplier, skip_saturday, skip_sunday, default_margin_requirement_pct, safe_threshold_pct, warning_threshold_pct, xau_api_provider, xau_api_key, xau_auto_refresh_seconds, xau_manual_fallback_price, company_name, report_footer_text, confidentiality_text, show_logo_on_reports, default_report_format, language, updated_at";
@@ -128,9 +121,13 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
     if (!(await isAdmin(userId))) {
       throw new Error("Only admins can change settings.");
     }
-    const username = await getUsername(userId);
+    const { data: prev } = await supabaseAdmin
+      .from("swap_settings")
+      .select(SETTINGS_COLS)
+      .eq("id", "global")
+      .maybeSingle();
     const patch = { ...data.patch, updated_at: new Date().toISOString(), updated_by: userId };
-    
+
     if (patch.xau_api_key === "••••••••") delete patch.xau_api_key;
 
     const { data: updated, error } = await supabaseAdmin
@@ -141,12 +138,25 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("swap_activity_log").insert({
-      user_id: userId,
-      username,
+    const changedFields = Object.keys(data.patch);
+    const oldSubset: Record<string, unknown> = {};
+    const newSubset: Record<string, unknown> = {};
+    for (const k of changedFields) {
+      if (k === "xau_api_key") continue;
+      if (prev && k in (prev as object))
+        oldSubset[k] = (prev as Record<string, unknown>)[k];
+      newSubset[k] = (data.patch as Record<string, unknown>)[k];
+    }
+    await recordAudit({
+      userId,
+      module: "system",
       action: "settings_updated",
+      entity_type: "settings",
+      entity_id: null,
+      old_values: oldSubset,
+      new_values: newSubset,
       details: {
-        fields: Object.keys(data.patch),
+        fields: changedFields,
         applyToExistingClients: !!data.applyToExistingClients,
       },
     });
@@ -169,11 +179,12 @@ export const updateSwapSettings = createServerFn({ method: "POST" })
           .update(clientPatch)
           .not("id", "is", null);
         if (cErr) throw new Error(cErr.message);
-        await supabaseAdmin.from("swap_activity_log").insert({
-          user_id: userId,
-          username,
+        await recordAudit({
+          userId,
+          module: "system",
           action: "settings_applied_to_existing_clients",
           details: { fields: Object.keys(clientPatch) },
+          new_values: clientPatch,
         });
       }
     }

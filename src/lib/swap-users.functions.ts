@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertSwapUser } from "@/lib/swap-clients.functions";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 const usernameRule = z
   .string()
@@ -42,13 +43,32 @@ export const swapSignInWithUsername = createServerFn({ method: "POST" })
       .ilike("username", data.username)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!profile) throw new Error(generic);
+    if (!profile) {
+      await recordAudit({
+        userId: null,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "unknown_username" },
+      });
+      throw new Error(generic);
+    }
 
     const { data: userRes, error: userErr } =
       await supabaseAdmin.auth.admin.getUserById(profile.id);
-    if (userErr || !userRes?.user?.email) throw new Error(generic);
+    if (userErr || !userRes?.user?.email) {
+      await recordAudit({
+        userId: profile.id,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "missing_auth_user" },
+      });
+      throw new Error(generic);
+    }
 
-    // Verify password via an anon client (does not persist session server-side).
     const anon = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
@@ -58,7 +78,25 @@ export const swapSignInWithUsername = createServerFn({ method: "POST" })
       email: userRes.user.email,
       password: data.password,
     });
-    if (signErr || !sess.session) throw new Error(generic);
+    if (signErr || !sess.session) {
+      await recordAudit({
+        userId: profile.id,
+        username: data.username,
+        module: "auth",
+        action: "login_failed",
+        status: "failure",
+        details: { reason: "bad_password" },
+      });
+      throw new Error(generic);
+    }
+
+    await recordAudit({
+      userId: profile.id,
+      username: data.username,
+      module: "auth",
+      action: "login_succeeded",
+      status: "success",
+    });
 
     return {
       access_token: sess.session.access_token,
@@ -104,6 +142,15 @@ export const bootstrapSwapAdmin = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       throw new Error(profErr.message);
     }
+    await recordAudit({
+      userId: created.user.id,
+      username,
+      module: "auth",
+      action: "bootstrap_admin",
+      entity_type: "user",
+      entity_id: created.user.id,
+      new_values: { username, is_admin: true },
+    });
     return { ok: true, username };
   });
 
@@ -159,6 +206,19 @@ export const createSwapUser = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       throw new Error(profErr.message);
     }
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_created",
+      entity_type: "user",
+      entity_id: created.user.id,
+      new_values: {
+        username,
+        email: data.email || null,
+        is_admin: Boolean(data.is_admin),
+        is_manager: Boolean(data.is_manager),
+      },
+    });
     return { ok: true, username };
   });
 
@@ -168,9 +228,22 @@ export const deleteSwapUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
     if (data.id === context.userId) throw new Error("You cannot delete yourself.");
+    const { data: prev } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("username, email, is_admin, is_manager")
+      .eq("id", data.id)
+      .maybeSingle();
     await supabaseAdmin.from("swap_profiles").delete().eq("id", data.id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_deleted",
+      entity_type: "user",
+      entity_id: data.id,
+      old_values: prev ?? null,
+    });
     return { ok: true };
   });
 
@@ -201,6 +274,11 @@ export const updateSwapUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapAdmin(context.userId);
+    const { data: prev } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("username, email, is_admin, is_manager")
+      .eq("id", data.id)
+      .maybeSingle();
     const patch: { username?: string; email?: string | null; is_admin?: boolean; is_manager?: boolean } = {};
     if (data.username !== undefined) patch.username = data.username.toLowerCase();
     if (data.email !== undefined) patch.email = data.email === "" ? null : data.email;
@@ -219,6 +297,15 @@ export const updateSwapUser = createServerFn({ method: "POST" })
       });
       if (error) throw new Error(error.message);
     }
+    await recordAudit({
+      userId: context.userId,
+      module: "users",
+      action: "user_updated",
+      entity_type: "user",
+      entity_id: data.id,
+      old_values: prev ?? null,
+      new_values: patch,
+    });
     return { ok: true };
   });
 
@@ -233,6 +320,13 @@ export const resetSwapUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId: context.userId,
+      module: "auth",
+      action: "password_reset",
+      entity_type: "user",
+      entity_id: data.id,
+    });
     return { ok: true };
   });
 

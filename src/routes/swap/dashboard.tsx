@@ -52,6 +52,7 @@ import {
   updateSwapOwnProfile,
 } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
+import { logClientAuditEvent } from "@/lib/swap-audit.functions";
 import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
@@ -538,6 +539,9 @@ export function SwapDashboard({
   }, [navigate]);
 
   const signOut = async () => {
+    try {
+      await logClientAuditEvent({ data: { module: "auth", action: "user_logout" } });
+    } catch { /* non-blocking */ }
     await supabase.auth.signOut();
     navigate({ to: "/desk/login", replace: true });
   };

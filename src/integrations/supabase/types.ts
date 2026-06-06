@@ -205,6 +205,12 @@ export type Database = {
           entity_id: string | null
           entity_type: string | null
           id: string
+          ip_address: string | null
+          module: string | null
+          new_values: Json | null
+          old_values: Json | null
+          status: string | null
+          user_agent: string | null
           user_id: string
           username: string
         }
@@ -215,6 +221,12 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          ip_address?: string | null
+          module?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          status?: string | null
+          user_agent?: string | null
           user_id: string
           username: string
         }
@@ -225,6 +237,12 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string | null
           id?: string
+          ip_address?: string | null
+          module?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          status?: string | null
+          user_agent?: string | null
           user_id?: string
           username?: string
         }
