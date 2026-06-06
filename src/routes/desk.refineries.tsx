@@ -746,7 +746,14 @@ function NewTransactionDialog({
     if (!clientId) { toast.error("Select a client"); return; }
     setSaving(true);
     try {
-      const payload: Parameters<typeof createTransaction>[0]["data"] = {
+      type TxPayload = {
+        refinery_id: string; client_id: string;
+        direction: RefineryDirection; transaction_type: RefineryTxType;
+        transaction_date: string; notes: string | null;
+        da_amount?: number; fee_price?: number;
+        bars?: Array<{ item_number: string | null; item_type: "bar" | "scrap"; gross_weight: number; purity: number }>;
+      };
+      const payload: TxPayload = {
         refinery_id: refinery.id, client_id: clientId,
         direction, transaction_type: type, transaction_date: date,
         notes: notes || null,
