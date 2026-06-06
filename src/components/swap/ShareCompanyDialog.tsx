@@ -786,7 +786,7 @@ const StatementCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 0.7fr 0.9fr 1fr 0.9fr 1.4fr",
+                gridTemplateColumns: "1fr 0.75fr 1fr 2.1fr",
                 padding: "10px 14px",
                 background: CARD_2,
                 fontSize: 10,
@@ -798,8 +798,6 @@ const StatementCard = ({
               <span>Date</span>
               <span>Type</span>
               <span style={{ textAlign: "right" }}>Weight</span>
-              <span style={{ textAlign: "right" }}>USD</span>
-              <span>By</span>
               <span>Notes</span>
             </div>
             {all.map((t) => (
@@ -807,7 +805,7 @@ const StatementCard = ({
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 0.7fr 0.9fr 1fr 0.9fr 1.4fr",
+                  gridTemplateColumns: "1fr 0.75fr 1fr 2.1fr",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
                   fontSize: 12,
@@ -841,19 +839,6 @@ const StatementCard = ({
                   }}
                 >
                   {fmtGNum(Number(t.grams))} g
-                </span>
-                <span
-                  style={{
-                    textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
-                    color: TEXT,
-                    fontWeight: 700,
-                  }}
-                >
-                  {t.amount_usd != null ? fmtUSD(Number(t.amount_usd)) : "—"}
-                </span>
-                <span style={{ color: TEXT_SOFT, fontSize: 11 }}>
-                  {t.username || "—"}
                 </span>
                 <span
                   style={{
