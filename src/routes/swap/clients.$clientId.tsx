@@ -236,6 +236,9 @@ function SwapClientDetail() {
                   f.annual_rate,
                   f.xauusd_price,
                   isShort ? "short" : "long",
+                  f.additional_exposure_pct,
+                  f.effective_balance,
+                  f.day_multiplier,
                 );
                 return (
                   <li
