@@ -95,7 +95,7 @@ function DeskLoginPage() {
         await supabase.auth.signOut();
         throw new Error(t("auth.notAuthorized"));
       }
-      navigate({ to: "/desk/app/dashboard", replace: true });
+      await postLoginRedirect(navigate);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.signInFailed"));
 
