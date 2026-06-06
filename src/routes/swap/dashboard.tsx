@@ -749,7 +749,338 @@ function AuditLogTab() {
   return <AuditLogPanel />;
 }
 
+/* ----------------------- DASHBOARD OVERVIEW ----------------------- */
+
+function DashboardOverview({
+  isAdmin,
+  livePrice,
+  livePriceLoading,
+  onRefreshPrice,
+  onPriceChanged,
+  perms,
+}: {
+  isAdmin: boolean;
+  livePrice: LiveXau | null;
+  livePriceLoading: boolean;
+  onRefreshPrice: () => void;
+  onPriceChanged: (p: LiveXau) => void;
+  perms: import("@/lib/permissions").CurrentUserPermissions | null | undefined;
+}) {
+  const navigate = useNavigate();
+  const [clients, setClients] = useState<Awaited<ReturnType<typeof listSwapClients>> | null>(null);
+  const [fees, setFees] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
+  const [premium, setPremium] = useState<{ totalGrams: number; txToday: number } | null>(null);
+  const [extras, setExtras] = useState<{ newClientsToday: number; purityTripsToday: number; purityGrams: number; marginCallsToday: number } | null>(null);
+  const [dbOk, setDbOk] = useState<boolean>(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [c, f] = await Promise.all([
+          cached(CK.clients, () => listSwapClients(), 30_000),
+          cached(CK.todayFees, () => listTodaySwapFees(), 30_000),
+        ]);
+        if (!alive) return;
+        setClients(c);
+        setFees(f);
+      } catch {
+        if (alive) setDbOk(false);
+      }
+      // Premium (best-effort)
+      try {
+        const mod = await import("@/lib/swap-premium.functions");
+        const [companies, txs] = await Promise.all([
+          mod.listPremiumCompanies(),
+          mod.listAllTransactions(),
+        ]);
+        const totalGrams = companies.reduce((s, x) => s + (x.total_balance_grams || 0), 0);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const txToday = txs.filter((t) => (t.created_at ?? "").slice(0, 10) === todayStr).length;
+        if (alive) setPremium({ totalGrams, txToday });
+      } catch {
+        if (alive) setPremium({ totalGrams: 0, txToday: 0 });
+      }
+      // Extras via direct supabase queries (best-effort)
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const [newClients, trips, marginCalls] = await Promise.all([
+          supabase.from("swap_clients").select("id, created_at").gte("created_at", todayStr),
+          supabase.from("purity_trips").select("id, departure_date, gross_grams_total"),
+          supabase.from("swap_margin_history").select("id, created_at, status").gte("created_at", todayStr),
+        ]);
+        const purityGrams = (trips.data ?? []).reduce(
+          (s: number, t: { gross_grams_total?: number | null }) => s + (Number(t.gross_grams_total) || 0),
+          0,
+        );
+        const purityTripsToday = (trips.data ?? []).filter(
+          (t: { departure_date?: string | null; created_at?: string | null }) =>
+            (t.departure_date ?? "") === todayStr,
+        ).length;
+        const marginCallsToday = (marginCalls.data ?? []).filter(
+          (m: { status?: string | null }) => m.status === "needed",
+        ).length;
+        if (alive)
+          setExtras({
+            newClientsToday: newClients.data?.length ?? 0,
+            purityTripsToday,
+            purityGrams,
+            marginCallsToday,
+          });
+      } catch {
+        if (alive) setExtras({ newClientsToday: 0, purityTripsToday: 0, purityGrams: 0, marginCallsToday: 0 });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const xau = Number(livePrice?.price ?? fees?.lastXauPrice ?? 0);
+
+  const computed = useMemo(() => {
+    if (!clients) return null;
+    let safe = 0;
+    let calls = 0;
+    const alerts: { code: string; needed: number }[] = [];
+    let goldGrams = 0;
+    for (const c of clients) {
+      goldGrams += Number(c.gold_kg ?? 0) * 1000;
+      const m = computeMargin({
+        usd_balance: Number(c.usd_balance ?? 0),
+        gold_kg: Number(c.gold_kg ?? 0),
+        xauusd_price: xau || Number(c.xauusd_price ?? 0),
+        margin_requirement_pct: Number(c.margin_requirement_pct ?? 0),
+      });
+      if (m.status === "needed") {
+        calls += 1;
+        alerts.push({ code: c.code, needed: Math.abs(m.difference) });
+      } else {
+        safe += 1;
+      }
+    }
+    alerts.sort((a, b) => b.needed - a.needed);
+    return { safe, calls, alerts, totalGold: goldGrams, totalClients: clients.length };
+  }, [clients, xau]);
+
+  const totalToday = useMemo(
+    () => fees?.rows.reduce((s, r) => s + (r.today_fee ?? 0), 0) ?? 0,
+    [fees],
+  );
+
+  const purityGrams = extras?.purityGrams ?? 0;
+  const premiumGrams = premium?.totalGrams ?? 0;
+  const clientGrams = computed?.totalGold ?? 0;
+  const totalManagedGrams = clientGrams + purityGrams + premiumGrams;
+
+  const lastSnapshot = fees?.lastXauDate ?? null;
+  const snapshotOk = !!lastSnapshot;
+  const priceOk = !!livePrice;
+
+  const QUICK: { label: string; path: string; module?: AppModule }[] = [
+    { label: "Clients", path: "/desk/app/swap", module: "swap" },
+    { label: "Margin", path: "/desk/app/margin", module: "margin" },
+    { label: "Swap Fees", path: "/desk/app/swap?view=fees", module: "swap" },
+    { label: "Purity", path: "/desk/app/purity", module: "purity" },
+    { label: "Discount / Premium", path: "/desk/app/discount-premium", module: "premium" },
+    { label: "Reports", path: "/desk/app/reports", module: "reports" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* SECTION 1 — TOP SUMMARY */}
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <StatCard
+          label="Live XAUUSD"
+          value={livePrice ? `$${fmt(livePrice.price)}` : livePriceLoading ? "…" : "—"}
+          hint={livePrice ? `Updated ${new Date(livePrice.fetched_at).toLocaleTimeString()}` : "No price"}
+          accent="primary"
+          onClick={onRefreshPrice}
+        />
+        <StatCard
+          label="Total Clients"
+          value={computed ? String(computed.totalClients) : "…"}
+        />
+        <StatCard
+          label="Safe Clients"
+          value={computed ? String(computed.safe) : "…"}
+          accent="green"
+        />
+        <StatCard
+          label="Margin Calls"
+          value={computed ? String(computed.calls) : "…"}
+          accent={computed && computed.calls > 0 ? "red" : "muted"}
+        />
+        <StatCard
+          label="Today's Swap Fees"
+          value={`${totalToday < 0 ? "-" : totalToday > 0 ? "+" : ""}$${fmt(Math.abs(totalToday))}`}
+          accent={totalToday < 0 ? "red" : totalToday > 0 ? "green" : "muted"}
+        />
+        <StatCard
+          label="Gold Under Mgmt (g)"
+          value={fmt(clientGrams, 0)}
+        />
+      </section>
+
+      {/* Hidden live price control to allow manual set on click; reuses existing card on price tab */}
+      <div className="sr-only" aria-hidden>
+        <LiveXauCard
+          isAdmin={isAdmin}
+          livePrice={livePrice}
+          loading={livePriceLoading}
+          onRefresh={onRefreshPrice}
+          onPriceChanged={onPriceChanged}
+        />
+      </div>
+
+      {/* SECTION 2 — ALERTS */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold mb-2">🚨 Margin Call Alerts</h2>
+        {!computed ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : computed.alerts.length === 0 ? (
+          <p className="text-sm text-green-600">✅ No margin calls</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {computed.alerts.slice(0, 8).map((a) => (
+              <li
+                key={a.code}
+                className="flex items-center justify-between text-sm rounded-md bg-red-500/10 px-3 py-2"
+              >
+                <span className="font-medium">{a.code}</span>
+                <span className="text-red-600 font-semibold">Needs {fmtMoney(a.needed)}</span>
+              </li>
+            ))}
+            {computed.alerts.length > 8 ? (
+              <li className="text-[11px] text-muted-foreground pt-1">
+                +{computed.alerts.length - 8} more — see Margin module.
+              </li>
+            ) : null}
+          </ul>
+        )}
+      </section>
+
+      {/* SECTION 3 — SNAPSHOT STATUS */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold mb-2">Snapshot Status</h2>
+        <div className="text-sm space-y-1">
+          <div>
+            {snapshotOk ? "✅" : "❌"} Last snapshot:{" "}
+            <span className="font-medium">{lastSnapshot ?? "Never"}</span>
+            {fees?.lastXauPrice ? (
+              <span className="text-muted-foreground"> · XAUUSD ${fmt(fees.lastXauPrice)}</span>
+            ) : null}
+          </div>
+          <div>⏰ Next scheduled: <span className="font-medium">Today 23:00 UTC</span></div>
+        </div>
+      </section>
+
+      {/* SECTION 4 — QUICK ACCESS */}
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {QUICK.filter((q) => !q.module || can(perms, q.module, "view")).map((q) => (
+          <button
+            key={q.path}
+            onClick={() => navigate({ to: q.path as never })}
+            className="rounded-xl border border-border/60 bg-card hover:bg-muted/40 transition-colors px-4 py-4 text-left"
+          >
+            <div className="text-sm font-semibold">{q.label}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Open module →</div>
+          </button>
+        ))}
+      </section>
+
+      {/* SECTION 5 — DAILY BUSINESS SUMMARY */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold mb-3">Today</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+          <MiniStat label="New Clients" value={extras ? String(extras.newClientsToday) : "…"} />
+          <MiniStat
+            label="Swap Fees Today"
+            value={`${totalToday < 0 ? "-" : ""}$${fmt(Math.abs(totalToday))}`}
+          />
+          <MiniStat label="Margin Calls Generated" value={extras ? String(extras.marginCallsToday) : "…"} />
+          <MiniStat label="Discount/Premium Tx" value={premium ? String(premium.txToday) : "…"} />
+          <MiniStat label="Purity Trips" value={extras ? String(extras.purityTripsToday) : "…"} />
+        </div>
+      </section>
+
+      {/* SECTION 6 — GOLD OVERVIEW */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold mb-3">Gold Holdings</h2>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <MiniStat label="Client Gold" value={`${fmt(clientGrams, 0)} g`} />
+          <MiniStat label="Purity" value={`${fmt(purityGrams, 0)} g`} />
+          <MiniStat label="Discount / Premium" value={`${fmt(premiumGrams, 0)} g`} />
+          <MiniStat label="Total Managed" value={`${fmt(totalManagedGrams, 0)} g`} accent="primary" />
+        </div>
+      </section>
+
+      {/* SECTION 7 — SYSTEM HEALTH */}
+      <section className="rounded-xl border border-border/60 bg-card p-4">
+        <h2 className="text-sm font-semibold mb-2">System Health</h2>
+        <ul className="text-sm space-y-1">
+          <li>{priceOk ? "✅" : "❌"} XAUUSD API {priceOk ? "Online" : "Offline"}</li>
+          <li>{snapshotOk ? "✅" : "❌"} Snapshots {snapshotOk ? "Running" : "Not Detected"}</li>
+          <li>{dbOk ? "✅" : "❌"} Database {dbOk ? "Online" : "Error"}</li>
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  accent,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: "primary" | "green" | "red" | "muted";
+  onClick?: () => void;
+}) {
+  const color =
+    accent === "green"
+      ? "text-green-600"
+      : accent === "red"
+        ? "text-red-600"
+        : accent === "primary"
+          ? "text-primary"
+          : "";
+  return (
+    <div
+      onClick={onClick}
+      className={`rounded-xl border border-border/60 bg-card p-3 ${onClick ? "cursor-pointer hover:bg-muted/40" : ""}`}
+    >
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-lg font-semibold mt-0.5 ${color}`}>{value}</div>
+      {hint ? <div className="text-[10px] text-muted-foreground mt-0.5">{hint}</div> : null}
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "primary";
+}) {
+  return (
+    <div className="rounded-md bg-muted/40 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`font-semibold ${accent === "primary" ? "text-primary" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
 /* ----------------------------- HOME ----------------------------- */
+
+
 
 
 function HomeTab({
