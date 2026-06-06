@@ -272,5 +272,13 @@ export const deletePremiumTransaction = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId,
+      module: "premium",
+      action: "premium_tx_deleted",
+      entity_type: "premium_tx",
+      entity_id: data.id,
+      old_values: prev ?? null,
+    });
     return { ok: true };
   });
