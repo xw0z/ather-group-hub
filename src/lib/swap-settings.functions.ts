@@ -11,6 +11,7 @@ export type SwapSettings = {
   skip_saturday: boolean;
   skip_sunday: boolean;
   default_margin_requirement_pct: number;
+  default_additional_exposure_pct: number;
   safe_threshold_pct: number;
   warning_threshold_pct: number;
   xau_api_provider: string | null;
