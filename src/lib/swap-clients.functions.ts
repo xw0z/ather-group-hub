@@ -354,7 +354,7 @@ export const updateSwapClient = createServerFn({ method: "POST" })
     return row;
   });
 
-export const _listAuditPlaceholder = null; // anchor
+
 
 
 export const deleteSwapClient = createServerFn({ method: "POST" })
@@ -381,7 +381,9 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
     await assertSwapUser(context.userId);
     const { data, error } = await supabaseAdmin
       .from("swap_activity_log")
-      .select("id, user_id, username, action, entity_type, entity_id, details, created_at")
+      .select(
+        "id, user_id, username, action, module, status, entity_type, entity_id, details, old_values, new_values, ip_address, user_agent, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
