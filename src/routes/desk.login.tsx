@@ -12,7 +12,19 @@ import {
   swapSignInWithUsername,
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
+import { getMyRefineryAssignment } from "@/lib/refineries.functions";
 
+
+async function postLoginRedirect(navigate: ReturnType<typeof useNavigate>) {
+  try {
+    const a = await getMyRefineryAssignment();
+    if (!a.isAdmin && a.refineryId) {
+      navigate({ to: "/desk/refineries", search: { r: a.refineryId, tab: "dashboard" }, replace: true });
+      return;
+    }
+  } catch { /* ignore */ }
+  navigate({ to: "/desk/app/dashboard", replace: true });
+}
 
 export const Route = createFileRoute("/desk/login")({
   head: () => ({
