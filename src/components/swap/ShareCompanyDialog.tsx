@@ -88,6 +88,27 @@ const TX_COLOR: Record<PremiumTx["kind"], string> = {
   premium: EMBER,
 };
 
+/** Build a single-line, professional note for discount/premium rows. */
+function formatTxNote(t: PremiumTx): string {
+  if (t.kind === "discount" || t.kind === "premium") {
+    const isPremium = t.kind === "premium";
+    const label = isPremium ? "Premium Applied" : "Discount Applied";
+    const sign = isPremium ? "+" : "-";
+    const rate = Number(t.per_oz ?? 0).toFixed(0);
+    const grams = (Number(t.grams) || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const valueAbs = Math.abs(Number(t.amount_usd ?? 0)).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const base = `${label} (${sign}${rate} USD/oz) | Gold: ${grams} g | Value: $${valueAbs}`;
+    return t.notes ? `${base} — ${t.notes}` : base;
+  }
+  return t.notes || "—";
+}
+
 /* -------------------- Component -------------------- */
 
 export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
@@ -786,7 +807,7 @@ const StatementCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "18% 18% 22% 42%",
+                gridTemplateColumns: "13% 13% 18% 56%",
                 padding: "10px 14px",
                 background: CARD_2,
                 fontSize: 10,
@@ -805,11 +826,11 @@ const StatementCard = ({
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "18% 18% 22% 42%",
+                  gridTemplateColumns: "13% 13% 18% 56%",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
                   fontSize: 12,
-                  alignItems: "flex-start",
+                  alignItems: "center",
                 }}
               >
                 <span
@@ -818,6 +839,7 @@ const StatementCard = ({
                     fontVariantNumeric: "tabular-nums",
                     textAlign: "left",
                     paddingRight: 12,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {fmtDate(t.created_at)}
@@ -830,6 +852,7 @@ const StatementCard = ({
                     color: TX_COLOR[t.kind],
                     textAlign: "left",
                     paddingRight: 12,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {TX_LABEL[t.kind]}
@@ -851,11 +874,12 @@ const StatementCard = ({
                     color: TEXT_MUTED,
                     fontSize: 11,
                     textAlign: "left",
-                    whiteSpace: "normal",
-                    wordBreak: "break-word",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  {t.notes || "—"}
+                  {formatTxNote(t)}
                 </span>
               </div>
             ))}
