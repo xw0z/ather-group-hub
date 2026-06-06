@@ -1591,16 +1591,34 @@ export function ClientBreakdown({
     totalLoss: number;
   }) {
     setBusyKey(`img:${r.name}`);
+    const started = Date.now();
+    let reportId = "";
     try {
-      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+      await logActivity("share_started", "purity_report", {
+        format: "image",
+        supplier: r.name,
+        bars: r.bars.length,
+      });
+
       const data = buildReportData(r);
-      const canvas = await renderPurityReportToCanvas(data, { scale: 3 });
-      // PNG works in both mobile share sheets and the Windows Share dialog
-      // (which lists WhatsApp). Keep quality high.
-      const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/png"),
+      reportId = data.reportId;
+
+      const { renderPurityReportToCanvas } = await import("@/components/PurityReport");
+      const canvas = await withTimeout(
+        renderPurityReportToCanvas(data, { scale: 3 }),
+        30_000,
+        "Image generation",
+      );
+
+      const blob: Blob | null = await withTimeout(
+        new Promise<Blob | null>((resolve) =>
+          canvas.toBlob((b) => resolve(b), "image/png"),
+        ),
+        15_000,
+        "Image encoding",
       );
       if (!blob) throw new Error("Could not produce image.");
+
       const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.png`;
       const file = new File([blob], fileName, { type: "image/png" });
       const shareText = `Gold Purity Report — Client ${data.clientCode}\n${r.totalLoss.toFixed(2)} g loss · ${data.reportId}`;
@@ -1608,8 +1626,7 @@ export function ClientBreakdown({
         canShare?: (d: { files?: File[] }) => boolean;
         share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
       };
-      // Native share sheet — mobile shows WhatsApp; Windows 10/11 Chrome/Edge
-      // opens the Windows Share dialog which lists WhatsApp.
+
       if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
         try {
           await nav.share({
@@ -1617,20 +1634,32 @@ export function ClientBreakdown({
             title: `Gold Purity Report — Client ${data.clientCode}`,
             text: shareText,
           });
+          await logActivity("share_completed", "purity_report", {
+            format: "image",
+            supplier: r.name,
+            report_id: reportId,
+            duration_ms: Date.now() - started,
+            channel: "web_share",
+          });
+          toast.success("Report shared");
           return;
         } catch (e) {
-          if ((e as DOMException)?.name === "AbortError") return;
+          if ((e as DOMException)?.name === "AbortError") {
+            await logActivity("share_cancelled", "purity_report", {
+              format: "image",
+              supplier: r.name,
+              report_id: reportId,
+            });
+            return;
+          }
           // fall through to clipboard + WhatsApp Web
         }
       }
-      // Fallback (browsers without Web Share API for files): copy image to
-      // clipboard and open WhatsApp Web so the user can paste it.
+
       try {
         if ("clipboard" in navigator && "write" in navigator.clipboard) {
           await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-          alert(
-            "Image copied to clipboard.\n\nWhatsApp Web will open — paste (Ctrl+V / Cmd+V) into the chat.",
-          );
+          toast.success("Image copied — paste into WhatsApp (Ctrl/Cmd+V)");
         }
       } catch (clipErr) {
         console.warn("[purity] clipboard copy failed:", clipErr);
@@ -1640,13 +1669,24 @@ export function ClientBreakdown({
         "_blank",
         "noopener,noreferrer",
       );
+      await logActivity("share_completed", "purity_report", {
+        format: "image",
+        supplier: r.name,
+        report_id: reportId,
+        duration_ms: Date.now() - started,
+        channel: "whatsapp_web",
+      });
     } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
       console.error("[purity] shareClientImage failed:", err);
-      alert(
-        `Could not generate the image report.\n\n${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      await logActivity("share_failed", "purity_report", {
+        format: "image",
+        supplier: r.name,
+        report_id: reportId || null,
+        duration_ms: Date.now() - started,
+        reason,
+      });
+      toast.error("Could not generate the image report", { description: reason });
     } finally {
       setBusyKey(null);
     }
@@ -1661,7 +1701,15 @@ export function ClientBreakdown({
     totalLoss: number;
   }) {
     setBusyKey(`pdf:${r.name}`);
+    const started = Date.now();
+    let reportId = "";
     try {
+      await logActivity("share_started", "purity_report", {
+        format: "pdf",
+        supplier: r.name,
+        bars: r.bars.length,
+      });
+
       const [{ renderPurityReportToCanvas }, jspdfMod] = await Promise.all([
         import("@/components/PurityReport"),
         import("jspdf"),
@@ -1671,7 +1719,12 @@ export function ClientBreakdown({
         (jspdfMod as { default?: typeof import("jspdf").jsPDF }).default;
       if (!JsPDFCtor) throw new Error("PDF library failed to load.");
       const data = buildReportData(r);
-      const canvas = await renderPurityReportToCanvas(data, { scale: 2 });
+      reportId = data.reportId;
+      const canvas = await withTimeout(
+        renderPurityReportToCanvas(data, { scale: 2 }),
+        30_000,
+        "PDF generation",
+      );
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const doc = new JsPDFCtor({
         unit: "mm",
@@ -1691,13 +1744,24 @@ export function ClientBreakdown({
       }
       const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
       doc.save(fileName);
+      await logActivity("share_completed", "purity_report", {
+        format: "pdf",
+        supplier: r.name,
+        report_id: reportId,
+        duration_ms: Date.now() - started,
+      });
+      toast.success("PDF downloaded");
     } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
       console.error("[purity] shareClientPDF failed:", err);
-      alert(
-        `Could not generate the PDF.\n\n${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      await logActivity("share_failed", "purity_report", {
+        format: "pdf",
+        supplier: r.name,
+        report_id: reportId || null,
+        duration_ms: Date.now() - started,
+        reason,
+      });
+      toast.error("Could not generate the PDF", { description: reason });
     } finally {
       setBusyKey(null);
     }
