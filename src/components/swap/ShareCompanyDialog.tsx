@@ -807,7 +807,7 @@ const StatementCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "18% 18% 22% 42%",
+                gridTemplateColumns: "13% 13% 18% 56%",
                 padding: "10px 14px",
                 background: CARD_2,
                 fontSize: 10,
@@ -826,11 +826,11 @@ const StatementCard = ({
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "18% 18% 22% 42%",
+                  gridTemplateColumns: "13% 13% 18% 56%",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
                   fontSize: 12,
-                  alignItems: "flex-start",
+                  alignItems: "center",
                 }}
               >
                 <span
@@ -839,6 +839,7 @@ const StatementCard = ({
                     fontVariantNumeric: "tabular-nums",
                     textAlign: "left",
                     paddingRight: 12,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {fmtDate(t.created_at)}
@@ -851,6 +852,7 @@ const StatementCard = ({
                     color: TX_COLOR[t.kind],
                     textAlign: "left",
                     paddingRight: 12,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {TX_LABEL[t.kind]}
@@ -872,11 +874,12 @@ const StatementCard = ({
                     color: TEXT_MUTED,
                     fontSize: 11,
                     textAlign: "left",
-                    whiteSpace: "normal",
-                    wordBreak: "break-word",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  {t.notes || "—"}
+                  {formatTxNote(t)}
                 </span>
               </div>
             ))}
