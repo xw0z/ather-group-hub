@@ -476,7 +476,7 @@ export const updateMyRefineryProfile = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: { display_name?: string | null; phone?: string | null } = {};
     if (data.display_name !== undefined) patch.display_name = data.display_name;
     if (data.phone !== undefined) patch.phone = data.phone;
     if (Object.keys(patch).length > 0) {
