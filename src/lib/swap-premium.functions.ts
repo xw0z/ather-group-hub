@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 export const GRAMS_PER_OZ = 0.0321507466;
 
@@ -119,6 +120,14 @@ export const createPremiumCompany = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId,
+      module: "premium",
+      action: "premium_company_created",
+      entity_type: "premium_company",
+      entity_id: row.id,
+      new_values: { name: data.name.trim() },
+    });
     return row as PremiumCompany;
   });
 
@@ -128,12 +137,26 @@ export const renamePremiumCompany = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), name: z.string().min(1).max(120) }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: prev } = await supabase
+      .from("swap_premium_companies")
+      .select("name")
+      .eq("id", data.id)
+      .maybeSingle();
     const { error } = await supabase
       .from("swap_premium_companies")
       .update({ name: data.name.trim() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await recordAudit({
+      userId,
+      module: "premium",
+      action: "premium_company_updated",
+      entity_type: "premium_company",
+      entity_id: data.id,
+      old_values: prev ?? null,
+      new_values: { name: data.name.trim() },
+    });
     return { ok: true };
   });
 
