@@ -786,7 +786,7 @@ const StatementCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 0.75fr 1fr 2.1fr",
+                gridTemplateColumns: "18% 18% 22% 42%",
                 padding: "10px 14px",
                 background: CARD_2,
                 fontSize: 10,
@@ -795,27 +795,29 @@ const StatementCard = ({
                 textTransform: "uppercase",
               }}
             >
-              <span>Date</span>
-              <span>Type</span>
-              <span style={{ textAlign: "right" }}>Weight</span>
-              <span>Notes</span>
+              <span style={{ textAlign: "left", paddingRight: 12 }}>Date</span>
+              <span style={{ textAlign: "left", paddingRight: 12 }}>Type</span>
+              <span style={{ textAlign: "right", paddingRight: 16 }}>Weight</span>
+              <span style={{ textAlign: "left" }}>Notes</span>
             </div>
             {all.map((t) => (
               <div
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 0.75fr 1fr 2.1fr",
+                  gridTemplateColumns: "18% 18% 22% 42%",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
                   fontSize: 12,
-                  alignItems: "center",
+                  alignItems: "flex-start",
                 }}
               >
                 <span
                   style={{
                     color: TEXT_SOFT,
                     fontVariantNumeric: "tabular-nums",
+                    textAlign: "left",
+                    paddingRight: 12,
                   }}
                 >
                   {fmtDate(t.created_at)}
@@ -826,6 +828,8 @@ const StatementCard = ({
                     fontWeight: 800,
                     letterSpacing: "0.12em",
                     color: TX_COLOR[t.kind],
+                    textAlign: "left",
+                    paddingRight: 12,
                   }}
                 >
                   {TX_LABEL[t.kind]}
@@ -836,6 +840,8 @@ const StatementCard = ({
                     fontVariantNumeric: "tabular-nums",
                     color: TEXT,
                     fontWeight: 600,
+                    whiteSpace: "nowrap",
+                    paddingRight: 16,
                   }}
                 >
                   {fmtGNum(Number(t.grams))} g
@@ -844,9 +850,9 @@ const StatementCard = ({
                   style={{
                     color: TEXT_MUTED,
                     fontSize: 11,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    textAlign: "left",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
                   }}
                 >
                   {t.notes || "—"}
