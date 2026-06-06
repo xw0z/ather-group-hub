@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { recordAudit, type AuditModule } from "@/lib/swap-audit.server";
 
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
 const positionTypeRule = z.enum(["long", "short"]);
@@ -101,21 +102,50 @@ export function effectiveBalance(
   return Number(usdBalance) * (1 + pct / 100);
 }
 
+const ACTION_MODULE: Record<string, AuditModule> = {
+  client_created: "clients",
+  client_updated: "clients",
+  client_deleted: "clients",
+  fees_computed_manual: "swap",
+  xau_price_override: "margin",
+};
+
+function deriveModule(
+  action: string,
+  details: Record<string, Json> | null,
+): AuditModule {
+  if (ACTION_MODULE[action]) return ACTION_MODULE[action];
+  if (action === "client_updated" && details) {
+    if ("usd_balance" in details || "gold_kg" in details) return "financial";
+    if ("margin_requirement_pct" in details) return "margin";
+    if (
+      "annual_rate" in details ||
+      "short_annual_rate" in details ||
+      "additional_exposure_pct" in details
+    )
+      return "swap";
+  }
+  return "clients";
+}
+
 async function logActivity(
   userId: string,
   action: string,
   entity_type: string | null,
   entity_id: string | null,
   details: Record<string, Json> | null,
+  oldValues?: Record<string, Json> | null,
+  newValues?: Record<string, Json> | null,
 ) {
-  const username = await getUsername(userId);
-  await supabaseAdmin.from("swap_activity_log").insert({
-    user_id: userId,
-    username,
+  await recordAudit({
+    userId,
+    module: deriveModule(action, details),
     action,
     entity_type,
     entity_id,
-    details: details as Json,
+    old_values: oldValues ?? null,
+    new_values: newValues ?? null,
+    details: details ?? null,
   });
 }
 
