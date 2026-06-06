@@ -16,6 +16,7 @@ import {
   type CompanySummary,
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
+import { logClientAuditEvent } from "@/lib/swap-audit.functions";
 
 /* -------------------- Formatters -------------------- */
 
@@ -52,9 +53,7 @@ const fmtDate = (d: string) =>
 
 type Mode = "summary" | "statement";
 
-/* -------------------- Brand tokens — MATCHES Margin report identity --------------------
-   These are the exact colors/fonts used by ReportsCenter (Margin/Swap/Portfolio exports).
-   Do not introduce a different palette here. */
+/* -------------------- Brand tokens -------------------- */
 
 const BG = "#1a1a1a";
 const CARD = "#222222";
@@ -69,10 +68,26 @@ const EMBER = "#e85d3a";
 const EMBER_DEEP = "#c64a2d";
 const DANGER = "#ef4444";
 const OK = "#22c55e";
+const INFO = "#38bdf8";
 
 const baseFont =
   "Epilogue, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 const displayFont = "Urbanist, " + baseFont;
+
+const TX_LABEL: Record<PremiumTx["kind"], string> = {
+  add: "ADD",
+  remove: "REMOVE",
+  adjust: "ADJUST",
+  discount: "DISCOUNT",
+  premium: "PREMIUM",
+};
+const TX_COLOR: Record<PremiumTx["kind"], string> = {
+  add: OK,
+  remove: DANGER,
+  adjust: INFO,
+  discount: OK,
+  premium: EMBER,
+};
 
 /* -------------------- Component -------------------- */
 
@@ -108,58 +123,6 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
     }
   }, [open, summary.company.id, txs]);
 
-  const handleShare = async (chosen: Mode) => {
-    setMode(chosen);
-    setBusy(true);
-    try {
-      await new Promise((r) => setTimeout(r, chosen === "statement" ? 400 : 150));
-      const node = chosen === "summary" ? summaryRef.current : statementRef.current;
-      if (!node) throw new Error("Render node missing");
-
-      const dataUrl = await toPng(node, {
-        pixelRatio: 3,
-        cacheBust: true,
-        backgroundColor: BG,
-      });
-
-      const blob = await (await fetch(dataUrl)).blob();
-      const fileName = `ATHER_${summary.company.name.replace(/[^a-z0-9]+/gi, "_")}_${
-        chosen === "summary" ? "summary" : "statement"
-      }.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
-
-      const nav = navigator as Navigator & {
-        canShare?: (d: { files?: File[] }) => boolean;
-        share?: (d: ShareData & { files?: File[] }) => Promise<void>;
-      };
-      if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
-        try {
-          await nav.share({
-            files: [file],
-            title: `${summary.company.name} — ATHER Desk`,
-            text: `${summary.company.name} discount/premium ${
-              chosen === "summary" ? "summary" : "statement"
-            }`,
-          });
-          toast.success("Shared");
-        } catch (err) {
-          if ((err as Error).name !== "AbortError") {
-            triggerDownload(dataUrl, fileName);
-            toast.success("Image saved");
-          }
-        }
-      } else {
-        triggerDownload(dataUrl, fileName);
-        toast.success("Image downloaded");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to generate image");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const triggerDownload = (dataUrl: string, fileName: string) => {
     const a = document.createElement("a");
     a.href = dataUrl;
@@ -167,6 +130,126 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+    new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+      p.then(
+        (v) => {
+          clearTimeout(t);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(t);
+          reject(e);
+        },
+      );
+    });
+
+  const shareNode = async (
+    node: HTMLDivElement,
+    fileNameSuffix: string,
+    titleSuffix: string,
+  ) => {
+    const dataUrl = await withTimeout(
+      toPng(node, { pixelRatio: 3, cacheBust: true, backgroundColor: BG }),
+      30000,
+      "Image generation",
+    );
+    const blob = await (await fetch(dataUrl)).blob();
+    const fileName = `ATHER_${summary.company.name.replace(/[^a-z0-9]+/gi, "_")}_${fileNameSuffix}.png`;
+    const file = new File([blob], fileName, { type: "image/png" });
+    const nav = navigator as Navigator & {
+      canShare?: (d: { files?: File[] }) => boolean;
+      share?: (d: ShareData & { files?: File[] }) => Promise<void>;
+    };
+    if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
+      try {
+        await nav.share({
+          files: [file],
+          title: `${summary.company.name} — ATHER Desk`,
+          text: `${summary.company.name} ${titleSuffix}`,
+        });
+        toast.success("Shared");
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          triggerDownload(dataUrl, fileName);
+          toast.success("Image saved");
+        }
+      }
+    } else {
+      triggerDownload(dataUrl, fileName);
+      toast.success("Image downloaded");
+    }
+  };
+
+  const audit = (action: string, status: "success" | "failure", details?: Record<string, unknown>) => {
+    logClientAuditEvent({
+      data: {
+        module: "premium",
+        action,
+        status,
+        entity_type: "premium_company",
+        entity_id: summary.company.id,
+        details: {
+          company_name: summary.company.name,
+          ...details,
+        },
+      },
+    }).catch(() => {});
+  };
+
+  const generateCompanySummaryImage = async () => {
+    setMode("summary");
+    setBusy(true);
+    const toastId = toast.loading("Generating summary…");
+    try {
+      await new Promise((r) => setTimeout(r, 120));
+      const node = summaryRef.current;
+      if (!node) throw new Error("Summary render node missing");
+      await shareNode(node, "summary", "company summary");
+      audit("company_summary_shared", "success");
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Failed to generate summary";
+      toast.error(msg);
+      audit("company_summary_shared", "failure", { error: msg });
+    } finally {
+      toast.dismiss(toastId);
+      setBusy(false);
+      setMode(null);
+    }
+  };
+
+  const generateFullTransactionStatement = async () => {
+    setMode("statement");
+    setBusy(true);
+    const toastId = toast.loading("Generating full statement…");
+    try {
+      // Always refetch ALL transactions for the company (not just D/P)
+      const all = await withTimeout(
+        listCompanyTransactions({ data: { companyId: summary.company.id } }),
+        20000,
+        "Loading transactions",
+      );
+      setTxs(all);
+      // Allow the offscreen node to render with the freshly loaded list
+      await new Promise((r) => setTimeout(r, 350));
+      const node = statementRef.current;
+      if (!node) throw new Error("Statement render node missing");
+      await shareNode(node, "statement", "full transaction statement");
+      audit("full_statement_shared", "success", { tx_count: all.length });
+    } catch (err) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Failed to generate statement";
+      toast.error(msg);
+      audit("full_statement_shared", "failure", { error: msg });
+    } finally {
+      toast.dismiss(toastId);
+      setBusy(false);
+      setMode(null);
+    }
   };
 
   const generatedAt = new Date().toLocaleString("en-US", {
@@ -202,7 +285,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
             variant="outline"
             className="justify-start h-auto py-3"
             disabled={busy}
-            onClick={() => handleShare("summary")}
+            onClick={generateCompanySummaryImage}
           >
             {busy && mode === "summary" ? (
               <Loader2 className="h-5 w-5 animate-spin mr-3" />
@@ -210,7 +293,11 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
               <ImageIcon className="h-5 w-5 mr-3 text-primary" />
             )}
             <div className="text-left">
-              <div className="font-semibold">Share Company Summary</div>
+              <div className="font-semibold">
+                {busy && mode === "summary"
+                  ? "Generating summary…"
+                  : "Share Company Summary"}
+              </div>
               <div className="text-xs text-muted-foreground">
                 One-page overview image
               </div>
@@ -220,7 +307,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
             variant="outline"
             className="justify-start h-auto py-3"
             disabled={busy}
-            onClick={() => handleShare("statement")}
+            onClick={generateFullTransactionStatement}
           >
             {busy && mode === "statement" ? (
               <Loader2 className="h-5 w-5 animate-spin mr-3" />
@@ -228,9 +315,13 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
               <FileText className="h-5 w-5 mr-3 text-primary" />
             )}
             <div className="text-left">
-              <div className="font-semibold">Share Full Transaction Statement</div>
+              <div className="font-semibold">
+                {busy && mode === "statement"
+                  ? "Generating full statement…"
+                  : "Share Full Transaction Statement"}
+              </div>
               <div className="text-xs text-muted-foreground">
-                Detailed report with all transactions
+                Every transaction for this company
               </div>
             </div>
           </Button>
@@ -240,7 +331,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
           </p>
         </div>
 
-        {/* Hidden offscreen render targets */}
+        {/* Hidden offscreen render targets — two distinct components */}
         <div
           aria-hidden
           style={{
@@ -251,22 +342,19 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
             opacity: 1,
           }}
         >
-          <ReportCard
+          <SummaryCard
             ref={summaryRef}
             summary={summary}
-            txs={txs}
             qr={qr}
             generatedAt={generatedAt}
-            reportType="SUMMARY"
           />
           {txs && (
-            <ReportCard
+            <StatementCard
               ref={statementRef}
               summary={summary}
               txs={txs}
               qr={qr}
               generatedAt={generatedAt}
-              reportType="STATEMENT"
             />
           )}
         </div>
@@ -275,7 +363,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
   );
 }
 
-/* -------------------- Brand header — pixel-matches ReportsCenter brandHeader() -------------------- */
+/* -------------------- Brand header -------------------- */
 
 function Brand({ subtitle }: { subtitle: string }) {
   return (
@@ -326,7 +414,64 @@ function Brand({ subtitle }: { subtitle: string }) {
   );
 }
 
-/* -------------------- Row primitive — matches ReportsCenter row() -------------------- */
+function CompanyHeader({
+  name,
+  generatedAt,
+}: {
+  name: string;
+  generatedAt: string;
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 22,
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 16,
+      }}
+    >
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Company
+        </div>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            marginTop: 2,
+            letterSpacing: "-0.01em",
+            color: TEXT,
+            fontFamily: displayFont,
+          }}
+        >
+          {name}
+        </div>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Snapshot
+        </div>
+        <div style={{ fontSize: 13, color: TEXT_SOFT, marginTop: 4 }}>
+          {generatedAt}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Row({
   label,
@@ -366,35 +511,95 @@ function Row({
   );
 }
 
-/* -------------------- The unified premium report — Margin visual family -------------------- */
+function BrandFooter({ qr }: { qr: string }) {
+  return (
+    <div
+      style={{
+        marginTop: 22,
+        paddingTop: 14,
+        borderTop: `1px solid ${BORDER_SOFT}`,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <div style={{ flex: 1, textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: 10,
+            color: TEXT_FAINT,
+            fontStyle: "italic",
+          }}
+        >
+          Generated by ATHER Desk · values reflect data at time of export.
+        </div>
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: displayFont,
+            fontWeight: 800,
+            letterSpacing: "0.04em",
+            fontSize: 12,
+            color: TEXT_SOFT,
+          }}
+        >
+          ATHER GROUP
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            color: TEXT_FAINT,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginTop: 2,
+          }}
+        >
+          Confidential Client Report
+        </div>
+      </div>
+      {qr ? (
+        <div style={{ textAlign: "center" }}>
+          <img
+            src={qr}
+            alt=""
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 6,
+              background: "#fff",
+              padding: 3,
+            }}
+          />
+          <div
+            style={{
+              fontSize: 8,
+              color: TEXT_FAINT,
+              marginTop: 4,
+              letterSpacing: "0.14em",
+            }}
+          >
+            SCAN · VERIFY
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-const ReportCard = ({
+/* -------------------- Summary card (one-page overview) -------------------- */
+
+const SummaryCard = ({
   ref,
   summary,
-  txs,
   qr,
   generatedAt,
-  reportType,
 }: {
   ref: React.RefObject<HTMLDivElement | null>;
   summary: CompanySummary;
-  txs: PremiumTx[] | null;
   qr: string;
   generatedAt: string;
-  reportType: "SUMMARY" | "STATEMENT";
 }) => {
-  const dpTxs = (txs ?? [])
-    .filter((t) => t.kind === "discount" || t.kind === "premium")
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
-  const subtitle =
-    reportType === "STATEMENT"
-      ? "Discount / Premium Statement"
-      : "Discount / Premium Report";
-
   return (
     <div
       ref={ref}
@@ -406,59 +611,10 @@ const ReportCard = ({
         padding: "32px 36px 28px",
       }}
     >
-      {/* Header — matches Margin brandHeader + clientHeaderHtml */}
-      <Brand subtitle={subtitle} />
+      <Brand subtitle="Company Summary" />
+      <CompanyHeader name={summary.company.name} generatedAt={generatedAt} />
 
-      <div
-        style={{
-          marginTop: 22,
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              color: TEXT_MUTED,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            Company
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              marginTop: 2,
-              letterSpacing: "-0.01em",
-              color: TEXT,
-              fontFamily: displayFont,
-            }}
-          >
-            {summary.company.name}
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div
-            style={{
-              fontSize: 11,
-              color: TEXT_MUTED,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            Snapshot
-          </div>
-          <div style={{ fontSize: 13, color: TEXT_SOFT, marginTop: 4 }}>
-            {generatedAt}
-          </div>
-        </div>
-      </div>
-
-      {/* Hero — Available Gold (without discount / premium) */}
+      {/* Hero — Available Gold */}
       <div
         style={{
           marginTop: 18,
@@ -489,7 +645,7 @@ const ReportCard = ({
             textTransform: "uppercase",
           }}
         >
-          Available Gold
+          Net Available Gold
         </div>
         <div
           style={{
@@ -527,7 +683,6 @@ const ReportCard = ({
         </div>
       </div>
 
-      {/* Summary block — matches Margin's row() card */}
       <div
         style={{
           marginTop: 16,
@@ -538,9 +693,9 @@ const ReportCard = ({
         }}
       >
         <Row
-          label="Total Balance"
-          value={fmtG(summary.total_balance_grams)}
-          valueColor={summary.total_balance_grams < 0 ? DANGER : undefined}
+          label="Total Gold (without D/P)"
+          value={fmtG(summary.clean_remaining_grams)}
+          valueColor={summary.clean_remaining_grams < 0 ? DANGER : undefined}
         />
         <Row
           label="Discount / Premium Gold"
@@ -548,11 +703,10 @@ const ReportCard = ({
           valueColor={EMBER}
         />
         <Row
-          label="Available Gold (without D/P)"
-          value={fmtG(summary.clean_remaining_grams)}
-          valueColor={summary.clean_remaining_grams < 0 ? DANGER : undefined}
+          label="Total Balance"
+          value={fmtG(summary.total_balance_grams)}
+          valueColor={summary.total_balance_grams < 0 ? DANGER : undefined}
         />
-        <Row label="Transactions" value={String(dpTxs.length)} />
         <Row
           label="Total Discount / Premium (USD)"
           value={fmtUSD(summary.dp_charges_usd)}
@@ -561,7 +715,106 @@ const ReportCard = ({
         />
       </div>
 
-      {/* Transactions table — matches Margin/Swap table style */}
+      <BrandFooter qr={qr} />
+    </div>
+  );
+};
+
+/* -------------------- Full transaction statement -------------------- */
+
+const StatementCard = ({
+  ref,
+  summary,
+  txs,
+  qr,
+  generatedAt,
+}: {
+  ref: React.RefObject<HTMLDivElement | null>;
+  summary: CompanySummary;
+  txs: PremiumTx[];
+  qr: string;
+  generatedAt: string;
+}) => {
+  // ALL transactions sorted newest first — no filtering by kind
+  const all = [...txs].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: 880,
+        background: BG,
+        color: TEXT,
+        fontFamily: baseFont,
+        padding: "32px 36px 28px",
+      }}
+    >
+      <Brand subtitle="Full Transaction Statement" />
+      <CompanyHeader name={summary.company.name} generatedAt={generatedAt} />
+
+      {/* Compact totals */}
+      <div
+        style={{
+          marginTop: 16,
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 10,
+        }}
+      >
+        {[
+          {
+            l: "Total Balance",
+            v: fmtG(summary.total_balance_grams),
+            c: summary.total_balance_grams < 0 ? DANGER : TEXT,
+          },
+          { l: "D/P Gold", v: fmtG(summary.dp_grams), c: EMBER },
+          {
+            l: "Available (no D/P)",
+            v: fmtG(summary.clean_remaining_grams),
+            c: summary.clean_remaining_grams < 0 ? DANGER : TEXT,
+          },
+          {
+            l: "D/P Charges",
+            v: fmtUSD(summary.dp_charges_usd),
+            c: summary.dp_charges_usd < 0 ? DANGER : OK,
+          },
+        ].map((s) => (
+          <div
+            key={s.l}
+            style={{
+              padding: "12px 14px",
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 10,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                color: TEXT_MUTED,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            >
+              {s.l}
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 16,
+                fontWeight: 700,
+                color: s.c,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {s.v}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div style={{ marginTop: 18 }}>
         <div
           style={{
@@ -572,10 +825,10 @@ const ReportCard = ({
             marginBottom: 8,
           }}
         >
-          — Discount / Premium Transactions —
+          — All Transactions ({all.length}) —
         </div>
 
-        {dpTxs.length === 0 ? (
+        {all.length === 0 ? (
           <div
             style={{
               padding: 18,
@@ -587,7 +840,7 @@ const ReportCard = ({
               borderRadius: 10,
             }}
           >
-            No discount or premium transactions recorded.
+            No transactions recorded for this company.
           </div>
         ) : (
           <div
@@ -601,10 +854,10 @@ const ReportCard = ({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 1fr",
+                gridTemplateColumns: "1.3fr 0.7fr 0.8fr 0.7fr 0.9fr 0.9fr 1.2fr",
                 padding: "10px 14px",
                 background: CARD_2,
-                fontSize: 11,
+                fontSize: 10,
                 color: TEXT_MUTED,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
@@ -615,16 +868,19 @@ const ReportCard = ({
               <span style={{ textAlign: "right" }}>Weight</span>
               <span style={{ textAlign: "right" }}>$/oz</span>
               <span style={{ textAlign: "right" }}>USD</span>
+              <span>By</span>
+              <span>Notes</span>
             </div>
-            {dpTxs.map((t) => (
+            {all.map((t) => (
               <div
                 key={t.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 1fr",
+                  gridTemplateColumns:
+                    "1.3fr 0.7fr 0.8fr 0.7fr 0.9fr 0.9fr 1.2fr",
                   padding: "9px 14px",
                   borderTop: `1px solid ${BORDER_SOFT}`,
-                  fontSize: 13,
+                  fontSize: 12,
                   alignItems: "center",
                 }}
               >
@@ -638,13 +894,13 @@ const ReportCard = ({
                 </span>
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 800,
                     letterSpacing: "0.12em",
-                    color: t.kind === "discount" ? OK : EMBER,
+                    color: TX_COLOR[t.kind],
                   }}
                 >
-                  {t.kind === "discount" ? "DISCOUNT" : "PREMIUM"}
+                  {TX_LABEL[t.kind]}
                 </span>
                 <span
                   style={{
@@ -678,9 +934,21 @@ const ReportCard = ({
                     fontWeight: 700,
                   }}
                 >
-                  {t.amount_usd != null
-                    ? fmtUSD(Number(t.amount_usd))
-                    : "—"}
+                  {t.amount_usd != null ? fmtUSD(Number(t.amount_usd)) : "—"}
+                </span>
+                <span style={{ color: TEXT_SOFT, fontSize: 11 }}>
+                  {t.username || "—"}
+                </span>
+                <span
+                  style={{
+                    color: TEXT_MUTED,
+                    fontSize: 11,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t.notes || "—"}
                 </span>
               </div>
             ))}
@@ -688,78 +956,7 @@ const ReportCard = ({
         )}
       </div>
 
-      {/* Footer — matches Margin brandFooter() exactly, with QR on the side */}
-      <div
-        style={{
-          marginTop: 22,
-          paddingTop: 14,
-          borderTop: `1px solid ${BORDER_SOFT}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <div
-            style={{
-              fontSize: 10,
-              color: TEXT_FAINT,
-              fontStyle: "italic",
-            }}
-          >
-            Generated by ATHER Desk · values reflect data at time of export.
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              fontFamily: displayFont,
-              fontWeight: 800,
-              letterSpacing: "0.04em",
-              fontSize: 12,
-              color: TEXT_SOFT,
-            }}
-          >
-            ATHER GROUP
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: TEXT_FAINT,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginTop: 2,
-            }}
-          >
-            Confidential Client Report
-          </div>
-        </div>
-        {qr ? (
-          <div style={{ textAlign: "center" }}>
-            <img
-              src={qr}
-              alt=""
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 6,
-                background: "#fff",
-                padding: 3,
-              }}
-            />
-            <div
-              style={{
-                fontSize: 8,
-                color: TEXT_FAINT,
-                marginTop: 4,
-                letterSpacing: "0.14em",
-              }}
-            >
-              SCAN · VERIFY
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <BrandFooter qr={qr} />
     </div>
   );
 };
