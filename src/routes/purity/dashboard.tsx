@@ -43,6 +43,30 @@ import { useLang, type Lang } from "@/lib/purity-i18n";
 import { LegacyDeskRedirect } from "@/components/LegacyDeskRedirect";
 import { BackupButton } from "@/components/BackupButton";
 import { RestoreButton } from "@/components/RestoreButton";
+import { toast } from "sonner";
+
+// Hard cap any share-report generation step at 30 s. Without this, a stalled
+// font fetch, a hung html2canvas image decode, or a never-resolving
+// navigator.share() leaves the spinner running forever (seen on some
+// accounts/browsers — e.g. Moussa on iOS Safari).
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(
+      () => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)),
+      ms,
+    );
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
 
 // Legacy /purity/dashboard URL — keep redirecting users into the unified
 // ATHER DESK shell at /desk/app/purity. The actual Purity module UI is
