@@ -640,7 +640,9 @@ async function sendDailyWhatsAppStatements(
 
   const { data: fees, error: fErr } = await supabaseAdmin
     .from("swap_daily_fees")
-    .select("client_id, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at")
+    .select(
+      "client_id, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at, additional_exposure_pct, effective_balance, day_multiplier",
+    )
     .eq("fee_date", feeDate);
   if (fErr) throw new Error(fErr.message);
   const byClient = new Map<string, (typeof fees)[number]>();
@@ -655,28 +657,35 @@ async function sendDailyWhatsAppStatements(
     const xau =
       f.xauusd_price !== null && f.xauusd_price !== undefined ? Number(f.xauusd_price) : null;
     const isShort = (f.position_type ?? "long") === "short";
-    const amountLabel = isShort ? "Swap benefit credited" : "Swap fee";
+    const amountLabel = isShort ? "Swap Benefit Credited" : "Swap Fee Charged";
     const absFee = Math.abs(Number(f.daily_fee));
-    const dt = new Date(`${feeDate}T00:00:00Z`);
-    const isWed = dt.getUTCDay() === 3;
-    const baseFee = isWed ? absFee / 3 : absFee;
     const sign = isShort ? "+" : "-";
-    const amountFmt = `*${sign}$${fmtNum(baseFee)}*`;
-    const wedLine = isWed
-      ? `\nWednesday 3× applied: *${sign}$${fmtNum(absFee)}* charged`
-      : "";
     const bal = Number(f.usd_balance);
     const balStr = `${bal < 0 ? "-" : ""}$${fmtNum(Math.abs(bal))}`;
+    const addExp = Number(f.additional_exposure_pct ?? 5);
+    const effBal = Math.abs(Number(f.effective_balance ?? bal * (1 + addExp / 100)));
+    const mult = Number(f.day_multiplier ?? 1);
+    const exposureFactorPct = 100 + addExp;
+    const divider = "------------------------------";
+    const nameLine = c.notes ? `Name: ${c.notes}\n` : "";
     const body =
-      `Swap Statement — ${feeDate}\n` +
+      `Swap Statement\n` +
       `Client: ${c.code}\n` +
+      nameLine +
       `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
-      `Snapshot: ${snapshot}` +
-      (xau !== null ? ` · XAUUSD $${fmtNum(xau)}` : "") +
-      `\n\n` +
-      `Balance: ${balStr}\n` +
-      `Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
-      `${amountLabel}: ${amountFmt}${wedLine}`;
+      `Snapshot: ${snapshot}\n` +
+      `XAUUSD: ${xau !== null ? `$${fmtNum(xau)}` : "—"}\n` +
+      `\n${divider}\n\n` +
+      `USD Balance: ${balStr}\n` +
+      `Additional Exposure: ${fmtNum(addExp)}%\n` +
+      `Effective Balance: $${fmtNum(effBal)}\n` +
+      `Calculation: $${fmtNum(Math.abs(bal))} × ${fmtNum(exposureFactorPct, 0)}% = $${fmtNum(effBal)}\n` +
+      `\n${divider}\n\n` +
+      `Annual Rate: ${fmtNum(Number(f.annual_rate))}% p.a.\n` +
+      `Day Multiplier: ${mult}×\n` +
+      `${amountLabel}: *${sign}$${fmtNum(absFee)}*\n` +
+      `\n${divider}\n` +
+      `ATHER Desk · Generated automatically`;
 
     try {
       const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
