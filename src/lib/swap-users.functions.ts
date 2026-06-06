@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertSwapUser } from "@/lib/swap-clients.functions";
+import { recordAudit } from "@/lib/swap-audit.server";
 
 const usernameRule = z
   .string()
