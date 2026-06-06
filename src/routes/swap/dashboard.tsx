@@ -893,7 +893,7 @@ function DashboardOverview({
         <StatCard
           label="Live XAUUSD"
           value={livePrice ? `$${fmt(livePrice.price)}` : livePriceLoading ? "…" : "—"}
-          hint={livePrice ? `Updated ${new Date(livePrice.updated_at).toLocaleTimeString()}` : "No price"}
+          hint={livePrice?.updated_at ? `Updated ${new Date(livePrice.updated_at).toLocaleTimeString()}` : "No price"}
           accent="primary"
           onClick={onRefreshPrice}
         />
