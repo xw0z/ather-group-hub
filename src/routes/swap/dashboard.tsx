@@ -663,25 +663,14 @@ export function SwapDashboard({
 
         <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
           {effectiveTab === "dashboard" && (
-            <>
-              {can(perms, "swap", "view") && (
-                <HomeTab
-                  isAdmin={isAdmin}
-                  livePrice={livePrice}
-                  livePriceLoading={livePriceLoading}
-                  onRefreshPrice={refreshPrice}
-                  onPriceChanged={setLivePrice}
-                />
-              )}
-              {can(perms, "margin", "view") && (
-                <MarginTab livePrice={livePrice} showLiveCard={false} />
-              )}
-              {!can(perms, "swap", "view") && !can(perms, "margin", "view") && (
-                <section className="rounded-xl border border-border/60 bg-card p-6 text-center text-sm text-muted-foreground">
-                  Select a module from the sidebar to get started.
-                </section>
-              )}
-            </>
+            <DashboardOverview
+              isAdmin={isAdmin}
+              livePrice={livePrice}
+              livePriceLoading={livePriceLoading}
+              onRefreshPrice={refreshPrice}
+              onPriceChanged={setLivePrice}
+              perms={perms}
+            />
           )}
           {effectiveTab === "purity" && can(perms, "purity", "view") && <PurityDashboard inShell tripId={purityTripId} />}
           {effectiveTab === "clients" && can(perms, "swap", "view") && <ClientsTab livePrice={livePrice} />}
