@@ -332,17 +332,26 @@ function swapSectionHtml(report: SwapReport): string {
       ? `<div style="margin-top:14px;padding:18px;text-align:center;color:#9a9a9a;font-size:13px;background:#222;border:1px solid #2f2f2f;border-radius:10px">No swap fees in this period.</div>`
       : `
     <div style="margin-top:14px;background:#222;border:1px solid #2f2f2f;border-radius:10px;overflow:hidden">
-      <div style="display:grid;grid-template-columns:1.2fr 0.8fr 1fr 0.6fr;padding:10px 14px;background:#2a2a2a;font-size:11px;color:#9a9a9a;letter-spacing:0.08em;text-transform:uppercase">
-        <span>Date</span><span style="text-align:right">XAUUSD</span><span style="text-align:right">Amount</span><span style="text-align:center">3×</span>
+      <div style="display:grid;grid-template-columns:0.9fr 0.7fr 1fr 0.6fr 1.1fr 0.5fr 1fr;padding:10px 12px;background:#2a2a2a;font-size:10px;color:#9a9a9a;letter-spacing:0.06em;text-transform:uppercase">
+        <span>Date</span>
+        <span style="text-align:right">XAUUSD</span>
+        <span style="text-align:right">USD Bal</span>
+        <span style="text-align:right">+Exp%</span>
+        <span style="text-align:right">Eff. Bal</span>
+        <span style="text-align:center">Day×</span>
+        <span style="text-align:right">Fee</span>
       </div>
       ${report.rows
         .map(
           (r) => `
-        <div style="display:grid;grid-template-columns:1.2fr 0.8fr 1fr 0.6fr;padding:8px 14px;border-top:1px solid #2a2a2a;font-size:13px">
+        <div style="display:grid;grid-template-columns:0.9fr 0.7fr 1fr 0.6fr 1.1fr 0.5fr 1fr;padding:8px 12px;border-top:1px solid #2a2a2a;font-size:12px">
           <span>${r.fee_date}</span>
           <span style="text-align:right;color:#d9d4cc">${r.xauusd_price ? money(r.xauusd_price) : "—"}</span>
+          <span style="text-align:right;color:${r.usd_balance < 0 ? "#ef4444" : "#d9d4cc"};font-variant-numeric:tabular-nums">${money(r.usd_balance)}</span>
+          <span style="text-align:right;color:#d9d4cc">${fmt(r.additional_exposure_pct)}%</span>
+          <span style="text-align:right;color:#d9d4cc;font-variant-numeric:tabular-nums">$${fmt(Math.abs(r.effective_balance))}</span>
+          <span style="text-align:center;color:${r.day_multiplier > 1 ? "#f59e0b" : "#9a9a9a"}">${r.day_multiplier}×</span>
           <span style="text-align:right;color:${r.position_type === "short" ? "#22c55e" : "#ef4444"};font-weight:600;font-variant-numeric:tabular-nums">${r.position_type === "short" ? "+" : "-"}${money(r.daily_fee)}</span>
-          <span style="text-align:center;color:${r.is_wednesday ? "#f59e0b" : "#5a5a5a"}">${r.is_wednesday ? "✓" : "·"}</span>
         </div>`,
         )
         .join("")}

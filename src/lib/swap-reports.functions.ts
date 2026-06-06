@@ -44,7 +44,7 @@ export const getSwapFeeReport = createServerFn({ method: "POST" })
     const { data: fees, error: fErr } = await supabaseAdmin
       .from("swap_daily_fees")
       .select(
-        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at",
+        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, created_at, additional_exposure_pct, effective_balance, day_multiplier",
       )
       .eq("client_id", data.clientId)
       .gte("fee_date", data.from)
@@ -56,15 +56,22 @@ export const getSwapFeeReport = createServerFn({ method: "POST" })
       const dt = new Date(`${f.fee_date}T00:00:00Z`);
       const isWed = dt.getUTCDay() === 3;
       const ptype = (f.position_type ?? "long") as "long" | "short";
+      const usdBal = Number(f.usd_balance);
+      const addExp = Number(f.additional_exposure_pct ?? 5);
+      const effBal = Number(f.effective_balance ?? usdBal * (1 + addExp / 100));
+      const mult = Number(f.day_multiplier ?? (isWed ? 3 : 1));
       return {
         id: f.id,
         fee_date: f.fee_date,
         xauusd_price: f.xauusd_price !== null ? Number(f.xauusd_price) : null,
         daily_fee: Number(f.daily_fee),
-        usd_balance: Number(f.usd_balance),
+        usd_balance: usdBal,
         annual_rate: Number(f.annual_rate),
         position_type: ptype,
         is_wednesday: isWed,
+        additional_exposure_pct: addExp,
+        effective_balance: effBal,
+        day_multiplier: mult,
         created_at: f.created_at,
       };
     });
