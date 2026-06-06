@@ -71,7 +71,6 @@ function buildMessage(
   return (
     `Swap Statement\n` +
     `Client: ${code}\n` +
-    nameLine +
     `Position: ${isShort ? "Short / Sell" : "Long / Buy"}\n` +
     `Snapshot: ${fmtSnapshot(snapshotAt)}\n` +
     `XAUUSD: ${xauusd !== null ? `$${fmt(xauusd)}` : "—"}\n` +
