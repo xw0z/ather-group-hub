@@ -60,7 +60,7 @@ function DeskLoginPage() {
       if (!data.session) return;
       try {
         const me = await getCurrentSwapUser();
-        if (me.isSwapUser) navigate({ to: "/desk/app/dashboard", replace: true });
+        if (me.isSwapUser) await postLoginRedirect(navigate);
       } catch {
         /* not a platform user */
       }
