@@ -331,9 +331,31 @@ export const updateSwapClient = createServerFn({ method: "POST" })
       }
     }
 
-    await logActivity(context.userId, "client_updated", "client", row.id, patch as Record<string, Json>);
+    await logActivity(
+      context.userId,
+      "client_updated",
+      "client",
+      row.id,
+      patch as Record<string, Json>,
+      (existing ?? null) as Record<string, Json> | null,
+      {
+        usd_balance: row.usd_balance,
+        gold_kg: row.gold_kg,
+        xauusd_price: row.xauusd_price,
+        margin_requirement_pct: row.margin_requirement_pct,
+        annual_rate: row.annual_rate,
+        short_annual_rate: row.short_annual_rate,
+        additional_exposure_pct: row.additional_exposure_pct,
+        position_type: row.position_type,
+        code: row.code,
+        notes: row.notes,
+      } as Record<string, Json>,
+    );
     return row;
   });
+
+export const _listAuditPlaceholder = null; // anchor
+
 
 export const deleteSwapClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
