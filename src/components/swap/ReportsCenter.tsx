@@ -730,14 +730,24 @@ function DateRangeControls({
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div className="space-y-1 min-w-0 w-full">
           <Label className="text-xs text-muted-foreground">From</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="w-full min-w-0 box-border"
+          />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0 w-full">
           <Label className="text-xs text-muted-foreground">To</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <Input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="w-full min-w-0 box-border"
+          />
         </div>
       </div>
     </div>
