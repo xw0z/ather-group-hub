@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
   TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon, X,
+  Eye, EyeOff, Monitor, Sun, Moon, Globe, ShieldCheck, Settings as SettingsIcon, User as UserIcon,
 } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,12 @@ import { TransactionReceiptReport } from "@/components/refineries/TransactionRec
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useLang } from "@/lib/purity-i18n";
+import { useLang, type Lang } from "@/lib/purity-i18n";
+import {
+  getSwapOwnProfile, updateSwapOwnProfile, updateSwapOwnPassword,
+  getUserPreferences, updateUserPreferences,
+  signOutEverywhere, getLoginHistory,
+} from "@/lib/swap-profile.functions";
 
 
 type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile" | "translations";
@@ -2721,61 +2727,460 @@ function NewStockAdjustmentDialog({
 // =============================================================
 // Profile tab
 // =============================================================
+type ProfileSubTab = "general" | "security" | "preferences" | "sessions";
+
+function passwordStrength(p: string): { label: string; score: number; color: string } {
+  let s = 0;
+  if (p.length >= 8) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/\d/.test(p)) s++;
+  if (/[^A-Za-z0-9]/.test(p)) s++;
+  if (p.length >= 12) s++;
+  const labels = ["Very weak", "Weak", "Fair", "Good", "Strong", "Very strong"];
+  const colors = ["bg-destructive", "bg-destructive", "bg-amber-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-500"];
+  return { label: labels[s], score: s, color: colors[s] };
+}
+
+function fmtDateTime(s: string | null | undefined): string {
+  if (!s) return "—";
+  try { return new Date(s).toLocaleString(); } catch { return s; }
+}
+
+type SwapProfile = Awaited<ReturnType<typeof getSwapOwnProfile>>;
+type SwapPrefs = Awaited<ReturnType<typeof getUserPreferences>>;
+type LoginRow = Awaited<ReturnType<typeof getLoginHistory>>[number];
+
 function ProfileTab() {
-  type Profile = Awaited<ReturnType<typeof getMyRefineryProfile>>;
-  const [p, setP] = useState<Profile | null>(null);
-  const [name, setName] = useState("");
+  const { lang, setLang } = useLang();
+  const [sub, setSub] = useState<ProfileSubTab>("general");
+  const [loading, setLoading] = useState(true);
+
+  // General
+  const [p, setP] = useState<SwapProfile | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingGeneral, setSavingGeneral] = useState(false);
+
+  // Security
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [savingPwd, setSavingPwd] = useState(false);
+  const strength = passwordStrength(pwd);
+  const pwdMatch = pwd === pwd2;
+
+  // Preferences
+  const [prefs, setPrefs] = useState<SwapPrefs>({
+    theme: "system", number_format: "en", date_format: "DD/MM/YYYY", locale: "en",
+  } as SwapPrefs);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  // Sessions
+  const [history, setHistory] = useState<LoginRow[]>([]);
+  const [signingOutAll, setSigningOutAll] = useState(false);
 
   useEffect(() => {
-    getMyRefineryProfile().then((r) => {
-      setP(r as Profile);
-      setName((r as Profile).display_name ?? "");
-      setPhone((r as Profile).phone ?? "");
-    });
+    let cancelled = false;
+    (async () => {
+      try {
+        const [pr, prRes, h] = await Promise.all([
+          getSwapOwnProfile(),
+          getUserPreferences().catch(() => null),
+          getLoginHistory().catch(() => []),
+        ]);
+        if (cancelled) return;
+        setP(pr);
+        setDisplayName(pr.displayName ?? "");
+        setEmail(pr.email ?? pr.authEmail ?? "");
+        setPhone(pr.phone ?? "");
+        if (prRes) setPrefs(prRes as SwapPrefs);
+        setHistory(h as LoginRow[]);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load profile");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const submit = async (e: FormEvent) => {
+  const saveGeneral = async (e: FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setSavingGeneral(true);
     try {
-      await updateMyRefineryProfile({ data: {
-        display_name: name || null,
-        phone: phone || null,
-        password: password || undefined,
+      await updateSwapOwnProfile({ data: {
+        display_name: displayName,
+        email: email || "",
+        phone: phone || "",
       }});
       toast.success("Profile updated");
-      setPassword("");
-    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
-    finally { setSaving(false); }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally { setSavingGeneral(false); }
   };
 
-  if (!p) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  const changePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!currentPwd) { toast.error("Current password is required"); return; }
+    if (pwd.length < 6) { toast.error("New password must be at least 6 characters"); return; }
+    if (pwd !== pwd2) { toast.error("New password and confirmation do not match"); return; }
+    setSavingPwd(true);
+    try {
+      await updateSwapOwnPassword({ data: { current_password: currentPwd, password: pwd } });
+      toast.success("Password changed");
+      setCurrentPwd(""); setPwd(""); setPwd2("");
+      // refresh password_changed_at
+      try { setP(await getSwapOwnProfile()); } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally { setSavingPwd(false); }
+  };
+
+  const savePref = async (next: SwapPrefs) => {
+    setPrefs(next);
+    setSavingPrefs(true);
+    try {
+      await updateUserPreferences({ data: {
+        theme: next.theme as "light" | "dark" | "system",
+        number_format: next.number_format as "en" | "eu",
+        date_format: next.date_format as "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD",
+      }});
+      // Apply theme immediately
+      if (typeof document !== "undefined") {
+        const root = document.documentElement;
+        const wantDark = next.theme === "dark"
+          || (next.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        root.classList.toggle("dark", wantDark);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save preferences");
+    } finally { setSavingPrefs(false); }
+  };
+
+  const changeLanguage = (l: Lang) => {
+    setLang(l); // persists per-user + applies dir immediately
+    toast.success(l === "ar" ? "تم تغيير اللغة" : l === "fr" ? "Langue mise à jour" : "Language updated");
+  };
+
+  const signOutAll = async () => {
+    if (!confirm("Sign out of all other devices? You will stay signed in here.")) return;
+    setSigningOutAll(true);
+    try {
+      await signOutEverywhere();
+      toast.success("Signed out of all devices");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally { setSigningOutAll(false); }
+  };
+
+  if (loading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  const subTabs: Array<{ id: ProfileSubTab; label: string; icon: typeof UserIcon }> = [
+    { id: "general", label: "General", icon: UserIcon },
+    { id: "security", label: "Security", icon: ShieldCheck },
+    { id: "preferences", label: "Preferences", icon: SettingsIcon },
+    { id: "sessions", label: "Sessions", icon: Monitor },
+  ];
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="font-display text-2xl">Profile</h1>
-        <p className="text-sm text-muted-foreground">Update your account details</p>
+        <p className="text-sm text-muted-foreground">Manage your account, security and preferences</p>
       </div>
-      <Card className="p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Email</p><p>{p.email ?? "—"}</p></div>
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p><p>{p.username ?? "—"}</p></div>
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p><p className="capitalize">{p.isAdmin ? "admin" : p.role ?? "—"}</p></div>
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Refinery</p><p>{p.refinery_name ?? "—"}</p></div>
-          
-        </div>
 
-        <form onSubmit={submit} className="space-y-4 border-t border-border pt-6">
-          <div className="space-y-2"><Label>Display name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-          <div className="space-y-2"><Label>New password (leave blank to keep current)</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" /></div>
-          <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
-        </form>
-      </Card>
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {subTabs.map((t) => {
+          const Icon = t.icon;
+          const active = sub === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setSub(t.id)}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {sub === "general" && (
+        <Card className="p-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p>
+              <p className="font-medium">{p?.username ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p>
+              <p className="font-medium capitalize">{p?.isAdmin ? "admin" : (p?.role ?? "—")}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Refinery</p>
+              <p className="font-medium">{p?.refineryName ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+              <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
+            </div>
+          </div>
+
+          <form onSubmit={saveGeneral} className="space-y-4 border-t border-border pt-6">
+            <div className="space-y-2">
+              <Label>Display Name</Label>
+              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={120} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={32} placeholder="+213 …" />
+            </div>
+            <Button type="submit" disabled={savingGeneral}>
+              {savingGeneral ? "Saving…" : "Save changes"}
+            </Button>
+          </form>
+        </Card>
+      )}
+
+      {sub === "security" && (
+        <div className="space-y-6">
+          <Card className="p-6 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">Change password</h3>
+              <p className="text-xs text-muted-foreground">Your current password is required to set a new one.</p>
+            </div>
+            <form onSubmit={changePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Current password</Label>
+                <div className="relative">
+                  <Input
+                    type={showCurrent ? "text" : "password"}
+                    value={currentPwd}
+                    onChange={(e) => setCurrentPwd(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <button type="button" onClick={() => setShowCurrent((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showCurrent ? "Hide password" : "Show password"}>
+                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">New password</Label>
+                <div className="relative">
+                  <Input
+                    type={showNew ? "text" : "password"}
+                    value={pwd}
+                    onChange={(e) => setPwd(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowNew((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showNew ? "Hide password" : "Show password"}>
+                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {pwd && (
+                  <div className="space-y-1">
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full ${strength.color} transition-all`} style={{ width: `${(strength.score / 5) * 100}%` }} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Strength: {strength.label}</p>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Confirm new password</Label>
+                <div className="relative">
+                  <Input
+                    type={showConfirm ? "text" : "password"}
+                    value={pwd2}
+                    onChange={(e) => setPwd2(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? "Hide password" : "Show password"}>
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {pwd2 && !pwdMatch && <p className="text-[11px] text-destructive">Passwords do not match.</p>}
+              </div>
+              <Button type="submit" disabled={savingPwd || !currentPwd || !pwd || !pwdMatch}>
+                {savingPwd ? "Saving…" : "Change password"}
+              </Button>
+            </form>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-sm font-semibold mb-4">Account activity</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Password Last Changed</p>
+                <p className="font-medium">{fmtDateTime(p?.passwordChangedAt)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+                <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {sub === "preferences" && (
+        <div className="space-y-6">
+          <Card className="p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Language</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">Choose the interface language. Arabic switches the app to right-to-left.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {([
+                { id: "en" as Lang, label: "English", sub: "Default" },
+                { id: "fr" as Lang, label: "Français", sub: "French" },
+                { id: "ar" as Lang, label: "العربية", sub: "Arabic (RTL)" },
+              ]).map((opt) => {
+                const active = lang === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => changeLanguage(opt.id)}
+                    className={`text-left rounded-md border px-4 py-3 transition-colors ${
+                      active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="font-medium">{opt.label}</div>
+                    <div className="text-xs text-muted-foreground">{opt.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="p-6 space-y-4">
+            <h3 className="text-sm font-semibold">Date format</h3>
+            <Select value={prefs.date_format} onValueChange={(v) => savePref({ ...prefs, date_format: v as SwapPrefs["date_format"] })}>
+              <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+
+          <Card className="p-6 space-y-4">
+            <h3 className="text-sm font-semibold">Number format</h3>
+            <Select value={prefs.number_format} onValueChange={(v) => savePref({ ...prefs, number_format: v as SwapPrefs["number_format"] })}>
+              <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">1,000.00</SelectItem>
+                <SelectItem value="eu">1.000,00</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+
+          <Card className="p-6 space-y-4">
+            <h3 className="text-sm font-semibold">Theme</h3>
+            <div className="grid grid-cols-3 gap-2 max-w-md">
+              {([
+                { id: "light" as const, label: "Light", icon: Sun },
+                { id: "dark" as const, label: "Dark", icon: Moon },
+                { id: "system" as const, label: "System", icon: Monitor },
+              ]).map((opt) => {
+                const Icon = opt.icon;
+                const active = prefs.theme === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => savePref({ ...prefs, theme: opt.id })}
+                    className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" /> {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {savingPrefs && <p className="text-[11px] text-muted-foreground">Saving…</p>}
+          </Card>
+        </div>
+      )}
+
+      {sub === "sessions" && (
+        <div className="space-y-6">
+          <Card className="p-6 space-y-3">
+            <h3 className="text-sm font-semibold">Current session</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Signed in as</p>
+                <p className="font-medium">{p?.email ?? p?.authEmail ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold">Recent logins</h3>
+              <Button variant="outline" size="sm" onClick={signOutAll} disabled={signingOutAll}>
+                <LogOut className="h-4 w-4 mr-1" /> {signingOutAll ? "Signing out…" : "Logout All Devices"}
+              </Button>
+            </div>
+            {history.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recent login history.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
+                      <th className="p-2">When</th>
+                      <th className="p-2">Device</th>
+                      <th className="p-2">Browser</th>
+                      <th className="p-2">IP</th>
+                      <th className="p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((row) => (
+                      <tr key={row.id} className="border-b border-border last:border-0">
+                        <td className="p-2">{fmtDateTime(row.occurred_at)}</td>
+                        <td className="p-2">{row.device ?? "—"}</td>
+                        <td className="p-2">{row.browser ?? "—"}</td>
+                        <td className="p-2 font-mono text-xs">{row.ip ?? "—"}</td>
+                        <td className={`p-2 capitalize ${row.status === "success" ? "text-emerald-500" : "text-destructive"}`}>{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
