@@ -557,6 +557,14 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           onSaved={() => { setOpen(false); load(); }}
         />
       )}
+      {stmtClient && (
+        <AccountStatementDialog
+          open
+          onClose={() => setStmtClient(null)}
+          refinery={refinery}
+          client={stmtClient}
+        />
+      )}
     </div>
   );
 }
