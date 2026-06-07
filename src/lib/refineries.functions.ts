@@ -1739,3 +1739,71 @@ export const recordPositionSnapshot = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// =========================================================
+// Client notes
+// =========================================================
+export type RefineryClientNote = {
+  id: string;
+  client_id: string;
+  refinery_id: string;
+  author_id: string | null;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
+export const listClientNotes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ refineryId: z.string().uuid(), clientId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<RefineryClientNote[]> => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_client_notes")
+      .select("*")
+      .eq("client_id", data.clientId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as RefineryClientNote[];
+  });
+
+export const addClientNote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      clientId: z.string().uuid(),
+      body: z.string().min(1).max(2000),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
+    const { error } = await supabaseAdmin
+      .from("refinery_client_notes")
+      .insert({
+        refinery_id: data.refineryId,
+        client_id: data.clientId,
+        author_id: context.userId,
+        author_name: prof?.username ?? "",
+        body: data.body,
+      });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteClientNote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error: fErr } = await supabaseAdmin
+      .from("refinery_client_notes").select("refinery_id").eq("id", data.id).single();
+    if (fErr) throw new Error(fErr.message);
+    await assertAccess(context.userId, row.refinery_id);
+    const { error } = await supabaseAdmin.from("refinery_client_notes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
