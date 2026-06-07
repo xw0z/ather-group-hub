@@ -63,6 +63,7 @@ import { PremiumPanel } from "@/components/swap/PremiumPanel";
 import { BackupButton } from "@/components/BackupButton";
 import { RestoreButton } from "@/components/RestoreButton";
 import { PurityDashboard } from "@/routes/purity/dashboard";
+import { getMyRefineryAssignment, type RefineryAssignment } from "@/lib/refineries.functions";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
