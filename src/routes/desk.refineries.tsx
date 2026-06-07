@@ -286,17 +286,17 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Coins className="h-4 w-4" />} label="Pure Gold Stock" value={fmtG(Number(data.stock.pure_gold_stock))} />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Stock" value={fmtDA(Number(data.stock.da_stock))} />
         <StatCard label="Total clients" value={String(data.totalClients)} />
-        <StatCard label="Today's transactions" value={String(data.todayCount)} />
+        <StatCard label="Today's tx" value={String(data.todayCount)} />
         <StatCard label="Negative purity" value={String(data.negativePurity)} tone={data.negativePurity > 0 ? "warn" : undefined} />
         <StatCard label="Negative DA" value={String(data.negativeDa)} tone={data.negativeDa > 0 ? "warn" : undefined} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Today received gold" value={fmtG(data.todayReceivedGold)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Today delivered gold" value={fmtG(data.todayDeliveredGold)} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Today received DA" value={fmtDA(data.todayReceivedDa)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Today delivered DA" value={fmtDA(data.todayDeliveredDa)} />
+        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received gold today" value={fmtG(data.todayReceivedGold)} />
+        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered gold today" value={fmtG(data.todayDeliveredGold)} />
+        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received DA today" value={fmtDA(data.todayReceivedDa)} />
+        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered DA today" value={fmtDA(data.todayDeliveredDa)} />
       </div>
 
       <section>
