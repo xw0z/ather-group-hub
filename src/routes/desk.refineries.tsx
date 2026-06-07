@@ -287,26 +287,28 @@ function RefineryShell({
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
 
+  const { t: tr } = useLang();
+
   const tabsBar = (
     <nav className="border-b border-border bg-card/20">
       <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
         {embedded && onBack && (
           <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+            <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
           </Button>
         )}
         <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {TABS.filter((t) => !t.adminOnly || assignment.isAdmin).map((t) => (
+          {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => (
             <button
-              key={t.id}
-              onClick={() => onTab(t.id)}
+              key={td.id}
+              onClick={() => onTab(td.id)}
               className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                tab === t.id
+                tab === td.id
                   ? "border-ember text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label}
+              {tr(td.key)}
             </button>
           ))}
         </div>
