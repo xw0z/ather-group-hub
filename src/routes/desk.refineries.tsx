@@ -335,6 +335,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Coins className="h-4 w-4" />} label="Pure Gold Stock" value={fmtG(Number(data.stock.pure_gold_stock))} />
+        <StatCard icon={<Coins className="h-4 w-4" />} label="Silver Stock" value={fmtG(Number((data.stock as { silver_stock?: number }).silver_stock ?? 0))} />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Stock" value={fmtDA(Number(data.stock.da_stock))} />
         <StatCard label="Total clients" value={String(data.totalClients)} />
         <StatCard label="Today's tx" value={String(data.todayCount)} />
