@@ -1467,3 +1467,322 @@ function ProfileTab() {
     </div>
   );
 }
+
+// =============================================================
+// Account Statement dialog
+// =============================================================
+
+function isoToday(): string { return new Date().toISOString().slice(0, 10); }
+function isoMonthStart(): string { return isoToday().slice(0, 7) + "-01"; }
+
+type StatementHistoryRow = Awaited<ReturnType<typeof listRefineryReportHistory>>[number];
+
+async function renderNodeToPngBlob(node: HTMLElement, scale = 3): Promise<Blob> {
+  const canvas = await html2canvas(node, {
+    backgroundColor: null,
+    scale,
+    useCORS: true,
+    logging: false,
+  });
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG render failed"))), "image/png"),
+  );
+}
+
+async function renderStatementToCanvases(
+  statement: AccountStatement,
+  variant: "report" | "summary",
+): Promise<HTMLCanvasElement[]> {
+  const host = document.createElement("div");
+  host.style.position = "fixed";
+  host.style.left = "-99999px";
+  host.style.top = "0";
+  host.style.zIndex = "-1";
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  try {
+    await new Promise<void>((resolve) => {
+      root.render(
+        variant === "report"
+          ? <AccountStatementReport data={statement} />
+          : <AccountStatementSummary data={statement} />,
+      );
+      // wait a tick for layout + fonts
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    // Each page is a top-level child of the AccountStatementReport wrapper
+    const wrapper = host.firstElementChild as HTMLElement | null;
+    if (!wrapper) throw new Error("Render failed");
+    const targets: HTMLElement[] = variant === "report"
+      ? Array.from(wrapper.children) as HTMLElement[]
+      : [wrapper];
+    const canvases: HTMLCanvasElement[] = [];
+    for (const t of targets) {
+      const c = await html2canvas(t, { backgroundColor: variant === "summary" ? "#1a1a1a" : "#ffffff", scale: 2.5, useCORS: true, logging: false });
+      canvases.push(c);
+    }
+    return canvases;
+  } finally {
+    root.unmount();
+    host.remove();
+  }
+}
+
+function AccountStatementDialog({
+  open, onClose, refinery,
+}: { open: boolean; onClose: () => void; refinery: Refinery }) {
+  const [from, setFrom] = useState(isoMonthStart());
+  const [to, setTo] = useState(isoToday());
+  const [statement, setStatement] = useState<AccountStatement | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
+  const [history, setHistory] = useState<StatementHistoryRow[]>([]);
+
+  const loadHistory = useCallback(async () => {
+    try { setHistory(await listRefineryReportHistory({ data: { refineryId: refinery.id } })); }
+    catch { /* ignore */ }
+  }, [refinery.id]);
+
+  useEffect(() => {
+    if (open) { setStatement(null); loadHistory(); }
+  }, [open, loadHistory]);
+
+  const preview = async () => {
+    if (from > to) { toast.error("Start date must be before end date"); return; }
+    setLoading(true);
+    try {
+      const s = await getAccountStatement({ data: { refineryId: refinery.id, from, to } });
+      setStatement(s);
+      await logRefineryReport({ data: {
+        refinery_id: refinery.id, date_from: from, date_to: to,
+        statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
+      } }).catch(() => null);
+      loadHistory();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setLoading(false); }
+  };
+
+  const ensureStatement = async (): Promise<AccountStatement | null> => {
+    if (statement) return statement;
+    if (from > to) { toast.error("Start date must be before end date"); return null; }
+    try {
+      const s = await getAccountStatement({ data: { refineryId: refinery.id, from, to } });
+      setStatement(s);
+      return s;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+      return null;
+    }
+  };
+
+  const downloadPdf = async () => {
+    const s = await ensureStatement(); if (!s) return;
+    setBusy("pdf");
+    try {
+      const canvases = await renderStatementToCanvases(s, "report");
+      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      canvases.forEach((c, i) => {
+        if (i > 0) pdf.addPage();
+        const ratio = c.width / c.height;
+        let w = pageW, h = w / ratio;
+        if (h > pageH) { h = pageH; w = h * ratio; }
+        const x = (pageW - w) / 2, y = (pageH - h) / 2;
+        pdf.addImage(c.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
+      });
+      const filename = `${refinery.name.replace(/\s+/g, "_")}_Statement_${s.range.from}_${s.range.to}.pdf`;
+      pdf.save(filename);
+      await logRefineryReport({ data: {
+        refinery_id: refinery.id, date_from: from, date_to: to,
+        statement_number: s.statement_number, format: "PDF", channel: "download",
+      } }).catch(() => null);
+      loadHistory();
+      toast.success("PDF downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF failed");
+    } finally { setBusy(null); }
+  };
+
+  const downloadOrSharePng = async (channel: "download" | "whatsapp") => {
+    const s = await ensureStatement(); if (!s) return;
+    setBusy(channel === "whatsapp" ? "share" : "png");
+    try {
+      const [canvas] = await renderStatementToCanvases(s, "summary");
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("PNG failed")), "image/png")
+      );
+      const filename = `${refinery.name.replace(/\s+/g, "_")}_Statement_${s.range.from}_${s.range.to}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: ShareData) => boolean;
+        share?: (d: ShareData) => Promise<void>;
+      };
+      if (channel === "whatsapp" && nav.canShare?.({ files: [file] }) && nav.share) {
+        try { await nav.share({ files: [file], title: filename, text: `${refinery.name} statement` }); }
+        catch { /* fallthrough to download */ }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      await logRefineryReport({ data: {
+        refinery_id: refinery.id, date_from: from, date_to: to,
+        statement_number: s.statement_number, format: "PNG", channel,
+      } }).catch(() => null);
+      loadHistory();
+      toast.success(channel === "whatsapp" ? "Ready to share" : "PNG downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PNG failed");
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display tracking-wide">
+            Account Statement — {refinery.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Start date</Label>
+            <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setStatement(null); }} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>End date</Label>
+            <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setStatement(null); }} />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={preview} disabled={loading} className="flex-1 min-w-[120px]">
+            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Loading…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
+          </Button>
+          <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="flex-1 min-w-[120px]">
+            {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+            PDF
+          </Button>
+          <Button variant="outline" onClick={() => downloadOrSharePng("download")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+            {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />}
+            PNG
+          </Button>
+          <Button variant="outline" onClick={() => downloadOrSharePng("whatsapp")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+            {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />}
+            Share
+          </Button>
+        </div>
+
+        {statement && (
+          <Card className="p-3 sm:p-4 bg-card/40">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 text-xs">
+              <Meta label="Statement №" value={statement.statement_number} mono />
+              <Meta label="Generated" value={new Date(statement.generated_at).toLocaleString()} />
+              <Meta label="By" value={statement.generated_by} />
+              <Meta label="Range" value={`${statement.range.from} → ${statement.range.to}`} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              <StatTile label="Opening Gold" value={fmtG(statement.opening_gold)} />
+              <StatTile label="Closing Gold" value={fmtG(statement.closing_gold)} highlight />
+              <StatTile label="Opening DA" value={fmtDA(statement.opening_da)} />
+              <StatTile label="Closing DA" value={fmtDA(statement.closing_da)} highlight />
+              <StatTile label="Gold Received" value={fmtG(statement.summary.total_gold_received)} good />
+              <StatTile label="Gold Delivered" value={fmtG(statement.summary.total_gold_delivered)} bad />
+              <StatTile label="DA Received" value={fmtDA(statement.summary.total_da_received)} good />
+              <StatTile label="DA Paid" value={fmtDA(statement.summary.total_da_paid)} bad />
+              <StatTile label="Refining Fees" value={fmtDA(statement.summary.total_refining_fees)} />
+              <StatTile label="Transactions" value={String(statement.summary.transaction_count)} />
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs tabular-nums">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Ref</th>
+                    <th className="text-left p-2">Type</th>
+                    <th className="text-left p-2">Description</th>
+                    <th className="text-right p-2">Gold Dr</th>
+                    <th className="text-right p-2">Gold Cr</th>
+                    <th className="text-right p-2">DA Dr</th>
+                    <th className="text-right p-2">DA Cr</th>
+                    <th className="text-right p-2">Bal Gold</th>
+                    <th className="text-right p-2">Bal DA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statement.rows.length === 0 && (
+                    <tr><td colSpan={10} className="text-center p-6 text-muted-foreground">No transactions in this period.</td></tr>
+                  )}
+                  {statement.rows.map((r, i) => (
+                    <tr key={i} className="border-b border-border/40">
+                      <td className="p-2">{r.date}</td>
+                      <td className="p-2 font-mono text-[10px]">{r.reference}</td>
+                      <td className="p-2 capitalize">{r.type.replace(/_/g, " ")}</td>
+                      <td className="p-2">{r.description}</td>
+                      <td className="p-2 text-right text-destructive">{r.gold_debit ? fmtG(r.gold_debit) : "—"}</td>
+                      <td className="p-2 text-right text-emerald-500">{r.gold_credit ? fmtG(r.gold_credit) : "—"}</td>
+                      <td className="p-2 text-right text-destructive">{r.da_debit ? fmtDA(r.da_debit) : "—"}</td>
+                      <td className="p-2 text-right text-emerald-500">{r.da_credit ? fmtDA(r.da_credit) : "—"}</td>
+                      <td className="p-2 text-right font-medium">{fmtG(r.running_gold)}</td>
+                      <td className="p-2 text-right font-medium">{fmtDA(r.running_da)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {history.length > 0 && (
+          <div className="mt-3">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
+              <HistoryIcon className="h-3.5 w-3.5" /> Report history
+            </div>
+            <div className="rounded-md border border-border divide-y divide-border max-h-48 overflow-y-auto">
+              {history.slice(0, 20).map((h) => (
+                <div key={h.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{h.date_from} → {h.date_to}</div>
+                    <div className="text-muted-foreground truncate">
+                      {h.statement_number ?? "—"} · {h.generated_by_username ?? "—"} · {new Date(h.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">{h.format} · {h.channel}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className={`text-xs mt-0.5 ${mono ? "font-mono" : ""} truncate`}>{value}</div>
+    </div>
+  );
+}
+
+function StatTile({ label, value, good, bad, highlight }: { label: string; value: string; good?: boolean; bad?: boolean; highlight?: boolean }) {
+  const color = good ? "text-emerald-500" : bad ? "text-destructive" : highlight ? "text-ember" : "text-foreground";
+  return (
+    <div className={`p-2.5 rounded-md border ${highlight ? "border-ember/40 bg-ember/5" : "border-border bg-card/30"}`}>
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className={`text-sm font-semibold tabular-nums mt-0.5 ${color}`}>{value}</div>
+    </div>
+  );
+}
