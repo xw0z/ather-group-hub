@@ -738,7 +738,7 @@ function TransactionsTab({
               <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(t.id)}>
                 <FileText className="h-3.5 w-3.5 mr-1" /> Receipt
               </Button>
-              {!readOnly && t.status !== "cancelled" && (
+              {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
                 <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", t.id)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
