@@ -879,14 +879,59 @@ function TransactionFormPage({
     return { gross, pure, avg, w730, fee: w730 * feeP };
   }, [bars, feePrice]);
 
+  // Settlement live preview
+  const fromClient = clients.find((c) => c.id === fromClientId);
+  const toClient = clients.find((c) => c.id === toClientId);
+  useEffect(() => {
+    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !settlementFeePrice) {
+      setSettlementFeePrice(String(toClient.refining_fee_price));
+    }
+  }, [type, settlementKind, applyFee, toClient, settlementFeePrice]);
+
+  const settlementPreview = useMemo(() => {
+    const amt = Number(settlementAmount) || 0;
+    const fp = Number(settlementFeePrice) || 0;
+    const w730 = settlementKind === "gold" && applyFee && amt > 0 ? (amt * 1000) / 730 : 0;
+    const fee = w730 * fp;
+    return { amt, fp, w730, fee };
+  }, [settlementAmount, settlementFeePrice, settlementKind, applyFee]);
+
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!clientId) { toast.error("Select a client"); return; }
     setSaving(true);
     try {
+      // ----- Settlement branch -----
+      if (type === "settlement") {
+        if (isEdit) { setSaving(false); toast.error("Settlements cannot be edited; delete and recreate."); return; }
+        if (!fromClientId || !toClientId) { setSaving(false); toast.error("Select both clients"); return; }
+        if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
+        const amt = Number(settlementAmount);
+        if (!(amt > 0)) { setSaving(false); toast.error("Amount must be greater than 0"); return; }
+        const fp = Number(settlementFeePrice) || 0;
+        if (settlementKind === "gold" && applyFee && !(fp >= 0)) {
+          setSaving(false); toast.error("Fee price must be ≥ 0"); return;
+        }
+        await createSettlement({ data: {
+          refinery_id: refinery.id,
+          from_client_id: fromClientId,
+          to_client_id: toClientId,
+          kind: settlementKind,
+          amount: amt,
+          apply_fee: settlementKind === "gold" ? applyFee : false,
+          fee_price: settlementKind === "gold" && applyFee ? fp : 0,
+          transaction_date: date,
+          notes: notes || null,
+        }});
+        toast.success("Settlement created");
+        onSaved();
+        return;
+      }
+
+      // ----- Existing Gold / DA branch -----
+      if (!clientId) { toast.error("Select a client"); setSaving(false); return; }
       type TxPayload = {
         refinery_id: string; client_id: string;
         direction: RefineryDirection; transaction_type: RefineryTxType;
