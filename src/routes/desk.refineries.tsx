@@ -902,7 +902,6 @@ function TransactionDialog({
                       <thead className="bg-muted/20 border-b border-border">
                         <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
                           <th className="p-2">#</th>
-                          <th className="p-2">Type</th>
                           <th className="p-2 text-right">Gross (g)</th>
                           <th className="p-2 text-right">Purity</th>
                           <th className="p-2 text-right">Pure (g)</th>
