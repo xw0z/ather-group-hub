@@ -527,6 +527,73 @@ export const adjustStock = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateStockAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      movementId: z.string().uuid(),
+      pure_gold_stock: z.number().min(0),
+      da_stock: z.number().min(0),
+      notes: z.string().max(500).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: mv, error: me } = await supabaseAdmin
+      .from("refinery_stock_movements").select("*").eq("id", data.movementId).single();
+    if (me) throw new Error(me.message);
+    if (mv.movement_type !== "adjustment") throw new Error("Only adjustment movements can be edited");
+    await assertAccess(context.userId, mv.refinery_id);
+
+    const { data: stk } = await supabaseAdmin
+      .from("refinery_stock").select("*").eq("refinery_id", mv.refinery_id).maybeSingle();
+    const curGold = Number(stk?.pure_gold_stock ?? 0);
+    const curDa = Number(stk?.da_stock ?? 0);
+    const newGold = curGold + (data.pure_gold_stock - Number(mv.gold_stock_after));
+    const newDa = curDa + (data.da_stock - Number(mv.da_stock_after));
+    if (newGold < 0 || newDa < 0) throw new Error("Resulting stock would be negative");
+
+    const { error: e1 } = await supabaseAdmin.from("refinery_stock")
+      .update({ pure_gold_stock: newGold, da_stock: newDa, updated_at: new Date().toISOString() })
+      .eq("refinery_id", mv.refinery_id);
+    if (e1) throw new Error(e1.message);
+
+    const { error: e2 } = await supabaseAdmin.from("refinery_stock_movements").update({
+      gold_change: data.pure_gold_stock - Number(mv.gold_stock_before),
+      da_change: data.da_stock - Number(mv.da_stock_before),
+      gold_stock_after: data.pure_gold_stock,
+      da_stock_after: data.da_stock,
+      notes: data.notes ?? mv.notes,
+    }).eq("id", data.movementId);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
+export const deleteStockAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ movementId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: mv, error: me } = await supabaseAdmin
+      .from("refinery_stock_movements").select("*").eq("id", data.movementId).single();
+    if (me) throw new Error(me.message);
+    if (mv.movement_type !== "adjustment") throw new Error("Only adjustment movements can be deleted");
+    await assertAccess(context.userId, mv.refinery_id);
+
+    const { data: stk } = await supabaseAdmin
+      .from("refinery_stock").select("*").eq("refinery_id", mv.refinery_id).maybeSingle();
+    const newGold = Number(stk?.pure_gold_stock ?? 0) - Number(mv.gold_change);
+    const newDa = Number(stk?.da_stock ?? 0) - Number(mv.da_change);
+    if (newGold < 0 || newDa < 0) throw new Error("Resulting stock would be negative");
+
+    const { error: e1 } = await supabaseAdmin.from("refinery_stock")
+      .update({ pure_gold_stock: newGold, da_stock: newDa, updated_at: new Date().toISOString() })
+      .eq("refinery_id", mv.refinery_id);
+    if (e1) throw new Error(e1.message);
+    const { error: e2 } = await supabaseAdmin.from("refinery_stock_movements")
+      .delete().eq("id", data.movementId);
+    if (e2) throw new Error(e2.message);
+    return { ok: true };
+  });
+
 export const adjustClientBalances = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
