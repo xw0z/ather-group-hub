@@ -3304,33 +3304,48 @@ function AccountStatementDialog({
 
   const fileBase = `${(client.code ?? client.name).replace(/\s+/g, "_")}_Statement`;
 
-  const preview = async () => {
-    if (from > to) { toast.error("Start date must be before end date"); return; }
-    setLoading(true);
-    try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
-      setStatement(s);
-      await logRefineryReport({ data: {
-        refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
-        statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
-      } }).catch(() => null);
-      loadHistory();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally { setLoading(false); }
-  };
+  const loadStatement = useCallback(
+    async (silent = false): Promise<AccountStatement | null> => {
+      if (from > to) {
+        if (!silent) toast.error("Start date must be before end date");
+        return null;
+      }
+      setLoading(true);
+      try {
+        const s = await getAccountStatement({
+          data: { refineryId: refinery.id, clientId: client.id, from, to },
+        });
+        setStatement(s);
+        await logRefineryReport({ data: {
+          refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
+          statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
+        } }).catch(() => null);
+        loadHistory();
+        return s;
+      } catch (e) {
+        console.error("[AccountStatement] load failed:", e);
+        if (!silent) toast.error(e instanceof Error ? e.message : "Failed to load statement");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [from, to, refinery.id, client.id, loadHistory],
+  );
+
+  // Auto-load statement when dialog opens or date range changes so the
+  // renderer is always primed before the user clicks PDF / PNG / Share.
+  useEffect(() => {
+    if (!open) return;
+    void loadStatement(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, from, to]);
+
+  const preview = () => loadStatement(false);
 
   const ensureStatement = async (): Promise<AccountStatement | null> => {
     if (statement) return statement;
-    if (from > to) { toast.error("Start date must be before end date"); return null; }
-    try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
-      setStatement(s);
-      return s;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-      return null;
-    }
+    return loadStatement(false);
   };
 
   const downloadPdf = async () => {
