@@ -916,19 +916,6 @@ function TransactionDialog({
                           return (
                             <tr key={i} className="border-b border-border last:border-0">
                               <td className="p-1.5"><Input className="h-8 w-16" value={b.item_number} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, item_number: e.target.value } : x))} /></td>
-                              <td className="p-1.5">
-                                <Select
-                                  value={b.item_type}
-                                  onValueChange={(v) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, item_type: v as "bar" | "scrap" } : x))}
-                                  disabled={direction === "delivery"}
-                                >
-                                  <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="bar">Bar</SelectItem>
-                                    {direction === "receiving" && <SelectItem value="scrap">Scrap</SelectItem>}
-                                  </SelectContent>
-                                </Select>
-                              </td>
                               <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" value={b.gross_weight} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, gross_weight: e.target.value } : x))} /></td>
                               <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" max="1000" value={b.purity} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} /></td>
                               <td className="p-1.5 text-right tabular-nums text-muted-foreground">{fmtG(pure)}</td>
