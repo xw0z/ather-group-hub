@@ -798,8 +798,6 @@ export function SwapDashboard({
               {effectiveTab === "refineries" && <RefineriesEmbedded />}
             </>
           )}
-            </>
-          )}
         </main>
         <SwapFooter />
       </div>
