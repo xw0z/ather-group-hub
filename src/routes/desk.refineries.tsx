@@ -1207,21 +1207,52 @@ function TransactionReceiptDialog({
     }
   }, [tx, refinery.name]);
 
+  const createReceiptPdfBlob = useCallback(async (): Promise<Blob> => {
+    const canvas = await renderReceiptCanvas();
+    if (!canvas) throw new Error("Render failed");
+    const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    let w = pageW, h = w / ratio;
+    if (h > pageH) { h = pageH; w = h * ratio; }
+    const x = (pageW - w) / 2, y = (pageH - h) / 2;
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
+    return pdf.output("blob");
+  }, [renderReceiptCanvas]);
+
+  const uploadReceiptPdfAndGetSignedUrl = useCallback(async (): Promise<{ signedUrl: string; fileName: string }> => {
+    if (!tx) throw new Error("Receipt is not ready");
+    const fileName = receiptFileName(tx.transaction_number, "pdf");
+    const storagePath = `${tx.refinery_id}/${tx.id}/${fileName}`;
+    const pdfBlob = await createReceiptPdfBlob();
+
+    const { error: uploadError } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .upload(storagePath, pdfBlob, {
+        contentType: "application/pdf",
+        cacheControl: "3600",
+        upsert: true,
+      });
+    if (uploadError) throw new Error(uploadError.message);
+
+    const { data, error: signError } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .createSignedUrl(storagePath, RECEIPT_SIGNED_URL_SECONDS, { download: fileName });
+    if (signError || !data?.signedUrl) throw new Error(signError?.message || "Could not create share link");
+
+    return { signedUrl: data.signedUrl, fileName };
+  }, [createReceiptPdfBlob, tx]);
+
   const downloadPdf = async () => {
     if (!tx) return;
     setBusy("pdf");
     try {
-      const canvas = await renderReceiptCanvas();
-      if (!canvas) throw new Error("Render failed");
-      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = canvas.width / canvas.height;
-      let w = pageW, h = w / ratio;
-      if (h > pageH) { h = pageH; w = h * ratio; }
-      const x = (pageW - w) / 2, y = (pageH - h) / 2;
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
-      pdf.save(`receipt-${tx.transaction_number}.pdf`);
+      const pdfBlob = await createReceiptPdfBlob();
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url; a.download = receiptFileName(tx.transaction_number, "pdf"); a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "PDF failed");
