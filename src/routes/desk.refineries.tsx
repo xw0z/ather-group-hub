@@ -764,7 +764,7 @@ function TransactionsTab({
 // =============================================================
 type Bar = { item_number: string; item_type: "bar" | "scrap"; gross_weight: string; purity: string };
 
-function TransactionDialog({
+function TransactionFormPage({
   refinery, editingId, onClose, onSaved,
 }: { refinery: Refinery; editingId: string | null; onClose: () => void; onSaved: () => void }) {
   const isEdit = Boolean(editingId);
