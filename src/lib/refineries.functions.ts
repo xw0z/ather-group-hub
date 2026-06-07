@@ -1484,3 +1484,63 @@ export const createStockAdjustment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, transactionId: txId as string };
   });
+
+// =========================================================
+// Buy / Sell Gold (DA-priced)
+// =========================================================
+export const createBuySell = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      clientId: z.string().uuid(),
+      kind: z.enum(["buy", "sell"]),
+      settlement: z.enum(["settlement", "cash"]),
+      weight: z.number().positive(),
+      purity: z.number().min(0).max(1000).optional().nullable(),
+      pricePerGram: z.number().nonnegative(),
+      date: z.string().optional().nullable(),
+      notes: z.string().max(2000).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: txId, error } = await supabaseAdmin.rpc("refinery_create_buysell", {
+      _refinery_id: data.refineryId,
+      _client_id: data.clientId,
+      _kind: data.kind,
+      _settlement: data.settlement,
+      _weight: data.weight,
+      _purity: data.purity ?? 1000,
+      _price_per_gram: data.pricePerGram,
+      _date: data.date ?? new Date().toISOString().slice(0, 10),
+      _notes: data.notes ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, transactionId: txId as string };
+  });
+
+export const updateBuySell = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      notes: z.string().max(2000).optional().nullable(),
+      date: z.string().optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    // Admin only — financial fields are immutable, only metadata can change.
+    await assertAdmin(context.userId);
+    const patch: Record<string, unknown> = {};
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.date) patch.transaction_date = data.date;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("refinery_transactions")
+      .update(patch)
+      .eq("id", data.id)
+      .eq("transaction_type", "buysell");
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
