@@ -263,13 +263,14 @@ function TopBar({
 // Shell with tabs
 // =============================================================
 function RefineryShell({
-  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut, embedded,
+  refinery, assignment, tab, action, txId, clientId, onTab, onAction, onBack, onSignOut, embedded,
 }: {
   refinery: Refinery;
   assignment: RefineryAssignment;
   tab: Tab;
   action?: "new" | "edit";
   txId?: string;
+  clientId?: string;
   onTab: (t: Tab) => void;
   onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
   onBack?: () => void;
