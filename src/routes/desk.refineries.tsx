@@ -427,13 +427,13 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Clients</h1>
           <p className="text-sm text-muted-foreground">{clients.length} client(s) in {refinery.name}</p>
         </div>
         {!readOnly && (
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+          <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" /> New client
           </Button>
         )}
@@ -441,7 +441,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="p-3">Client</th>
