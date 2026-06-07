@@ -303,10 +303,10 @@ function RefineryShell({
 
   const { t: tr } = useLang();
 
-  const tabsScrollRef = React.useRef<HTMLDivElement | null>(null);
-  const activeTabRef = React.useRef<HTMLButtonElement | null>(null);
+  const tabsScrollRef = useRef<HTMLDivElement | null>(null);
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const el = activeTabRef.current;
     const scroller = tabsScrollRef.current;
     if (!el || !scroller) return;
@@ -314,6 +314,7 @@ function RefineryShell({
     const target = elLeft - scroller.clientWidth / 2 + el.clientWidth / 2;
     scroller.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }, [tab]);
+
 
   const tabsBar = (
     <nav className="border-b border-border bg-card/20 sticky top-12 sm:top-16 z-20 backdrop-blur supports-[backdrop-filter]:bg-card/40">
