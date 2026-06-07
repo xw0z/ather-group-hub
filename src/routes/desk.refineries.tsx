@@ -900,15 +900,26 @@ function TransactionFormPage({
       if (type === "da") {
         payload.da_amount = Number(daAmount) || 0;
       } else {
-        if (direction === "receiving") payload.fee_price = Number(feePrice) || 0;
-        payload.bars = bars
-          .filter((b) => Number(b.gross_weight) > 0 && Number(b.purity) > 0)
-          .map((b) => ({
-            item_number: b.item_number || null,
-            item_type: direction === "delivery" ? "bar" : b.item_type,
-            gross_weight: Number(b.gross_weight),
-            purity: Number(b.purity),
-          }));
+        if (direction === "receiving") {
+          const fp = Number(feePrice);
+          if (!(fp >= 0)) { setSaving(false); toast.error("Refining fee price must be ≥ 0"); return; }
+          payload.fee_price = fp;
+        }
+        const validBars = bars.filter((b) => b.gross_weight !== "" || b.purity !== "");
+        if (validBars.length === 0) { setSaving(false); toast.error("Add at least one gold bar"); return; }
+        for (let i = 0; i < validBars.length; i++) {
+          const b = validBars[i];
+          const g = Number(b.gross_weight);
+          const p = Number(b.purity);
+          if (!(g > 0)) { setSaving(false); toast.error(`Bar #${i + 1}: gross weight must be > 0`); return; }
+          if (!(p >= 1 && p <= 1000)) { setSaving(false); toast.error(`Bar #${i + 1}: purity must be between 1 and 1000`); return; }
+        }
+        payload.bars = validBars.map((b) => ({
+          item_number: b.item_number || null,
+          item_type: direction === "delivery" ? "bar" : b.item_type,
+          gross_weight: Number(b.gross_weight),
+          purity: Number(b.purity),
+        }));
       }
       if (isEdit && editingId) {
         await updateTransaction({ data: { ...payload, id: editingId } });
