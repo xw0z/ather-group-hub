@@ -828,7 +828,7 @@ export const getDashboard = createServerFn({ method: "POST" })
         .reduce((s, t) => s + Number(t[field] ?? 0), 0);
 
     return {
-      stock: stockR.data ?? { pure_gold_stock: 0, da_stock: 0 },
+      stock: stockR.data ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 },
       totalClients: clients.length,
       negativePurity: clients.filter((c) => Number(c.purity_balance) < 0).length,
       negativeDa: clients.filter((c) => Number(c.da_balance) < 0).length,
