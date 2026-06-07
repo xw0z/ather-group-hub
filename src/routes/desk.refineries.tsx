@@ -898,7 +898,7 @@ function TransactionDialog({
                 </div>
                 <Card>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm min-w-[560px]">
                       <thead className="bg-muted/20 border-b border-border">
                         <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
                           <th className="p-2">#</th>
