@@ -641,13 +641,13 @@ export function SwapDashboard({
   });
   const currentLabel = t(NAV_ITEMS.find((n) => n.key === tab)?.label ?? "nav.dashboard");
 
-  // Permission gate: if the user can't view the requested tab, fall back to dashboard
+  // Permission gate: if the user can't view the requested tab, show Access Denied
   const requested = NAV_ITEMS.find((n) => n.key === tab);
   const tabAllowed =
     !requested ||
-    !requested.module ||
-    (requested.adminOnly ? isAdmin : true) && can(perms, requested.module, "view");
-  const effectiveTab: Tab = tabAllowed ? tab : "dashboard";
+    ((requested.adminOnly ? isAdmin : true) &&
+      (!requested.module || can(perms, requested.module, "view")));
+  const effectiveTab: Tab = tab;
 
 
   return (
