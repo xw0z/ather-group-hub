@@ -409,12 +409,11 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
             <th className="p-3">Type</th>
             <th className="p-3 text-right">Gold</th>
             <th className="p-3 text-right">DA</th>
-            <th className="p-3">Status</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 && (
-            <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+            <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
           )}
           {rows.map((t) => (
             <tr key={t.id} className="border-b border-border last:border-0">
@@ -425,7 +424,6 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
               <td className="p-3 uppercase">{t.transaction_type}</td>
               <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
               <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
-              <td className="p-3"><StatusBadge status={t.status} /></td>
             </tr>
           ))}
         </tbody>
@@ -434,14 +432,7 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "settled" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/40" :
-    status === "pending" ? "bg-amber-500/15 text-amber-500 border-amber-500/40" :
-    status === "cancelled" ? "bg-destructive/15 text-destructive border-destructive/40" :
-    "bg-muted text-muted-foreground border-border";
-  return <Badge variant="outline" className={`uppercase text-[10px] tracking-wider ${cls}`}>{status}</Badge>;
-}
+
 
 // =============================================================
 // Clients tab
