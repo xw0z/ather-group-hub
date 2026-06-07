@@ -1229,6 +1229,27 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           da_debit: da, da_credit: 0,
           running_gold: runGold, running_da: runDa,
         });
+      } else if (tx.transaction_type === "buysell" && (tx as any).buysell_settlement === "settlement") {
+        const metal = ((tx as any).buysell_metal ?? "gold") as "gold" | "silver";
+        const kind = (tx as any).buysell_kind as "buy" | "sell";
+        const weight = Number((tx as any).buysell_weight) || 0;
+        const total = Number((tx as any).buysell_total) || 0;
+        const isBuy = kind === "buy";
+        // Buy: refinery owes client → DA credit. Sell: client owes refinery → DA debit.
+        const daDebit = isBuy ? 0 : total;
+        const daCredit = isBuy ? total : 0;
+        if (isBuy) totalDaRecv += 0; // not a DA receipt from the client's POV
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn,
+          type: isBuy ? "buy_metal" : "sell_metal",
+          description: `${isBuy ? "Bought" : "Sold"} ${metal === "gold" ? "Gold" : "Silver"} — ${num2(weight)} g`,
+          client_name: cli.name,
+          metal,
+          gold_debit: 0, gold_credit: 0,
+          da_debit: daDebit, da_credit: daCredit,
+          running_gold: runGold, running_da: runDa,
+        });
       }
     }
 
