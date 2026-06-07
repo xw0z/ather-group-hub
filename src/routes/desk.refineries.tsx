@@ -823,21 +823,22 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[760px]">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Client</th>
+                <th className="p-3">Code</th>
+                <th className="p-3">Client Name</th>
                 <th className="p-3">Phone</th>
-                <th className="p-3 text-right">Purity</th>
-                <th className="p-3 text-right">DA</th>
+                <th className="p-3 text-right">Pure Gold</th>
+                <th className="p-3 text-right">Dinar</th>
                 <th className="p-3 text-right">Fee/g</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
@@ -850,12 +851,13 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
                 >
-                  <td className="p-3 font-medium">
+                  <td className="p-3 font-mono text-xs tracking-wider">
                     <span className="inline-flex items-center gap-2">
                       <StatusDot tone={tone} />
-                      <span>{c.name}</span>
+                      <span className="font-semibold">{c.code ?? "—"}</span>
                     </span>
                   </td>
+                  <td className="p-3 font-medium">{c.name}</td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
