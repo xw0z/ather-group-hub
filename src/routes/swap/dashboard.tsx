@@ -483,12 +483,27 @@ export function SwapDashboard({
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [refineryAssignment, setRefineryAssignment] = useState<RefineryAssignment | null>(null);
   const { perms } = useMyPermissions();
   const { t } = useLang();
 
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
+    if (next === "refineries") {
+      if (!refineryAssignment?.isAdmin && refineryAssignment?.refineryId) {
+        navigate({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          to: "/desk/refineries/$refineryId/$tab" as any,
+          params: { refineryId: refineryAssignment.refineryId, tab: "dashboard" },
+          replace: false,
+        });
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        navigate({ to: "/desk/refineries" as any, replace: false });
+      }
+      return;
+    }
     const path = TAB_TO_DESK_PATH[next];
     const search = next === "swap-fees" ? { view: "fees" } : undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
