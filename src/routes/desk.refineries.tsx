@@ -316,7 +316,11 @@ function RefineryShell({
       ) : (
         <>
           {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
-          {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
+          {tab === "clients" && (
+            search.clientId
+              ? <ClientDetailsPage refinery={refinery} assignment={assignment} clientId={search.clientId} />
+              : <ClientsTab refinery={refinery} assignment={assignment} />
+          )}
           {tab === "transactions" && (
             <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
           )}
