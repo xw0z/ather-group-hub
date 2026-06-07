@@ -24,7 +24,7 @@ import {
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   createStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
-  createBuySell, type BuySellKind, type BuySellSettlement,
+  createBuySell, type BuySellKind, type BuySellSettlement, type BuySellMetal,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   getNetPositionPrice, saveNetPositionPrice,
@@ -636,7 +636,13 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
 }
 
 function TodaysActivityCard({ data }: {
-  data: { todayCount: number; todayBuyWeight: number; todaySellWeight: number; todayReceivedDa: number; todayDeliveredDa: number };
+  data: {
+    todayCount: number;
+    todayGoldBought: number; todayGoldSold: number;
+    todaySilverBought: number; todaySilverSold: number;
+    todayBuyTotal: number; todaySellTotal: number;
+    todayReceivedDa: number; todayDeliveredDa: number;
+  };
 }) {
   return (
     <Card className="p-4">
@@ -646,8 +652,12 @@ function TodaysActivityCard({ data }: {
       </div>
       <p className="text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
       <div className="text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
-        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayBuyWeight)}</span></div>
-        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todaySellWeight)}</span></div>
+        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayGoldBought)}</span></div>
+        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todayGoldSold)}</span></div>
+        <div className="flex justify-between"><span>Silver bought</span><span className="text-emerald-500">{fmtG(data.todaySilverBought)}</span></div>
+        <div className="flex justify-between"><span>Silver sold</span><span className="text-destructive">{fmtG(data.todaySilverSold)}</span></div>
+        <div className="flex justify-between"><span>Buy total</span><span className="text-emerald-500">{fmtDA(data.todayBuyTotal)}</span></div>
+        <div className="flex justify-between"><span>Sell total</span><span className="text-destructive">{fmtDA(data.todaySellTotal)}</span></div>
         <div className="flex justify-between"><span>DA received</span><span className="text-emerald-500">{fmtDA(data.todayReceivedDa)}</span></div>
         <div className="flex justify-between"><span>DA delivered</span><span className="text-destructive">{fmtDA(data.todayDeliveredDa)}</span></div>
       </div>
@@ -3123,18 +3133,20 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   // Quick statistics for the period (today by default)
   const today = new Date().toISOString().slice(0, 10);
   const todayRows = rows.filter((r) => (r.transaction_date ?? "").startsWith(today));
-  const todayBuy = todayRows.filter((r) => r.buysell_kind === "buy");
-  const todaySell = todayRows.filter((r) => r.buysell_kind === "sell");
-  const sum = (arr: RefineryTransaction[], k: "buysell_weight" | "buysell_total") =>
-    arr.reduce((s, r) => s + Number(r[k] ?? 0), 0);
+  const sumWeight = (kind: BuySellKind, metal: BuySellMetal) =>
+    todayRows.filter((r) => r.buysell_kind === kind && (r.buysell_metal ?? "gold") === metal)
+      .reduce((s, r) => s + Number(r.buysell_weight ?? 0), 0);
+  const sumTotal = (kind: BuySellKind) =>
+    todayRows.filter((r) => r.buysell_kind === kind)
+      .reduce((s, r) => s + Number(r.buysell_total ?? 0), 0);
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Buy / Sell Gold</h1>
+          <h1 className="font-display text-2xl">Buy / Sell Metals</h1>
           <p className="text-sm text-muted-foreground">
-            Record physical gold purchases and sales paid in DA.
+            Record physical gold and silver purchases and sales paid in DA.
           </p>
         </div>
         <div className="flex gap-2">
@@ -3142,22 +3154,24 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             onClick={() => setOpenKind("buy")}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <Plus className="h-4 w-4 mr-1" /> Buy Gold
+            <Plus className="h-4 w-4 mr-1" /> Buy
           </Button>
           <Button
             onClick={() => setOpenKind("sell")}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+            <TrendingDown className="h-4 w-4 mr-1" /> Sell
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Today · Buy weight" value={fmtG(sum(todayBuy, "buysell_weight"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
-        <StatCard label="Today · Buy total" value={fmtDA(sum(todayBuy, "buysell_total"))} />
-        <StatCard label="Today · Sell weight" value={fmtG(sum(todaySell, "buysell_weight"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
-        <StatCard label="Today · Sell total" value={fmtDA(sum(todaySell, "buysell_total"))} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatCard label="Today · Gold bought" value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
+        <StatCard label="Today · Gold sold" value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
+        <StatCard label="Today · Silver bought" value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label="Today · Silver sold" value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label="Today · Buy total (DA)" value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
+        <StatCard label="Today · Sell total (DA)" value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
       </div>
 
       <Card>
@@ -3168,6 +3182,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <th className="p-3">Date</th>
                 <th className="p-3">Tx #</th>
                 <th className="p-3">Client</th>
+                <th className="p-3">Metal</th>
                 <th className="p-3">Type</th>
                 <th className="p-3 text-right">Weight</th>
                 <th className="p-3 text-right">Price / g</th>
@@ -3177,18 +3192,27 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
               )}
               {rows.map((r) => {
                 const buy = r.buysell_kind === "buy";
+                const metal = (r.buysell_metal ?? "gold") as BuySellMetal;
+                const isGold = metal === "gold";
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
                     <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
                     <td className="p-3">{r.client_name ?? "—"}</td>
+                    <td className="p-3">
+                      <Badge className={isGold
+                        ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
+                        : "bg-muted text-muted-foreground border-border"}>
+                        {isGold ? "GOLD" : "SILVER"}
+                      </Badge>
+                    </td>
                     <td className="p-3">
                       <Badge className={buy ? "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" : "bg-destructive/15 text-destructive border-destructive/30"}>
                         {buy ? "BUY" : "SELL"}
@@ -3235,6 +3259,7 @@ function BuySellDialog({
   onSaved: () => void;
 }) {
   const [clientId, setClientId] = useState<string>("");
+  const [metal, setMetal] = useState<BuySellMetal>("gold");
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [weight, setWeight] = useState<string>("");
   const [purity, setPurity] = useState<string>("1000");
@@ -3247,6 +3272,7 @@ function BuySellDialog({
   const w = Number(weight) || 0;
   const p = Number(price) || 0;
   const total = Math.round(w * p);
+  const metalLabel = metal === "gold" ? "Gold" : "Silver";
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -3259,6 +3285,7 @@ function BuySellDialog({
         refineryId: refinery.id,
         clientId,
         kind,
+        metal,
         settlement,
         weight: w,
         purity: Number(purity) || 1000,
@@ -3266,7 +3293,7 @@ function BuySellDialog({
         date,
         notes: notes || null,
       }});
-      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} for ${fmtDA(total)}`);
+      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} of ${metalLabel} for ${fmtDA(total)}`);
       onSaved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -3281,9 +3308,9 @@ function BuySellDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {kind === "buy" ? (
-              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy Gold</span>
+              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy {metalLabel}</span>
             ) : (
-              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell Gold</span>
+              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell {metalLabel}</span>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -3296,6 +3323,16 @@ function BuySellDialog({
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Metal Type</Label>
+            <Select value={metal} onValueChange={(v) => setMetal(v as BuySellMetal)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gold">Gold</SelectItem>
+                <SelectItem value="silver">Silver</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -3345,7 +3382,7 @@ function BuySellDialog({
               className={kind === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              {kind === "buy" ? "Record Buy" : "Record Sell"}
+              {kind === "buy" ? `Record Buy` : `Record Sell`}
             </Button>
           </DialogFooter>
         </form>

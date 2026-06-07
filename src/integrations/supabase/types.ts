@@ -776,6 +776,7 @@ export type Database = {
           adjustment_metal: string | null
           average_purity: number
           buysell_kind: string | null
+          buysell_metal: string | null
           buysell_price_per_gram: number | null
           buysell_purity: number | null
           buysell_settlement: string | null
@@ -822,6 +823,7 @@ export type Database = {
           adjustment_metal?: string | null
           average_purity?: number
           buysell_kind?: string | null
+          buysell_metal?: string | null
           buysell_price_per_gram?: number | null
           buysell_purity?: number | null
           buysell_settlement?: string | null
@@ -868,6 +870,7 @@ export type Database = {
           adjustment_metal?: string | null
           average_purity?: number
           buysell_kind?: string | null
+          buysell_metal?: string | null
           buysell_price_per_gram?: number | null
           buysell_purity?: number | null
           buysell_settlement?: string | null
@@ -1543,20 +1546,36 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
-      refinery_create_buysell: {
-        Args: {
-          _client_id: string
-          _date: string
-          _kind: string
-          _notes: string
-          _price_per_gram: number
-          _purity: number
-          _refinery_id: string
-          _settlement: string
-          _weight: number
-        }
-        Returns: string
-      }
+      refinery_create_buysell:
+        | {
+            Args: {
+              _client_id: string
+              _date: string
+              _kind: string
+              _notes: string
+              _price_per_gram: number
+              _purity: number
+              _refinery_id: string
+              _settlement: string
+              _weight: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _client_id: string
+              _date: string
+              _kind: string
+              _metal?: string
+              _notes: string
+              _price_per_gram: number
+              _purity: number
+              _refinery_id: string
+              _settlement: string
+              _weight: number
+            }
+            Returns: string
+          }
       refinery_create_settlement: {
         Args: {
           _amount: number
@@ -1601,6 +1620,7 @@ export type Database = {
           adjustment_metal: string | null
           average_purity: number
           buysell_kind: string | null
+          buysell_metal: string | null
           buysell_price_per_gram: number | null
           buysell_purity: number | null
           buysell_settlement: string | null
@@ -1656,6 +1676,7 @@ export type Database = {
           adjustment_metal: string | null
           average_purity: number
           buysell_kind: string | null
+          buysell_metal: string | null
           buysell_price_per_gram: number | null
           buysell_purity: number | null
           buysell_settlement: string | null
@@ -1725,6 +1746,8 @@ export type Database = {
         | "reversal"
         | "buy_gold"
         | "sell_gold"
+        | "buy_silver"
+        | "sell_silver"
       refinery_role: "manager" | "staff" | "viewer"
       refinery_tx_direction: "receiving" | "delivery"
       refinery_tx_status: "draft" | "pending" | "settled" | "cancelled"
@@ -1881,6 +1904,8 @@ export const Constants = {
         "reversal",
         "buy_gold",
         "sell_gold",
+        "buy_silver",
+        "sell_silver",
       ],
       refinery_role: ["manager", "staff", "viewer"],
       refinery_tx_direction: ["receiving", "delivery"],

@@ -11,6 +11,7 @@ export type RefineryDirection = "receiving" | "delivery";
 export type RefineryTxType = "da" | "gold" | "settlement" | "stock_adjustment" | "buysell";
 export type BuySellKind = "buy" | "sell";
 export type BuySellSettlement = "settlement" | "cash";
+export type BuySellMetal = "gold" | "silver";
 export type StockAdjustmentMetal = "gold" | "silver" | "da";
 export type StockAdjustmentKind = "add" | "remove" | "correction" | "loss" | "manual";
 export type RefinerySettlementKind = "gold" | "da";
@@ -85,6 +86,7 @@ export type RefineryTransaction = {
   // Buy/Sell-only fields
   buysell_kind?: BuySellKind | string | null;
   buysell_settlement?: BuySellSettlement | string | null;
+  buysell_metal?: BuySellMetal | string | null;
   buysell_weight?: number | null;
   buysell_purity?: number | null;
   buysell_price_per_gram?: number | null;
@@ -821,7 +823,7 @@ export const getDashboard = createServerFn({ method: "POST" })
       supabaseAdmin.from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle(),
       supabaseAdmin.from("refinery_clients").select("id, purity_balance, da_balance").eq("refinery_id", data.refineryId),
       supabaseAdmin.from("refinery_transactions")
-        .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
+        .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_metal, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
         .eq("refinery_id", data.refineryId).gte("created_at", todayIso),
       supabaseAdmin.from("refinery_clients")
         .select("id, name, purity_balance, da_balance")
@@ -858,9 +860,12 @@ export const getDashboard = createServerFn({ method: "POST" })
     const sum = (arr: typeof todayTx, dir: string, type: string, field: "total_pure_weight" | "da_amount") =>
       arr.filter((t) => t.direction === dir && t.transaction_type === type && t.status === "settled")
         .reduce((s, t) => s + Number(t[field] ?? 0), 0);
-    const sumBuySell = (kind: "buy" | "sell", field: "buysell_weight" | "buysell_total") =>
-      todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === kind)
-        .reduce((s, t) => s + Number(t[field] ?? 0), 0);
+    const sumBuySell = (kind: "buy" | "sell", metal: "gold" | "silver" | null, field: "buysell_weight" | "buysell_total") =>
+      todayTx.filter((t) =>
+        t.transaction_type === "buysell"
+        && t.buysell_kind === kind
+        && (metal === null || (t.buysell_metal ?? "gold") === metal),
+      ).reduce((s, t) => s + Number(t[field] ?? 0), 0);
 
     // Aggregate ALL client balances for equity (positive stored = refinery owes client)
     let clientsOweGold = 0, refineryOwesGold = 0, clientsOweDa = 0, refineryOwesDa = 0;
@@ -882,10 +887,12 @@ export const getDashboard = createServerFn({ method: "POST" })
       todayDeliveredDa: sum(todayTx, "delivery", "da", "da_amount"),
       todayBuyCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "buy").length,
       todaySellCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "sell").length,
-      todayBuyWeight: sumBuySell("buy", "buysell_weight"),
-      todayBuyTotal: sumBuySell("buy", "buysell_total"),
-      todaySellWeight: sumBuySell("sell", "buysell_weight"),
-      todaySellTotal: sumBuySell("sell", "buysell_total"),
+      todayGoldBought: sumBuySell("buy", "gold", "buysell_weight"),
+      todayGoldSold: sumBuySell("sell", "gold", "buysell_weight"),
+      todaySilverBought: sumBuySell("buy", "silver", "buysell_weight"),
+      todaySilverSold: sumBuySell("sell", "silver", "buysell_weight"),
+      todayBuyTotal: sumBuySell("buy", null, "buysell_total"),
+      todaySellTotal: sumBuySell("sell", null, "buysell_total"),
       todayAdjustCount: todayTx.filter((t) => t.transaction_type === "stock_adjustment").length,
       goldPrice: Number(priceR.data?.gold_price ?? 0),
       silverPrice: Number(priceR.data?.silver_price ?? 0),
@@ -995,6 +1002,8 @@ export type StatementRowType =
   | "da_received"
   | "da_paid"
   | "settlement"
+  | "buy_metal"
+  | "sell_metal"
   | "adjustment"
   | "reversal";
 
@@ -1005,6 +1014,7 @@ export type StatementRow = {
   type: StatementRowType;
   description: string;
   client_name: string | null;
+  metal?: "gold" | "silver" | null;
   gold_debit: number;
   gold_credit: number;
   da_debit: number;
@@ -1087,7 +1097,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     // Transactions in window (settled)
     const { data: txs, error: tErr } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance, settlement_kind, settlement_role, settlement_amount, settlement_apply_fee, counterparty_client_id")
+      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance, settlement_kind, settlement_role, settlement_amount, settlement_apply_fee, counterparty_client_id, buysell_kind, buysell_metal, buysell_settlement, buysell_weight, buysell_total")
       .eq("client_id", data.clientId)
       .eq("status", "settled")
       .neq("transaction_type", "stock_adjustment")
@@ -1217,6 +1227,27 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           client_name: cli.name,
           gold_debit: 0, gold_credit: 0,
           da_debit: da, da_credit: 0,
+          running_gold: runGold, running_da: runDa,
+        });
+      } else if (tx.transaction_type === "buysell" && (tx as any).buysell_settlement === "settlement") {
+        const metal = ((tx as any).buysell_metal ?? "gold") as "gold" | "silver";
+        const kind = (tx as any).buysell_kind as "buy" | "sell";
+        const weight = Number((tx as any).buysell_weight) || 0;
+        const total = Number((tx as any).buysell_total) || 0;
+        const isBuy = kind === "buy";
+        // Buy: refinery owes client → DA credit. Sell: client owes refinery → DA debit.
+        const daDebit = isBuy ? 0 : total;
+        const daCredit = isBuy ? total : 0;
+        if (isBuy) totalDaRecv += 0; // not a DA receipt from the client's POV
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn,
+          type: isBuy ? "buy_metal" : "sell_metal",
+          description: `${isBuy ? "Bought" : "Sold"} ${metal === "gold" ? "Gold" : "Silver"} — ${weight.toFixed(2)} g`,
+          client_name: cli.name,
+          metal,
+          gold_debit: 0, gold_credit: 0,
+          da_debit: daDebit, da_credit: daCredit,
           running_gold: runGold, running_da: runDa,
         });
       }
@@ -1543,6 +1574,7 @@ export const createBuySell = createServerFn({ method: "POST" })
       refineryId: z.string().uuid(),
       clientId: z.string().uuid(),
       kind: z.enum(["buy", "sell"]),
+      metal: z.enum(["gold", "silver"]).default("gold"),
       settlement: z.enum(["settlement", "cash"]),
       weight: z.number().positive(),
       purity: z.number().min(0).max(1000).optional().nullable(),
@@ -1563,6 +1595,7 @@ export const createBuySell = createServerFn({ method: "POST" })
       _price_per_gram: data.pricePerGram,
       _date: data.date ?? new Date().toISOString().slice(0, 10),
       _notes: data.notes ?? "",
+      _metal: data.metal,
     });
     if (error) throw new Error(error.message);
     return { ok: true, transactionId: txId as string };
