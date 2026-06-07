@@ -461,9 +461,17 @@ export const deleteTransaction = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: tx, error: e0 } = await supabaseAdmin
-      .from("refinery_transactions").select("refinery_id").eq("id", data.id).single();
+      .from("refinery_transactions")
+      .select("refinery_id, transaction_type, settlement_group_id")
+      .eq("id", data.id).single();
     if (e0) throw new Error(e0.message);
     await assertAccess(context.userId, tx.refinery_id);
+    // Settlement: delete both paired rows + reverse balances in one RPC
+    if (tx.transaction_type === "settlement" && tx.settlement_group_id) {
+      const { error: se } = await supabaseAdmin.rpc("refinery_delete_settlement", { _group_id: tx.settlement_group_id });
+      if (se) throw new Error(se.message);
+      return { ok: true };
+    }
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
     if (revErr) throw new Error(revErr.message);
     await supabaseAdmin.from("refinery_transaction_gold_bars").delete().eq("transaction_id", data.id);
@@ -471,6 +479,135 @@ export const deleteTransaction = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("refinery_transactions").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// =========================================================
+// Settlements
+// =========================================================
+const settlementCreate = z.object({
+  refinery_id: z.string().uuid(),
+  from_client_id: z.string().uuid(),
+  to_client_id: z.string().uuid(),
+  kind: z.enum(["gold", "da"]),
+  amount: z.number().positive(),
+  apply_fee: z.boolean().default(false),
+  fee_price: z.number().min(0).default(0),
+  transaction_date: z.string(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export const createSettlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => settlementCreate.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refinery_id);
+    if (data.from_client_id === data.to_client_id) {
+      throw new Error("From and To clients must be different");
+    }
+    const { data: groupId, error } = await supabaseAdmin.rpc("refinery_create_settlement", {
+      _refinery_id: data.refinery_id,
+      _from_client: data.from_client_id,
+      _to_client: data.to_client_id,
+      _kind: data.kind,
+      _amount: data.amount,
+      _apply_fee: data.apply_fee,
+      _fee_price: data.fee_price,
+      _date: data.transaction_date,
+      _notes: data.notes ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { group_id: groupId as string };
+  });
+
+export type SettlementPair = {
+  group_id: string;
+  refinery_id: string;
+  transaction_date: string;
+  created_at: string;
+  created_by_name: string | null;
+  kind: "gold" | "da";
+  amount: number;
+  apply_fee: boolean;
+  fee_price: number;
+  total_fee: number;
+  weight_730: number;
+  notes: string | null;
+  from: {
+    client_id: string;
+    client_name: string;
+    transaction_number: string;
+    previous_purity: number; new_purity: number;
+    previous_da: number; new_da: number;
+  };
+  to: {
+    client_id: string;
+    client_name: string;
+    transaction_number: string;
+    previous_purity: number; new_purity: number;
+    previous_da: number; new_da: number;
+  };
+};
+
+export const getSettlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ group_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<SettlementPair> => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name)")
+      .eq("settlement_group_id", data.group_id)
+      .order("settlement_role", { ascending: true }); // 'from' before 'to'
+    if (error) throw new Error(error.message);
+    if (!rows || rows.length === 0) throw new Error("Settlement not found");
+    const first = rows[0] as { refinery_id: string };
+    await assertAccess(context.userId, first.refinery_id);
+
+    const fromRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "from") as typeof rows[0] & { client?: { name: string } };
+    const toRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "to") as typeof rows[0] & { client?: { name: string } };
+    if (!fromRow || !toRow) throw new Error("Incomplete settlement");
+
+    let created_by_name: string | null = null;
+    const createdBy = (fromRow as { created_by?: string | null }).created_by;
+    if (createdBy) {
+      const { data: prof } = await supabaseAdmin
+        .from("swap_profiles").select("username").eq("id", createdBy).maybeSingle();
+      created_by_name = (prof as { username?: string } | null)?.username ?? null;
+    }
+
+    const kind = ((fromRow as { settlement_kind?: string }).settlement_kind ?? "gold") as "gold" | "da";
+    const amount = Number((fromRow as { settlement_amount?: number }).settlement_amount ?? 0);
+    const apply_fee = Boolean((fromRow as { settlement_apply_fee?: boolean }).settlement_apply_fee);
+    const fee_price = Number((fromRow as { fee_price?: number }).fee_price ?? 0);
+    const total_fee = Number((toRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const weight_730 = kind === "gold" && apply_fee ? (amount * 1000) / 730 : 0;
+
+    return {
+      group_id: data.group_id,
+      refinery_id: first.refinery_id,
+      transaction_date: (fromRow as { transaction_date: string }).transaction_date,
+      created_at: (fromRow as { created_at: string }).created_at,
+      created_by_name,
+      kind, amount, apply_fee, fee_price, total_fee, weight_730,
+      notes: (fromRow as { notes: string | null }).notes,
+      from: {
+        client_id: (fromRow as { client_id: string }).client_id,
+        client_name: fromRow.client?.name ?? "",
+        transaction_number: (fromRow as { transaction_number: string }).transaction_number,
+        previous_purity: Number((fromRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
+        new_purity: Number((fromRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
+        previous_da: Number((fromRow as { previous_da_balance?: number }).previous_da_balance ?? 0),
+        new_da: Number((fromRow as { new_da_balance?: number }).new_da_balance ?? 0),
+      },
+      to: {
+        client_id: (toRow as { client_id: string }).client_id,
+        client_name: toRow.client?.name ?? "",
+        transaction_number: (toRow as { transaction_number: string }).transaction_number,
+        previous_purity: Number((toRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
+        new_purity: Number((toRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
+        previous_da: Number((toRow as { previous_da_balance?: number }).previous_da_balance ?? 0),
+        new_da: Number((toRow as { new_da_balance?: number }).new_da_balance ?? 0),
+      },
+    };
   });
 
 export const cancelTransaction = createServerFn({ method: "POST" })
