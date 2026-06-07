@@ -2095,7 +2095,7 @@ async function performRestore(opts: {
   // Call atomic RPC
   const { error } = await supabaseAdmin.rpc("refinery_restore_from_payload", {
     _refinery_id: opts.refineryId,
-    _payload: opts.payload as unknown as Record<string, unknown>,
+    _payload: opts.payload as never,
   });
   if (error) {
     await writeAudit({
