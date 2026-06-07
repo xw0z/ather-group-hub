@@ -21,7 +21,7 @@ import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
-  getStock, listStockMovements, getDashboard, adjustStock,
+  getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   getMyRefineryProfile, updateMyRefineryProfile,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
