@@ -747,7 +747,11 @@ export function SwapDashboard({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
+        <main
+          className={`mx-auto w-full ${
+            effectiveTab === "refineries" ? "max-w-7xl px-3 sm:px-6 py-5" : "max-w-3xl px-4 py-5 space-y-5"
+          } flex-1`}
+        >
           {!tabAllowed ? (
             <AccessDenied />
           ) : (
@@ -791,6 +795,9 @@ export function SwapDashboard({
               )}
               {effectiveTab === "settings" && can(perms, "settings", "view") && <SettingsTab />}
               {effectiveTab === "profile" && <ProfileTab username={username} />}
+              {effectiveTab === "refineries" && <RefineriesEmbedded />}
+            </>
+          )}
             </>
           )}
         </main>
