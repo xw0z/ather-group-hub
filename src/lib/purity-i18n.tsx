@@ -426,6 +426,83 @@ const en: Dict = {
   "settings.branding": "Report branding",
   "settings.savedApplied": "Saved. Defaults applied to all existing clients.",
   "settings.savedUnchanged": "Saved. Existing clients unchanged.",
+
+  // Refineries module
+  "ref.module": "Refineries",
+  "ref.pageTitle": "Refineries",
+  "ref.signOut": "Sign out",
+  "ref.pickRefinery": "Select a refinery",
+  "ref.noAccess": "You don't have access to any refinery yet. Contact your administrator.",
+  "ref.tab.dashboard": "Dashboard",
+  "ref.tab.clients": "Clients",
+  "ref.tab.transactions": "Transactions",
+  "ref.tab.buysell": "Buy / Sell",
+  "ref.tab.stock": "Stock",
+  "ref.tab.netposition": "Net Position",
+  "ref.tab.backup": "Backup",
+  "ref.tab.profile": "Profile",
+  "ref.tab.translations": "Translations",
+  "ref.statement.title": "Account Statement",
+  "ref.statement.client": "Client",
+  "ref.statement.statement": "Statement",
+  "ref.statement.period": "Period",
+  "ref.statement.openingGold": "Opening Gold",
+  "ref.statement.closingGold": "Closing Gold",
+  "ref.statement.openingDa": "Opening DA",
+  "ref.statement.closingDa": "Closing DA",
+  "ref.statement.transactions": "Transactions",
+  "ref.statement.accountOverview": "Account Overview",
+  "ref.statement.closingBalances": "Closing Balances",
+  "ref.statement.closingGoldBalance": "Closing Gold Balance",
+  "ref.statement.closingDaBalance": "Closing DA Balance",
+  "ref.statement.empty": "No transactions in this period.",
+  "ref.statement.generatedOn": "Generated on:",
+  "ref.statement.page": "Page",
+  "ref.statement.of": "of",
+  "ref.statement.part": "Part",
+  "ref.statement.system": "Refinery Management System",
+  "ref.statement.col.date": "Date",
+  "ref.statement.col.type": "Type",
+  "ref.statement.col.metal": "Metal",
+  "ref.statement.col.dir": "Dir",
+  "ref.statement.col.gold": "Gold (g)",
+  "ref.statement.col.da": "DA Amount",
+  "ref.statement.col.description": "Description",
+  "ref.statement.type.gold_received": "Buy",
+  "ref.statement.type.gold_delivered": "Sell",
+  "ref.statement.type.refining_fee": "Refining Fee",
+  "ref.statement.type.da_received": "DA Received",
+  "ref.statement.type.da_paid": "DA Paid",
+  "ref.statement.type.settlement": "Settlement",
+  "ref.statement.type.buy_metal": "Metal Buy",
+  "ref.statement.type.sell_metal": "Metal Sell",
+  "ref.statement.type.adjustment": "Adjustment",
+  "ref.statement.type.reversal": "Correction",
+  "ref.statement.metal.gold": "GOLD",
+  "ref.statement.metal.silver": "SILVER",
+  "ref.statement.dir.in": "IN",
+  "ref.statement.dir.out": "OUT",
+  "ref.statement.dir.fee": "FEE",
+  "ref.profile.language": "Language Preferences",
+  "ref.profile.languageNote": "Changes take effect immediately throughout the application.",
+  "ref.profile.lang.en": "English",
+  "ref.profile.lang.fr": "Français",
+  "ref.profile.lang.ar": "العربية",
+  "ref.transMgmt.title": "Translation Management",
+  "ref.transMgmt.subtitle": "Search, edit and override French and Arabic translations.",
+  "ref.transMgmt.search": "Search key or text…",
+  "ref.transMgmt.key": "Key",
+  "ref.transMgmt.english": "English",
+  "ref.transMgmt.french": "Français",
+  "ref.transMgmt.arabic": "العربية",
+  "ref.transMgmt.actions": "Actions",
+  "ref.transMgmt.override": "Override",
+  "ref.transMgmt.reset": "Reset to default",
+  "ref.transMgmt.save": "Save",
+  "ref.transMgmt.export": "Export JSON",
+  "ref.transMgmt.import": "Import JSON",
+  "ref.transMgmt.empty": "No translations match your search.",
+  "ref.transMgmt.adminOnly": "Only platform administrators can manage translations.",
 };
 
 const ar: Dict = {
@@ -821,6 +898,83 @@ const ar: Dict = {
   "settings.branding": "العلامة التجارية للتقارير",
   "settings.savedApplied": "تم الحفظ. تم تطبيق الإعدادات على جميع العملاء الحاليين.",
   "settings.savedUnchanged": "تم الحفظ. العملاء الحاليون دون تغيير.",
+
+  // Refineries module
+  "ref.module": "المصافي",
+  "ref.pageTitle": "المصافي",
+  "ref.signOut": "تسجيل الخروج",
+  "ref.pickRefinery": "اختر مصفاة",
+  "ref.noAccess": "لا تملك حق الوصول إلى أي مصفاة بعد. يرجى التواصل مع المسؤول.",
+  "ref.tab.dashboard": "لوحة التحكم",
+  "ref.tab.clients": "العملاء",
+  "ref.tab.transactions": "المعاملات",
+  "ref.tab.buysell": "بيع / شراء",
+  "ref.tab.stock": "المخزون",
+  "ref.tab.netposition": "صافي المركز",
+  "ref.tab.backup": "النسخ الاحتياطي",
+  "ref.tab.profile": "الملف الشخصي",
+  "ref.tab.translations": "الترجمات",
+  "ref.statement.title": "كشف الحساب",
+  "ref.statement.client": "العميل",
+  "ref.statement.statement": "كشف",
+  "ref.statement.period": "الفترة",
+  "ref.statement.openingGold": "رصيد الذهب الافتتاحي",
+  "ref.statement.closingGold": "رصيد الذهب الختامي",
+  "ref.statement.openingDa": "رصيد الدينار الافتتاحي",
+  "ref.statement.closingDa": "رصيد الدينار الختامي",
+  "ref.statement.transactions": "المعاملات",
+  "ref.statement.accountOverview": "ملخص الحساب",
+  "ref.statement.closingBalances": "الأرصدة الختامية",
+  "ref.statement.closingGoldBalance": "رصيد الذهب الختامي",
+  "ref.statement.closingDaBalance": "رصيد الدينار الختامي",
+  "ref.statement.empty": "لا توجد معاملات خلال هذه الفترة.",
+  "ref.statement.generatedOn": "أُنشئ بتاريخ:",
+  "ref.statement.page": "صفحة",
+  "ref.statement.of": "من",
+  "ref.statement.part": "جزء",
+  "ref.statement.system": "نظام إدارة المصفاة",
+  "ref.statement.col.date": "التاريخ",
+  "ref.statement.col.type": "النوع",
+  "ref.statement.col.metal": "المعدن",
+  "ref.statement.col.dir": "الاتجاه",
+  "ref.statement.col.gold": "ذهب (غ)",
+  "ref.statement.col.da": "المبلغ بالدينار",
+  "ref.statement.col.description": "البيان",
+  "ref.statement.type.gold_received": "شراء",
+  "ref.statement.type.gold_delivered": "بيع",
+  "ref.statement.type.refining_fee": "رسوم التكرير",
+  "ref.statement.type.da_received": "دينار مستلم",
+  "ref.statement.type.da_paid": "دينار مدفوع",
+  "ref.statement.type.settlement": "تسوية",
+  "ref.statement.type.buy_metal": "شراء معدن",
+  "ref.statement.type.sell_metal": "بيع معدن",
+  "ref.statement.type.adjustment": "تسوية مخزون",
+  "ref.statement.type.reversal": "تصحيح",
+  "ref.statement.metal.gold": "ذهب",
+  "ref.statement.metal.silver": "فضة",
+  "ref.statement.dir.in": "وارد",
+  "ref.statement.dir.out": "صادر",
+  "ref.statement.dir.fee": "رسوم",
+  "ref.profile.language": "تفضيلات اللغة",
+  "ref.profile.languageNote": "تُطبَّق التغييرات فورًا في كافة أنحاء التطبيق.",
+  "ref.profile.lang.en": "English",
+  "ref.profile.lang.fr": "Français",
+  "ref.profile.lang.ar": "العربية",
+  "ref.transMgmt.title": "إدارة الترجمات",
+  "ref.transMgmt.subtitle": "ابحث وعدّل ترجمات الفرنسية والعربية.",
+  "ref.transMgmt.search": "ابحث بالمفتاح أو النص…",
+  "ref.transMgmt.key": "المفتاح",
+  "ref.transMgmt.english": "English",
+  "ref.transMgmt.french": "Français",
+  "ref.transMgmt.arabic": "العربية",
+  "ref.transMgmt.actions": "إجراءات",
+  "ref.transMgmt.override": "تعديل",
+  "ref.transMgmt.reset": "استعادة الافتراضي",
+  "ref.transMgmt.save": "حفظ",
+  "ref.transMgmt.export": "تصدير JSON",
+  "ref.transMgmt.import": "استيراد JSON",
+  "ref.transMgmt.empty": "لا توجد ترجمات مطابقة لبحثك.",
+  "ref.transMgmt.adminOnly": "إدارة الترجمات متاحة لمسؤولي المنصة فقط.",
 };
 
 const fr: Dict = {
@@ -1216,6 +1370,83 @@ const fr: Dict = {
   "settings.branding": "Identité visuelle des rapports",
   "settings.savedApplied": "Enregistré. Appliqué à tous les clients existants.",
   "settings.savedUnchanged": "Enregistré. Clients existants inchangés.",
+
+  // Refineries module
+  "ref.module": "Raffineries",
+  "ref.pageTitle": "Raffineries",
+  "ref.signOut": "Déconnexion",
+  "ref.pickRefinery": "Sélectionner une raffinerie",
+  "ref.noAccess": "Vous n'avez encore accès à aucune raffinerie. Contactez votre administrateur.",
+  "ref.tab.dashboard": "Tableau de bord",
+  "ref.tab.clients": "Clients",
+  "ref.tab.transactions": "Transactions",
+  "ref.tab.buysell": "Achat / Vente",
+  "ref.tab.stock": "Stock",
+  "ref.tab.netposition": "Position nette",
+  "ref.tab.backup": "Sauvegarde",
+  "ref.tab.profile": "Profil",
+  "ref.tab.translations": "Traductions",
+  "ref.statement.title": "Relevé de compte",
+  "ref.statement.client": "Client",
+  "ref.statement.statement": "Relevé",
+  "ref.statement.period": "Période",
+  "ref.statement.openingGold": "Or à l'ouverture",
+  "ref.statement.closingGold": "Or à la clôture",
+  "ref.statement.openingDa": "DA à l'ouverture",
+  "ref.statement.closingDa": "DA à la clôture",
+  "ref.statement.transactions": "Transactions",
+  "ref.statement.accountOverview": "Aperçu du compte",
+  "ref.statement.closingBalances": "Soldes de clôture",
+  "ref.statement.closingGoldBalance": "Solde or à la clôture",
+  "ref.statement.closingDaBalance": "Solde DA à la clôture",
+  "ref.statement.empty": "Aucune transaction sur cette période.",
+  "ref.statement.generatedOn": "Généré le :",
+  "ref.statement.page": "Page",
+  "ref.statement.of": "sur",
+  "ref.statement.part": "Partie",
+  "ref.statement.system": "Système de gestion de raffinerie",
+  "ref.statement.col.date": "Date",
+  "ref.statement.col.type": "Type",
+  "ref.statement.col.metal": "Métal",
+  "ref.statement.col.dir": "Sens",
+  "ref.statement.col.gold": "Or (g)",
+  "ref.statement.col.da": "Montant DA",
+  "ref.statement.col.description": "Description",
+  "ref.statement.type.gold_received": "Achat",
+  "ref.statement.type.gold_delivered": "Vente",
+  "ref.statement.type.refining_fee": "Frais de raffinage",
+  "ref.statement.type.da_received": "DA reçu",
+  "ref.statement.type.da_paid": "DA payé",
+  "ref.statement.type.settlement": "Règlement",
+  "ref.statement.type.buy_metal": "Achat métal",
+  "ref.statement.type.sell_metal": "Vente métal",
+  "ref.statement.type.adjustment": "Ajustement",
+  "ref.statement.type.reversal": "Correction",
+  "ref.statement.metal.gold": "OR",
+  "ref.statement.metal.silver": "ARGENT",
+  "ref.statement.dir.in": "ENT",
+  "ref.statement.dir.out": "SORT",
+  "ref.statement.dir.fee": "FRAIS",
+  "ref.profile.language": "Préférences linguistiques",
+  "ref.profile.languageNote": "Les changements s'appliquent immédiatement à toute l'application.",
+  "ref.profile.lang.en": "English",
+  "ref.profile.lang.fr": "Français",
+  "ref.profile.lang.ar": "العربية",
+  "ref.transMgmt.title": "Gestion des traductions",
+  "ref.transMgmt.subtitle": "Rechercher, modifier et remplacer les traductions françaises et arabes.",
+  "ref.transMgmt.search": "Rechercher une clé ou un texte…",
+  "ref.transMgmt.key": "Clé",
+  "ref.transMgmt.english": "English",
+  "ref.transMgmt.french": "Français",
+  "ref.transMgmt.arabic": "العربية",
+  "ref.transMgmt.actions": "Actions",
+  "ref.transMgmt.override": "Remplacer",
+  "ref.transMgmt.reset": "Réinitialiser",
+  "ref.transMgmt.save": "Enregistrer",
+  "ref.transMgmt.export": "Exporter JSON",
+  "ref.transMgmt.import": "Importer JSON",
+  "ref.transMgmt.empty": "Aucune traduction ne correspond à votre recherche.",
+  "ref.transMgmt.adminOnly": "Seuls les administrateurs de la plateforme peuvent gérer les traductions.",
 };
 
 const dicts: Record<Lang, Dict> = { en, ar, fr };
@@ -1237,6 +1468,9 @@ export function readStoredLang(): Lang {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => readStoredLang());
+  // Admin-configurable translation overrides applied on top of base dicts.
+  // Shape: { en: { key: value }, fr: {...}, ar: {...} }
+  const [overrides, setOverrides] = useState<Record<Lang, Dict>>({ en: {}, ar: {}, fr: {} });
 
   // Mirror to <html lang> / <html dir>
   useEffect(() => {
@@ -1245,12 +1479,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
 
-  // On mount, hydrate from the server-side global setting (if signed in).
-  // The localStorage cache provides the instant first paint; this just keeps
-  // the browser in sync with the platform-wide value chosen in Settings.
+  // Hydrate language from the signed-in user's per-user preference first,
+  // then fall back to the platform-wide setting if no per-user value exists.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Per-user preference
+      try {
+        const { getUserPreferences } = await import("@/lib/swap-profile.functions");
+        const r = await getUserPreferences();
+        const s = (r as { locale?: string }).locale;
+        if (!cancelled && (s === "en" || s === "ar" || s === "fr")) {
+          if (s !== readStoredLang()) {
+            window.localStorage.setItem(STORAGE_KEY, s);
+            window.dispatchEvent(new Event("desk-lang-change"));
+          }
+          setLangState(s);
+          return;
+        }
+      } catch {
+        /* unauthenticated or prefs missing — try platform fallback */
+      }
+      // Platform-wide fallback
       try {
         const { getPlatformLanguage } = await import("@/lib/swap-settings.functions");
         const r = await getPlatformLanguage();
@@ -1263,11 +1513,43 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           setLangState(s);
         }
       } catch {
-        /* unauthenticated or settings missing — keep local cache */
+        /* keep local cache */
       }
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Load admin translation overrides (everyone authenticated can read them).
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { listTranslationOverrides } = await import("@/lib/translations.functions");
+        const rows = await listTranslationOverrides();
+        if (cancelled) return;
+        const next: Record<Lang, Dict> = { en: {}, ar: {}, fr: {} };
+        for (const r of rows) {
+          if (r.locale === "en" || r.locale === "ar" || r.locale === "fr") {
+            next[r.locale][r.key] = r.value;
+          }
+        }
+        setOverrides(next);
+      } catch {
+        /* unauthenticated or table empty */
+      }
+    };
+    void load();
+    const onUpdate = () => void load();
+    if (typeof window !== "undefined") {
+      window.addEventListener("desk-translations-updated", onUpdate);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("desk-translations-updated", onUpdate);
+      }
     };
   }, []);
 
@@ -1280,7 +1562,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const onCustom = () => setLangState(readStoredLang());
     window.addEventListener("storage", onStorage);
     window.addEventListener("desk-lang-change", onCustom);
-    // Back-compat with old event name
     window.addEventListener("purity-lang-change", onCustom);
     return () => {
       window.removeEventListener("storage", onStorage);
@@ -1295,9 +1576,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       window.dispatchEvent(new Event("desk-lang-change"));
     }
     setLangState(l);
+    // Persist per-user (fire-and-forget; ignore errors when unauthenticated)
+    void (async () => {
+      try {
+        const { updateMyLocale } = await import("@/lib/swap-profile.functions");
+        await updateMyLocale({ data: { locale: l } });
+      } catch {
+        /* not signed in or backend unavailable — local cache still works */
+      }
+    })();
   };
 
-  const t = (key: string) => dicts[lang][key] ?? dicts.en[key] ?? key;
+  const t = (key: string) =>
+    overrides[lang][key] ??
+    dicts[lang][key] ??
+    overrides.en[key] ??
+    dicts.en[key] ??
+    key;
   const dir: "ltr" | "rtl" = lang === "ar" ? "rtl" : "ltr";
 
   return <LangCtx.Provider value={{ lang, setLang, t, dir }}>{children}</LangCtx.Provider>;
@@ -1309,7 +1604,6 @@ export const PurityLanguageProvider = LanguageProvider;
 export function useLang(): Ctx {
   const ctx = useContext(LangCtx);
   if (!ctx) {
-    // Fallback when used outside provider — read from storage, no reactive updates.
     const lang = readStoredLang();
     return {
       lang,
@@ -1323,3 +1617,9 @@ export function useLang(): Ctx {
 
 // Alias for the new platform-wide naming.
 export const useLanguage = useLang;
+
+// Export the base dictionaries for the Translation Management UI.
+export const baseDicts: Record<Lang, Dict> = dicts;
+export const translationKeys: string[] = Array.from(
+  new Set([...Object.keys(en), ...Object.keys(ar), ...Object.keys(fr)]),
+).sort();

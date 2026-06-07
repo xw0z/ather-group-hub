@@ -396,11 +396,16 @@ export const getUserPreferences = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await supabaseAdmin
       .from("swap_user_preferences")
-      .select("theme, number_format, date_format")
+      .select("theme, number_format, date_format, locale")
       .eq("user_id", context.userId)
       .maybeSingle();
     return (
-      data ?? { theme: "system", number_format: "en", date_format: "DD/MM/YYYY" }
+      data ?? {
+        theme: "system",
+        number_format: "en",
+        date_format: "DD/MM/YYYY",
+        locale: "en",
+      }
     );
   });
 
@@ -412,6 +417,32 @@ export const updateUserPreferences = createServerFn({ method: "POST" })
       .from("swap_user_preferences")
       .upsert({ user_id: context.userId, ...data, updated_at: new Date().toISOString() });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const updateMyLocale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ locale: z.enum(["en", "fr", "ar"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await supabaseAdmin
+      .from("swap_user_preferences")
+      .upsert(
+        {
+          user_id: context.userId,
+          locale: data.locale,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) throw new Error(error.message);
+    await logActivity(
+      context.userId,
+      "locale_changed",
+      { locale: data.locale },
+      "users",
+    );
     return { ok: true };
   });
 

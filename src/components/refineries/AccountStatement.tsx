@@ -1,4 +1,5 @@
 import type { AccountStatement, StatementRow } from "@/lib/refineries.functions";
+import { useLang } from "@/lib/purity-i18n";
 
 /* ============================================================
    Professional Client Account Statement — Simplified
@@ -38,27 +39,30 @@ const fmtDateTime = (s: string) => {
   } catch { return s; }
 };
 
-const TYPE_LABEL: Record<StatementRow["type"], string> = {
-  gold_received: "Buy",
-  gold_delivered: "Sell",
-  refining_fee: "Refining Fee",
-  da_received: "DA Received",
-  da_paid: "DA Paid",
-  settlement: "Settlement",
-  buy_metal: "Metal Buy",
-  sell_metal: "Metal Sell",
-  adjustment: "Adjustment",
-  reversal: "Correction",
+const TYPE_KEYS: Record<StatementRow["type"], string> = {
+  gold_received: "ref.statement.type.gold_received",
+  gold_delivered: "ref.statement.type.gold_delivered",
+  refining_fee: "ref.statement.type.refining_fee",
+  da_received: "ref.statement.type.da_received",
+  da_paid: "ref.statement.type.da_paid",
+  settlement: "ref.statement.type.settlement",
+  buy_metal: "ref.statement.type.buy_metal",
+  sell_metal: "ref.statement.type.sell_metal",
+  adjustment: "ref.statement.type.adjustment",
+  reversal: "ref.statement.type.reversal",
 };
 
-function directionOf(r: StatementRow): { label: string; color: string } {
+function directionOf(
+  r: StatementRow,
+  t: (k: string) => string,
+): { label: string; color: string } {
   const goldIn = r.gold_credit > 0;
   const goldOut = r.gold_debit > 0;
   const daIn = r.da_credit > 0;
   const daOut = r.da_debit > 0;
-  if (r.type === "refining_fee") return { label: "FEE", color: ORANGE };
-  if (goldIn || daIn) return { label: "IN", color: GREEN };
-  if (goldOut || daOut) return { label: "OUT", color: RED };
+  if (r.type === "refining_fee") return { label: t("ref.statement.dir.fee"), color: ORANGE };
+  if (goldIn || daIn) return { label: t("ref.statement.dir.in"), color: GREEN };
+  if (goldOut || daOut) return { label: t("ref.statement.dir.out"), color: RED };
   return { label: "—", color: SUB };
 }
 
@@ -123,6 +127,7 @@ function StatementPage({
   width: number;
   startIndex: number;
 }) {
+  const { t } = useLang();
   const isFirst = pageIdx === 0;
   const isLast = pageIdx === totalPages - 1;
 
@@ -152,7 +157,7 @@ function StatementPage({
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 3, color: INK }}>ATHER GROUP</div>
             <div style={{ fontSize: 10, color: SUB, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>
-              Refinery Management System
+              {t("ref.statement.system")}
             </div>
           </div>
         </div>
@@ -162,9 +167,9 @@ function StatementPage({
             background: ORANGE_SOFT, color: ORANGE,
             padding: "4px 10px", borderRadius: 4,
             fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase",
-          }}>Account Statement</div>
+          }}>{t("ref.statement.title")}</div>
           <div style={{ fontSize: 9, color: SUB, marginTop: 6 }}>
-            Page {pageIdx + 1} of {totalPages}
+            {t("ref.statement.page")} {pageIdx + 1} {t("ref.statement.of")} {totalPages}
           </div>
         </div>
       </div>
@@ -174,18 +179,18 @@ function StatementPage({
       {/* ─── Compact identity block ─── */}
       <div style={{ marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
         <div>
-          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>Client</div>
+          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.client")}</div>
           <div style={{ fontSize: 22, fontWeight: 900, color: INK, marginTop: 4, letterSpacing: -0.3 }}>
             {data.client.name}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>Statement</div>
+          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.statement")}</div>
           <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: INK, marginTop: 4 }}>
             {data.statement_number}
           </div>
           <div style={{ fontSize: 10, color: SUB, marginTop: 4 }}>
-            Period:{" "}
+            {t("ref.statement.period")}:{" "}
             <span style={{ color: INK, fontWeight: 600 }}>
               {fmtDate(data.range.from)} – {fmtDate(data.range.to)}
             </span>
@@ -196,29 +201,29 @@ function StatementPage({
       {/* ─── Account overview: 4 large balance cards (first page only) ─── */}
       {isFirst && (
         <>
-          <SectionTitle>Account Overview</SectionTitle>
+          <SectionTitle>{t("ref.statement.accountOverview")}</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-            <BalanceCard label="Opening Gold" value={`${fmtG(data.opening_gold)} g`} color={balanceColor(data.opening_gold)} />
-            <BalanceCard label="Closing Gold" value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} emphasized />
-            <BalanceCard label="Opening DA" value={`${fmtDA(data.opening_da)} DA`} color={balanceColor(data.opening_da)} />
-            <BalanceCard label="Closing DA" value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} emphasized />
+            <BalanceCard label={t("ref.statement.openingGold")} value={`${fmtG(data.opening_gold)} g`} color={balanceColor(data.opening_gold)} />
+            <BalanceCard label={t("ref.statement.closingGold")} value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} emphasized />
+            <BalanceCard label={t("ref.statement.openingDa")} value={`${fmtDA(data.opening_da)} DA`} color={balanceColor(data.opening_da)} />
+            <BalanceCard label={t("ref.statement.closingDa")} value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} emphasized />
           </div>
         </>
       )}
 
       {/* ─── Transactions ─── */}
       <SectionTitle>
-        Transactions{totalPages > 1 ? ` — Part ${pageIdx + 1} / ${totalPages}` : ""}
+        {t("ref.statement.transactions")}{totalPages > 1 ? ` — ${t("ref.statement.part")} ${pageIdx + 1} / ${totalPages}` : ""}
       </SectionTitle>
-      <TxTable rows={rows} startIndex={startIndex} />
+      <TxTable rows={rows} startIndex={startIndex} t={t} />
 
       {/* ─── Closing balances (last page only) ─── */}
       {isLast && (
         <>
-          <SectionTitle>Closing Balances</SectionTitle>
+          <SectionTitle>{t("ref.statement.closingBalances")}</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <BigBalance label="Closing Gold Balance" value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} />
-            <BigBalance label="Closing DA Balance" value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} />
+            <BigBalance label={t("ref.statement.closingGoldBalance")} value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} />
+            <BigBalance label={t("ref.statement.closingDaBalance")} value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} />
           </div>
         </>
       )}
@@ -231,13 +236,13 @@ function StatementPage({
         fontSize: 9, color: SUB, letterSpacing: 0.6,
       }}>
         <span>
-          Generated on: <span style={{ color: INK, fontWeight: 600 }}>{fmtDateTime(data.generated_at)}</span>
+          {t("ref.statement.generatedOn")} <span style={{ color: INK, fontWeight: 600 }}>{fmtDateTime(data.generated_at)}</span>
         </span>
         <span>
           <strong style={{ color: INK, letterSpacing: 2 }}>ATHER GROUP</strong>
-          {" · "}Refinery Management System
+          {" · "}{t("ref.statement.system")}
         </span>
-        <span style={{ fontFamily: MONO }}>Page {pageIdx + 1}/{totalPages}</span>
+        <span style={{ fontFamily: MONO }}>{t("ref.statement.page")} {pageIdx + 1}/{totalPages}</span>
       </div>
     </div>
   );
@@ -277,7 +282,7 @@ function BalanceCard({ label, value, color, emphasized }: { label: string; value
   );
 }
 
-function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: number }) {
+function TxTable({ rows, startIndex, t }: { rows: StatementRow[]; startIndex: number; t: (k: string) => string }) {
   const th: React.CSSProperties = {
     padding: "9px 8px", fontSize: 9, textAlign: "left",
     letterSpacing: 1, textTransform: "uppercase", fontWeight: 800,
@@ -307,36 +312,37 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
       </colgroup>
       <thead>
         <tr>
-          <th style={th}>Date</th>
-          <th style={th}>Type</th>
-          <th style={thC}>Metal</th>
-          <th style={thC}>Dir</th>
-          <th style={thR}>Gold (g)</th>
-          <th style={thR}>DA Amount</th>
-          <th style={th}>Description</th>
+          <th style={th}>{t("ref.statement.col.date")}</th>
+          <th style={th}>{t("ref.statement.col.type")}</th>
+          <th style={thC}>{t("ref.statement.col.metal")}</th>
+          <th style={thC}>{t("ref.statement.col.dir")}</th>
+          <th style={thR}>{t("ref.statement.col.gold")}</th>
+          <th style={thR}>{t("ref.statement.col.da")}</th>
+          <th style={th}>{t("ref.statement.col.description")}</th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 && (
           <tr>
             <td colSpan={7} style={{ ...td, textAlign: "center", padding: 28, color: SUB }}>
-              No transactions in this period.
+              {t("ref.statement.empty")}
             </td>
           </tr>
         )}
         {rows.map((r, i) => {
           const zebra = (startIndex + i) % 2 === 1;
-          const dir = directionOf(r);
+          const dir = directionOf(r, t);
           const goldNet = r.gold_credit - r.gold_debit;
           const daNet = r.da_credit - r.da_debit;
           const metalLabel = r.metal
-            ? (r.metal === "gold" ? "GOLD" : "SILVER")
-            : (r.type === "gold_received" || r.type === "gold_delivered" || (r.type === "settlement" && goldNet !== 0) ? "GOLD" : "—");
+            ? (r.metal === "gold" ? t("ref.statement.metal.gold") : t("ref.statement.metal.silver"))
+            : (r.type === "gold_received" || r.type === "gold_delivered" || (r.type === "settlement" && goldNet !== 0) ? t("ref.statement.metal.gold") : "—");
+          const typeLabel = t(TYPE_KEYS[r.type]);
 
           return (
             <tr key={i} style={{ background: zebra ? PAPER_ALT : PAPER }}>
               <td style={td}>{fmtDate(r.date)}</td>
-              <td style={td}>{TYPE_LABEL[r.type]}</td>
+              <td style={td}>{typeLabel}</td>
               <td style={{ ...td, textAlign: "center", fontSize: 9, fontWeight: 700, color: SUB }}>{metalLabel}</td>
               <td style={{ ...td, textAlign: "center" }}>
                 <span style={{
@@ -352,7 +358,7 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
                 {daNet !== 0 ? `${daNet > 0 ? "+" : ""}${num2(daNet)} DA` : "—"}
               </td>
               <td style={{ ...td, color: SUB, fontSize: 9.5 }}>
-                {r.description || TYPE_LABEL[r.type]}
+                {r.description || typeLabel}
               </td>
             </tr>
           );

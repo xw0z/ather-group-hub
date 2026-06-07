@@ -45,18 +45,20 @@ import { TransactionReceiptReport } from "@/components/refineries/TransactionRec
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useLang } from "@/lib/purity-i18n";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile";
-const TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "clients", label: "Clients" },
-  { id: "transactions", label: "Transactions" },
-  { id: "buysell", label: "Buy / Sell" },
-  { id: "stock", label: "Stock" },
-  { id: "netposition", label: "Net Position" },
-  { id: "backup", label: "Backup", adminOnly: true },
-  { id: "profile", label: "Profile" },
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile" | "translations";
+const TAB_DEFS: { id: Tab; key: string; adminOnly?: boolean }[] = [
+  { id: "dashboard", key: "ref.tab.dashboard" },
+  { id: "clients", key: "ref.tab.clients" },
+  { id: "transactions", key: "ref.tab.transactions" },
+  { id: "buysell", key: "ref.tab.buysell" },
+  { id: "stock", key: "ref.tab.stock" },
+  { id: "netposition", key: "ref.tab.netposition" },
+  { id: "backup", key: "ref.tab.backup", adminOnly: true },
+  { id: "profile", key: "ref.tab.profile" },
+  { id: "translations", key: "ref.tab.translations", adminOnly: true },
 ];
 
 
@@ -197,11 +199,12 @@ function RefineryPicker({
     if (onPick) onPick(id);
     else navigate({ to: "/desk/refineries", search: { r: id, tab: "dashboard" } });
   };
+  const { t: tr } = useLang();
   const grid = (
     <div className={embedded ? "" : "max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12"}>
-      <h1 className="font-display text-3xl mb-2">Refineries</h1>
+      <h1 className="font-display text-3xl mb-2">{tr("ref.pageTitle")}</h1>
       <p className="text-sm text-muted-foreground mb-8">
-        Choose a refinery to manage its clients, transactions, and stock.
+        {tr("ref.pickRefinery")}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {refineries.map((r) => (
@@ -218,7 +221,7 @@ function RefineryPicker({
                 <p className="font-display text-lg tracking-wide">{r.name}</p>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
+            <p className="text-sm text-muted-foreground">{tr("ref.tab.dashboard")} · {tr("ref.tab.clients")} · {tr("ref.tab.transactions")} · {tr("ref.tab.stock")}</p>
           </Card>
         ))}
       </div>
@@ -227,7 +230,7 @@ function RefineryPicker({
   if (embedded) return grid;
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
+      <TopBar title="REFINERIES" subtitle={isAdmin ? tr("ref.pickRefinery") : ""} onSignOut={onSignOut} />
       {grid}
     </main>
   );
@@ -239,13 +242,14 @@ function RefineryPicker({
 function TopBar({
   title, subtitle, onSignOut, onBack,
 }: { title: string; subtitle?: string; onSignOut: () => void; onBack?: () => void }) {
+  const { t: tr } = useLang();
   return (
     <header className="border-b border-border bg-card/40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           {onBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+              <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
             </Button>
           )}
           <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
@@ -258,7 +262,7 @@ function TopBar({
 
         </div>
         <Button variant="ghost" size="sm" onClick={onSignOut}>
-          <LogOut className="h-4 w-4 mr-1" /> Sign out
+          <LogOut className="h-4 w-4 mr-1" /> {tr("ref.signOut")}
         </Button>
       </div>
     </header>
@@ -285,26 +289,28 @@ function RefineryShell({
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
 
+  const { t: tr } = useLang();
+
   const tabsBar = (
     <nav className="border-b border-border bg-card/20">
       <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
         {embedded && onBack && (
           <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+            <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
           </Button>
         )}
         <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {TABS.filter((t) => !t.adminOnly || assignment.isAdmin).map((t) => (
+          {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => (
             <button
-              key={t.id}
-              onClick={() => onTab(t.id)}
+              key={td.id}
+              onClick={() => onTab(td.id)}
               className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                tab === t.id
+                tab === td.id
                   ? "border-ember text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label}
+              {tr(td.key)}
             </button>
           ))}
         </div>
@@ -336,6 +342,7 @@ function RefineryShell({
           {tab === "stock" && <StockTab refinery={refinery} />}
           {tab === "netposition" && <NetPositionTab refinery={refinery} />}
           {tab === "backup" && assignment.isAdmin && <BackupTab refinery={refinery} />}
+          {tab === "translations" && assignment.isAdmin && <TranslationsTab />}
           {tab === "profile" && <ProfileTab />}
         </>
       )}
@@ -4339,5 +4346,233 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+
+// =============================================================
+// Translation Management (admin only)
+// =============================================================
+function TranslationsTab() {
+  const { t: tr } = useLang();
+  type OverrideRow = { key: string; locale: "en" | "fr" | "ar"; value: string };
+  const [keys, setKeys] = useState<string[]>([]);
+  const [base, setBase] = useState<Record<"en" | "fr" | "ar", Record<string, string>>>({ en: {}, fr: {}, ar: {} });
+  const [overrides, setOverrides] = useState<Record<string, OverrideRow>>({});
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const mod = await import("@/lib/purity-i18n");
+        const fns = await import("@/lib/translations.functions");
+        const rows = await fns.listTranslationOverrides();
+        if (!mounted) return;
+        setKeys(mod.translationKeys);
+        setBase({ en: mod.baseDicts.en, fr: mod.baseDicts.fr, ar: mod.baseDicts.ar });
+        const map: Record<string, OverrideRow> = {};
+        for (const r of rows) map[`${r.key}__${r.locale}`] = { key: r.key, locale: r.locale, value: r.value };
+        setOverrides(map);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load translations");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return keys;
+    return keys.filter((k) =>
+      k.toLowerCase().includes(q) ||
+      (base.en[k] ?? "").toLowerCase().includes(q) ||
+      (base.fr[k] ?? "").toLowerCase().includes(q) ||
+      (base.ar[k] ?? "").toLowerCase().includes(q),
+    );
+  }, [keys, search, base]);
+
+  const current = (key: string, locale: "fr" | "ar") =>
+    overrides[`${key}__${locale}`]?.value ?? base[locale][key] ?? "";
+
+  const save = async (key: string, locale: "fr" | "ar", value: string) => {
+    const sig = `${key}__${locale}`;
+    setSaving(sig);
+    try {
+      const fns = await import("@/lib/translations.functions");
+      if (!value.trim()) {
+        await fns.deleteTranslationOverride({ data: { key, locale } });
+        setOverrides((m) => { const n = { ...m }; delete n[sig]; return n; });
+        toast.success("Override removed");
+      } else {
+        await fns.upsertTranslationOverride({ data: { key, locale, value } });
+        setOverrides((m) => ({ ...m, [sig]: { key, locale, value } }));
+        toast.success("Translation saved");
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("desk-translations-updated"));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const exportJson = () => {
+    const out = { fr: {} as Record<string, string>, ar: {} as Record<string, string> };
+    for (const r of Object.values(overrides)) {
+      if (r.locale === "fr" || r.locale === "ar") out[r.locale][r.key] = r.value;
+    }
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "translation-overrides.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text) as { fr?: Record<string, string>; ar?: Record<string, string> };
+      const entries: OverrideRow[] = [];
+      for (const loc of ["fr", "ar"] as const) {
+        const d = json[loc] ?? {};
+        for (const [k, v] of Object.entries(d)) {
+          if (typeof v === "string" && v.trim()) entries.push({ key: k, locale: loc, value: v });
+        }
+      }
+      const fns = await import("@/lib/translations.functions");
+      await fns.bulkImportTranslationOverrides({ data: { entries } });
+      const next: Record<string, OverrideRow> = { ...overrides };
+      for (const e of entries) next[`${e.key}__${e.locale}`] = e;
+      setOverrides(next);
+      toast.success(`Imported ${entries.length} translations`);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("desk-translations-updated"));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed");
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
+        <div>
+          <h2 className="font-display text-xl mb-1">{tr("ref.transMgmt.title")}</h2>
+          <p className="text-sm text-muted-foreground">{tr("ref.transMgmt.subtitle")}</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={exportJson}>
+            <Download className="h-4 w-4 mr-1" /> {tr("ref.transMgmt.export")}
+          </Button>
+          <label className="inline-flex items-center px-3 py-1.5 text-sm border border-border rounded cursor-pointer hover:bg-card">
+            {tr("ref.transMgmt.import")}
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void importJson(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={tr("ref.transMgmt.search")}
+        className="mb-4 max-w-md"
+      />
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{tr("ref.transMgmt.empty")}</p>
+      ) : (
+        <div className="border border-border rounded overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-card/40">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">{tr("ref.transMgmt.key")}</th>
+                <th className="text-left px-3 py-2 font-medium">{tr("ref.transMgmt.english")}</th>
+                <th className="text-left px-3 py-2 font-medium">{tr("ref.transMgmt.french")}</th>
+                <th className="text-left px-3 py-2 font-medium">{tr("ref.transMgmt.arabic")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 500).map((k) => (
+                <TranslationRow
+                  key={k}
+                  tkey={k}
+                  english={base.en[k] ?? ""}
+                  frValue={current(k, "fr")}
+                  arValue={current(k, "ar")}
+                  frOverridden={!!overrides[`${k}__fr`]}
+                  arOverridden={!!overrides[`${k}__ar`]}
+                  onSave={save}
+                  savingSig={saving}
+                />
+              ))}
+            </tbody>
+          </table>
+          {filtered.length > 500 && (
+            <p className="text-xs text-muted-foreground p-2">Showing first 500 of {filtered.length}. Refine your search to see more.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TranslationRow({
+  tkey, english, frValue, arValue, frOverridden, arOverridden, onSave, savingSig,
+}: {
+  tkey: string;
+  english: string;
+  frValue: string;
+  arValue: string;
+  frOverridden: boolean;
+  arOverridden: boolean;
+  onSave: (key: string, locale: "fr" | "ar", value: string) => Promise<void>;
+  savingSig: string | null;
+}) {
+  const [fr, setFr] = useState(frValue);
+  const [ar, setAr] = useState(arValue);
+  useEffect(() => { setFr(frValue); }, [frValue]);
+  useEffect(() => { setAr(arValue); }, [arValue]);
+  const frSig = `${tkey}__fr`;
+  const arSig = `${tkey}__ar`;
+  return (
+    <tr className="border-t border-border align-top">
+      <td className="px-3 py-2 font-mono text-xs text-muted-foreground whitespace-nowrap">{tkey}</td>
+      <td className="px-3 py-2 text-xs text-muted-foreground max-w-[16rem]">{english}</td>
+      <td className="px-3 py-2">
+        <div className="flex gap-1">
+          <Input value={fr} onChange={(e) => setFr(e.target.value)} className="h-8 text-xs" />
+          <Button size="sm" variant={frOverridden ? "default" : "outline"} onClick={() => onSave(tkey, "fr", fr)} disabled={savingSig === frSig || fr === frValue}>
+            {savingSig === frSig ? "…" : "Save"}
+          </Button>
+        </div>
+      </td>
+      <td className="px-3 py-2">
+        <div className="flex gap-1">
+          <Input value={ar} onChange={(e) => setAr(e.target.value)} className="h-8 text-xs" dir="rtl" />
+          <Button size="sm" variant={arOverridden ? "default" : "outline"} onClick={() => onSave(tkey, "ar", ar)} disabled={savingSig === arSig || ar === arValue}>
+            {savingSig === arSig ? "…" : "Save"}
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }
