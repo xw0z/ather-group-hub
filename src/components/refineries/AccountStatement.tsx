@@ -127,6 +127,7 @@ function StatementPage({
   width: number;
   startIndex: number;
 }) {
+  const { t } = useLang();
   const isFirst = pageIdx === 0;
   const isLast = pageIdx === totalPages - 1;
 
