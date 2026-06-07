@@ -749,6 +749,11 @@ function TransactionDialog({
   }, [editingId]);
 
 
+  const client = clients.find((c) => c.id === clientId);
+  useEffect(() => {
+    if (!isEdit && client && !feePrice) setFeePrice(String(client.refining_fee_price));
+  }, [client, feePrice, isEdit]);
+
   const totals = useMemo(() => {
     let gross = 0, pure = 0;
     bars.forEach((b) => {
@@ -795,19 +800,33 @@ function TransactionDialog({
             purity: Number(b.purity),
           }));
       }
-      await createTransaction({ data: payload });
-      toast.success("Transaction created (pending). Click ✓ to settle.");
-      onCreated();
+      if (isEdit && editingId) {
+        await updateTransaction({ data: { ...payload, id: editingId } });
+        toast.success("Transaction updated");
+      } else {
+        await createTransaction({ data: payload });
+        toast.success("Transaction saved");
+      }
+      onSaved();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSaving(false); }
   };
 
+  if (loadingExisting) {
+    return (
+      <Dialog open onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-3xl"><p className="text-sm text-muted-foreground py-8 text-center">Loading…</p></DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>New transaction</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader><DialogTitle>{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             <div className="space-y-2">
               <Label>Direction</Label>
               <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
