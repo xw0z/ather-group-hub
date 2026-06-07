@@ -23,6 +23,7 @@ import {
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
+  createStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   type Refinery, type RefineryClient, type RefineryTransaction,
@@ -334,6 +335,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Coins className="h-4 w-4" />} label="Pure Gold Stock" value={fmtG(Number(data.stock.pure_gold_stock))} />
+        <StatCard icon={<Coins className="h-4 w-4" />} label="Silver Stock" value={fmtG(Number((data.stock as { silver_stock?: number }).silver_stock ?? 0))} />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Stock" value={fmtDA(Number(data.stock.da_stock))} />
         <StatCard label="Total clients" value={String(data.totalClients)} />
         <StatCard label="Today's tx" value={String(data.todayCount)} />
@@ -1599,34 +1601,96 @@ function TransactionReceiptDialog({
 // Stock tab
 // =============================================================
 function StockTab({ refinery }: { refinery: Refinery }) {
-  type Stock = { pure_gold_stock: number; da_stock: number };
-  type Movement = {
-    id: string; created_at: string; movement_type: string;
-    gold_change: number; da_change: number;
-    gold_stock_before: number; gold_stock_after: number;
-    da_stock_before: number; da_stock_after: number;
-    client?: { name: string } | null;
-    transaction?: { transaction_number: string; direction: string; transaction_type: string } | null;
+  type Stock = { pure_gold_stock: number; da_stock: number; silver_stock: number };
+  type AdjTx = {
+    id: string;
+    transaction_number: string;
+    transaction_date: string;
+    created_at: string;
+    adjustment_metal: StockAdjustmentMetal | null;
+    adjustment_kind: StockAdjustmentKind | null;
+    adjustment_delta: number | null;
+    previous_gold_stock: number | null;
+    new_gold_stock: number | null;
+    previous_silver_stock: number | null;
+    new_silver_stock: number | null;
+    previous_da_stock: number | null;
+    new_da_stock: number | null;
+    notes: string | null;
+    created_by_name?: string | null;
   };
   const [stock, setStock] = useState<Stock | null>(null);
-  const [moves, setMoves] = useState<Movement[]>([]);
+  const [adjustments, setAdjustments] = useState<AdjTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [editing, setEditing] = useState<Movement | null>(null);
+  const [metalFilter, setMetalFilter] = useState<"all" | "gold" | "silver" | "da">("all");
+  const [goldPrice, setGoldPrice] = useState<number>(() => Number(localStorage.getItem("ather:refinery:goldPrice") || 12000));
+  const [silverPrice, setSilverPrice] = useState<number>(() => Number(localStorage.getItem("ather:refinery:silverPrice") || 150));
+
+  useEffect(() => {
+    localStorage.setItem("ather:refinery:goldPrice", String(goldPrice));
+    localStorage.setItem("ather:refinery:silverPrice", String(silverPrice));
+  }, [goldPrice, silverPrice]);
+
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const [s, m] = await Promise.all([
-        getStock({ data: { refineryId: refinery.id } }),
-        listStockMovements({ data: { refineryId: refinery.id } }),
+      // Stock + bars count + adjustments transactions
+      const [{ data: s }, { data: bars }, { data: adj }] = await Promise.all([
+        supabase.from("refinery_stock").select("pure_gold_stock, da_stock, silver_stock").eq("refinery_id", refinery.id).maybeSingle(),
+        supabase
+          .from("refinery_transaction_gold_bars")
+          .select("gross_weight, purity, transaction:refinery_transactions!inner(refinery_id, direction, status)")
+          .eq("transaction.refinery_id", refinery.id),
+        supabase
+          .from("refinery_transactions")
+          .select("id, transaction_number, transaction_date, created_at, adjustment_metal, adjustment_kind, adjustment_delta, previous_gold_stock, new_gold_stock, previous_silver_stock, new_silver_stock, previous_da_stock, new_da_stock, notes, created_by")
+          .eq("refinery_id", refinery.id)
+          .eq("transaction_type", "stock_adjustment")
+          .order("created_at", { ascending: false }),
       ]);
-      setStock(s as Stock);
-      setMoves(m as Movement[]);
+      const stockRow = (s as { pure_gold_stock: number; da_stock: number; silver_stock: number } | null) ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 };
+      setStock({
+        pure_gold_stock: Number(stockRow.pure_gold_stock),
+        da_stock: Number(stockRow.da_stock),
+        silver_stock: Number(stockRow.silver_stock ?? 0),
+      });
+      // Bars + avg purity
+      type BarRow = { gross_weight: number; purity: number; transaction: { direction: string; status: string } | { direction: string; status: string }[] };
+      const list = (bars ?? []) as unknown as BarRow[];
+      let count = 0; let sumPG = 0; let sumG = 0;
+      for (const b of list) {
+        const t = Array.isArray(b.transaction) ? b.transaction[0] : b.transaction;
+        if (!t || t.status !== "settled") continue;
+        const sign = t.direction === "receiving" ? 1 : -1;
+        count += sign;
+        sumPG += sign * Number(b.gross_weight) * Number(b.purity);
+        sumG += sign * Number(b.gross_weight);
+      }
+      const avgPurity = sumG > 0 ? sumPG / sumG : 0;
+      setAvg({ bars: Math.max(0, count), purity: avgPurity });
+
+      // Resolve usernames
+      const adjList = (adj ?? []) as unknown as Array<AdjTx & { created_by: string | null }>;
+      const ids = Array.from(new Set(adjList.map((a) => a.created_by).filter(Boolean))) as string[];
+      let nameMap: Record<string, string> = {};
+      if (ids.length) {
+        const { data: profs } = await supabase.from("swap_profiles").select("id, username").in("id", ids);
+        nameMap = Object.fromEntries((profs ?? []).map((p) => [p.id, p.username]));
+      }
+      setAdjustments(adjList.map((a) => ({ ...a, created_by_name: a.created_by ? (nameMap[a.created_by] ?? null) : null })));
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
     finally { setLoading(false); }
   }, [refinery.id]);
+
+  const [avg, setAvg] = useState<{ bars: number; purity: number }>({ bars: 0, purity: 0 });
   useEffect(() => { load(); }, [load]);
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  const visibleAdjustments = adjustments.filter((a) => metalFilter === "all" || a.adjustment_metal === metalFilter);
+  const goldValue = stock.pure_gold_stock * goldPrice;
+  const silverValue = stock.silver_stock * silverPrice;
 
   return (
     <div className="space-y-6">
@@ -1636,150 +1700,240 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           <p className="text-sm text-muted-foreground">{refinery.name}</p>
         </div>
         <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
-          <Pencil className="h-4 w-4 mr-2" /> Adjust stock
+          <Plus className="h-4 w-4 mr-2" /> New Stock Adjustment
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatCard icon={<Coins className="h-4 w-4 text-ember" />} label="Pure Gold Stock" value={fmtG(Number(stock.pure_gold_stock))} />
-        <StatCard icon={<Wallet className="h-4 w-4 text-ember" />} label="DA Stock" value={fmtDA(Number(stock.da_stock))} />
+
+      {/* Price inputs */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <Label className="text-xs">Gold Price (DA / g)</Label>
+            <Input type="number" value={goldPrice} onChange={(e) => setGoldPrice(Number(e.target.value))} className="w-[160px]" />
+          </div>
+          <div>
+            <Label className="text-xs">Silver Price (DA / g)</Label>
+            <Input type="number" value={silverPrice} onChange={(e) => setSilverPrice(Number(e.target.value))} className="w-[160px]" />
+          </div>
+          <p className="text-xs text-muted-foreground">Stored locally; used to estimate values.</p>
+        </div>
+      </Card>
+
+      {/* GOLD + SILVER + DA cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-ember" /> Gold Stock</h3>
+          <div className="space-y-1.5 text-sm">
+            <Row2 label="Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} bold />
+            <Row2 label="Total Gold Bars" value={String(avg.bars)} />
+            <Row2 label="Average Purity" value={`${avg.purity.toFixed(2)}%`} />
+            <Row2 label="Estimated Gold Value" value={fmtDA(goldValue)} cls="text-amber-600" />
+          </div>
+        </Card>
+        <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
+          <div className="space-y-1.5 text-sm">
+            <Row2 label="Silver Stock" value={fmtG(stock.silver_stock)} bold />
+            <Row2 label="Total Silver Pieces" value="—" />
+            <Row2 label="Average Silver Purity" value="—" />
+            <Row2 label="Estimated Silver Value" value={fmtDA(silverValue)} cls="text-slate-500" />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> DA Stock</h3>
+          <div className="space-y-1.5 text-sm">
+            <Row2 label="DA Balance" value={fmtDA(stock.da_stock)} bold />
+          </div>
+        </Card>
       </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">Filter:</span>
+        {(["all", "gold", "silver", "da"] as const).map((k) => (
+          <Button key={k} size="sm" variant={metalFilter === k ? "default" : "outline"} onClick={() => setMetalFilter(k)}>
+            {k === "all" ? "All Metals" : k === "da" ? "DA" : k[0].toUpperCase() + k.slice(1)}
+          </Button>
+        ))}
+      </div>
+
+      {/* Adjustment history */}
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[820px]">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                 <th className="p-3">Date</th>
-                <th className="p-3">#</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Gold Δ</th>
-                <th className="p-3 text-right">DA Δ</th>
-                <th className="p-3 text-right">Gold after</th>
-                <th className="p-3 text-right">DA after</th>
+                <th className="p-3">Tx #</th>
+                <th className="p-3">Metal</th>
+                <th className="p-3">Kind</th>
+                <th className="p-3 text-right">Delta</th>
+                <th className="p-3 text-right">Before</th>
+                <th className="p-3 text-right">After</th>
+                <th className="p-3">By</th>
+                <th className="p-3">Notes</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {moves.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No movements</td></tr>
+              {visibleAdjustments.length === 0 && (
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No stock adjustments</td></tr>
               )}
-              {moves.map((m) => (
-                <tr key={m.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground">{new Date(m.created_at).toLocaleString()}</td>
-                  <td className="p-3 font-mono text-xs">{m.transaction?.transaction_number ?? "—"}</td>
-                  <td className="p-3">{m.client?.name ?? "—"}</td>
-                  <td className="p-3 text-xs uppercase tracking-wider text-muted-foreground">{m.movement_type.replace("_", " ")}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(m.gold_change))}`}>{Number(m.gold_change) !== 0 ? signed(Number(m.gold_change), fmtG) : "—"}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(m.da_change))}`}>{Number(m.da_change) !== 0 ? signed(Number(m.da_change), fmtDA) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{fmtG(Number(m.gold_stock_after))}</td>
-                  <td className="p-3 text-right tabular-nums">{fmtDA(Number(m.da_stock_after))}</td>
-                  <td className="p-3 text-right">
-                    {m.movement_type === "adjustment" ? (
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setEditing(m)} title="Edit">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Delete"
-                          onClick={async () => {
-                            if (!confirm("Delete this stock adjustment? Stock will be reverted.")) return;
-                            try {
-                              await deleteStockAdjustment({ data: { movementId: m.id } });
-                              toast.success("Adjustment deleted");
-                              load();
-                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ) : <span className="text-muted-foreground">—</span>}
-                  </td>
-                </tr>
-              ))}
+              {visibleAdjustments.map((a) => {
+                const metal = a.adjustment_metal ?? "gold";
+                const before = metal === "gold" ? a.previous_gold_stock : metal === "silver" ? a.previous_silver_stock : a.previous_da_stock;
+                const after  = metal === "gold" ? a.new_gold_stock      : metal === "silver" ? a.new_silver_stock      : a.new_da_stock;
+                const fmt = metal === "da" ? fmtDA : fmtG;
+                const delta = Number(a.adjustment_delta ?? 0);
+                return (
+                  <tr key={a.id} className="border-b border-border last:border-0">
+                    <td className="p-3 text-muted-foreground whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</td>
+                    <td className="p-3 font-mono text-xs">{a.transaction_number}</td>
+                    <td className="p-3"><Badge variant="secondary" className="uppercase">{metal}</Badge></td>
+                    <td className="p-3 text-xs uppercase tracking-wider">{a.adjustment_kind ?? "—"}</td>
+                    <td className={`p-3 text-right tabular-nums ${balClass(delta)}`}>{signed(delta, fmt)}</td>
+                    <td className="p-3 text-right tabular-nums text-muted-foreground">{before != null ? fmt(Number(before)) : "—"}</td>
+                    <td className="p-3 text-right tabular-nums">{after != null ? fmt(Number(after)) : "—"}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{a.created_by_name ?? "—"}</td>
+                    <td className="p-3 max-w-[260px] truncate text-muted-foreground" title={a.notes ?? ""}>{a.notes ?? "—"}</td>
+                    <td className="p-3 text-right">
+                      <Button
+                        variant="ghost" size="icon" title="Delete"
+                        onClick={async () => {
+                          if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
+                          try {
+                            await deleteTransaction({ data: { id: a.id } });
+                            toast.success("Adjustment deleted");
+                            load();
+                          } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </Card>
+
       {adjustOpen && (
-        <AdjustStockDialog
+        <NewStockAdjustmentDialog
           refineryId={refinery.id}
-          currentGold={Number(stock.pure_gold_stock)}
-          currentDa={Number(stock.da_stock)}
+          currentGold={stock.pure_gold_stock}
+          currentSilver={stock.silver_stock}
+          currentDa={stock.da_stock}
           onClose={() => setAdjustOpen(false)}
           onSaved={() => { setAdjustOpen(false); load(); }}
-        />
-      )}
-      {editing && (
-        <AdjustStockDialog
-          refineryId={refinery.id}
-          currentGold={Number(editing.gold_stock_after)}
-          currentDa={Number(editing.da_stock_after)}
-          editMovementId={editing.id}
-          onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); load(); }}
         />
       )}
     </div>
   );
 }
 
-function AdjustStockDialog({
-  refineryId, currentGold, currentDa, editMovementId, onClose, onSaved,
+function Row2({ label, value, cls, bold }: { label: string; value: string; cls?: string; bold?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between ${bold ? "font-semibold" : ""}`}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`tabular-nums ${cls ?? ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function NewStockAdjustmentDialog({
+  refineryId, currentGold, currentSilver, currentDa, onClose, onSaved,
 }: {
-  refineryId: string; currentGold: number; currentDa: number;
-  editMovementId?: string;
+  refineryId: string;
+  currentGold: number; currentSilver: number; currentDa: number;
   onClose: () => void; onSaved: () => void;
 }) {
-  const [gold, setGold] = useState(String(currentGold));
-  const [da, setDa] = useState(String(currentDa));
+  const [metal, setMetal] = useState<StockAdjustmentMetal>("gold");
+  const [kind, setKind] = useState<StockAdjustmentKind>("add");
+  const [amount, setAmount] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const cur = metal === "gold" ? currentGold : metal === "silver" ? currentSilver : currentDa;
+  const fmt = metal === "da" ? fmtDA : fmtG;
+  const amt = Number(amount);
+  const signedDelta = (kind === "remove" || kind === "loss") ? -Math.abs(amt) : Math.abs(amt);
+  const projected = cur + (Number.isFinite(amt) ? signedDelta : 0);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const g = Number(gold); const d = Number(da);
-    if (!Number.isFinite(g) || g < 0 || !Number.isFinite(d) || d < 0) {
-      toast.error("Stock values must be zero or positive");
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error("Amount must be greater than 0");
+      return;
+    }
+    if (projected < 0) {
+      toast.error("Resulting stock would be negative");
+      return;
+    }
+    if (!notes.trim()) {
+      toast.error("Please provide a reason / note");
       return;
     }
     setSaving(true);
     try {
-      if (editMovementId) {
-        await updateStockAdjustment({ data: { movementId: editMovementId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
-        toast.success("Adjustment updated");
-      } else {
-        await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
-        toast.success("Stock adjusted");
-      }
+      await createStockAdjustment({ data: { refineryId, metal, kind, amount: Math.abs(amt), notes: notes.trim() } });
+      toast.success("Stock adjustment transaction created");
       onSaved();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSaving(false); }
   };
+
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>{editMovementId ? "Edit adjustment" : "Adjust stock"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>New Stock Adjustment Transaction</DialogTitle>
+        </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Set the absolute stock values. A movement record will be created for the difference.
+            A real transaction will be created and saved to the transaction history & audit log.
           </p>
-          <div className="space-y-2">
-            <Label>Pure gold stock (g)</Label>
-            <Input type="number" step="any" min="0" value={gold} onChange={(e) => setGold(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Metal</Label>
+              <Select value={metal} onValueChange={(v) => setMetal(v as StockAdjustmentMetal)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gold">Gold (g)</SelectItem>
+                  <SelectItem value="silver">Silver (g)</SelectItem>
+                  <SelectItem value="da">DA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Adjustment Kind</Label>
+              <Select value={kind} onValueChange={(v) => setKind(v as StockAdjustmentKind)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">Add Stock</SelectItem>
+                  <SelectItem value="remove">Remove Stock</SelectItem>
+                  <SelectItem value="correction">Correction</SelectItem>
+                  <SelectItem value="loss">Loss</SelectItem>
+                  <SelectItem value="manual">Manual Adjustment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
-            <Label>DA stock</Label>
-            <Input type="number" step="any" min="0" value={da} onChange={(e) => setDa(e.target.value)} />
+            <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
+            <Input type="number" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+            <p className="text-xs text-muted-foreground">
+              Current: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
+            </p>
           </div>
           <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Initial stock, recount, correction…" />
+            <Label>Reason / Notes <span className="text-destructive">*</span></Label>
+            <Textarea required value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Initial stock, recount, melt loss, correction…" />
           </div>
           <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save"}</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Create Adjustment"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

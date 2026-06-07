@@ -8,7 +8,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 // =========================================================
 export type RefineryRole = "manager" | "staff" | "viewer";
 export type RefineryDirection = "receiving" | "delivery";
-export type RefineryTxType = "da" | "gold" | "settlement";
+export type RefineryTxType = "da" | "gold" | "settlement" | "stock_adjustment";
+export type StockAdjustmentMetal = "gold" | "silver" | "da";
+export type StockAdjustmentKind = "add" | "remove" | "correction" | "loss" | "manual";
 export type RefinerySettlementKind = "gold" | "da";
 export type RefinerySettlementRole = "from" | "to";
 export type RefineryTxStatus = "draft" | "pending" | "settled" | "cancelled";
@@ -472,6 +474,12 @@ export const deleteTransaction = createServerFn({ method: "POST" })
       if (se) throw new Error(se.message);
       return { ok: true };
     }
+    // Stock adjustment: reverse stock + remove tx + movement
+    if (tx.transaction_type === "stock_adjustment") {
+      const { error: ae } = await supabaseAdmin.rpc("refinery_delete_stock_adjustment", { _tx_id: data.id });
+      if (ae) throw new Error(ae.message);
+      return { ok: true };
+    }
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
     if (revErr) throw new Error(revErr.message);
     await supabaseAdmin.from("refinery_transaction_gold_bars").delete().eq("transaction_id", data.id);
@@ -820,7 +828,7 @@ export const getDashboard = createServerFn({ method: "POST" })
         .reduce((s, t) => s + Number(t[field] ?? 0), 0);
 
     return {
-      stock: stockR.data ?? { pure_gold_stock: 0, da_stock: 0 },
+      stock: stockR.data ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 },
       totalClients: clients.length,
       negativePurity: clients.filter((c) => Number(c.purity_balance) < 0).length,
       negativeDa: clients.filter((c) => Number(c.da_balance) < 0).length,
@@ -1212,6 +1220,7 @@ export type RefineryDashboardOverview = {
   stock: {
     pure_gold_stock: number;
     da_stock: number;
+    silver_stock: number;
     total_bars: number;
     average_purity: number;
   };
@@ -1353,6 +1362,7 @@ export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
       stock: {
         pure_gold_stock: Number(stockR.data?.pure_gold_stock ?? 0),
         da_stock: Number(stockR.data?.da_stock ?? 0),
+        silver_stock: Number((stockR.data as { silver_stock?: number } | null)?.silver_stock ?? 0),
         total_bars: Math.max(0, barCount),
         average_purity: avgPurity,
       },
@@ -1385,4 +1395,33 @@ export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
         last_tx_date: lastByClient.get(c.id) ?? null,
       })),
     };
+  });
+
+// =========================================================
+// Stock Adjustment Transactions (admin/manager) - V2
+// =========================================================
+export const createStockAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      metal: z.enum(["gold", "silver", "da"]),
+      kind: z.enum(["add", "remove", "correction", "loss", "manual"]),
+      // Positive amount; "remove" / "loss" convert it to a negative delta server-side
+      amount: z.number().positive(),
+      notes: z.string().max(2000).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const signed = data.kind === "remove" || data.kind === "loss" ? -data.amount : data.amount;
+    const { data: txId, error } = await supabaseAdmin.rpc("refinery_create_stock_adjustment", {
+      _refinery_id: data.refineryId,
+      _metal: data.metal,
+      _kind: data.kind,
+      _delta: signed,
+      _notes: data.notes ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, transactionId: txId as string };
   });

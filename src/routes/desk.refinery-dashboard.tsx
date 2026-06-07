@@ -320,6 +320,7 @@ function RefineryDashboardPage() {
               <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Summary</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Kpi icon={<Coins className="w-4 h-4" />} label="Pure Gold Stock" value={fmtG(data.stock.pure_gold_stock)} accent="amber" />
+                <Kpi icon={<Coins className="w-4 h-4" />} label="Silver Stock" value={fmtG(data.stock.silver_stock)} />
                 <Kpi icon={<Banknote className="w-4 h-4" />} label="Total Gold Value" value={fmtDA(goldValue)} accent="amber" />
                 <Kpi icon={<Scale className="w-4 h-4" />} label="Client Gold (net)" value={fmtG(data.totals.totalClientGoldBalance)} valueClass={balCls(data.totals.totalClientGoldBalance)} />
                 <Kpi icon={<Wallet className="w-4 h-4" />} label="Client DA (net)" value={fmtDA(data.totals.totalClientDaBalance)} valueClass={balCls(data.totals.totalClientDaBalance)} />
@@ -358,17 +359,18 @@ function RefineryDashboardPage() {
             {/* GOLD STOCK + CASH POSITION + EXPOSURE */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Card className="p-4">
-                <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="w-4 h-4" /> Gold Stock</h3>
+                <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="w-4 h-4" /> Metal Stock</h3>
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left text-muted-foreground"><th className="py-1">Refinery</th><th className="text-right">Pure Gold</th></tr></thead>
+                  <thead><tr className="text-left text-muted-foreground"><th className="py-1">Metal</th><th className="text-right">Stock</th></tr></thead>
                   <tbody>
-                    <tr className="border-t"><td className="py-2">{data.refinery.name}</td><td className="text-right font-medium">{fmtG(data.stock.pure_gold_stock)}</td></tr>
+                    <tr className="border-t"><td className="py-2">Pure Gold</td><td className="text-right font-medium">{fmtG(data.stock.pure_gold_stock)}</td></tr>
+                    <tr className="border-t"><td className="py-2">Silver</td><td className="text-right font-medium">{fmtG(data.stock.silver_stock)}</td></tr>
                   </tbody>
                 </table>
                 <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                  <Mini label="Total Bars" value={String(data.stock.total_bars)} />
+                  <Mini label="Total Gold Bars" value={String(data.stock.total_bars)} />
                   <Mini label="Avg Purity" value={fmtPct(data.stock.average_purity)} />
-                  <Mini label="Estimated Value" value={fmtDA(goldValue)} full />
+                  <Mini label="Est. Gold Value" value={fmtDA(goldValue)} full />
                 </div>
               </Card>
 
