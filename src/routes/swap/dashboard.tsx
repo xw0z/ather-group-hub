@@ -549,6 +549,22 @@ export function SwapDashboard({
         setIsAdmin(me.isAdmin);
         setCanBackup(Boolean(me.canBackup));
         setUsername(me.username ?? "");
+        // Load refinery assignment in parallel; redirect refinery-only users
+        try {
+          const a = await getMyRefineryAssignment();
+          if (cancelled) return;
+          setRefineryAssignment(a);
+          if (!me.isAdmin && a.refineryId) {
+            navigate({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              to: "/desk/refineries/$refineryId/$tab" as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              params: { refineryId: a.refineryId, tab: "dashboard" } as any,
+              replace: true,
+            });
+            return;
+          }
+        } catch { /* not assigned */ }
         setReady(true);
       } catch {
         navigate({ to: "/desk/login", replace: true });
