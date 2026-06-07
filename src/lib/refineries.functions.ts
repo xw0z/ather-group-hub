@@ -1005,8 +1005,9 @@ export const logRefineryReport = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refinery_id);
     const { data: prof } = await supabaseAdmin
-      .from("swap_profiles").select("username, display_name").eq("id", context.userId).maybeSingle();
-    const username = prof?.display_name ?? prof?.username ?? null;
+      .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
+    const username: string | null = prof?.username ?? null;
+
     const { error } = await supabaseAdmin.from("refinery_report_history").insert({
       refinery_id: data.refinery_id,
       report_type: "account_statement",
