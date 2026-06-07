@@ -538,6 +538,11 @@ function ClientDialog({
           id: editing.id, name: name.trim(), phone: phone || null,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
+        const newPurity = Number(purity) || 0;
+        const newDa = Number(da) || 0;
+        if (newPurity !== Number(editing.purity_balance) || newDa !== Number(editing.da_balance)) {
+          await adjustClientBalances({ data: { id: editing.id, purity_balance: newPurity, da_balance: newDa } });
+        }
         toast.success("Client updated");
       } else {
         await createClient({ data: {
@@ -565,18 +570,16 @@ function ClientDialog({
             <Label>Phone</Label>
             <Input value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} placeholder="+213…" />
           </div>
-          {!editing && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Initial purity balance (g)</Label>
-                <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Initial DA balance</Label>
-                <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>{editing ? "Purity balance (g)" : "Initial purity balance (g)"}</Label>
+              <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
-          )}
+            <div className="space-y-2">
+              <Label>{editing ? "DA balance" : "Initial DA balance"}</Label>
+              <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Refining fee price (DA/g)</Label>
             <Input type="number" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
