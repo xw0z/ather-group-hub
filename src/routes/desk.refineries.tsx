@@ -452,8 +452,10 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
+  const [stmtClient, setStmtClient] = useState<RefineryClient | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
+  const canStatement = assignment.isAdmin || assignment.role === "manager";
 
   const handleDelete = async (c: RefineryClient) => {
     if (!confirm(`Delete client "${c.name}"? This cannot be undone.`)) return;
