@@ -567,7 +567,8 @@ function ClientDialog({
   const [da, setDa] = useState(String(editing?.da_balance ?? 0));
   const [fee, setFee] = useState(String(editing?.refining_fee_price ?? 0));
   const [notes, setNotes] = useState(editing?.notes ?? "");
-  const [status, setStatus] = useState<"active" | "inactive">((editing?.status as "active" | "inactive") ?? "active");
+  // Status field removed from the Refineries module; default all clients to "active" for backend compatibility.
+  const status: "active" = "active";
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: FormEvent) => {
