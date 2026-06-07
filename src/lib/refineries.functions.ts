@@ -667,7 +667,7 @@ export const getSettlement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<SettlementPair> => {
     const { data: rows, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code)")
       .eq("settlement_group_id", data.group_id)
       .order("settlement_role", { ascending: true }); // 'from' before 'to'
     if (error) throw new Error(error.message);
@@ -675,8 +675,8 @@ export const getSettlement = createServerFn({ method: "POST" })
     const first = rows[0] as { refinery_id: string };
     await assertAccess(context.userId, first.refinery_id);
 
-    const fromRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "from") as typeof rows[0] & { client?: { name: string } };
-    const toRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "to") as typeof rows[0] & { client?: { name: string } };
+    const fromRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "from") as typeof rows[0] & { client?: { name: string; code: string | null } };
+    const toRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "to") as typeof rows[0] & { client?: { name: string; code: string | null } };
     if (!fromRow || !toRow) throw new Error("Incomplete settlement");
 
     let created_by_name: string | null = null;
@@ -713,6 +713,7 @@ export const getSettlement = createServerFn({ method: "POST" })
       from: {
         client_id: (fromRow as { client_id: string }).client_id,
         client_name: fromRow.client?.name ?? "",
+        client_code: fromRow.client?.code ?? null,
         transaction_number: (fromRow as { transaction_number: string }).transaction_number,
         previous_purity: Number((fromRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
         new_purity: Number((fromRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
@@ -722,6 +723,7 @@ export const getSettlement = createServerFn({ method: "POST" })
       to: {
         client_id: (toRow as { client_id: string }).client_id,
         client_name: toRow.client?.name ?? "",
+        client_code: toRow.client?.code ?? null,
         transaction_number: (toRow as { transaction_number: string }).transaction_number,
         previous_purity: Number((toRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
         new_purity: Number((toRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
