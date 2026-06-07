@@ -208,31 +208,57 @@ export function TransactionReceiptReport({
         </>
       )}
 
-      {/* ===== REFINING FEE CALCULATION BOX ===== */}
+      {/* ===== GOLD PURITY & REFINING FEE TOTAL ===== */}
       {hasFee && (
         <>
-          <SectionLabel>Refining Fee Calculation</SectionLabel>
+          <SectionLabel>Gold Purity & Refining Fee Total</SectionLabel>
           <div style={{
             border: `2px solid ${ORANGE}`, borderRadius: 8,
             background: ORANGE_SOFT,
-            padding: "18px 22px",
-            textAlign: "center",
+            padding: "22px 24px",
           }}>
+            {/* Two big value blocks */}
             <div style={{
-              fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
-              color: ORANGE, fontWeight: 700, marginBottom: 10,
-            }}>Weight @ 730 × Fee Price</div>
-            <div style={{ fontFamily: MONO, fontSize: 16, color: INK, fontWeight: 600 }}>
-              {num2(w730)} g  ×  {num2(feePrice)} DA/g
-            </div>
-            <div style={{
-              fontFamily: MONO, fontSize: 13, color: SUB, margin: "6px 0",
-            }}>=</div>
-            <div style={{
-              fontFamily: MONO, fontSize: 24, fontWeight: 800, color: ORANGE, letterSpacing: 0.5,
+              display: "grid", gridTemplateColumns: "1fr 1px 1fr", gap: 0,
+              alignItems: "center",
             }}>
-              {fmtDA(totalFee)}
+              <div style={{ textAlign: "center", padding: "4px 12px" }}>
+                <div style={{
+                  fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
+                  color: SUB, fontWeight: 700, marginBottom: 8,
+                }}>Total Pure Gold</div>
+                <div style={{
+                  fontFamily: MONO, fontSize: 26, fontWeight: 800, color: INK, letterSpacing: 0.3,
+                }}>{num2(totalPure)} g</div>
+              </div>
+              <div style={{ width: 1, height: 60, background: ORANGE, opacity: 0.35 }} />
+              <div style={{ textAlign: "center", padding: "4px 12px" }}>
+                <div style={{
+                  fontSize: 10, letterSpacing: 2, textTransform: "uppercase",
+                  color: ORANGE, fontWeight: 700, marginBottom: 8,
+                }}>Total Refining Fee</div>
+                <div style={{
+                  fontFamily: MONO, fontSize: 26, fontWeight: 800, color: ORANGE, letterSpacing: 0.3,
+                }}>{fmtDA(totalFee)}</div>
+              </div>
             </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: ORANGE, opacity: 0.25, margin: "18px 0 14px" }} />
+
+            {/* Formula */}
+            <div style={{
+              fontSize: 9, letterSpacing: 2, textTransform: "uppercase",
+              color: ORANGE, fontWeight: 700, marginBottom: 6, textAlign: "center",
+            }}>Formula</div>
+            <div style={{
+              fontFamily: MONO, fontSize: 13, color: INK, fontWeight: 600, textAlign: "center",
+            }}>
+              {num2(w730)} g  ×  {num2(feePrice)} DA/g  =  <span style={{ color: ORANGE, fontWeight: 800 }}>{fmtDA(totalFee)}</span>
+            </div>
+            <div style={{
+              fontSize: 10, color: SUB, textAlign: "center", marginTop: 4, fontStyle: "italic",
+            }}>Weight @ 730 × Fee Price = Total Refining Fee</div>
           </div>
         </>
       )}
