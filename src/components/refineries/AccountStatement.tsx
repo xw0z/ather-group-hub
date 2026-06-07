@@ -309,10 +309,15 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
               </td>
               <td style={{ ...cellBase, fontSize: 9.5, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {TYPE_LABEL[r.type]}{r.client_name ? ` — ${r.client_name}` : ""}
+                {r.type === "refining_fee" && r.original_weight != null && (
+                  <span style={{ color: MUTED, fontSize: 8.5, marginLeft: 4 }}>
+                    {` · ${fmtG(r.original_weight)} × ${fmtPurity(r.original_purity ?? 0)} / 730 = ${fmtG(r.weight_at_730 ?? 0)} @ ${fmtDA(r.fee_price ?? 0)}/g`}
+                  </span>
+                )}
               </td>
               <td style={{ ...numCell, color: r.gold_debit ? RED : MUTED }}>{r.gold_debit ? fmtG(r.gold_debit) : "—"}</td>
               <td style={{ ...numCell, color: r.gold_credit ? GREEN : MUTED }}>{r.gold_credit ? fmtG(r.gold_credit) : "—"}</td>
-              <td style={{ ...numCell, color: r.da_debit ? RED : MUTED }}>{r.da_debit ? fmtDA(r.da_debit) : "—"}</td>
+              <td style={{ ...numCell, color: r.da_debit ? RED : MUTED }}>{r.da_debit ? fmtDA(r.da_debit) : (r.type === "refining_fee" && r.fee_total ? fmtDA(r.fee_total) : "—")}</td>
               <td style={{ ...numCell, color: r.da_credit ? GREEN : MUTED }}>{r.da_credit ? fmtDA(r.da_credit) : "—"}</td>
               <td style={{ ...numCell, fontWeight: 700 }}>{fmtG(r.running_gold)}</td>
               <td style={{ ...numCell, fontWeight: 700 }}>{fmtDA(r.running_da)}</td>
