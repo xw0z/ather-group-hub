@@ -152,7 +152,7 @@ function RefineryPicker({
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <h1 className="font-display text-3xl mb-2">Refineries</h1>
         <p className="text-sm text-muted-foreground mb-8">
           Choose a refinery to manage its clients, transactions, and stock.
