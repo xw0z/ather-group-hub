@@ -196,6 +196,26 @@ export const updateClient = createServerFn({ method: "POST" })
     return row as RefineryClient;
   });
 
+export const deleteClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: existing, error: e1 } = await supabaseAdmin
+      .from("refinery_clients").select("refinery_id").eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    await assertAccess(context.userId, existing.refinery_id);
+    const { count } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", data.id);
+    if ((count ?? 0) > 0) {
+      throw new Error("Cannot delete: client has transactions. Delete those transactions first.");
+    }
+    const { error } = await supabaseAdmin.from("refinery_clients").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // =========================================================
 // Transactions
 // =========================================================
