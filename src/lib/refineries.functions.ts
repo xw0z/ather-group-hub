@@ -477,6 +477,10 @@ export const deleteTransaction = createServerFn({ method: "POST" })
       .eq("id", data.id).single();
     if (e0) throw new Error(e0.message);
     await assertAccess(context.userId, tx.refinery_id);
+    // Buy/Sell transactions are immutable — deletion is blocked for audit integrity.
+    if (tx.transaction_type === "buysell") {
+      throw new Error("Buy/Sell transactions cannot be deleted. They are kept for audit integrity.");
+    }
     // Settlement: delete both paired rows + reverse balances in one RPC
     if (tx.transaction_type === "settlement" && tx.settlement_group_id) {
       const { error: se } = await supabaseAdmin.rpc("refinery_delete_settlement", { _group_id: tx.settlement_group_id });
