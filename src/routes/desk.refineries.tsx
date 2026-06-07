@@ -808,12 +808,22 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               {!loading && clients.length === 0 && (
                 <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
               )}
-              {clients.map((c) => (
+              {filtered.map((c) => {
+                const g = Number(c.purity_balance);
+                const d = Number(c.da_balance);
+                const tone: "negative" | "positive" | "neutral" =
+                  g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
+                return (
                 <tr key={c.id} className="border-b border-border last:border-0">
-                  <td className="p-3 font-medium">{c.name}</td>
+                  <td className="p-3 font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      <StatusDot tone={tone} />
+                      <span>{c.name}</span>
+                    </span>
+                  </td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(c.purity_balance))}`}>{signed(Number(c.purity_balance), fmtG)}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(c.da_balance))}`}>{signed(Number(c.da_balance), fmtDA)}</td>
+                  <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
+                  <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
                   
                   <td className="p-3 text-right">
@@ -842,7 +852,8 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
