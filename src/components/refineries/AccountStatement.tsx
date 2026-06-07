@@ -317,7 +317,7 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
               </td>
               <td style={{ ...numCell, color: r.gold_debit ? RED : MUTED }}>{r.gold_debit ? fmtG(r.gold_debit) : "—"}</td>
               <td style={{ ...numCell, color: r.gold_credit ? GREEN : MUTED }}>{r.gold_credit ? fmtG(r.gold_credit) : "—"}</td>
-              <td style={{ ...numCell, color: r.da_debit ? RED : MUTED }}>{r.da_debit ? fmtDA(r.da_debit) : (r.type === "refining_fee" && r.fee_total ? fmtDA(r.fee_total) : "—")}</td>
+              <td style={{ ...numCell, color: r.da_debit ? RED : MUTED }}>{r.da_debit ? fmtDA(r.da_debit) : "—"}</td>
               <td style={{ ...numCell, color: r.da_credit ? GREEN : MUTED }}>{r.da_credit ? fmtDA(r.da_credit) : "—"}</td>
               <td style={{ ...numCell, fontWeight: 700 }}>{fmtG(r.running_gold)}</td>
               <td style={{ ...numCell, fontWeight: 700 }}>{fmtDA(r.running_da)}</td>
