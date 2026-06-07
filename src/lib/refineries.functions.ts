@@ -1548,3 +1548,64 @@ export const updateBuySell = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// =========================================================
+// Net Position — price log
+// =========================================================
+export type NetPositionPrice = {
+  goldPrice: number;
+  silverPrice: number;
+  setBy: string | null;
+  setByUsername: string | null;
+  setAt: string | null;
+};
+
+export const getNetPositionPrice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<NetPositionPrice> => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: row, error } = await supabaseAdmin
+      .from("refinery_price_log")
+      .select("gold_price, silver_price, set_by, set_by_username, created_at")
+      .eq("refinery_id", data.refineryId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return { goldPrice: 0, silverPrice: 0, setBy: null, setByUsername: null, setAt: null };
+    return {
+      goldPrice: Number(row.gold_price),
+      silverPrice: Number(row.silver_price),
+      setBy: row.set_by,
+      setByUsername: row.set_by_username ?? null,
+      setAt: row.created_at,
+    };
+  });
+
+export const saveNetPositionPrice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      goldPrice: z.number().min(0),
+      silverPrice: z.number().min(0),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    // resolve username
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
+    const { error } = await supabaseAdmin
+      .from("refinery_price_log")
+      .insert({
+        refinery_id: data.refineryId,
+        gold_price: data.goldPrice,
+        silver_price: data.silverPrice,
+        set_by: context.userId,
+        set_by_username: prof?.username ?? null,
+      });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
