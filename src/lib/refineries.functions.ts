@@ -377,7 +377,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
     if (revErr) throw new Error(revErr.message);
 
-    // Recompute totals
+    // Recompute totals — fee on weight at 730
     let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
     const bars = (data.bars ?? []).map((b) => {
       const pure = (b.gross_weight * b.purity) / 1000;
@@ -388,7 +388,10 @@ export const updateTransaction = createServerFn({ method: "POST" })
     if (total_gross > 0) avg_purity = (total_pure / total_gross) * 1000;
     if (data.transaction_type === "gold") {
       if (bars.length === 0) throw new Error("At least one gold bar is required.");
-      if (data.direction === "receiving") fee = total_gross * (data.fee_price ?? 0);
+      if (data.direction === "receiving") {
+        const weight_at_730 = (total_pure * 1000) / 730;
+        fee = weight_at_730 * (data.fee_price ?? 0);
+      }
     } else if (!data.da_amount || data.da_amount <= 0) {
       throw new Error("DA amount must be greater than 0.");
     }
