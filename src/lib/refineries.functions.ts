@@ -82,6 +82,13 @@ export type RefineryTransaction = {
   counterparty_client_name?: string | null;
   settlement_apply_fee?: boolean | null;
   settlement_amount?: number | null;
+  // Buy/Sell-only fields
+  buysell_kind?: BuySellKind | null;
+  buysell_settlement?: BuySellSettlement | null;
+  buysell_weight?: number | null;
+  buysell_purity?: number | null;
+  buysell_price_per_gram?: number | null;
+  buysell_total?: number | null;
 };
 
 // =========================================================
