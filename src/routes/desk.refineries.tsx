@@ -2400,3 +2400,86 @@ function StatTile({ label, value, good, bad, highlight }: { label: string; value
     </div>
   );
 }
+
+// =============================================================
+// Embedded variant (rendered inside ATHER Desk sidebar layout)
+// =============================================================
+export function RefineriesEmbedded() {
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as {
+    r?: string;
+    rtab?: Tab;
+    action?: "new" | "edit";
+    txId?: string;
+  };
+  const rtab: Tab = (search.rtab as Tab) ?? "dashboard";
+  const [assignment, setAssignment] = useState<RefineryAssignment | null>(null);
+  const [refineries, setRefineries] = useState<Refinery[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [a, refs] = await Promise.all([getMyRefineryAssignment(), listRefineries()]);
+        setAssignment(a);
+        setRefineries(refs);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load refineries");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const activeRefinery = useMemo(
+    () => refineries.find((r) => r.id === search.r) ?? null,
+    [refineries, search.r],
+  );
+
+  const navTo = (next: {
+    r?: string;
+    rtab?: Tab;
+    action?: "new" | "edit";
+    txId?: string;
+  }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigate({ to: "/desk/app/refineries" as any, search: next as any });
+  };
+
+  if (loading) {
+    return (
+      <p className="text-sm text-muted-foreground tracking-[0.25em] py-10 text-center">
+        LOADING…
+      </p>
+    );
+  }
+
+  if (!search.r || !activeRefinery) {
+    return (
+      <RefineryPicker
+        refineries={refineries}
+        isAdmin={Boolean(assignment?.isAdmin)}
+        onSignOut={() => {}}
+        embedded
+        onPick={(id) => navTo({ r: id, rtab: "dashboard" })}
+      />
+    );
+  }
+
+  return (
+    <RefineryShell
+      refinery={activeRefinery}
+      assignment={assignment!}
+      tab={rtab}
+      action={search.action}
+      txId={search.txId}
+      onTab={(t) => navTo({ r: activeRefinery.id, rtab: t })}
+      onAction={(action, txId) =>
+        navTo({ r: activeRefinery.id, rtab: "transactions", action, txId })
+      }
+      onBack={assignment?.isAdmin ? () => navTo({}) : undefined}
+      onSignOut={() => {}}
+      embedded
+    />
+  );
+}
