@@ -1239,7 +1239,7 @@ function ProfileTab() {
         <p className="text-sm text-muted-foreground">Update your account details</p>
       </div>
       <Card className="p-6">
-        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Email</p><p>{p.email ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p><p>{p.username ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p><p className="capitalize">{p.isAdmin ? "admin" : p.role ?? "—"}</p></div>
