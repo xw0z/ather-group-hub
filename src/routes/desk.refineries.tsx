@@ -997,13 +997,7 @@ function TransactionFormPage({
           )}
 
           {type === "gold" && (
-            <div className="space-y-3">
-              {direction === "receiving" && (
-                <div className="space-y-2">
-                  <Label>Refining fee price (DA/g)</Label>
-                  <Input type="number" step="any" min="0" value={feePrice} onChange={(e) => setFeePrice(e.target.value)} />
-                </div>
-              )}
+            <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Gold bars</Label>
@@ -1011,16 +1005,27 @@ function TransactionFormPage({
                     <Plus className="h-3.5 w-3.5 mr-1" /> Add gold bar
                   </Button>
                 </div>
-                <Card>
+
+                {/* Desktop table */}
+                <Card className="hidden md:block overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[560px]">
+                    <table className="w-full text-sm table-fixed">
+                      <colgroup>
+                        <col style={{ width: "56px" }} />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col style={{ width: "56px" }} />
+                      </colgroup>
                       <thead className="bg-muted/20 border-b border-border">
-                        <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
-                          <th className="p-2">#</th>
-                          <th className="p-2 text-right">Gross (g)</th>
-                          <th className="p-2 text-right">Purity</th>
-                          <th className="p-2 text-right">Pure (g)</th>
-                          <th className="p-2"></th>
+                        <tr className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <th className="p-3 text-left">#</th>
+                          <th className="p-3 text-right">Gross Weight (g)</th>
+                          <th className="p-3 text-right">Purity</th>
+                          <th className="p-3 text-right">Pure Gold (g)</th>
+                          <th className="p-3 text-right">Equivalent @ 730</th>
+                          <th className="p-3"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1028,14 +1033,24 @@ function TransactionFormPage({
                           const g = Number(b.gross_weight) || 0;
                           const p = Number(b.purity) || 0;
                           const pure = (g * p) / 1000;
+                          const eq730 = (g * p) / 730;
                           return (
                             <tr key={i} className="border-b border-border last:border-0">
-                              <td className="p-1.5"><Input className="h-8 w-16" value={b.item_number} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, item_number: e.target.value } : x))} /></td>
-                              <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" value={b.gross_weight} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, gross_weight: e.target.value } : x))} /></td>
-                              <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" max="1000" value={b.purity} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} /></td>
-                              <td className="p-1.5 text-right tabular-nums text-muted-foreground">{fmtG(pure)}</td>
-                              <td className="p-1.5 text-right">
-                                <Button type="button" size="sm" variant="ghost" onClick={() => rmBar(i)} disabled={bars.length === 1}>
+                              <td className="p-2 text-muted-foreground tabular-nums text-center">{i + 1}</td>
+                              <td className="p-2">
+                                <Input className="h-9 text-right tabular-nums" type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00"
+                                  value={b.gross_weight}
+                                  onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, gross_weight: e.target.value } : x))} />
+                              </td>
+                              <td className="p-2">
+                                <Input className="h-9 text-right tabular-nums" type="number" step="0.1" min="1" max="1000" inputMode="decimal" placeholder="0"
+                                  value={b.purity}
+                                  onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} />
+                              </td>
+                              <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}</td>
+                              <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}</td>
+                              <td className="p-2 text-right">
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => rmBar(i)} disabled={bars.length === 1}>
                                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                 </Button>
                               </td>
@@ -1043,35 +1058,90 @@ function TransactionFormPage({
                           );
                         })}
                       </tbody>
-                      <tfoot className="bg-muted/10 border-t border-border">
-                        <tr className="text-sm">
-                          <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={2}>Totals</td>
-                          <td className="p-2 text-right tabular-nums">{fmtG(totals.gross)}</td>
-                          <td className="p-2 text-right tabular-nums text-muted-foreground">avg {fmtPurity(totals.avg)}</td>
-                          <td className="p-2 text-right tabular-nums font-semibold">{fmtG(totals.pure)}</td>
-                          <td></td>
-                        </tr>
-                        {direction === "receiving" && (
-                          <>
-                            <tr className="text-sm">
-                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>Equivalent weight @ 730</td>
-                              <td className="p-2 text-right tabular-nums">{fmtG(totals.w730)}</td>
-                              <td></td>
-                            </tr>
-                            <tr className="text-sm">
-                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>
-                                Total refining fee <span className="normal-case text-muted-foreground/70">({fmtG(totals.w730)} × {fmtDA(Number(feePrice) || 0)}/g)</span>
-                              </td>
-                              <td className="p-2 text-right tabular-nums font-semibold">{fmtDA(totals.fee)}</td>
-                              <td></td>
-                            </tr>
-                          </>
-                        )}
-                      </tfoot>
                     </table>
                   </div>
                 </Card>
+
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {bars.map((b, i) => {
+                    const g = Number(b.gross_weight) || 0;
+                    const p = Number(b.purity) || 0;
+                    const pure = (g * p) / 1000;
+                    const eq730 = (g * p) / 730;
+                    return (
+                      <Card key={i} className="p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-wider text-muted-foreground">Bar #{i + 1}</span>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8 -mr-1 -mt-1" onClick={() => rmBar(i)} disabled={bars.length === 1}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Gross Weight (g)</Label>
+                            <Input className="h-9 text-right tabular-nums" type="number" step="0.01" min="0" inputMode="decimal" placeholder="0.00"
+                              value={b.gross_weight}
+                              onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, gross_weight: e.target.value } : x))} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Purity</Label>
+                            <Input className="h-9 text-right tabular-nums" type="number" step="0.1" min="1" max="1000" inputMode="decimal" placeholder="0"
+                              value={b.purity}
+                              onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Pure Gold (g)</Label>
+                            <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
+                              {g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Equivalent @ 730</Label>
+                            <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
+                              {g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Summary box */}
+              <Card className="p-4 space-y-2 bg-muted/10">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Summary</p>
+                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                  <span className="text-muted-foreground">Total Gross Weight</span>
+                  <span className="tabular-nums">{fmtG(totals.gross)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                  <span className="text-muted-foreground">Average Purity</span>
+                  <span className="tabular-nums">{fmtPurity(totals.avg)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                  <span className="text-muted-foreground">Total Pure Gold</span>
+                  <span className="tabular-nums font-semibold">{fmtG(totals.pure)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                  <span className="text-muted-foreground">Total Equivalent @ 730</span>
+                  <span className="tabular-nums font-semibold">{fmtG(totals.w730)}</span>
+                </div>
+                {direction === "receiving" && (
+                  <>
+                    <div className="flex items-center justify-between gap-3 text-sm py-1 border-b border-border/60">
+                      <Label className="text-muted-foreground font-normal whitespace-nowrap">Refining Fee Price (DA/g)</Label>
+                      <Input type="number" step="0.01" min="0" inputMode="decimal" className="h-9 w-32 text-right tabular-nums"
+                        value={feePrice} onChange={(e) => setFeePrice(e.target.value)} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-2">
+                      <span className="text-muted-foreground">Total Refining Fee</span>
+                      <span className="tabular-nums font-semibold text-ember">{fmtDA(totals.fee)}</span>
+                    </div>
+                  </>
+                )}
+              </Card>
             </div>
           )}
 
