@@ -2577,7 +2577,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* HERO: Inventory Pure Gold Stock (actual inventory only) */}
-      <Card className="p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
@@ -2598,7 +2598,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {(() => {
         const netPhysical = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
         return (
-          <Card className="p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
+          <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
@@ -2619,7 +2619,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         );
       })()}
 
-      <Card className="p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
