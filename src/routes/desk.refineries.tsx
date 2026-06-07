@@ -2384,7 +2384,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
-            <p className="font-display text-5xl tabular-nums text-amber-500 mt-1">
+            <p className="font-display text-3xl sm:text-4xl md:text-5xl tabular-nums text-amber-500 mt-1 break-all">
               {fmtG(stock.pure_gold_stock)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
