@@ -404,11 +404,11 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
   if (loading || !data) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
-  // ---- Equity calculation (Pure Gold Equivalent only) ----
-  // Equity = Physical Pure Gold + Net Pure Gold owed by clients − Net Pure Gold owed to clients
+  // ---- Equity calculation (Pure Gold Equivalent) ----
+  // Equity = Pure Gold Stock + Clients Owe Gold + Clients Owe DA (gold eq)
+  //        − Refinery Owes Gold − Refinery Owes DA (gold eq)
   const goldPrice = Number(data.goldPrice || 0);
   const silverPrice = Number(data.silverPrice || 0);
-  const canCompute = true; // pure-gold equity does not depend on prices
   const silverStock = Number((data.stock as { silver_stock?: number }).silver_stock ?? 0);
   const daCash = Number(data.stock.da_stock);
   const goldStock = Number(data.stock.pure_gold_stock);
@@ -416,9 +416,11 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   const daCashEq = goldPrice > 0 ? daCash / goldPrice : 0;
   const clientsOweDaEq = goldPrice > 0 ? data.clientsOweDa / goldPrice : 0;
   const refineryOwesDaEq = goldPrice > 0 ? data.refineryOwesDa / goldPrice : 0;
+  const canCompute = goldPrice > 0; // DA gold-equivalent requires a gold price
   const totalAssets = goldStock + silverEq + daCashEq + data.clientsOweGold + clientsOweDaEq;
   const totalLiabilities = data.refineryOwesGold + refineryOwesDaEq;
-  const refineryEquity = goldStock + data.clientsOweGold - data.refineryOwesGold;
+  const refineryEquity =
+    goldStock + data.clientsOweGold + clientsOweDaEq - data.refineryOwesGold - refineryOwesDaEq;
 
   // ---- Alerts ----
   type Alert = { tone: "danger" | "warn"; text: string; onClick?: () => void };
@@ -2303,7 +2305,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
-  const canCompute = goldPrice > 0; // only needed for DA/Silver conversion display
+  const canCompute = goldPrice > 0; // required for DA → gold equivalent
 
   // Sign convention: stored balances are positive when the refinery OWES the client.
   // Asset side (client owes refinery) is when stored balance < 0.
@@ -2334,8 +2336,12 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   const refineryOwesDaEq = canCompute ? refineryOwesDa / goldPrice : 0;
   const netClientDaEq = canCompute ? netClientDa / goldPrice : 0;
 
-  // Pure-gold equity: physical gold owned + net pure gold owed by clients
-  const refineryEquity = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
+  // Refinery Equity (Pure Gold Equivalent):
+  //   Pure Gold Stock + Clients Owe Gold + Clients Owe DA (gold eq)
+  //   − Refinery Owes Gold − Refinery Owes DA (gold eq)
+  const totalReceivables = clientsOweGold + clientsOweDaEq;
+  const totalPayables = refineryOwesGold + refineryOwesDaEq;
+  const refineryEquity = stock.pure_gold_stock + totalReceivables - totalPayables;
   // Extended balance-sheet view (informational only)
   const totalAssets =
     stock.pure_gold_stock + silverEq + daCashEq + clientsOweGold + clientsOweDaEq;
@@ -2388,10 +2394,12 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
                     <p className="font-semibold mb-1">Refinery Equity (Pure Gold)</p>
-                    <p>= Physical Pure Gold Stock</p>
-                    <p>+ Pure Gold owed by clients to refinery</p>
-                    <p>− Pure Gold owed by refinery to clients</p>
-                    <p className="mt-2 text-muted-foreground">DA cash and silver are shown separately and are not included in equity.</p>
+                    <p>= Pure Gold Stock Available</p>
+                    <p>+ Clients Owe Refinery Gold</p>
+                    <p>+ Clients Owe Refinery DA (gold equivalent)</p>
+                    <p>− Refinery Owes Clients Gold</p>
+                    <p>− Refinery Owes Clients DA (gold equivalent)</p>
+                    <p className="mt-2 text-muted-foreground">Silver and DA cash are shown in Other Holdings.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -2400,7 +2408,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {fmtG(stock.pure_gold_stock)} physical + {fmtG(clientsOweGold)} receivable − {fmtG(refineryOwesGold)} payable
+              {fmtG(stock.pure_gold_stock)} stock + {fmtG(totalReceivables)} receivables − {fmtG(totalPayables)} payables
             </p>
           </div>
           <div className="flex flex-col gap-2 items-start md:items-end">
@@ -2417,19 +2425,34 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {/* Refinery Equity Breakdown */}
       <Card className="p-4 border-amber-500/20">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-          <Scale className="h-4 w-4 text-amber-500" /> Refinery Equity Breakdown
+          <Scale className="h-4 w-4 text-amber-500" /> Position Calculation Breakdown
         </h3>
         <div className="space-y-2 text-sm">
-          <NPRow label="Physical Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} cls="text-amber-500" />
-          <NPRow label="Client Debit Gold Balances (owed to refinery)" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
-          <NPRow label="Client Credit Gold Balances (owed by refinery)" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Net Client Position</span>
-            <span className={`font-display text-base tabular-nums ${signClass(netClientGold)}`}>{signed(netClientGold, fmtG)}</span>
-          </div>
+          <NPRow label="Pure Gold Stock Available" value={`+ ${fmtG(stock.pure_gold_stock)}`} cls="text-amber-500" />
+          <NPRow label="Clients Owe Refinery Gold" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
+          <NPRow
+            label="Clients Owe Refinery DA (gold eq)"
+            value={canCompute ? `+ ${fmtG(clientsOweDaEq)}` : "— set gold price"}
+            cls={canCompute ? "text-emerald-500" : "text-muted-foreground"}
+          />
+          <NPRow label="Refinery Owes Clients Gold" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
+          <NPRow
+            label="Refinery Owes Clients DA (gold eq)"
+            value={canCompute ? `− ${fmtG(refineryOwesDaEq)}` : "— set gold price"}
+            cls={canCompute ? "text-red-500" : "text-muted-foreground"}
+          />
           <div className="flex items-center justify-between pt-2 border-t-2 border-amber-500/40">
             <span className="text-xs uppercase tracking-[0.18em] text-amber-500 font-semibold">Final Refinery Equity</span>
             <span className={`font-display text-2xl tabular-nums ${signClass(refineryEquity)}`}>{signed(refineryEquity, fmtG)}</span>
+          </div>
+          <div className="pt-2 mt-2 border-t border-dashed border-border text-[11px] text-muted-foreground">
+            <p className="uppercase tracking-wider mb-1">Formula Check</p>
+            <p className="font-mono">
+              {fmtG(stock.pure_gold_stock)} + {fmtG(totalReceivables)} − {fmtG(totalPayables)} = <span className={signClass(refineryEquity)}>{fmtG(refineryEquity)}</span>
+            </p>
+            {!canCompute && (
+              <p className="mt-1 text-amber-600">DA gold-equivalent is excluded until a Gold Price is saved below.</p>
+            )}
           </div>
         </div>
       </Card>
@@ -2462,7 +2485,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
       {/* Refinery Holdings */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3">Refinery Holdings</h3>
+        <h3 className="font-semibold text-sm mb-3">Other Holdings <span className="text-xs font-normal text-muted-foreground">(not included in Pure Gold Equity unless converted)</span></h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-xs uppercase tracking-wider text-amber-500/80">Pure Gold</p>
