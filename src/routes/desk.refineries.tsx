@@ -2394,10 +2394,12 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
                     <p className="font-semibold mb-1">Refinery Equity (Pure Gold)</p>
-                    <p>= Physical Pure Gold Stock</p>
-                    <p>+ Pure Gold owed by clients to refinery</p>
-                    <p>− Pure Gold owed by refinery to clients</p>
-                    <p className="mt-2 text-muted-foreground">DA cash and silver are shown separately and are not included in equity.</p>
+                    <p>= Pure Gold Stock Available</p>
+                    <p>+ Clients Owe Refinery Gold</p>
+                    <p>+ Clients Owe Refinery DA (gold equivalent)</p>
+                    <p>− Refinery Owes Clients Gold</p>
+                    <p>− Refinery Owes Clients DA (gold equivalent)</p>
+                    <p className="mt-2 text-muted-foreground">Silver and DA cash are shown in Other Holdings.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -2406,7 +2408,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {fmtG(stock.pure_gold_stock)} physical + {fmtG(clientsOweGold)} receivable − {fmtG(refineryOwesGold)} payable
+              {fmtG(stock.pure_gold_stock)} stock + {fmtG(totalReceivables)} receivables − {fmtG(totalPayables)} payables
             </p>
           </div>
           <div className="flex flex-col gap-2 items-start md:items-end">
