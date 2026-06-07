@@ -824,6 +824,22 @@ function NavBtn({
 }
 
 
+function AccessDenied() {
+  return (
+    <div className="grid place-items-center py-20">
+      <div className="max-w-md w-full text-center space-y-3 border border-border/60 rounded-lg p-8 bg-card/40">
+        <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 border border-destructive/40 grid place-items-center">
+          <ShieldCheck className="h-6 w-6 text-destructive" />
+        </div>
+        <h1 className="text-lg font-semibold">Access Denied</h1>
+        <p className="text-sm text-muted-foreground">
+          You don&apos;t have permission to view this module. Contact an administrator if you need access.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ReportsTab() {
   return <ReportsCenter />;
 }
