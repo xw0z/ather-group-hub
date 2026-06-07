@@ -3210,17 +3210,30 @@ async function renderStatementToCanvases(
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    await new Promise<void>((resolve) => {
-      root.render(<AccountStatementReport data={statement} />);
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    root.render(<AccountStatementReport data={statement} />);
+
+    // Poll until React 18 concurrent renderer has committed AND pages are laid out.
+    // The previous double-rAF approach raced on first click (commit hadn't happened yet).
+    const waitForPages = async (): Promise<HTMLElement[]> => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const wrapper = host.firstElementChild as HTMLElement | null;
+        if (wrapper) {
+          const pages = Array.from(
+            wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"),
+          );
+          if (pages.length > 0 && pages[0].offsetHeight > 0) return pages;
+        }
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      }
+      throw new Error("Statement renderer timed out before producing pages");
+    };
+
+    const pages = await waitForPages();
     // Wait for fonts so text is crisp
     try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
-
-    const wrapper = host.firstElementChild as HTMLElement | null;
-    if (!wrapper) throw new Error("Statement render failed");
-    const pages = Array.from(wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"));
-    if (pages.length === 0) throw new Error("Statement has no pages");
+    // One more frame so font swap is painted before capture.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     const canvases: HTMLCanvasElement[] = [];
     for (const page of pages) {
@@ -3233,6 +3246,10 @@ async function renderStatementToCanvases(
       canvases.push(c);
     }
     return canvases;
+  } catch (err) {
+    // Surface technical detail in the console for debugging; the caller shows a clean toast.
+    console.error("[AccountStatement] renderStatementToCanvases failed:", err);
+    throw err;
   } finally {
     try { root.unmount(); } catch { /* noop */ }
     try { host.remove(); } catch { /* noop */ }
