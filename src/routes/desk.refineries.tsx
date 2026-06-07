@@ -1100,11 +1100,11 @@ function TransactionReceiptDialog({
                 </div>
               )}
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => exportPng("download")}>
+            <DialogFooter className="gap-2 flex-col sm:flex-row">
+              <Button variant="outline" onClick={() => exportPng("download")} className="w-full sm:w-auto">
                 <ImageIcon className="h-4 w-4 mr-1" /> Download image
               </Button>
-              <Button onClick={() => exportPng("whatsapp")}>
+              <Button onClick={() => exportPng("whatsapp")} className="w-full sm:w-auto">
                 <Share2 className="h-4 w-4 mr-1" /> Share on WhatsApp
               </Button>
             </DialogFooter>
