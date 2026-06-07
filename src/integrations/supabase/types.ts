@@ -274,6 +274,7 @@ export type Database = {
       refinery_report_history: {
         Row: {
           channel: string
+          client_id: string | null
           created_at: string
           date_from: string
           date_to: string
@@ -288,6 +289,7 @@ export type Database = {
         }
         Insert: {
           channel?: string
+          client_id?: string | null
           created_at?: string
           date_from: string
           date_to: string
@@ -302,6 +304,7 @@ export type Database = {
         }
         Update: {
           channel?: string
+          client_id?: string | null
           created_at?: string
           date_from?: string
           date_to?: string
@@ -315,6 +318,13 @@ export type Database = {
           statement_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "refinery_report_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "refinery_report_history_refinery_id_fkey"
             columns: ["refinery_id"]
