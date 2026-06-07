@@ -23,9 +23,16 @@ import {
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   getMyRefineryProfile, updateMyRefineryProfile,
+  getAccountStatement, logRefineryReport, listRefineryReportHistory,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
+  type AccountStatement,
 } from "@/lib/refineries.functions";
+import { createRoot } from "react-dom/client";
+import jsPDF from "jspdf";
+import { AccountStatementReport, AccountStatementSummary } from "@/components/refineries/AccountStatement";
+import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
+
 
 type Tab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
 const TABS: { id: Tab; label: string }[] = [
