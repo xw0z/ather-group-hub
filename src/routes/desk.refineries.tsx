@@ -1171,125 +1171,111 @@ function TransactionReceiptDialog({
   refinery, txId, onClose,
 }: { refinery: Refinery; txId: string; onClose: () => void }) {
   const [tx, setTx] = useState<RefineryTransaction | null>(null);
+  const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
 
   useEffect(() => {
     getTransaction({ data: { id: txId } }).then((t) => setTx(t as RefineryTransaction)).catch(() => {});
   }, [txId]);
 
-  const exportPng = async (share: "download" | "whatsapp") => {
-    const node = document.getElementById(`receipt-${txId}`);
-    if (!node) return;
-    const canvas = await html2canvas(node, { backgroundColor: "#1a1a1a", scale: 3 });
-    const blob: Blob | null = await new Promise((r) => canvas.toBlob((b) => r(b), "image/png"));
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    if (share === "download") {
-      const a = document.createElement("a");
-      a.href = url; a.download = `receipt-${tx?.transaction_number ?? txId}.png`; a.click();
+  const renderReceiptCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
+    if (!tx) return null;
+    const host = document.createElement("div");
+    host.style.position = "fixed";
+    host.style.left = "-99999px";
+    host.style.top = "0";
+    host.style.zIndex = "-1";
+    host.style.background = "#ffffff";
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    try {
+      await new Promise<void>((resolve) => {
+        root.render(<TransactionReceiptReport tx={tx} refineryName={refinery.name} />);
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      const target = host.firstElementChild as HTMLElement | null;
+      if (!target) return null;
+      return await html2canvas(target, {
+        backgroundColor: "#ffffff", scale: 3, useCORS: true, logging: false,
+      });
+    } finally {
+      root.unmount();
+      host.remove();
     }
-    if (share === "whatsapp" && tx) {
-      const msg = encodeURIComponent(
-        `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
-        `Transaction: ${tx.transaction_number}\n` +
-        `Direction: ${tx.direction}\nType: ${tx.transaction_type}\n` +
-        (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
-        (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
-        (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nFee price: ${fmtDA(Number(tx.fee_price))}/g\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "") +
-        (tx.new_purity_balance != null ? `New purity balance: ${fmtG(Number(tx.new_purity_balance))}\n` : "") +
-        (tx.new_da_balance != null ? `New DA balance: ${fmtDA(Number(tx.new_da_balance))}\n` : "")
+  }, [tx, refinery.name]);
+
+  const downloadPdf = async () => {
+    if (!tx) return;
+    setBusy("pdf");
+    try {
+      const canvas = await renderReceiptCanvas();
+      if (!canvas) throw new Error("Render failed");
+      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = canvas.width / canvas.height;
+      let w = pageW, h = w / ratio;
+      if (h > pageH) { h = pageH; w = h * ratio; }
+      const x = (pageW - w) / 2, y = (pageH - h) / 2;
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
+      pdf.save(`receipt-${tx.transaction_number}.pdf`);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF failed");
+    } finally { setBusy(null); }
+  };
+
+  const exportPng = async (channel: "download" | "whatsapp") => {
+    if (!tx) return;
+    setBusy(channel === "whatsapp" ? "share" : "png");
+    try {
+      const canvas = await renderReceiptCanvas();
+      if (!canvas) throw new Error("Render failed");
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG failed"))), "image/png"),
       );
-      const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
-      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-    }
-    URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      if (channel === "download") {
+        const a = document.createElement("a");
+        a.href = url; a.download = `receipt-${tx.transaction_number}.png`; a.click();
+        toast.success("Image downloaded");
+      } else {
+        const msg = encodeURIComponent(
+          `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
+          `Transaction: ${tx.transaction_number}\n` +
+          `Direction: ${tx.direction === "receiving" ? "Receiving Gold" : "Delivery Gold"}\n` +
+          (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
+          (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
+          (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "")
+        );
+        const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
+        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally { setBusy(null); }
   };
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>Transaction receipt</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader><DialogTitle>Transaction Receipt</DialogTitle></DialogHeader>
         {!tx ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
-            <div id={`receipt-${txId}`} className="rounded-lg border border-border p-6 bg-card text-card-foreground space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <p className="font-display text-lg tracking-wide">ATHER GROUP</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">{refinery.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-sm">{tx.transaction_number}</p>
-                  <p className="text-xs text-muted-foreground">{tx.transaction_date}</p>
-                </div>
+            <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
+              <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
+                <TransactionReceiptReport tx={tx} refineryName={refinery.name} />
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Client</p><p>{tx.client_name}</p></div>
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Phone</p><p>{tx.client_phone ?? "—"}</p></div>
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Direction</p><p className="capitalize">{tx.direction}</p></div>
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Type</p><p className="uppercase">{tx.transaction_type}</p></div>
-                
-              </div>
-
-              {tx.transaction_type === "da" && (
-                <div className="border-t border-border pt-3 text-sm">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">DA amount</p>
-                  <p className="text-xl tabular-nums">{fmtDA(Number(tx.da_amount))}</p>
-                </div>
-              )}
-
-              {tx.transaction_type === "gold" && tx.bars && tx.bars.length > 0 && (
-                <div className="border-t border-border pt-3">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Gold bars</p>
-                  <table className="w-full text-sm">
-                    <thead className="text-xs text-muted-foreground">
-                      <tr className="text-left"><th className="py-1">#</th><th className="text-right">Gross</th><th className="text-right">Purity</th><th className="text-right">Pure</th></tr>
-                    </thead>
-                    <tbody>
-                      {tx.bars.map((b, i) => (
-                        <tr key={i} className="border-t border-border/50">
-                          <td className="py-1">{b.item_number ?? i + 1}</td>
-                          <td className="text-right tabular-nums">{fmtG(Number(b.gross_weight))}</td>
-                          <td className="text-right tabular-nums">{fmtPurity(Number(b.purity))}</td>
-                          <td className="text-right tabular-nums">{fmtG(Number(b.pure_weight))}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div className="grid grid-cols-3 gap-3 text-sm mt-3 pt-3 border-t border-border">
-                    <div><p className="text-xs text-muted-foreground">Total gross</p><p className="tabular-nums">{fmtG(Number(tx.total_gross_weight))}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Total pure</p><p className="tabular-nums">{fmtG(Number(tx.total_pure_weight))}</p></div>
-                    <div><p className="text-xs text-muted-foreground">Avg purity</p><p className="tabular-nums">{fmtPurity(Number(tx.average_purity))}</p></div>
-                  </div>
-                  {tx.direction === "receiving" && Number(tx.total_refining_fee) > 0 && (
-                    <div className="grid grid-cols-2 gap-3 text-sm mt-3">
-                      <div><p className="text-xs text-muted-foreground">Weight @ 730</p><p className="tabular-nums">{fmtG((Number(tx.total_pure_weight) * 1000) / 730)}</p></div>
-                      <div><p className="text-xs text-muted-foreground">Fee price</p><p className="tabular-nums">{fmtDA(Number(tx.fee_price))}/g</p></div>
-                      <div className="col-span-2"><p className="text-xs text-muted-foreground">Total refining fee</p><p className="tabular-nums text-base font-semibold">{fmtDA(Number(tx.total_refining_fee))}</p></div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {tx.previous_purity_balance != null && (
-                <div className="border-t border-border pt-3 grid grid-cols-2 gap-3 text-sm">
-                  <div><p className="text-xs text-muted-foreground">Prev purity</p><p className={`tabular-nums ${balClass(Number(tx.previous_purity_balance ?? 0))}`}>{signed(Number(tx.previous_purity_balance ?? 0), fmtG)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">New purity</p><p className={`tabular-nums ${balClass(Number(tx.new_purity_balance ?? 0))}`}>{signed(Number(tx.new_purity_balance ?? 0), fmtG)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">Prev DA</p><p className={`tabular-nums ${balClass(Number(tx.previous_da_balance ?? 0))}`}>{signed(Number(tx.previous_da_balance ?? 0), fmtDA)}</p></div>
-                  <div><p className="text-xs text-muted-foreground">New DA</p><p className={`tabular-nums ${balClass(Number(tx.new_da_balance ?? 0))}`}>{signed(Number(tx.new_da_balance ?? 0), fmtDA)}</p></div>
-                </div>
-              )}
-              {tx.notes && (
-                <div className="border-t border-border pt-3 text-sm">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Notes</p>
-                  <p>{tx.notes}</p>
-                </div>
-              )}
             </div>
             <DialogFooter className="gap-2 flex-col sm:flex-row">
-              <Button variant="outline" onClick={() => exportPng("download")} className="w-full sm:w-auto">
-                <ImageIcon className="h-4 w-4 mr-1" /> Download image
+              <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="w-full sm:w-auto">
+                {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />} Download PDF
               </Button>
-              <Button onClick={() => exportPng("whatsapp")} className="w-full sm:w-auto">
-                <Share2 className="h-4 w-4 mr-1" /> Share on WhatsApp
+              <Button variant="outline" onClick={() => exportPng("download")} disabled={busy !== null} className="w-full sm:w-auto">
+                {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />} Download Image
+              </Button>
+              <Button onClick={() => exportPng("whatsapp")} disabled={busy !== null || !tx.client_phone} className="w-full sm:w-auto">
+                {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />} Share on WhatsApp
               </Button>
             </DialogFooter>
           </>
