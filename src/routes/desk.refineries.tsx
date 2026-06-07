@@ -2337,20 +2337,21 @@ function StockTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* Physical stock cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtG(stock.pure_gold_stock)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+        <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.pure_gold_stock)}</p>
         </Card>
-        <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtG(stock.silver_stock)}</p>
+        <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.silver_stock)}</p>
         </Card>
-        <Card className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtDA(stock.da_stock)}</p>
+        <Card className="p-4 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtDA(stock.da_stock)}</p>
         </Card>
       </div>
+
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -2577,7 +2578,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* HERO: Inventory Pure Gold Stock (actual inventory only) */}
-      <Card className="p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
@@ -2598,7 +2599,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {(() => {
         const netPhysical = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
         return (
-          <Card className="p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
+          <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
@@ -2619,7 +2620,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         );
       })()}
 
-      <Card className="p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -3210,26 +3211,29 @@ function ProfileTab() {
         <p className="text-sm text-muted-foreground">Manage your account, security and preferences</p>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-border">
-        {subTabs.map((t) => {
-          const Icon = t.icon;
-          const active = sub === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setSub(t.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" /> {t.label}
-            </button>
-          );
-        })}
+      <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto border-b border-border">
+        <div className="flex gap-1 min-w-max">
+          {subTabs.map((t) => {
+            const Icon = t.icon;
+            const active = sub === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSub(t.id)}
+                className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {sub === "general" && (
-        <Card className="p-6 space-y-6">
+        <Card className="p-4 sm:p-6 space-y-6">
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p>
@@ -3271,7 +3275,7 @@ function ProfileTab() {
 
       {sub === "security" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <div>
               <h3 className="text-sm font-semibold">Change password</h3>
               <p className="text-xs text-muted-foreground">Your current password is required to set a new one.</p>
@@ -3340,7 +3344,7 @@ function ProfileTab() {
             </form>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <h3 className="text-sm font-semibold mb-4">Account activity</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
@@ -3362,7 +3366,7 @@ function ProfileTab() {
 
       {sub === "preferences" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold">Language</h3>
@@ -3392,7 +3396,7 @@ function ProfileTab() {
             </div>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Date format</h3>
             <Select value={prefs.date_format} onValueChange={(v) => savePref({ ...prefs, date_format: v as SwapPrefs["date_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
@@ -3404,7 +3408,7 @@ function ProfileTab() {
             </Select>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Number format</h3>
             <Select value={prefs.number_format} onValueChange={(v) => savePref({ ...prefs, number_format: v as SwapPrefs["number_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
@@ -3415,7 +3419,7 @@ function ProfileTab() {
             </Select>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Theme</h3>
             <div className="grid grid-cols-3 gap-2 max-w-md">
               {([
@@ -3446,7 +3450,7 @@ function ProfileTab() {
 
       {sub === "sessions" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-3">
+          <Card className="p-4 sm:p-6 space-y-3">
             <h3 className="text-sm font-semibold">Current session</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
@@ -3460,7 +3464,7 @@ function ProfileTab() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Recent logins</h3>
               <Button variant="outline" size="sm" onClick={signOutAll} disabled={signingOutAll}>
@@ -4653,7 +4657,7 @@ function ClientDetailsPage({
       )}
 
       {activeTab === "statement" && (
-        <Card className="p-6 text-center space-y-3">
+        <Card className="p-4 sm:p-6 text-center space-y-3">
           <FileText className="h-8 w-8 mx-auto text-ember" />
           <h3 className="font-display text-lg">Generate Account Statement</h3>
           <p className="text-sm text-muted-foreground">Select a date range, preview, and download as PDF.</p>
@@ -4962,7 +4966,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* A. Create Backup */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="font-display text-lg">A. Create Backup</h3>
@@ -4983,7 +4987,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* B. Restore Backup (from file) */}
-      <Card className="p-6 border-destructive/30">
+      <Card className="p-4 sm:p-6 border-destructive/30">
         <h3 className="font-display text-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-destructive" /> B. Restore Backup
         </h3>
@@ -5005,7 +5009,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* C. Backup History */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">C. Backup History</h3>
         <p className="text-sm text-muted-foreground">All saved backups for this refinery. Safety backups are created automatically before any restore.</p>
         <div className="mt-4 overflow-x-auto">
@@ -5059,7 +5063,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* D. Scheduled Backup Settings */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">D. Scheduled Backup Settings</h3>
         <p className="text-sm text-muted-foreground">Automatically create a backup every day at the chosen time.</p>
         {settings && (
@@ -5106,7 +5110,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* Audit Log */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">Audit Log</h3>
         <p className="text-sm text-muted-foreground">Recent backup and restore actions for this refinery.</p>
         <div className="mt-4 overflow-x-auto">
