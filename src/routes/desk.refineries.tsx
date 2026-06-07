@@ -2502,18 +2502,19 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {/* Price inputs */}
       <Card className="p-4">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs <span className="text-xs font-normal text-muted-foreground">(for DA / silver display only)</span></h3>
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
+        <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+          <div className="w-full sm:w-auto">
             <Label className="text-xs">Gold Price (DA / g)</Label>
-            <Input type="number" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-[180px]" />
+            <Input type="number" inputMode="decimal" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <Label className="text-xs">Silver Price (DA / g)</Label>
-            <Input type="number" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-[180px]" />
+            <Input type="number" inputMode="decimal" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
-          <Button onClick={onSavePrices} disabled={saving}>
+          <Button onClick={onSavePrices} disabled={saving} className="w-full sm:w-auto">
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Prices
           </Button>
+
           {savedBy.at && (
             <p className="text-xs text-muted-foreground">
               Last saved by <span className="font-medium">{savedBy.name ?? "—"}</span> on {new Date(savedBy.at).toLocaleString()}
