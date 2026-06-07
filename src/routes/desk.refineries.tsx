@@ -823,6 +823,14 @@ function TransactionFormPage({
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEdit);
 
+  // Settlement-only state
+  const [fromClientId, setFromClientId] = useState<string>("");
+  const [toClientId, setToClientId] = useState<string>("");
+  const [settlementKind, setSettlementKind] = useState<"gold" | "da">("gold");
+  const [settlementAmount, setSettlementAmount] = useState<string>("");
+  const [applyFee, setApplyFee] = useState<boolean>(false);
+  const [settlementFeePrice, setSettlementFeePrice] = useState<string>("");
+
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
       .then((rs) => setClients(rs))
