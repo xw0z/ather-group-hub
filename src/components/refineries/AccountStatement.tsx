@@ -45,6 +45,8 @@ const TYPE_LABEL: Record<StatementRow["type"], string> = {
   da_received: "DA Received",
   da_paid: "DA Paid",
   settlement: "Settlement",
+  buy_metal: "Metal Buy",
+  sell_metal: "Metal Sell",
   adjustment: "Adjustment",
   reversal: "Correction",
 };
