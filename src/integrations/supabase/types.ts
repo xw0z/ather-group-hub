@@ -271,6 +271,59 @@ export type Database = {
           },
         ]
       }
+      refinery_report_history: {
+        Row: {
+          channel: string
+          created_at: string
+          date_from: string
+          date_to: string
+          details: Json | null
+          format: string
+          generated_by: string | null
+          generated_by_username: string | null
+          id: string
+          refinery_id: string
+          report_type: string
+          statement_number: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          date_from: string
+          date_to: string
+          details?: Json | null
+          format: string
+          generated_by?: string | null
+          generated_by_username?: string | null
+          id?: string
+          refinery_id: string
+          report_type?: string
+          statement_number?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          date_from?: string
+          date_to?: string
+          details?: Json | null
+          format?: string
+          generated_by?: string | null
+          generated_by_username?: string | null
+          id?: string
+          refinery_id?: string
+          report_type?: string
+          statement_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_report_history_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refinery_stock: {
         Row: {
           da_stock: number
