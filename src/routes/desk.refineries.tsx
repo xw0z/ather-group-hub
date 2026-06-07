@@ -3347,3 +3347,448 @@ function BuySellDialog({
     </Dialog>
   );
 }
+
+// =============================================================
+// Client Details Page (360° view)
+// =============================================================
+const TX_TYPE_LABEL: Record<string, string> = {
+  gold: "Gold Movement",
+  da: "DA Movement",
+  settlement: "Settlement",
+  buysell: "Buy / Sell",
+  stock_adjustment: "Stock Adjustment",
+};
+
+type ClientStmtRow = StatementRow;
+
+function ClientDetailsPage({
+  refinery, assignment, clientId,
+}: { refinery: Refinery; assignment: RefineryAssignment; clientId: string }) {
+  const navigate = useNavigate();
+  const [client, setClient] = useState<RefineryClient | null>(null);
+  const [statement, setStatement] = useState<AccountStatement | null>(null);
+  const [notes, setNotes] = useState<RefineryClientNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"transactions" | "statement" | "timeline" | "notes">("transactions");
+  const [editOpen, setEditOpen] = useState(false);
+  const [stmtOpen, setStmtOpen] = useState(false);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterFrom, setFilterFrom] = useState<string>("");
+  const [filterTo, setFilterTo] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
+  const [newNote, setNewNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Load client via listClients (cheap), filter for this id
+      const all = await listClients({ data: { refineryId: refinery.id } });
+      const c = all.find((x) => x.id === clientId) ?? null;
+      setClient(c);
+      // Wide statement window (10 years back, 1 year forward) for full history
+      const today = new Date();
+      const from = `${today.getFullYear() - 10}-01-01`;
+      const to = `${today.getFullYear() + 1}-12-31`;
+      const [stmt, ns] = await Promise.all([
+        getAccountStatement({ data: { refineryId: refinery.id, clientId, from, to } }),
+        listClientNotes({ data: { refineryId: refinery.id, clientId } }),
+      ]);
+      setStatement(stmt);
+      setNotes(ns);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load client");
+    } finally {
+      setLoading(false);
+    }
+  }, [refinery.id, clientId]);
+  useEffect(() => { load(); }, [load]);
+
+  const backToClients = () =>
+    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+
+  const submitNote = async () => {
+    const body = newNote.trim();
+    if (!body) return;
+    setSavingNote(true);
+    try {
+      await addClientNote({ data: { refineryId: refinery.id, clientId, body } });
+      setNewNote("");
+      const ns = await listClientNotes({ data: { refineryId: refinery.id, clientId } });
+      setNotes(ns);
+      toast.success("Note added");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add note");
+    } finally { setSavingNote(false); }
+  };
+
+  const removeNote = async (id: string) => {
+    if (!confirm("Delete this note?")) return;
+    try {
+      await deleteClientNote({ data: { id } });
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  };
+
+  // ───── Derived: filtered + paginated transactions (newest first) ─────
+  const allRows = useMemo<ClientStmtRow[]>(() => {
+    if (!statement) return [];
+    return [...statement.rows].reverse();
+  }, [statement]);
+
+  const filteredRows = useMemo(() => {
+    return allRows.filter((r) => {
+      if (filterType !== "all" && r.type !== filterType) return false;
+      if (filterFrom && r.date < filterFrom) return false;
+      if (filterTo && r.date > filterTo) return false;
+      return true;
+    });
+  }, [allRows, filterType, filterFrom, filterTo]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredRows.slice(start, start + PAGE_SIZE);
+  }, [filteredRows, page]);
+
+  useEffect(() => { setPage(1); }, [filterType, filterFrom, filterTo]);
+
+  // ───── Derived: balance timeline (daily snapshots from running balances) ─────
+  const timeline = useMemo(() => {
+    if (!statement) return [];
+    // Take last running balance per day (rows are oldest-first in statement.rows)
+    const byDay = new Map<string, { gold: number; da: number }>();
+    statement.rows.forEach((r) => {
+      byDay.set(r.date, { gold: r.running_gold, da: r.running_da });
+    });
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .slice(0, 60);
+  }, [statement]);
+
+  if (loading || !client || !statement) {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" onClick={backToClients}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+        </Button>
+        <p className="text-sm text-muted-foreground tracking-[0.25em]">LOADING CLIENT…</p>
+      </div>
+    );
+  }
+
+  const g = Number(client.purity_balance);
+  const d = Number(client.da_balance);
+  const tone: "negative" | "positive" | "neutral" =
+    g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
+  const statusLabel = tone === "negative" ? "Negative" : tone === "positive" ? "Positive" : "Neutral";
+  const statusCls =
+    tone === "negative" ? "text-destructive" : tone === "positive" ? "text-emerald-500" : "text-muted-foreground";
+
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+          <button onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "dashboard" } })} className="hover:text-foreground transition-colors">
+            Refineries
+          </button>
+          <span>›</span>
+          <span>{refinery.name}</span>
+          <span>›</span>
+          <button onClick={backToClients} className="hover:text-foreground transition-colors">Clients</button>
+          <span>›</span>
+          <span className="text-foreground font-medium">{client.name}</span>
+        </div>
+        <Button variant="outline" size="sm" onClick={backToClients}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+        </Button>
+      </div>
+
+      {/* Header + quick actions */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <StatusDot tone={tone} />
+            <h1 className="font-display text-3xl tracking-tight">{client.name}</h1>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">Client Overview</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!readOnly && (
+            <>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Buy Gold
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+              >
+                <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+              </Button>
+            </>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setStmtOpen(true)}>
+            <FileText className="h-4 w-4 mr-1" /> Generate Statement
+          </Button>
+          {!readOnly && (
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1" /> Edit Client
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard label="Current Gold" value={signed(g, fmtG)} cls={balClass(g)} />
+        <SummaryCard label="Current DA" value={signed(d, fmtDA)} cls={balClass(d)} />
+        <SummaryCard label="Refining Fee" value={`${fmtDA(Number(client.refining_fee_price))}/g`} />
+        <SummaryCard label="Status" value={statusLabel} cls={statusCls} />
+        <SummaryCard label="Phone" value={client.phone ?? "—"} muted />
+        <SummaryCard label="Refinery" value={refinery.name} muted />
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-border flex gap-1 overflow-x-auto">
+        {([
+          { id: "transactions", label: `Transactions (${allRows.length})` },
+          { id: "statement", label: "Account Statement" },
+          { id: "timeline", label: "Balance Timeline" },
+          { id: "notes", label: `Notes (${notes.length})` },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2.5 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === t.id ? "border-ember text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab body */}
+      {activeTab === "transactions" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">From</Label>
+              <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-44" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">To</Label>
+              <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-44" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Type</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="gold_received">Gold Received</SelectItem>
+                  <SelectItem value="gold_delivered">Gold Delivered</SelectItem>
+                  <SelectItem value="da_received">DA Received</SelectItem>
+                  <SelectItem value="da_paid">DA Paid</SelectItem>
+                  <SelectItem value="refining_fee">Refining Fee</SelectItem>
+                  <SelectItem value="settlement">Settlement</SelectItem>
+                  <SelectItem value="adjustment">Adjustment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterFrom || filterTo || filterType !== "all") && (
+              <Button size="sm" variant="ghost" onClick={() => { setFilterFrom(""); setFilterTo(""); setFilterType("all"); }}>
+                <X className="h-4 w-4 mr-1" /> Reset
+              </Button>
+            )}
+          </div>
+
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[900px]">
+                <thead className="border-b border-border bg-muted/20">
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    <th className="p-3">Date</th>
+                    <th className="p-3">Type</th>
+                    <th className="p-3 text-center">Dir</th>
+                    <th className="p-3 text-right">Gold (g)</th>
+                    <th className="p-3 text-right">DA</th>
+                    <th className="p-3">Description</th>
+                    <th className="p-3 text-right">Run. Gold</th>
+                    <th className="p-3 text-right">Run. DA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedRows.length === 0 && (
+                    <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+                  )}
+                  {pagedRows.map((r, i) => {
+                    const goldNet = r.gold_credit - r.gold_debit;
+                    const daNet = r.da_credit - r.da_debit;
+                    const isIn = goldNet > 0 || daNet > 0;
+                    const isOut = goldNet < 0 || daNet < 0;
+                    const dirLabel = r.type === "refining_fee" ? "FEE" : isIn ? "IN" : isOut ? "OUT" : "—";
+                    const dirCls =
+                      r.type === "refining_fee" ? "bg-ember/15 text-ember border-ember/40"
+                      : isIn ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
+                      : isOut ? "bg-destructive/15 text-destructive border-destructive/30"
+                      : "bg-muted/30 text-muted-foreground border-border";
+                    return (
+                      <tr key={i} className="border-b border-border last:border-0">
+                        <td className="p-3 whitespace-nowrap">{r.date}</td>
+                        <td className="p-3">{r.type.replace(/_/g, " ")}</td>
+                        <td className="p-3 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${dirCls}`}>{dirLabel}</span>
+                        </td>
+                        <td className={`p-3 text-right tabular-nums ${goldNet > 0 ? "text-emerald-500" : goldNet < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {goldNet !== 0 ? `${goldNet > 0 ? "+" : ""}${fmtG(goldNet)}` : "—"}
+                        </td>
+                        <td className={`p-3 text-right tabular-nums ${daNet > 0 ? "text-emerald-500" : daNet < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {daNet !== 0 ? `${daNet > 0 ? "+" : ""}${fmtDA(daNet)}` : "—"}
+                        </td>
+                        <td className="p-3 text-muted-foreground text-xs">{r.description}</td>
+                        <td className="p-3 text-right tabular-nums">{fmtG(r.running_gold)}</td>
+                        <td className="p-3 text-right tabular-nums">{fmtDA(r.running_da)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Page {page} of {totalPages} · {filteredRows.length} transactions
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "statement" && (
+        <Card className="p-6 text-center space-y-3">
+          <FileText className="h-8 w-8 mx-auto text-ember" />
+          <h3 className="font-display text-lg">Generate Account Statement</h3>
+          <p className="text-sm text-muted-foreground">Select a date range, preview, and download as PDF.</p>
+          <Button onClick={() => setStmtOpen(true)}>
+            <FileText className="h-4 w-4 mr-1" /> Open Statement Generator
+          </Button>
+        </Card>
+      )}
+
+      {activeTab === "timeline" && (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border bg-muted/20">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="p-3">Date</th>
+                  <th className="p-3 text-right">Gold Balance</th>
+                  <th className="p-3 text-right">DA Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.length === 0 && (
+                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No history yet</td></tr>
+                )}
+                {timeline.map(([date, b]) => (
+                  <tr key={date} className="border-b border-border last:border-0">
+                    <td className="p-3 whitespace-nowrap">{date}</td>
+                    <td className={`p-3 text-right tabular-nums ${balClass(b.gold)}`}>{signed(b.gold, fmtG)}</td>
+                    <td className={`p-3 text-right tabular-nums ${balClass(b.da)}`}>{signed(b.da, fmtDA)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === "notes" && (
+        <div className="space-y-4">
+          {!readOnly && (
+            <Card className="p-4 space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Add internal note</Label>
+              <Textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Internal note (not visible to client)…"
+                rows={3}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" onClick={submitNote} disabled={savingNote || !newNote.trim()}>
+                  {savingNote ? "Saving…" : "Add note"}
+                </Button>
+              </div>
+            </Card>
+          )}
+          {notes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No notes yet</p>
+          ) : (
+            <div className="space-y-2">
+              {notes.map((n) => (
+                <Card key={n.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">{n.author_name || "Unknown"}</span>
+                      {" · "}
+                      {new Date(n.created_at).toLocaleString()}
+                    </div>
+                    <Button size="sm" variant="ghost" className="text-destructive h-7 w-7 p-0" onClick={() => removeNote(n.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-sm mt-2 whitespace-pre-wrap">{n.body}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {editOpen && (
+        <ClientDialog
+          refineryId={refinery.id}
+          editing={client}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => { setEditOpen(false); load(); }}
+        />
+      )}
+      {stmtOpen && (
+        <AccountStatementDialog
+          open
+          onClose={() => setStmtOpen(false)}
+          refinery={refinery}
+          client={client}
+        />
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, cls, muted }: { label: string; value: string; cls?: string; muted?: boolean }) {
+  return (
+    <Card className="p-4">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={`mt-2 text-lg font-display tabular-nums ${cls ?? (muted ? "text-muted-foreground" : "")}`}>{value}</p>
+    </Card>
+  );
+}
