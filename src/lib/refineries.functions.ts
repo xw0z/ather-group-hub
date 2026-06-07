@@ -29,6 +29,7 @@ export type RefineryClient = {
   id: string;
   refinery_id: string;
   name: string;
+  code: string | null;
   phone: string | null;
   purity_balance: number;
   da_balance: number;
