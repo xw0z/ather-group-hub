@@ -781,12 +781,21 @@ function TransactionsTab({
                 <tr key={t.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
-                  <td className="p-3 whitespace-nowrap">{t.client_name}</td>
-                  <td className="p-3 capitalize whitespace-nowrap">{t.direction}</td>
-                  <td className="p-3 uppercase whitespace-nowrap">{t.transaction_type}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    {t.client_name}
+                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                    )}
+                  </td>
+                  <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
+                  <td className="p-3 uppercase whitespace-nowrap">
+                    {t.transaction_type === "settlement"
+                      ? <span className="text-ember font-semibold">SETTLEMENT</span>
+                      : t.transaction_type}
+                  </td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.settlement_amount ?? t.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")) ? fmtDA(Number(t.settlement_amount ?? t.da_amount)) : "—"}</td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
                   
                   <td className="p-3 text-right whitespace-nowrap">
