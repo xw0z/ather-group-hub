@@ -2370,33 +2370,73 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl">Net Position</h1>
-        <p className="text-sm text-muted-foreground">{refinery.name} · refinery balance sheet expressed in Pure Gold Equivalent (read-only)</p>
+        <p className="text-sm text-muted-foreground">{refinery.name} · refinery equity expressed in Pure Gold (real-time)</p>
       </div>
 
       {/* HERO: Refinery Equity */}
       <Card className="p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Refinery Equity</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Refinery Equity</p>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="How is equity calculated?">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
+                    <p className="font-semibold mb-1">Refinery Equity (Pure Gold)</p>
+                    <p>= Physical Pure Gold Stock</p>
+                    <p>+ Pure Gold owed by clients to refinery</p>
+                    <p>− Pure Gold owed by refinery to clients</p>
+                    <p className="mt-2 text-muted-foreground">DA cash and silver are shown separately and are not included in equity.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className={`font-display text-5xl tabular-nums ${signClass(refineryEquity)}`}>
-              {canCompute ? signed(refineryEquity, fmtG) : "—"}
+              {signed(refineryEquity, fmtG)}
             </p>
-            <p className="text-xs text-muted-foreground mt-2">Total Assets − Total Liabilities, in Pure Gold Equivalent</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {fmtG(stock.pure_gold_stock)} physical + {fmtG(clientsOweGold)} receivable − {fmtG(refineryOwesGold)} payable
+            </p>
           </div>
           <div className="flex flex-col gap-2 items-start md:items-end">
             <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusBadgeCls(refineryEquity)}`}>
               {refineryEquity > 0.0001 ? "Positive Equity" : refineryEquity < -0.0001 ? "Negative Equity" : "Neutral"}
             </Badge>
-            <Button size="sm" variant="outline" onClick={onSaveSnapshot} disabled={savingSnap || !canCompute}>
+            <Button size="sm" variant="outline" onClick={onSaveSnapshot} disabled={savingSnap}>
               {savingSnap && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Today's Snapshot
             </Button>
           </div>
         </div>
       </Card>
 
+      {/* Refinery Equity Breakdown */}
+      <Card className="p-4 border-amber-500/20">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <Scale className="h-4 w-4 text-amber-500" /> Refinery Equity Breakdown
+        </h3>
+        <div className="space-y-2 text-sm">
+          <NPRow label="Physical Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} cls="text-amber-500" />
+          <NPRow label="Client Debit Gold Balances (owed to refinery)" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
+          <NPRow label="Client Credit Gold Balances (owed by refinery)" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Net Client Position</span>
+            <span className={`font-display text-base tabular-nums ${signClass(netClientGold)}`}>{signed(netClientGold, fmtG)}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t-2 border-amber-500/40">
+            <span className="text-xs uppercase tracking-[0.18em] text-amber-500 font-semibold">Final Refinery Equity</span>
+            <span className={`font-display text-2xl tabular-nums ${signClass(refineryEquity)}`}>{signed(refineryEquity, fmtG)}</span>
+          </div>
+        </div>
+      </Card>
+
       {/* Price inputs */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs</h3>
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs <span className="text-xs font-normal text-muted-foreground">(for DA / silver display only)</span></h3>
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <Label className="text-xs">Gold Price (DA / g)</Label>
@@ -2416,25 +2456,25 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
           )}
         </div>
         {!canCompute && (
-          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> Save a Gold Price greater than 0 to compute net position.</p>
+          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> Save a Gold Price greater than 0 to convert silver and DA into pure gold equivalent below.</p>
         )}
       </Card>
 
-      {/* Physical Metals */}
+      {/* Refinery Holdings */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3">Physical Metals</h3>
+        <h3 className="font-semibold text-sm mb-3">Refinery Holdings</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-xs uppercase tracking-wider text-amber-500/80">Pure Gold</p>
-            <p className="font-display text-2xl tabular-nums text-amber-500 mt-1">{fmtG(stock.pure_gold_stock)}</p>
+            <p className="font-display text-2xl tabular-nums text-amber-500 mt-1">{fmtG(stock.pure_gold_stock)} g</p>
           </div>
           <div className="rounded-md border border-slate-400/30 bg-slate-400/5 p-4">
             <p className="text-xs uppercase tracking-wider text-slate-300">Silver</p>
-            <p className="font-display text-2xl tabular-nums text-slate-200 mt-1">{fmtG(stock.silver_stock)}</p>
+            <p className="font-display text-2xl tabular-nums text-slate-200 mt-1">{fmtG(stock.silver_stock)} g</p>
           </div>
           <div className="rounded-md border border-border bg-muted/10 p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">DA Cash Balance</p>
-            <p className="font-display text-2xl tabular-nums mt-1">{fmtDA(stock.da_stock)}</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">DA Cash</p>
+            <p className="font-display text-2xl tabular-nums mt-1">{fmtDA(stock.da_stock)} DA</p>
           </div>
         </div>
       </Card>
