@@ -221,6 +221,51 @@ export type Database = {
         }
         Relationships: []
       }
+      refinery_client_notes: {
+        Row: {
+          author_id: string | null
+          author_name: string
+          body: string
+          client_id: string
+          created_at: string
+          id: string
+          refinery_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string
+          body: string
+          client_id: string
+          created_at?: string
+          id?: string
+          refinery_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string
+          body?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          refinery_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refinery_client_notes_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refinery_clients: {
         Row: {
           created_at: string
