@@ -760,9 +760,9 @@ function TransactionsTab({
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
               )}
               {rows.map((t) => (
                 <tr key={t.id} className="border-b border-border last:border-0">
