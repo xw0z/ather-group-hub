@@ -43,14 +43,15 @@ import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "profile";
-const TABS: { id: Tab; label: string }[] = [
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile";
+const TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "clients", label: "Clients" },
   { id: "transactions", label: "Transactions" },
   { id: "buysell", label: "Buy / Sell" },
   { id: "stock", label: "Stock" },
   { id: "netposition", label: "Net Position" },
+  { id: "backup", label: "Backup", adminOnly: true },
   { id: "profile", label: "Profile" },
 ];
 
