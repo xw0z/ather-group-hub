@@ -704,9 +704,10 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
 // =============================================================
 type Bar = { item_number: string; item_type: "bar" | "scrap"; gross_weight: string; purity: string };
 
-function NewTransactionDialog({
-  refinery, onClose, onCreated,
-}: { refinery: Refinery; onClose: () => void; onCreated: () => void }) {
+function TransactionDialog({
+  refinery, editingId, onClose, onSaved,
+}: { refinery: Refinery; editingId: string | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = Boolean(editingId);
   const [clients, setClients] = useState<RefineryClient[]>([]);
   const [clientId, setClientId] = useState<string>("");
   const [direction, setDirection] = useState<RefineryDirection>("receiving");
@@ -717,17 +718,36 @@ function NewTransactionDialog({
   const [feePrice, setFeePrice] = useState("");
   const [bars, setBars] = useState<Bar[]>([{ item_number: "1", item_type: "bar", gross_weight: "", purity: "" }]);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEdit);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
-      .then((rs) => setClients(rs.filter((c) => c.status === "active")))
+      .then((rs) => setClients(rs))
       .catch(() => {});
   }, [refinery.id]);
 
-  const client = clients.find((c) => c.id === clientId);
   useEffect(() => {
-    if (client && !feePrice) setFeePrice(String(client.refining_fee_price));
-  }, [client, feePrice]);
+    if (!editingId) return;
+    getTransaction({ data: { id: editingId } }).then((t) => {
+      const tx = t as RefineryTransaction;
+      setClientId(tx.client_id);
+      setDirection(tx.direction);
+      setType(tx.transaction_type);
+      setDate(tx.transaction_date);
+      setNotes(tx.notes ?? "");
+      setDaAmount(String(tx.da_amount ?? ""));
+      setFeePrice(String(tx.fee_price ?? ""));
+      const existingBars = (tx.bars ?? []).map((b, i) => ({
+        item_number: b.item_number ?? String(i + 1),
+        item_type: b.item_type,
+        gross_weight: String(b.gross_weight),
+        purity: String(b.purity),
+      }));
+      if (existingBars.length > 0) setBars(existingBars);
+      setLoadingExisting(false);
+    }).catch((err) => { toast.error(err instanceof Error ? err.message : "Load failed"); setLoadingExisting(false); });
+  }, [editingId]);
+
 
   const totals = useMemo(() => {
     let gross = 0, pure = 0;
