@@ -29,9 +29,10 @@ import {
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   getNetPositionPrice, saveNetPositionPrice,
   listPositionSnapshots, recordPositionSnapshot, type PositionSnapshot,
+  listClientNotes, addClientNote, deleteClientNote, type RefineryClientNote,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
-  type AccountStatement, type SettlementPair,
+  type AccountStatement, type SettlementPair, type StatementRow,
 } from "@/lib/refineries.functions";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
