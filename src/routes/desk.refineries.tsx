@@ -238,24 +238,38 @@ function RefineryShell({
   onSignOut: () => void;
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
+  const [stmtOpen, setStmtOpen] = useState(false);
+  const canStatement = assignment.isAdmin || assignment.role === "manager";
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
       <nav className="border-b border-border bg-card/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onTab(t.id)}
-              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                tab === t.id
-                  ? "border-ember text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 overflow-x-auto">
+          <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onTab(t.id)}
+                className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+                  tab === t.id
+                    ? "border-ember text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {canStatement && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setStmtOpen(true)}
+              className="my-1.5 ml-2 shrink-0 border-ember/50 text-ember hover:text-ember hover:bg-ember/10"
             >
-              {t.label}
-            </button>
-          ))}
+              <FileText className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Account Statement</span><span className="sm:hidden">Statement</span>
+            </Button>
+          )}
         </div>
       </nav>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
@@ -278,9 +292,17 @@ function RefineryShell({
           </>
         )}
       </div>
+      {canStatement && (
+        <AccountStatementDialog
+          open={stmtOpen}
+          onClose={() => setStmtOpen(false)}
+          refinery={refinery}
+        />
+      )}
     </main>
   );
 }
+
 
 // =============================================================
 // Dashboard tab
