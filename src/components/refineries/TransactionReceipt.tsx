@@ -198,8 +198,8 @@ export function TransactionReceiptReport({
           }}>
             <SummaryRow label="Total Gross Weight" value={fmtG(totalGross)} />
             <SummaryRow label="Total Pure Gold" value={fmtG(totalPure)} emphasis />
+            <SummaryRow label="Total Weight @ 730" value={fmtG(w730)} emphasis />
             {hasFee && <>
-              <SummaryRow label="Weight @ 730" value={fmtG(w730)} />
               <SummaryRow label="Refining Fee Price" value={`${num2(feePrice)} DA / g`} />
               <SummaryRow label="Total Refining Fee" value={fmtDA(totalFee)} accent last />
             </>}
