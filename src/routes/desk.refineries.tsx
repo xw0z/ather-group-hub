@@ -1033,7 +1033,7 @@ function TransactionFormPage({
                         <col />
                         <col />
                         <col />
-                        <col />
+                        {direction === "receiving" && <col />}
                         <col style={{ width: "56px" }} />
                       </colgroup>
                       <thead className="bg-muted/20 border-b border-border">
@@ -1042,7 +1042,7 @@ function TransactionFormPage({
                           <th className="p-3 text-right">Gross Weight (g)</th>
                           <th className="p-3 text-right">Purity</th>
                           <th className="p-3 text-right">Pure Gold (g)</th>
-                          <th className="p-3 text-right">Equivalent @ 730</th>
+                          {direction === "receiving" && <th className="p-3 text-right">Equivalent @ 730</th>}
                           <th className="p-3"></th>
                         </tr>
                       </thead>
@@ -1066,7 +1066,9 @@ function TransactionFormPage({
                                   onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} />
                               </td>
                               <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}</td>
-                              <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}</td>
+                              {direction === "receiving" && (
+                                <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}</td>
+                              )}
                               <td className="p-2 text-right">
                                 <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => rmBar(i)} disabled={bars.length === 1}>
                                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -1114,12 +1116,14 @@ function TransactionFormPage({
                               {g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Equivalent @ 730</Label>
-                            <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
-                              {g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}
+                          {direction === "receiving" && (
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Equivalent @ 730</Label>
+                              <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
+                                {g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </Card>
                     );
@@ -1142,10 +1146,12 @@ function TransactionFormPage({
                   <span className="text-muted-foreground">Total Pure Gold</span>
                   <span className="tabular-nums font-semibold">{fmtG(totals.pure)}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">Total Equivalent @ 730</span>
-                  <span className="tabular-nums font-semibold">{fmtG(totals.w730)}</span>
-                </div>
+                {direction === "receiving" && (
+                  <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                    <span className="text-muted-foreground">Total Equivalent @ 730</span>
+                    <span className="tabular-nums font-semibold">{fmtG(totals.w730)}</span>
+                  </div>
+                )}
                 {direction === "receiving" && (
                   <>
                     <div className="flex items-center justify-between gap-3 text-sm py-1 border-b border-border/60">
