@@ -159,6 +159,7 @@ function RefineriesPage() {
       tab={search.tab}
       action={search.action}
       txId={search.txId}
+      clientId={search.clientId}
       onTab={(t) => navigate({ to: "/desk/refineries", search: { r: activeRefinery.id, tab: t } })}
       onAction={(action, txId) =>
         navigate({ to: "/desk/refineries", search: { r: activeRefinery.id, tab: "transactions", action, txId } })
