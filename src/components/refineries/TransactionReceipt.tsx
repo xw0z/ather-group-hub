@@ -150,32 +150,39 @@ export function TransactionReceiptReport({
           <SectionLabel>Gold Bars</SectionLabel>
           <table style={{
             width: "100%", borderCollapse: "collapse",
-            border: `1.5px solid ${INK}`,
+            border: `1px solid ${LINE}`,
             tableLayout: "fixed",
           }}>
             <thead>
               <tr style={{ background: HEAD }}>
-                <Th width="12%" align="center">Bar #</Th>
+                <Th width="9%" align="center">#</Th>
                 <Th align="right">Gross Weight (g)</Th>
-                <Th align="right">Purity</Th>
+                <Th width="14%" align="center">Purity</Th>
                 <Th align="right">Pure Gold (g)</Th>
+                <Th align="right">Weight @ 730 (g)</Th>
               </tr>
             </thead>
             <tbody>
-              {tx.bars.map((b, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? PAPER : PAPER_ALT }}>
-                  <Td align="center" mono>{b.item_number ?? i + 1}</Td>
-                  <Td align="right" mono>{num2(Number(b.gross_weight))}</Td>
-                  <Td align="right" mono>{fmtPurity(Number(b.purity))}</Td>
-                  <Td align="right" mono strong>{num2(Number(b.pure_weight))}</Td>
-                </tr>
-              ))}
+              {tx.bars.map((b, i) => {
+                const pure = Number(b.pure_weight);
+                const barW730 = pure > 0 ? pure / 0.73 : 0;
+                return (
+                  <tr key={i} style={{ background: i % 2 === 0 ? PAPER : PAPER_ALT }}>
+                    <Td align="center" mono>{b.item_number ?? i + 1}</Td>
+                    <Td align="right" mono>{num2(Number(b.gross_weight))}</Td>
+                    <Td align="center" mono>{fmtPurity(Number(b.purity))}</Td>
+                    <Td align="right" mono strong>{num2(pure)}</Td>
+                    <Td align="right" mono>{num2(barW730)}</Td>
+                  </tr>
+                );
+              })}
               {/* Integrated totals row */}
               <tr style={{ background: HEAD, borderTop: `1.5px solid ${INK}` }}>
                 <Td align="center" strong style={{ textTransform: "uppercase", letterSpacing: 1, fontSize: 11 }}>Total</Td>
                 <Td align="right" mono strong style={{ fontSize: 13 }}>{num2(totalGross)}</Td>
-                <Td align="right" mono style={{ color: SUB }}>—</Td>
+                <Td align="center" mono style={{ color: SUB }}>—</Td>
                 <Td align="right" mono strong style={{ fontSize: 13, color: ORANGE }}>{num2(totalPure)}</Td>
+                <Td align="right" mono strong style={{ fontSize: 13, color: ORANGE }}>{num2(w730)}</Td>
               </tr>
             </tbody>
           </table>
