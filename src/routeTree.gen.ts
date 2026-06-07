@@ -42,6 +42,7 @@ import { Route as DeskRefineriesRefineryIdIndexRouteImport } from './routes/desk
 import { Route as DeskAppPurityIndexRouteImport } from './routes/desk.app.purity.index'
 import { Route as DeskRefineriesRefineryIdTabRouteImport } from './routes/desk.refineries.$refineryId.$tab'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
+import { Route as ApiPublicHooksRefineryDailyBackupRouteImport } from './routes/api/public/hooks/refinery-daily-backup'
 import { Route as DeskAppPurityTripsTripIdRouteImport } from './routes/desk.app.purity.trips.$tripId'
 
 const UnauthorizedRoute = UnauthorizedRouteImport.update({
@@ -212,6 +213,12 @@ const ApiPublicHooksSwapDailyFeesRoute =
     path: '/api/public/hooks/swap-daily-fees',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksRefineryDailyBackupRoute =
+  ApiPublicHooksRefineryDailyBackupRouteImport.update({
+    id: '/api/public/hooks/refinery-daily-backup',
+    path: '/api/public/hooks/refinery-daily-backup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DeskAppPurityTripsTripIdRoute =
   DeskAppPurityTripsTripIdRouteImport.update({
     id: '/desk/app/purity/trips/$tripId',
@@ -249,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
+  '/api/public/hooks/refinery-daily-backup': typeof ApiPublicHooksRefineryDailyBackupRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
   '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity/': typeof DeskAppPurityIndexRoute
@@ -285,6 +293,7 @@ export interface FileRoutesByTo {
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app': typeof DeskAppIndexRoute
+  '/api/public/hooks/refinery-daily-backup': typeof ApiPublicHooksRefineryDailyBackupRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
   '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity': typeof DeskAppPurityIndexRoute
@@ -322,6 +331,7 @@ export interface FileRoutesById {
   '/purity/trips/$tripId': typeof PurityTripsTripIdRoute
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
+  '/api/public/hooks/refinery-daily-backup': typeof ApiPublicHooksRefineryDailyBackupRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
   '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity/': typeof DeskAppPurityIndexRoute
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
     | '/desk/app/'
+    | '/api/public/hooks/refinery-daily-backup'
     | '/api/public/hooks/swap-daily-fees'
     | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity/'
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
     | '/desk/app'
+    | '/api/public/hooks/refinery-daily-backup'
     | '/api/public/hooks/swap-daily-fees'
     | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/purity/trips/$tripId'
     | '/swap/clients/$clientId'
     | '/desk/app/'
+    | '/api/public/hooks/refinery-daily-backup'
     | '/api/public/hooks/swap-daily-fees'
     | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity/'
@@ -469,6 +482,7 @@ export interface RootRouteChildren {
   PurityTripsTripIdRoute: typeof PurityTripsTripIdRoute
   SwapClientsClientIdRoute: typeof SwapClientsClientIdRoute
   DeskAppIndexRoute: typeof DeskAppIndexRoute
+  ApiPublicHooksRefineryDailyBackupRoute: typeof ApiPublicHooksRefineryDailyBackupRoute
   ApiPublicHooksSwapDailyFeesRoute: typeof ApiPublicHooksSwapDailyFeesRoute
   DeskAppPurityIndexRoute: typeof DeskAppPurityIndexRoute
   DeskAppPurityTripsTripIdRoute: typeof DeskAppPurityTripsTripIdRoute
@@ -707,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSwapDailyFeesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/refinery-daily-backup': {
+      id: '/api/public/hooks/refinery-daily-backup'
+      path: '/api/public/hooks/refinery-daily-backup'
+      fullPath: '/api/public/hooks/refinery-daily-backup'
+      preLoaderRoute: typeof ApiPublicHooksRefineryDailyBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/desk/app/purity/trips/$tripId': {
       id: '/desk/app/purity/trips/$tripId'
       path: '/desk/app/purity/trips/$tripId'
@@ -761,6 +782,8 @@ const rootRouteChildren: RootRouteChildren = {
   PurityTripsTripIdRoute: PurityTripsTripIdRoute,
   SwapClientsClientIdRoute: SwapClientsClientIdRoute,
   DeskAppIndexRoute: DeskAppIndexRoute,
+  ApiPublicHooksRefineryDailyBackupRoute:
+    ApiPublicHooksRefineryDailyBackupRoute,
   ApiPublicHooksSwapDailyFeesRoute: ApiPublicHooksSwapDailyFeesRoute,
   DeskAppPurityIndexRoute: DeskAppPurityIndexRoute,
   DeskAppPurityTripsTripIdRoute: DeskAppPurityTripsTripIdRoute,
