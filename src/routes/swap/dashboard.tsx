@@ -429,6 +429,7 @@ type NavItem = {
   module?: AppModule; // when set, requires `view` permission on this module
   adminOnly?: boolean;
   external?: string; // external link (e.g. /purity/dashboard)
+  refineryGated?: boolean; // visible when admin OR user has a refinery assignment
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -438,6 +439,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
   { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
   { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
+  { key: "refineries", label: "Refineries", icon: Factory, refineryGated: true },
   { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
   { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
   { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
