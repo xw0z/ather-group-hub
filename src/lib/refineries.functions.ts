@@ -269,16 +269,20 @@ export const listTransactions = createServerFn({ method: "POST" })
     await assertAccess(context.userId, data.refineryId);
     const { data: rows, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients(name, phone)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map((r) => {
-      const { client, ...rest } = r as typeof r & { client?: { name: string; phone: string | null } };
+      const { client, counterparty, ...rest } = r as typeof r & {
+        client?: { name: string; phone: string | null };
+        counterparty?: { name: string } | null;
+      };
       return {
         ...rest,
         client_name: client?.name ?? "",
         client_phone: client?.phone ?? null,
+        counterparty_client_name: counterparty?.name ?? null,
       } as RefineryTransaction;
     });
   });
@@ -289,7 +293,7 @@ export const getTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: tx, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients(name, phone)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
     await assertAccess(context.userId, (tx as { refinery_id: string }).refinery_id);
