@@ -862,11 +862,13 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       txIds.length
         ? supabaseAdmin
             .from("refinery_transactions")
-            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, da_amount, transaction_type, direction")
+            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, total_gross_weight, average_purity, fee_price, da_amount, transaction_type, direction")
             .in("id", txIds)
         : Promise.resolve({ data: [] as Array<{
             id: string; transaction_number: string; transaction_date: string;
-            total_refining_fee: number; total_pure_weight: number; da_amount: number;
+            total_refining_fee: number; total_pure_weight: number;
+            total_gross_weight: number; average_purity: number; fee_price: number;
+            da_amount: number;
             transaction_type: "da" | "gold"; direction: "receiving" | "delivery";
           }> }),
       clientIds.length
