@@ -3211,26 +3211,29 @@ function ProfileTab() {
         <p className="text-sm text-muted-foreground">Manage your account, security and preferences</p>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-border">
-        {subTabs.map((t) => {
-          const Icon = t.icon;
-          const active = sub === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setSub(t.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" /> {t.label}
-            </button>
-          );
-        })}
+      <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto border-b border-border">
+        <div className="flex gap-1 min-w-max">
+          {subTabs.map((t) => {
+            const Icon = t.icon;
+            const active = sub === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSub(t.id)}
+                className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {sub === "general" && (
-        <Card className="p-6 space-y-6">
+        <Card className="p-4 sm:p-6 space-y-6">
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p>
