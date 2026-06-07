@@ -516,7 +516,7 @@ export const createSettlement = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    return { group_id: groupId as string };
+    return { group_id: (groupId ?? "") as string };
   });
 
 export type SettlementPair = {
