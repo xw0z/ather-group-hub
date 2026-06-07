@@ -1250,7 +1250,71 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           </table>
         </div>
       </Card>
+      {adjustOpen && (
+        <AdjustStockDialog
+          refineryId={refinery.id}
+          currentGold={Number(stock.pure_gold_stock)}
+          currentDa={Number(stock.da_stock)}
+          onClose={() => setAdjustOpen(false)}
+          onSaved={() => { setAdjustOpen(false); load(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function AdjustStockDialog({
+  refineryId, currentGold, currentDa, onClose, onSaved,
+}: {
+  refineryId: string; currentGold: number; currentDa: number;
+  onClose: () => void; onSaved: () => void;
+}) {
+  const [gold, setGold] = useState(String(currentGold));
+  const [da, setDa] = useState(String(currentDa));
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const g = Number(gold); const d = Number(da);
+    if (!Number.isFinite(g) || g < 0 || !Number.isFinite(d) || d < 0) {
+      toast.error("Stock values must be zero or positive");
+      return;
+    }
+    setSaving(true);
+    try {
+      await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+      toast.success("Stock adjusted");
+      onSaved();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader><DialogTitle>Adjust stock</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Set the absolute stock values. A movement record will be created for the difference.
+          </p>
+          <div className="space-y-2">
+            <Label>Pure gold stock (g)</Label>
+            <Input type="number" step="any" min="0" value={gold} onChange={(e) => setGold(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>DA stock</Label>
+            <Input type="number" step="any" min="0" value={da} onChange={(e) => setDa(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Initial stock, recount, correction…" />
+          </div>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
