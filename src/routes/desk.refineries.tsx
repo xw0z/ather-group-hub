@@ -1674,7 +1674,7 @@ function AccountStatementDialog({
     const s = await ensureStatement(); if (!s) return;
     setBusy("pdf");
     try {
-      const canvases = await renderStatementToCanvases(s, "report");
+      const canvases = await renderStatementToCanvases(s);
       const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
@@ -1703,35 +1703,53 @@ function AccountStatementDialog({
     const s = await ensureStatement(); if (!s) return;
     setBusy(channel === "whatsapp" ? "share" : "png");
     try {
-      const [canvas] = await renderStatementToCanvases(s, "summary");
-      const blob: Blob = await new Promise((resolve, reject) =>
-        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("PNG failed")), "image/png")
-      );
+      const canvases = await renderStatementToCanvases(s);
+      // Stitch all pages vertically — identical content to the PDF, one PNG file.
+      const stitched = stitchCanvasesVertically(canvases);
+      const blob = await canvasToBlob(stitched, "image/png");
       const filename = `${fileBase}_${s.range.from}_${s.range.to}.png`;
       const file = new File([blob], filename, { type: "image/png" });
-      const nav = navigator as Navigator & {
-        canShare?: (d: ShareData) => boolean;
-        share?: (d: ShareData) => Promise<void>;
-      };
-      if (channel === "whatsapp" && nav.canShare?.({ files: [file] }) && nav.share) {
-        try { await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` }); }
-        catch { /* fallthrough to download */ }
-      } else {
+
+      let didShare = false;
+      if (channel === "whatsapp") {
+        const nav = navigator as Navigator & {
+          canShare?: (d: ShareData) => boolean;
+          share?: (d: ShareData) => Promise<void>;
+        };
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          try {
+            await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` });
+            didShare = true;
+          } catch (err) {
+            const name = (err as { name?: string } | null)?.name;
+            if (name === "AbortError") {
+              toast.message("Share cancelled");
+              return;
+            }
+            // Other errors: fall back to download.
+          }
+        }
+      }
+
+      if (!didShare) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
+
       await logRefineryReport({ data: {
         refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
         statement_number: s.statement_number, format: "PNG", channel,
       } }).catch(() => null);
       loadHistory();
-      toast.success(channel === "whatsapp" ? "Ready to share" : "PNG downloaded");
+      toast.success(channel === "whatsapp" && didShare ? "Shared" : "PNG ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "PNG failed");
-    } finally { setBusy(null); }
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
