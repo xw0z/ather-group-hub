@@ -3344,7 +3344,7 @@ function ProfileTab() {
             </form>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <h3 className="text-sm font-semibold mb-4">Account activity</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
@@ -3464,7 +3464,7 @@ function ProfileTab() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Recent logins</h3>
               <Button variant="outline" size="sm" onClick={signOutAll} disabled={signingOutAll}>
@@ -4966,7 +4966,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* A. Create Backup */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="font-display text-lg">A. Create Backup</h3>
@@ -4987,7 +4987,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* B. Restore Backup (from file) */}
-      <Card className="p-6 border-destructive/30">
+      <Card className="p-4 sm:p-6 border-destructive/30">
         <h3 className="font-display text-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-destructive" /> B. Restore Backup
         </h3>
@@ -5009,7 +5009,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* C. Backup History */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">C. Backup History</h3>
         <p className="text-sm text-muted-foreground">All saved backups for this refinery. Safety backups are created automatically before any restore.</p>
         <div className="mt-4 overflow-x-auto">
@@ -5063,7 +5063,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* D. Scheduled Backup Settings */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">D. Scheduled Backup Settings</h3>
         <p className="text-sm text-muted-foreground">Automatically create a backup every day at the chosen time.</p>
         {settings && (
@@ -5110,7 +5110,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       </Card>
 
       {/* Audit Log */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <h3 className="font-display text-lg">Audit Log</h3>
         <p className="text-sm text-muted-foreground">Recent backup and restore actions for this refinery.</p>
         <div className="mt-4 overflow-x-auto">
