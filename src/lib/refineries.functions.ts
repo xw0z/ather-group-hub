@@ -614,8 +614,11 @@ export const getSettlement = createServerFn({ method: "POST" })
     const kind = ((fromRow as { settlement_kind?: string }).settlement_kind ?? "gold") as "gold" | "da";
     const amount = Number((fromRow as { settlement_amount?: number }).settlement_amount ?? 0);
     const apply_fee = Boolean((fromRow as { settlement_apply_fee?: boolean }).settlement_apply_fee);
-    const fee_price = Number((fromRow as { fee_price?: number }).fee_price ?? 0);
-    const total_fee = Number((toRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const from_fee_price = Number((fromRow as { fee_price?: number }).fee_price ?? 0);
+    const to_fee_price = Number((toRow as { fee_price?: number }).fee_price ?? 0);
+    const from_fee_credit = Number((fromRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const to_fee_debit = Number((toRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const net_fee_profit = to_fee_debit - from_fee_credit;
     const weight_730 = kind === "gold" && apply_fee ? (amount * 1000) / 730 : 0;
 
     return {
@@ -624,7 +627,12 @@ export const getSettlement = createServerFn({ method: "POST" })
       transaction_date: (fromRow as { transaction_date: string }).transaction_date,
       created_at: (fromRow as { created_at: string }).created_at,
       created_by_name,
-      kind, amount, apply_fee, fee_price, total_fee, weight_730,
+      kind, amount, apply_fee,
+      fee_price: to_fee_price,
+      from_fee_price, to_fee_price,
+      from_fee_credit, to_fee_debit, net_fee_profit,
+      total_fee: to_fee_debit, weight_730,
+
       notes: (fromRow as { notes: string | null }).notes,
       from: {
         client_id: (fromRow as { client_id: string }).client_id,
