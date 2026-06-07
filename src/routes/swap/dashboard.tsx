@@ -595,6 +595,7 @@ export function SwapDashboard({
 
   const visibleNav = NAV_ITEMS.filter((n) => {
     if (n.adminOnly && !isAdmin) return false;
+    if (n.refineryGated) return isAdmin || Boolean(refineryAssignment?.refineryId);
     if (!n.module) return true; // dashboard always visible
     return can(perms, n.module, "view");
   });
