@@ -157,7 +157,7 @@ function StatementPage({
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 3, color: INK }}>ATHER GROUP</div>
             <div style={{ fontSize: 10, color: SUB, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>
-              Refinery Management System
+              {t("ref.statement.system")}
             </div>
           </div>
         </div>
@@ -167,9 +167,9 @@ function StatementPage({
             background: ORANGE_SOFT, color: ORANGE,
             padding: "4px 10px", borderRadius: 4,
             fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase",
-          }}>Account Statement</div>
+          }}>{t("ref.statement.title")}</div>
           <div style={{ fontSize: 9, color: SUB, marginTop: 6 }}>
-            Page {pageIdx + 1} of {totalPages}
+            {t("ref.statement.page")} {pageIdx + 1} {t("ref.statement.of")} {totalPages}
           </div>
         </div>
       </div>
