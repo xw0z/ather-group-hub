@@ -652,12 +652,12 @@ function StatCard({
 }) {
   const interactive = onClick ? "cursor-pointer hover:border-ember/40 transition-colors" : "";
   return (
-    <Card className={`p-4 ${interactive}`} onClick={onClick}>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+    <Card className={`p-3 sm:p-4 h-full flex flex-col justify-between ${interactive}`} onClick={onClick}>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">{label}</p>
         {icon}
       </div>
-      <p className={`text-xl font-semibold tabular-nums ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
+      <p className={`text-lg sm:text-xl font-semibold tabular-nums break-words ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
     </Card>
   );
 }
@@ -670,21 +670,24 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
   return (
     <Card
       onClick={onClick}
-      className={`p-4 bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
+      className={`p-3 sm:p-4 h-full flex flex-col justify-between bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Refinery Equity</p>
-        <Coins className="h-4 w-4 text-amber-500" />
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Refinery Equity</p>
+        <Coins className="h-4 w-4 text-amber-500 shrink-0" />
       </div>
-      <p className={`text-2xl font-semibold tabular-nums ${valueCls}`}>
-        {canCompute ? signed(equity, fmtG) : "—"}
-      </p>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1">
-        {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
-      </p>
+      <div>
+        <p className={`text-xl sm:text-2xl font-semibold tabular-nums break-words ${valueCls}`}>
+          {canCompute ? signed(equity, fmtG) : "—"}
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1 leading-tight">
+          {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
+        </p>
+      </div>
     </Card>
   );
 }
+
 
 function TodaysActivityCard({ data }: {
   data: {
