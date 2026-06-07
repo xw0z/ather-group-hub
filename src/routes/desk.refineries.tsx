@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
-  listClients, createClient, updateClient, adjustClientBalances,
+  listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard, adjustStock,
   getMyRefineryProfile, updateMyRefineryProfile,
