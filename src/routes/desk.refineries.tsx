@@ -588,8 +588,10 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
+  const canDelete = assignment.isAdmin || assignment.role === "manager";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -599,29 +601,21 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
   }, [refinery.id]);
   useEffect(() => { load(); }, [load]);
 
-  const handleSettle = async (id: string) => {
-    try {
-      await settleTransaction({ data: { id } });
-      toast.success("Transaction settled");
-      load();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Settle failed"); }
-  };
-
-  const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this transaction?")) return;
-    try { await cancelTransaction({ data: { id } }); toast.success("Cancelled"); load(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this transaction? Balances and stock will be reversed.")) return;
+    try { await deleteTransaction({ data: { id } }); toast.success("Transaction deleted"); load(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Transactions</h1>
           <p className="text-sm text-muted-foreground">{rows.length} transaction(s)</p>
         </div>
         {!readOnly && (
-          <Button onClick={() => setOpenNew(true)}>
+          <Button onClick={() => setOpenNew(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" /> New transaction
           </Button>
         )}
@@ -629,20 +623,20 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3">Date</th>
-                <th className="p-3">#</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Dir</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Gross</th>
-                <th className="p-3 text-right">Pure</th>
-                <th className="p-3 text-right">DA</th>
-                <th className="p-3 text-right">Fee</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3 whitespace-nowrap">Date</th>
+                <th className="p-3 whitespace-nowrap">#</th>
+                <th className="p-3 whitespace-nowrap">Client</th>
+                <th className="p-3 whitespace-nowrap">Dir</th>
+                <th className="p-3 whitespace-nowrap">Type</th>
+                <th className="p-3 text-right whitespace-nowrap">Gross</th>
+                <th className="p-3 text-right whitespace-nowrap">Pure</th>
+                <th className="p-3 text-right whitespace-nowrap">DA</th>
+                <th className="p-3 text-right whitespace-nowrap">Fee</th>
+                <th className="p-3 whitespace-nowrap">Status</th>
+                <th className="p-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -652,28 +646,28 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
               )}
               {rows.map((t) => (
                 <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
-                  <td className="p-3">{t.client_name}</td>
-                  <td className="p-3 capitalize">{t.direction}</td>
-                  <td className="p-3 uppercase">{t.transaction_type}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
-                  <td className="p-3"><StatusBadge status={t.status} /></td>
-                  <td className="p-3 text-right space-x-1">
-                    <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)}><FileText className="h-3.5 w-3.5" /></Button>
-                    {!readOnly && t.status === "pending" && (
-                      <Button size="sm" variant="ghost" className="text-emerald-500" onClick={() => handleSettle(t.id)}>
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    {assignment.isAdmin && t.status !== "cancelled" && (
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleCancel(t.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                  <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
+                  <td className="p-3 whitespace-nowrap">{t.client_name}</td>
+                  <td className="p-3 capitalize whitespace-nowrap">{t.direction}</td>
+                  <td className="p-3 uppercase whitespace-nowrap">{t.transaction_type}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
+                  <td className="p-3 whitespace-nowrap"><StatusBadge status={t.status} /></td>
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
+                      {!readOnly && t.status !== "cancelled" && (
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+                      )}
+                      {canDelete && t.status !== "cancelled" && (
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -683,10 +677,19 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
       </Card>
 
       {openNew && (
-        <NewTransactionDialog
+        <TransactionDialog
           refinery={refinery}
+          editingId={null}
           onClose={() => setOpenNew(false)}
-          onCreated={() => { setOpenNew(false); load(); }}
+          onSaved={() => { setOpenNew(false); load(); }}
+        />
+      )}
+      {editingId && (
+        <TransactionDialog
+          refinery={refinery}
+          editingId={editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={() => { setEditingId(null); load(); }}
         />
       )}
       {viewing && (
