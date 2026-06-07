@@ -700,25 +700,26 @@ function TodaysActivityCard({ data }: {
   };
 }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Today's Activity</p>
-        <TrendingUp className="h-4 w-4 text-emerald-500" />
+    <Card className="p-3 sm:p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Today's Activity</p>
+        <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0" />
       </div>
-      <p className="text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
-      <div className="text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
-        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayGoldBought)}</span></div>
-        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todayGoldSold)}</span></div>
-        <div className="flex justify-between"><span>Silver bought</span><span className="text-emerald-500">{fmtG(data.todaySilverBought)}</span></div>
-        <div className="flex justify-between"><span>Silver sold</span><span className="text-destructive">{fmtG(data.todaySilverSold)}</span></div>
-        <div className="flex justify-between"><span>Buy total</span><span className="text-emerald-500">{fmtDA(data.todayBuyTotal)}</span></div>
-        <div className="flex justify-between"><span>Sell total</span><span className="text-destructive">{fmtDA(data.todaySellTotal)}</span></div>
-        <div className="flex justify-between"><span>DA received</span><span className="text-emerald-500">{fmtDA(data.todayReceivedDa)}</span></div>
-        <div className="flex justify-between"><span>DA delivered</span><span className="text-destructive">{fmtDA(data.todayDeliveredDa)}</span></div>
+      <p className="text-lg sm:text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
+      <div className="text-[10px] sm:text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
+        <div className="flex justify-between gap-2"><span className="truncate">Gold bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todayGoldBought)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Gold sold</span><span className="text-destructive shrink-0">{fmtG(data.todayGoldSold)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Silver bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todaySilverBought)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Silver sold</span><span className="text-destructive shrink-0">{fmtG(data.todaySilverSold)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Buy total</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayBuyTotal)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Sell total</span><span className="text-destructive shrink-0">{fmtDA(data.todaySellTotal)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">DA received</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayReceivedDa)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">DA delivered</span><span className="text-destructive shrink-0">{fmtDA(data.todayDeliveredDa)}</span></div>
       </div>
     </Card>
   );
 }
+
 
 function txTypeBadge(t: RefineryTransaction) {
   const type = t.transaction_type;
