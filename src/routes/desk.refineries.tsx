@@ -706,7 +706,6 @@ function TransactionsTab({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
-                  <StatusBadge status={t.status} />
                 </div>
                 <p className="text-sm font-medium truncate mt-1">{t.client_name}</p>
                 <p className="text-xs text-muted-foreground">
