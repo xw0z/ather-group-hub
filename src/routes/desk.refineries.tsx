@@ -1538,7 +1538,7 @@ function ProfileTab() {
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p><p>{p.username ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p><p className="capitalize">{p.isAdmin ? "admin" : p.role ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Refinery</p><p>{p.refinery_name ?? "—"}</p></div>
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p><p className="capitalize">{p.status}</p></div>
+          
         </div>
 
         <form onSubmit={submit} className="space-y-4 border-t border-border pt-6">
