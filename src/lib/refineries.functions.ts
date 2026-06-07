@@ -944,8 +944,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         running_da: dasa,
       });
 
-      // For receiving_gold, also emit a derived "Refining Fee" line (client side; no stock movement)
+      // For receiving_gold, also emit a derived "Refining Fee" line with calculation details
       if (m.movement_type === "receiving_gold" && tx && Number(tx.total_refining_fee) > 0) {
+        const orig_w = Number(tx.total_gross_weight) || 0;
+        const orig_p = Number(tx.average_purity) || 0;
+        const w730 = orig_p > 0 ? (orig_w * orig_p) / 730 : 0;
         rows.push({
           date: dateStr,
           created_at: String(m.created_at),
@@ -959,6 +962,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           da_credit: 0,
           running_gold: ga,
           running_da: dasa,
+          original_weight: orig_w,
+          original_purity: orig_p,
+          weight_at_730: w730,
+          fee_price: Number(tx.fee_price) || 0,
+          fee_total: Number(tx.total_refining_fee) || 0,
         });
       }
     }
