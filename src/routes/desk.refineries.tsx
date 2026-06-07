@@ -266,16 +266,8 @@ function RefineryShell({
               </button>
             ))}
           </div>
-          {canStatement && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setStmtOpen(true)}
-              className="my-1.5 ml-2 shrink-0 border-ember/50 text-ember hover:text-ember hover:bg-ember/10"
-            >
-              <FileText className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Account Statement</span><span className="sm:hidden">Statement</span>
-            </Button>
-          )}
+
+
         </div>
       </nav>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
