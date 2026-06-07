@@ -13,6 +13,7 @@ import {
   swapNeedsBootstrap,
 } from "@/lib/swap-users.functions";
 import { getMyRefineryAssignment } from "@/lib/refineries.functions";
+import { recordLogin } from "@/lib/swap-profile.functions";
 
 
 async function postLoginRedirect(navigate: ReturnType<typeof useNavigate>) {
@@ -95,8 +96,16 @@ function DeskLoginPage() {
         await supabase.auth.signOut();
         throw new Error(t("auth.notAuthorized"));
       }
+      // Record login event (non-blocking)
+      try {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user?.id) {
+          void recordLogin({ data: { user_id: u.user.id, identifier: username.trim(), status: "success" } });
+        }
+      } catch { /* ignore */ }
       await postLoginRedirect(navigate);
     } catch (err) {
+      void recordLogin({ data: { identifier: username.trim(), status: "failed" } }).catch(() => {});
       setError(err instanceof Error ? err.message : t("auth.signInFailed"));
 
     } finally {
