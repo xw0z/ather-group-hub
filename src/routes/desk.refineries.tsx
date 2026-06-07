@@ -73,6 +73,10 @@ const balClass = (n: number) =>
   n > 0 ? "text-emerald-500" : n < 0 ? "text-destructive" : "text-muted-foreground";
 const signed = (n: number, fmt: (n: number) => string) =>
   `${n > 0 ? "+" : ""}${fmt(n)}`;
+const RECEIPT_BUCKET = "refinery-receipts";
+const RECEIPT_SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
+const receiptFileName = (receiptNumber: string, extension: "pdf" | "png") =>
+  `${receiptNumber.replace(/[^A-Za-z0-9._-]/g, "_")}.${extension}`;
 
 // =============================================================
 // Root page
@@ -1203,21 +1207,52 @@ function TransactionReceiptDialog({
     }
   }, [tx, refinery.name]);
 
+  const createReceiptPdfBlob = useCallback(async (): Promise<Blob> => {
+    const canvas = await renderReceiptCanvas();
+    if (!canvas) throw new Error("Render failed");
+    const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / canvas.height;
+    let w = pageW, h = w / ratio;
+    if (h > pageH) { h = pageH; w = h * ratio; }
+    const x = (pageW - w) / 2, y = (pageH - h) / 2;
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
+    return pdf.output("blob");
+  }, [renderReceiptCanvas]);
+
+  const uploadReceiptPdfAndGetSignedUrl = useCallback(async (): Promise<{ signedUrl: string; fileName: string }> => {
+    if (!tx) throw new Error("Receipt is not ready");
+    const fileName = receiptFileName(tx.transaction_number, "pdf");
+    const storagePath = `${tx.refinery_id}/${tx.id}/${fileName}`;
+    const pdfBlob = await createReceiptPdfBlob();
+
+    const { error: uploadError } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .upload(storagePath, pdfBlob, {
+        contentType: "application/pdf",
+        cacheControl: "3600",
+        upsert: true,
+      });
+    if (uploadError) throw new Error(uploadError.message);
+
+    const { data, error: signError } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .createSignedUrl(storagePath, RECEIPT_SIGNED_URL_SECONDS, { download: fileName });
+    if (signError || !data?.signedUrl) throw new Error(signError?.message || "Could not create share link");
+
+    return { signedUrl: data.signedUrl, fileName };
+  }, [createReceiptPdfBlob, tx]);
+
   const downloadPdf = async () => {
     if (!tx) return;
     setBusy("pdf");
     try {
-      const canvas = await renderReceiptCanvas();
-      if (!canvas) throw new Error("Render failed");
-      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = canvas.width / canvas.height;
-      let w = pageW, h = w / ratio;
-      if (h > pageH) { h = pageH; w = h * ratio; }
-      const x = (pageW - w) / 2, y = (pageH - h) / 2;
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
-      pdf.save(`receipt-${tx.transaction_number}.pdf`);
+      const pdfBlob = await createReceiptPdfBlob();
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url; a.download = receiptFileName(tx.transaction_number, "pdf"); a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "PDF failed");
@@ -1227,32 +1262,41 @@ function TransactionReceiptDialog({
   const exportPng = async (channel: "download" | "whatsapp") => {
     if (!tx) return;
     setBusy(channel === "whatsapp" ? "share" : "png");
+    const shareWindow = channel === "whatsapp" ? window.open("", "_blank") : null;
     try {
+      if (channel === "whatsapp") {
+        if (!shareWindow) throw new Error("WhatsApp popup was blocked");
+        const { signedUrl, fileName } = await uploadReceiptPdfAndGetSignedUrl();
+        const msg = encodeURIComponent(
+          `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
+          `Receipt: ${fileName}\n` +
+          `Transaction: ${tx.transaction_number}\n` +
+          `${signedUrl}`
+        );
+        const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
+        const whatsappUrl = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+        shareWindow.location.href = whatsappUrl;
+        toast.success("WhatsApp share link opened");
+        return;
+      }
+
       const canvas = await renderReceiptCanvas();
       if (!canvas) throw new Error("Render failed");
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG failed"))), "image/png"),
       );
       const url = URL.createObjectURL(blob);
-      if (channel === "download") {
-        const a = document.createElement("a");
-        a.href = url; a.download = `receipt-${tx.transaction_number}.png`; a.click();
-        toast.success("Image downloaded");
-      } else {
-        const msg = encodeURIComponent(
-          `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
-          `Transaction: ${tx.transaction_number}\n` +
-          `Direction: ${tx.direction === "receiving" ? "Receiving Gold" : "Delivery Gold"}\n` +
-          (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
-          (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
-          (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "")
-        );
-        const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
-        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-      }
+      const a = document.createElement("a");
+      a.href = url; a.download = receiptFileName(tx.transaction_number, "png"); a.click();
+      toast.success("Image downloaded");
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      shareWindow?.close();
+      toast.error(
+        channel === "whatsapp"
+          ? "Unable to share receipt. Please download the file and send it manually."
+          : e instanceof Error ? e.message : "Export failed",
+      );
     } finally { setBusy(null); }
   };
 
@@ -1274,7 +1318,7 @@ function TransactionReceiptDialog({
               <Button variant="outline" onClick={() => exportPng("download")} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />} Download Image
               </Button>
-              <Button onClick={() => exportPng("whatsapp")} disabled={busy !== null || !tx.client_phone} className="w-full sm:w-auto">
+              <Button onClick={() => exportPng("whatsapp")} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />} Share on WhatsApp
               </Button>
             </DialogFooter>
