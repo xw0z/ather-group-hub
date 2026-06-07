@@ -2379,6 +2379,24 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <p className="text-sm text-muted-foreground">{refinery.name} · refinery equity expressed in Pure Gold (real-time)</p>
       </div>
 
+      {/* HERO: Physical Pure Gold Stock (actual inventory only) */}
+      <Card className="p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Physical Pure Gold Stock</p>
+            <p className="font-display text-5xl tabular-nums text-amber-500 mt-1">
+              {fmtG(stock.pure_gold_stock)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Actual pure gold currently held by the refinery. Excludes receivables, payables, DA, and silver.
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-sm px-3 py-1 bg-amber-500/15 text-amber-500 border-amber-500/30">
+            Inventory
+          </Badge>
+        </div>
+      </Card>
+
       {/* HERO: Refinery Equity */}
       <Card className="p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
