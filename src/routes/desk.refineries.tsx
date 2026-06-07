@@ -252,30 +252,34 @@ function TopBar({
 }: { title: string; subtitle?: string; onSignOut: () => void; onBack?: () => void }) {
   const { t: tr } = useLang();
   return (
-    <header className="border-b border-border bg-card/40">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
+    <header className="border-b border-border bg-card/40 sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-card/60" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 h-12 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {onBack && (
-            <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-              <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
+            <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 sm:-ml-2 px-2 shrink-0">
+              <ArrowLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">{tr("ref.pageTitle")}</span>
             </Button>
           )}
-          <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
-            <Scale className="h-4 w-4 text-ember" />
+          <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
+            <Scale className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-ember" />
           </div>
-          <div className="min-w-0">
-            <p className="font-display text-xs sm:text-sm tracking-[0.18em] sm:tracking-[0.25em] truncate">ATHER DESK · {title}</p>
-            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-[11px] sm:text-sm tracking-[0.14em] sm:tracking-[0.25em] truncate">
+              <span className="hidden sm:inline">ATHER DESK · </span>{title}
+            </p>
+            {subtitle && <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{subtitle}</p>}
           </div>
-
         </div>
-        <Button variant="ghost" size="sm" onClick={onSignOut}>
-          <LogOut className="h-4 w-4 mr-1" /> {tr("ref.signOut")}
+        <Button variant="ghost" size="sm" onClick={onSignOut} className="px-2 shrink-0">
+          <LogOut className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">{tr("ref.signOut")}</span>
         </Button>
       </div>
     </header>
   );
 }
+
 
 // =============================================================
 // Shell with tabs
@@ -299,35 +303,61 @@ function RefineryShell({
 
   const { t: tr } = useLang();
 
+  const tabsScrollRef = useRef<HTMLDivElement | null>(null);
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const el = activeTabRef.current;
+    const scroller = tabsScrollRef.current;
+    if (!el || !scroller) return;
+    const elLeft = el.offsetLeft;
+    const target = elLeft - scroller.clientWidth / 2 + el.clientWidth / 2;
+    scroller.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [tab]);
+
+
   const tabsBar = (
-    <nav className="border-b border-border bg-card/20">
-      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
+    <nav className="border-b border-border bg-card/20 sticky top-12 sm:top-16 z-20 backdrop-blur supports-[backdrop-filter]:bg-card/40">
+      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} flex items-stretch`}>
         {embedded && onBack && (
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
-            <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
+          <Button variant="ghost" size="sm" onClick={onBack} className="rounded-none px-2 shrink-0 self-center ml-1">
+            <ArrowLeft className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">{tr("ref.pageTitle")}</span>
           </Button>
         )}
-        <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => (
-            <button
-              key={td.id}
-              onClick={() => onTab(td.id)}
-              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                tab === td.id
-                  ? "border-ember text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tr(td.key)}
-            </button>
-          ))}
+        <div
+          ref={tabsScrollRef}
+          className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden px-2 sm:px-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex gap-1 w-max">
+            {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => {
+              const isActive = tab === td.id;
+              return (
+                <button
+                  key={td.id}
+                  ref={isActive ? activeTabRef : undefined}
+                  onClick={() => onTab(td.id)}
+                  className={`px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "border-ember text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tr(td.key)}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </nav>
   );
 
   const body = (
-    <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-6 sm:py-8`}>
+    <div
+      className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-4 sm:py-8`}
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}
+    >
       {showTxForm ? (
         <TransactionFormPage
           refinery={refinery}
@@ -356,6 +386,7 @@ function RefineryShell({
       )}
     </div>
   );
+
 
   if (embedded) {
     return (
