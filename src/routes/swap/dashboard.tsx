@@ -549,22 +549,27 @@ export function SwapDashboard({
         setIsAdmin(me.isAdmin);
         setCanBackup(Boolean(me.canBackup));
         setUsername(me.username ?? "");
-        // Load refinery assignment in parallel; redirect refinery-only users
+        // Load refinery assignment; refinery-only users are blocked from /desk/app/*
+        let assignment: RefineryAssignment | null = null;
         try {
-          const a = await getMyRefineryAssignment();
+          assignment = await getMyRefineryAssignment();
           if (cancelled) return;
-          setRefineryAssignment(a);
-          if (!me.isAdmin && a.refineryId) {
+          setRefineryAssignment(assignment);
+        } catch { /* not assigned */ }
+        if (assignment && !me.isAdmin && assignment.refineryId) {
+          setReady(true);
+          setTimeout(() => {
+            if (cancelled) return;
             navigate({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               to: "/desk/refineries/$refineryId/$tab" as any,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              params: { refineryId: a.refineryId, tab: "dashboard" } as any,
+              params: { refineryId: assignment!.refineryId, tab: "dashboard" } as any,
               replace: true,
             });
-            return;
-          }
-        } catch { /* not assigned */ }
+          }, 1200);
+          return;
+        }
         setReady(true);
       } catch {
         navigate({ to: "/desk/login", replace: true });
@@ -589,6 +594,41 @@ export function SwapDashboard({
       <main className="min-h-screen bg-background text-foreground grid place-items-center">
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
 
+      </main>
+    );
+  }
+
+  // Refinery-only users must never see ATHER Desk modules.
+  if (!isAdmin && refineryAssignment?.refineryId) {
+    const rid = refineryAssignment.refineryId;
+    return (
+      <main className="min-h-screen bg-background text-foreground grid place-items-center px-6">
+        <div className="max-w-md w-full text-center space-y-4 border border-border/60 rounded-lg p-8 bg-card/40">
+          <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 border border-destructive/40 grid place-items-center">
+            <ShieldCheck className="h-6 w-6 text-destructive" />
+          </div>
+          <h1 className="text-lg font-semibold">Access denied</h1>
+          <p className="text-sm text-muted-foreground">
+            Refinery users can only access their assigned refinery area. Redirecting you now…
+          </p>
+          <button
+            className="text-xs underline text-primary"
+            onClick={() =>
+              navigate({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                to: "/desk/refineries/$refineryId/$tab" as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                params: { refineryId: rid, tab: "dashboard" } as any,
+                replace: true,
+              })
+            }
+          >
+            Go to my refinery
+          </button>
+          <div>
+            <button className="text-xs text-muted-foreground underline" onClick={signOut}>Sign out</button>
+          </div>
+        </div>
       </main>
     );
   }
