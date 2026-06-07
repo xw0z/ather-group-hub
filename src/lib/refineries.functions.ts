@@ -937,6 +937,7 @@ export type StatementRowType =
   | "refining_fee"
   | "da_received"
   | "da_paid"
+  | "settlement"
   | "adjustment"
   | "reversal";
 
