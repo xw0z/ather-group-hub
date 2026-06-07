@@ -67,6 +67,7 @@ export const Route = createFileRoute("/desk/refineries")({
     action: s.action === "new" || s.action === "edit" ? (s.action as "new" | "edit") : undefined,
     txId: typeof s.txId === "string" ? s.txId : undefined,
     filter: s.filter === "owing-gold" || s.filter === "owing-da" ? (s.filter as "owing-gold" | "owing-da") : undefined,
+    clientId: typeof s.clientId === "string" ? s.clientId : undefined,
   }),
   component: RefineriesPage,
 });
