@@ -40,14 +40,16 @@ import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "profile";
 const TABS: { id: Tab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "clients", label: "Clients" },
   { id: "transactions", label: "Transactions" },
+  { id: "buysell", label: "Buy / Sell" },
   { id: "stock", label: "Stock" },
   { id: "profile", label: "Profile" },
 ];
+
 
 export const Route = createFileRoute("/desk/refineries")({
   head: () => ({
