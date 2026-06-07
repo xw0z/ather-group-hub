@@ -230,12 +230,12 @@ function RefineryShell({
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
       <nav className="border-b border-border bg-card/20">
-        <div className="max-w-7xl mx-auto px-6 flex gap-1 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex gap-1 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => onTab(t.id)}
-              className={`px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
                 tab === t.id
                   ? "border-ember text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -246,7 +246,7 @@ function RefineryShell({
           ))}
         </div>
       </nav>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
         {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
         {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
         {tab === "transactions" && <TransactionsTab refinery={refinery} assignment={assignment} />}
