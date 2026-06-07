@@ -1468,6 +1468,9 @@ export function readStoredLang(): Lang {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => readStoredLang());
+  // Admin-configurable translation overrides applied on top of base dicts.
+  // Shape: { en: { key: value }, fr: {...}, ar: {...} }
+  const [overrides, setOverrides] = useState<Record<Lang, Dict>>({ en: {}, ar: {}, fr: {} });
 
   // Mirror to <html lang> / <html dir>
   useEffect(() => {
@@ -1476,12 +1479,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
 
-  // On mount, hydrate from the server-side global setting (if signed in).
-  // The localStorage cache provides the instant first paint; this just keeps
-  // the browser in sync with the platform-wide value chosen in Settings.
+  // Hydrate language from the signed-in user's per-user preference first,
+  // then fall back to the platform-wide setting if no per-user value exists.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Per-user preference
+      try {
+        const { getUserPreferences } = await import("@/lib/swap-profile.functions");
+        const r = await getUserPreferences();
+        const s = (r as { locale?: string }).locale;
+        if (!cancelled && (s === "en" || s === "ar" || s === "fr")) {
+          if (s !== readStoredLang()) {
+            window.localStorage.setItem(STORAGE_KEY, s);
+            window.dispatchEvent(new Event("desk-lang-change"));
+          }
+          setLangState(s);
+          return;
+        }
+      } catch {
+        /* unauthenticated or prefs missing — try platform fallback */
+      }
+      // Platform-wide fallback
       try {
         const { getPlatformLanguage } = await import("@/lib/swap-settings.functions");
         const r = await getPlatformLanguage();
@@ -1494,11 +1513,43 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           setLangState(s);
         }
       } catch {
-        /* unauthenticated or settings missing — keep local cache */
+        /* keep local cache */
       }
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Load admin translation overrides (everyone authenticated can read them).
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { listTranslationOverrides } = await import("@/lib/translations.functions");
+        const rows = await listTranslationOverrides();
+        if (cancelled) return;
+        const next: Record<Lang, Dict> = { en: {}, ar: {}, fr: {} };
+        for (const r of rows) {
+          if (r.locale === "en" || r.locale === "ar" || r.locale === "fr") {
+            next[r.locale][r.key] = r.value;
+          }
+        }
+        setOverrides(next);
+      } catch {
+        /* unauthenticated or table empty */
+      }
+    };
+    void load();
+    const onUpdate = () => void load();
+    if (typeof window !== "undefined") {
+      window.addEventListener("desk-translations-updated", onUpdate);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("desk-translations-updated", onUpdate);
+      }
     };
   }, []);
 
@@ -1511,7 +1562,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const onCustom = () => setLangState(readStoredLang());
     window.addEventListener("storage", onStorage);
     window.addEventListener("desk-lang-change", onCustom);
-    // Back-compat with old event name
     window.addEventListener("purity-lang-change", onCustom);
     return () => {
       window.removeEventListener("storage", onStorage);
@@ -1526,9 +1576,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       window.dispatchEvent(new Event("desk-lang-change"));
     }
     setLangState(l);
+    // Persist per-user (fire-and-forget; ignore errors when unauthenticated)
+    void (async () => {
+      try {
+        const { updateMyLocale } = await import("@/lib/swap-profile.functions");
+        await updateMyLocale({ data: { locale: l } });
+      } catch {
+        /* not signed in or backend unavailable — local cache still works */
+      }
+    })();
   };
 
-  const t = (key: string) => dicts[lang][key] ?? dicts.en[key] ?? key;
+  const t = (key: string) =>
+    overrides[lang][key] ??
+    dicts[lang][key] ??
+    overrides.en[key] ??
+    dicts.en[key] ??
+    key;
   const dir: "ltr" | "rtl" = lang === "ar" ? "rtl" : "ltr";
 
   return <LangCtx.Provider value={{ lang, setLang, t, dir }}>{children}</LangCtx.Provider>;
@@ -1540,7 +1604,6 @@ export const PurityLanguageProvider = LanguageProvider;
 export function useLang(): Ctx {
   const ctx = useContext(LangCtx);
   if (!ctx) {
-    // Fallback when used outside provider — read from storage, no reactive updates.
     const lang = readStoredLang();
     return {
       lang,
@@ -1554,3 +1617,9 @@ export function useLang(): Ctx {
 
 // Alias for the new platform-wide naming.
 export const useLanguage = useLang;
+
+// Export the base dictionaries for the Translation Management UI.
+export const baseDicts: Record<Lang, Dict> = dicts;
+export const translationKeys: string[] = Array.from(
+  new Set([...Object.keys(en), ...Object.keys(ar), ...Object.keys(fr)]),
+).sort();
