@@ -443,7 +443,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[760px]">
             <thead className="border-b border-border bg-muted/20">
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                 <th className="p-3">Client</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3 text-right">Purity</th>
