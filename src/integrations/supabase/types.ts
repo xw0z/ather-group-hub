@@ -1275,6 +1275,20 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_create_buysell: {
+        Args: {
+          _client_id: string
+          _date: string
+          _kind: string
+          _notes: string
+          _price_per_gram: number
+          _purity: number
+          _refinery_id: string
+          _settlement: string
+          _weight: number
+        }
+        Returns: string
+      }
       refinery_create_settlement: {
         Args: {
           _amount: number
