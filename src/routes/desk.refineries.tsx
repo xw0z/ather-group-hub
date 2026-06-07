@@ -1202,6 +1202,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [editing, setEditing] = useState<Movement | null>(null);
   const load = useCallback(async () => {
     try {
       const [s, m] = await Promise.all([
