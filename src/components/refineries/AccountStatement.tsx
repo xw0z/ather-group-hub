@@ -18,7 +18,7 @@ const PAPER_ALT = "#f7f8fa";
 const HEAD = "#eceef2";
 const RED = "#b3261e";
 const GREEN = "#1f7a4d";
-const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
+const MONO = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 
 const num2 = (n: number) =>
   Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
