@@ -942,7 +942,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
 
       <Card>
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
@@ -1014,7 +1014,70 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </tbody>
           </table>
         </div>
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {loading && <p className="p-6 text-center text-sm text-muted-foreground">Loading…</p>}
+          {!loading && filtered.length === 0 && (
+            <p className="p-6 text-center text-sm text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</p>
+          )}
+          {filtered.map((c) => {
+            const g = Number(c.purity_balance);
+            const d = Number(c.da_balance);
+            const tone: "negative" | "positive" | "neutral" =
+              g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
+            return (
+              <div
+                key={c.id}
+                className="p-3 active:bg-muted/30 cursor-pointer"
+                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <StatusDot tone={tone} />
+                      <span className="font-mono text-[11px] font-semibold tracking-wider">{c.code ?? "—"}</span>
+                    </div>
+                    <p className="font-medium text-sm truncate mt-0.5">{c.name}</p>
+                    {c.phone && <p className="text-[11px] text-muted-foreground truncate">{c.phone}</p>}
+                  </div>
+                  <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {canStatement && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-ember" onClick={() => setStmtClient(c)} title="Account Statement">
+                        <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {!readOnly && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Pure Gold</p>
+                    <p className={balClass(g)}>{signed(g, fmtG)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Dinar</p>
+                    <p className={balClass(d)}>{signed(d, fmtDA)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Fee/g</p>
+                    <p>{fmtDA(Number(c.refining_fee_price))}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Card>
+
 
       {open && (
         <ClientDialog
