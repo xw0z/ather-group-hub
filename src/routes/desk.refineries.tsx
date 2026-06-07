@@ -3275,7 +3275,7 @@ function ProfileTab() {
 
       {sub === "security" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <div>
               <h3 className="text-sm font-semibold">Change password</h3>
               <p className="text-xs text-muted-foreground">Your current password is required to set a new one.</p>
@@ -3366,7 +3366,7 @@ function ProfileTab() {
 
       {sub === "preferences" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold">Language</h3>
@@ -3396,7 +3396,7 @@ function ProfileTab() {
             </div>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Date format</h3>
             <Select value={prefs.date_format} onValueChange={(v) => savePref({ ...prefs, date_format: v as SwapPrefs["date_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
@@ -3408,7 +3408,7 @@ function ProfileTab() {
             </Select>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Number format</h3>
             <Select value={prefs.number_format} onValueChange={(v) => savePref({ ...prefs, number_format: v as SwapPrefs["number_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
@@ -3419,7 +3419,7 @@ function ProfileTab() {
             </Select>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h3 className="text-sm font-semibold">Theme</h3>
             <div className="grid grid-cols-3 gap-2 max-w-md">
               {([
@@ -3450,7 +3450,7 @@ function ProfileTab() {
 
       {sub === "sessions" && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-3">
+          <Card className="p-4 sm:p-6 space-y-3">
             <h3 className="text-sm font-semibold">Current session</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
@@ -4657,7 +4657,7 @@ function ClientDetailsPage({
       )}
 
       {activeTab === "statement" && (
-        <Card className="p-6 text-center space-y-3">
+        <Card className="p-4 sm:p-6 text-center space-y-3">
           <FileText className="h-8 w-8 mx-auto text-ember" />
           <h3 className="font-display text-lg">Generate Account Statement</h3>
           <p className="text-sm text-muted-foreground">Select a date range, preview, and download as PDF.</p>
