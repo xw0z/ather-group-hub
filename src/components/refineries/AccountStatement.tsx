@@ -429,14 +429,16 @@ export function AccountStatementSummary({ data }: { data: AccountStatement }) {
         </div>
       </div>
 
-      {/* Refinery + period */}
+      {/* Client + period */}
       <div style={{ marginTop: 44 }}>
-        <div style={{ fontSize: 13, color: GOLD_SOFT, letterSpacing: 4, textTransform: "uppercase" }}>Refinery</div>
-        <div style={{ fontSize: 56, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{data.refinery.name}</div>
+        <div style={{ fontSize: 13, color: GOLD_SOFT, letterSpacing: 4, textTransform: "uppercase" }}>Client</div>
+        <div style={{ fontSize: 56, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{data.client.name}</div>
+        <div style={{ fontSize: 16, color: "#bdb59f", marginTop: 4, letterSpacing: 1 }}>{data.refinery.name}</div>
         <div style={{ fontSize: 20, color: "#d9d4cc", marginTop: 8, letterSpacing: 1 }}>
           {fmtDate(data.range.from)}  →  {fmtDate(data.range.to)}
         </div>
       </div>
+
 
       {/* Balances split */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 44 }}>
