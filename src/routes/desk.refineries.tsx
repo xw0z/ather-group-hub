@@ -728,6 +728,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const [stmtClient, setStmtClient] = useState<RefineryClient | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const filter = search.filter;
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
   const canStatement = assignment.isAdmin || assignment.role === "manager";
@@ -751,19 +754,41 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   }, [refinery.id]);
   useEffect(() => { load(); }, [load]);
 
+  const filtered = clients.filter((c) => {
+    if (filter === "owing-gold") return Number(c.purity_balance) < 0;
+    if (filter === "owing-da") return Number(c.da_balance) < 0;
+    return true;
+  });
+  const filterLabel = filter === "owing-gold" ? "Clients owing gold" : filter === "owing-da" ? "Clients owing DA" : null;
+
+  const clearFilter = () =>
+    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Clients</h1>
-          <p className="text-sm text-muted-foreground">{clients.length} client(s) in {refinery.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {filterLabel
+              ? `${filtered.length} of ${clients.length} client(s) · filtered: ${filterLabel}`
+              : `${clients.length} client(s) in ${refinery.name}`}
+          </p>
         </div>
-        {!readOnly && (
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-1" /> New client
-          </Button>
-        )}
+        <div className="flex gap-2 w-full sm:w-auto">
+          {filter && (
+            <Button variant="outline" size="sm" onClick={clearFilter}>
+              <X className="h-4 w-4 mr-1" /> Clear filter
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-1" /> New client
+            </Button>
+          )}
+        </div>
       </div>
+
 
       <Card>
         <div className="overflow-x-auto">
