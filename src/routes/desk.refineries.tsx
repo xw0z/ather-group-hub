@@ -1628,8 +1628,8 @@ async function renderStatementToCanvases(
 }
 
 function AccountStatementDialog({
-  open, onClose, refinery,
-}: { open: boolean; onClose: () => void; refinery: Refinery }) {
+  open, onClose, refinery, client,
+}: { open: boolean; onClose: () => void; refinery: Refinery; client: RefineryClient }) {
   const [from, setFrom] = useState(isoMonthStart());
   const [to, setTo] = useState(isoToday());
   const [statement, setStatement] = useState<AccountStatement | null>(null);
@@ -1638,22 +1638,24 @@ function AccountStatementDialog({
   const [history, setHistory] = useState<StatementHistoryRow[]>([]);
 
   const loadHistory = useCallback(async () => {
-    try { setHistory(await listRefineryReportHistory({ data: { refineryId: refinery.id } })); }
+    try { setHistory(await listRefineryReportHistory({ data: { refineryId: refinery.id, clientId: client.id } })); }
     catch { /* ignore */ }
-  }, [refinery.id]);
+  }, [refinery.id, client.id]);
 
   useEffect(() => {
     if (open) { setStatement(null); loadHistory(); }
   }, [open, loadHistory]);
 
+  const fileBase = `${client.name.replace(/\s+/g, "_")}_Statement`;
+
   const preview = async () => {
     if (from > to) { toast.error("Start date must be before end date"); return; }
     setLoading(true);
     try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, from, to } });
+      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
       setStatement(s);
       await logRefineryReport({ data: {
-        refinery_id: refinery.id, date_from: from, date_to: to,
+        refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
         statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
       } }).catch(() => null);
       loadHistory();
@@ -1666,7 +1668,7 @@ function AccountStatementDialog({
     if (statement) return statement;
     if (from > to) { toast.error("Start date must be before end date"); return null; }
     try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, from, to } });
+      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
       setStatement(s);
       return s;
     } catch (e) {
@@ -1691,10 +1693,10 @@ function AccountStatementDialog({
         const x = (pageW - w) / 2, y = (pageH - h) / 2;
         pdf.addImage(c.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
       });
-      const filename = `${refinery.name.replace(/\s+/g, "_")}_Statement_${s.range.from}_${s.range.to}.pdf`;
+      const filename = `${fileBase}_${s.range.from}_${s.range.to}.pdf`;
       pdf.save(filename);
       await logRefineryReport({ data: {
-        refinery_id: refinery.id, date_from: from, date_to: to,
+        refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
         statement_number: s.statement_number, format: "PDF", channel: "download",
       } }).catch(() => null);
       loadHistory();
@@ -1712,14 +1714,14 @@ function AccountStatementDialog({
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => b ? resolve(b) : reject(new Error("PNG failed")), "image/png")
       );
-      const filename = `${refinery.name.replace(/\s+/g, "_")}_Statement_${s.range.from}_${s.range.to}.png`;
+      const filename = `${fileBase}_${s.range.from}_${s.range.to}.png`;
       const file = new File([blob], filename, { type: "image/png" });
       const nav = navigator as Navigator & {
         canShare?: (d: ShareData) => boolean;
         share?: (d: ShareData) => Promise<void>;
       };
       if (channel === "whatsapp" && nav.canShare?.({ files: [file] }) && nav.share) {
-        try { await nav.share({ files: [file], title: filename, text: `${refinery.name} statement` }); }
+        try { await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` }); }
         catch { /* fallthrough to download */ }
       } else {
         const url = URL.createObjectURL(blob);
@@ -1729,7 +1731,7 @@ function AccountStatementDialog({
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
       await logRefineryReport({ data: {
-        refinery_id: refinery.id, date_from: from, date_to: to,
+        refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
         statement_number: s.statement_number, format: "PNG", channel,
       } }).catch(() => null);
       loadHistory();
@@ -1744,9 +1746,11 @@ function AccountStatementDialog({
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display tracking-wide">
-            Account Statement — {refinery.name}
+            Account Statement — {client.name}
           </DialogTitle>
+          <p className="text-xs text-muted-foreground">{refinery.name}{client.phone ? ` · ${client.phone}` : ""}</p>
         </DialogHeader>
+
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
