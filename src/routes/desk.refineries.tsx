@@ -801,7 +801,7 @@ function TransactionsTab({
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && t.status !== "cancelled" && (
+                      {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
                         <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
                       {canDelete && (
