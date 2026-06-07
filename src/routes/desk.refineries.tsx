@@ -501,11 +501,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
                   <td className="p-3"><StatusBadge status={c.status} /></td>
                   <td className="p-3 text-right">
-                    {!readOnly && (
-                      <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    <div className="inline-flex gap-1">
+                      {!readOnly && (
+                        <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
