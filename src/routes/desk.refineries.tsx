@@ -1246,11 +1246,12 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                 <th className="p-3 text-right">DA Δ</th>
                 <th className="p-3 text-right">Gold after</th>
                 <th className="p-3 text-right">DA after</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {moves.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No movements</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No movements</td></tr>
               )}
               {moves.map((m) => (
                 <tr key={m.id} className="border-b border-border last:border-0">
@@ -1262,6 +1263,30 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(m.da_change))}`}>{Number(m.da_change) !== 0 ? signed(Number(m.da_change), fmtDA) : "—"}</td>
                   <td className="p-3 text-right tabular-nums">{fmtG(Number(m.gold_stock_after))}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(m.da_stock_after))}</td>
+                  <td className="p-3 text-right">
+                    {m.movement_type === "adjustment" ? (
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setEditing(m)} title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Delete"
+                          onClick={async () => {
+                            if (!confirm("Delete this stock adjustment? Stock will be reverted.")) return;
+                            try {
+                              await deleteStockAdjustment({ data: { movementId: m.id } });
+                              toast.success("Adjustment deleted");
+                              load();
+                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1275,6 +1300,16 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           currentDa={Number(stock.da_stock)}
           onClose={() => setAdjustOpen(false)}
           onSaved={() => { setAdjustOpen(false); load(); }}
+        />
+      )}
+      {editing && (
+        <AdjustStockDialog
+          refineryId={refinery.id}
+          currentGold={Number(editing.gold_stock_after)}
+          currentDa={Number(editing.da_stock_after)}
+          editMovementId={editing.id}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
         />
       )}
     </div>
