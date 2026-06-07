@@ -65,6 +65,8 @@ export type RefineryTransaction = {
   notes: string | null;
   settled_at: string | null;
   created_at: string;
+  created_by?: string | null;
+  created_by_name?: string | null;
   bars?: RefineryGoldBar[];
 };
 
