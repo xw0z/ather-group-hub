@@ -3453,20 +3453,20 @@ function AccountStatementDialog({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={preview} disabled={loading} className="flex-1 min-w-[120px]">
-            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Loading…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
+          <Button onClick={preview} disabled={loading || busy !== null} className="flex-1 min-w-[120px]">
+            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Preparing statement…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
           </Button>
-          <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={downloadPdf} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-            PDF
+            {loading && !statement ? "Preparing…" : "PDF"}
           </Button>
-          <Button variant="outline" onClick={() => downloadOrSharePng("download")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={() => downloadOrSharePng("download")} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />}
-            PNG
+            {loading && !statement ? "Preparing…" : "PNG"}
           </Button>
-          <Button variant="outline" onClick={() => downloadOrSharePng("whatsapp")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={() => downloadOrSharePng("whatsapp")} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />}
-            Share
+            {loading && !statement ? "Preparing…" : "Share"}
           </Button>
         </div>
 
