@@ -397,6 +397,7 @@ export type Database = {
       }
       refinery_clients: {
         Row: {
+          code: string | null
           created_at: string
           da_balance: number
           id: string
@@ -410,6 +411,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           da_balance?: number
           id?: string
@@ -423,6 +425,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           da_balance?: number
           id?: string
@@ -1737,6 +1740,10 @@ export type Database = {
       refinery_delete_stock_adjustment: {
         Args: { _tx_id: string }
         Returns: undefined
+      }
+      refinery_generate_client_code: {
+        Args: { _name: string }
+        Returns: string
       }
       refinery_restore_from_payload: {
         Args: { _payload: Json; _refinery_id: string }
