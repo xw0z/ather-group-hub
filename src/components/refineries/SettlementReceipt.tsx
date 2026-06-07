@@ -113,13 +113,13 @@ export function SettlementReceiptReport({
         alignItems: "stretch",
         border: `1px solid ${LINE}`, borderRadius: 6, overflow: "hidden",
       }}>
-        <PartyCell role="From Client" name={s.from.client_name} subRef={s.from.transaction_number} />
+        <PartyCell role="From Client" name={(s.from.client_code ?? s.from.client_name)} subRef={s.from.transaction_number} />
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
           background: ORANGE_SOFT, color: ORANGE, fontSize: 22, fontWeight: 800,
           borderLeft: `1px solid ${LINE}`, borderRight: `1px solid ${LINE}`,
         }}>→</div>
-        <PartyCell role="To Client" name={s.to.client_name} subRef={s.to.transaction_number} />
+        <PartyCell role="To Client" name={(s.to.client_code ?? s.to.client_name)} subRef={s.to.transaction_number} />
       </div>
 
       {/* ===== SETTLEMENT DETAILS ===== */}
@@ -146,7 +146,7 @@ export function SettlementReceiptReport({
               <Row label="Weight @ 730 Purity" value={hasFee ? fmtG(s.weight_730) : "—"} />
               <Row label="Refinery Fee Price" value={hasFee ? `${num2(s.fee_price)} DA / g` : "—"} />
               <Row label="Total Refinery Fee" value={hasFee ? fmtDA(s.total_fee) : "—"} accent={hasFee} strong={hasFee} />
-              <Row label="Fee Charged To" value={hasFee ? `${s.to.client_name} (Receiving)` : "Not applied"} />
+              <Row label="Fee Charged To" value={hasFee ? `${(s.to.client_code ?? s.to.client_name)} (Receiving)` : "Not applied"} />
             </>
           )}
         </tbody>
@@ -192,7 +192,7 @@ export function SettlementReceiptReport({
               {num2(s.weight_730)} g  ×  {num2(s.fee_price)} DA/g  =  <span style={{ color: ORANGE, fontWeight: 800 }}>{fmtDA(s.total_fee)}</span>
             </div>
             <div style={{ fontSize: 10, color: SUB, textAlign: "center", marginTop: 4, fontStyle: "italic" }}>
-              Weight @ 730 × Fee Price = Total Refinery Fee — charged to {s.to.client_name}
+              Weight @ 730 × Fee Price = Total Refinery Fee — charged to {(s.to.client_code ?? s.to.client_name)}
             </div>
           </div>
         </>
@@ -214,10 +214,10 @@ export function SettlementReceiptReport({
           </tr>
         </thead>
         <tbody>
-          <BalRow client={s.from.client_name} role="From" account="Gold" prev={s.from.previous_purity} delta={fromGoldDelta} next={s.from.new_purity} fmt={fmtG} />
-          <BalRow client={s.from.client_name} role="From" account="DA" prev={s.from.previous_da} delta={fromDaDelta} next={s.from.new_da} fmt={fmtDA} alt />
-          <BalRow client={s.to.client_name} role="To" account="Gold" prev={s.to.previous_purity} delta={toGoldDelta} next={s.to.new_purity} fmt={fmtG} divider />
-          <BalRow client={s.to.client_name} role="To" account="DA" prev={s.to.previous_da} delta={toDaDelta} next={s.to.new_da} fmt={fmtDA} alt />
+          <BalRow client={(s.from.client_code ?? s.from.client_name)} role="From" account="Gold" prev={s.from.previous_purity} delta={fromGoldDelta} next={s.from.new_purity} fmt={fmtG} />
+          <BalRow client={(s.from.client_code ?? s.from.client_name)} role="From" account="DA" prev={s.from.previous_da} delta={fromDaDelta} next={s.from.new_da} fmt={fmtDA} alt />
+          <BalRow client={(s.to.client_code ?? s.to.client_name)} role="To" account="Gold" prev={s.to.previous_purity} delta={toGoldDelta} next={s.to.new_purity} fmt={fmtG} divider />
+          <BalRow client={(s.to.client_code ?? s.to.client_name)} role="To" account="DA" prev={s.to.previous_da} delta={toDaDelta} next={s.to.new_da} fmt={fmtDA} alt />
         </tbody>
       </table>
 
