@@ -1837,6 +1837,8 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   const [saving, setSaving] = useState(false);
   const [draftGold, setDraftGold] = useState<string>("");
   const [draftSilver, setDraftSilver] = useState<string>("");
+  const [history, setHistory] = useState<PositionSnapshot[]>([]);
+  const [savingSnap, setSavingSnap] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
