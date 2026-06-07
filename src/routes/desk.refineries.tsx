@@ -505,7 +505,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(c.purity_balance))}`}>{signed(Number(c.purity_balance), fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(c.da_balance))}`}>{signed(Number(c.da_balance), fmtDA)}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
-                  <td className="p-3"><StatusBadge status={c.status} /></td>
+                  
                   <td className="p-3 text-right">
                     <div className="inline-flex gap-1">
                       {canStatement && (
