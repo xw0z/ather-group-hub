@@ -1609,3 +1609,89 @@ export const saveNetPositionPrice = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// =========================================================
+// Net Position — daily snapshots
+// =========================================================
+export type PositionSnapshot = {
+  id: string;
+  snapshotDate: string;
+  pureGoldStock: number;
+  silverStock: number;
+  daCashBalance: number;
+  netGoldPosition: number;
+  goldPrice: number | null;
+  silverPrice: number | null;
+  createdByUsername: string | null;
+  createdAt: string;
+};
+
+export const listPositionSnapshots = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      limit: z.number().int().min(1).max(365).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<PositionSnapshot[]> => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_position_snapshots")
+      .select("id, snapshot_date, pure_gold_stock, silver_stock, da_cash_balance, net_gold_position, gold_price, silver_price, created_by_username, created_at")
+      .eq("refinery_id", data.refineryId)
+      .order("snapshot_date", { ascending: false })
+      .limit(data.limit ?? 60);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({
+      id: r.id,
+      snapshotDate: r.snapshot_date,
+      pureGoldStock: Number(r.pure_gold_stock),
+      silverStock: Number(r.silver_stock),
+      daCashBalance: Number(r.da_cash_balance),
+      netGoldPosition: Number(r.net_gold_position),
+      goldPrice: r.gold_price == null ? null : Number(r.gold_price),
+      silverPrice: r.silver_price == null ? null : Number(r.silver_price),
+      createdByUsername: r.created_by_username,
+      createdAt: r.created_at,
+    }));
+  });
+
+export const recordPositionSnapshot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      pureGoldStock: z.number(),
+      silverStock: z.number(),
+      daCashBalance: z.number(),
+      netGoldPosition: z.number(),
+      goldPrice: z.number().nullable().optional(),
+      silverPrice: z.number().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
+    const today = new Date().toISOString().slice(0, 10);
+    const { error } = await supabaseAdmin
+      .from("refinery_position_snapshots")
+      .upsert(
+        {
+          refinery_id: data.refineryId,
+          snapshot_date: today,
+          pure_gold_stock: data.pureGoldStock,
+          silver_stock: data.silverStock,
+          da_cash_balance: data.daCashBalance,
+          net_gold_position: data.netGoldPosition,
+          gold_price: data.goldPrice ?? null,
+          silver_price: data.silverPrice ?? null,
+          created_by: context.userId,
+          created_by_username: prof?.username ?? null,
+        },
+        { onConflict: "refinery_id,snapshot_date" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
