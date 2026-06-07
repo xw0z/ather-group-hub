@@ -1136,6 +1136,44 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_reverse_transaction: {
+        Args: { _tx_id: string }
+        Returns: {
+          average_purity: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          da_amount: number
+          direction: Database["public"]["Enums"]["refinery_tx_direction"]
+          fee_price: number
+          id: string
+          new_da_balance: number | null
+          new_da_stock: number | null
+          new_gold_stock: number | null
+          new_purity_balance: number | null
+          notes: string | null
+          previous_da_balance: number | null
+          previous_da_stock: number | null
+          previous_gold_stock: number | null
+          previous_purity_balance: number | null
+          refinery_id: string
+          settled_at: string | null
+          status: Database["public"]["Enums"]["refinery_tx_status"]
+          total_gross_weight: number
+          total_pure_weight: number
+          total_refining_fee: number
+          transaction_date: string
+          transaction_number: string
+          transaction_type: Database["public"]["Enums"]["refinery_tx_type"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "refinery_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       refinery_settle_transaction: {
         Args: { _tx_id: string }
         Returns: {

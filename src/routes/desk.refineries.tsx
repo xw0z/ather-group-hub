@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
-  TrendingUp, TrendingDown, AlertTriangle, Check, Pencil, Image as ImageIcon,
+  TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon,
 } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient,
-  listTransactions, createTransaction, settleTransaction, cancelTransaction, getTransaction,
+  listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard,
   getMyRefineryProfile, updateMyRefineryProfile,
   type Refinery, type RefineryClient, type RefineryTransaction,
@@ -152,7 +152,7 @@ function RefineryPicker({
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <h1 className="font-display text-3xl mb-2">Refineries</h1>
         <p className="text-sm text-muted-foreground mb-8">
           Choose a refinery to manage its clients, transactions, and stock.
@@ -190,20 +190,21 @@ function TopBar({
 }: { title: string; subtitle?: string; onSignOut: () => void; onBack?: () => void }) {
   return (
     <header className="border-b border-border bg-card/40">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           {onBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
               <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
             </Button>
           )}
-          <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
             <Scale className="h-4 w-4 text-ember" />
           </div>
-          <div>
-            <p className="font-display text-sm tracking-[0.25em]">ATHER DESK · {title}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+          <div className="min-w-0">
+            <p className="font-display text-xs sm:text-sm tracking-[0.18em] sm:tracking-[0.25em] truncate">ATHER DESK · {title}</p>
+            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
           </div>
+
         </div>
         <Button variant="ghost" size="sm" onClick={onSignOut}>
           <LogOut className="h-4 w-4 mr-1" /> Sign out
@@ -230,12 +231,12 @@ function RefineryShell({
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
       <nav className="border-b border-border bg-card/20">
-        <div className="max-w-7xl mx-auto px-6 flex gap-1 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex gap-1 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => onTab(t.id)}
-              className={`px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
                 tab === t.id
                   ? "border-ember text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -246,7 +247,7 @@ function RefineryShell({
           ))}
         </div>
       </nav>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
         {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
         {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
         {tab === "transactions" && <TransactionsTab refinery={refinery} assignment={assignment} />}
@@ -285,17 +286,17 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Coins className="h-4 w-4" />} label="Pure Gold Stock" value={fmtG(Number(data.stock.pure_gold_stock))} />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Stock" value={fmtDA(Number(data.stock.da_stock))} />
         <StatCard label="Total clients" value={String(data.totalClients)} />
-        <StatCard label="Today's transactions" value={String(data.todayCount)} />
+        <StatCard label="Today's tx" value={String(data.todayCount)} />
         <StatCard label="Negative purity" value={String(data.negativePurity)} tone={data.negativePurity > 0 ? "warn" : undefined} />
         <StatCard label="Negative DA" value={String(data.negativeDa)} tone={data.negativeDa > 0 ? "warn" : undefined} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Today received gold" value={fmtG(data.todayReceivedGold)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Today delivered gold" value={fmtG(data.todayDeliveredGold)} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Today received DA" value={fmtDA(data.todayReceivedDa)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Today delivered DA" value={fmtDA(data.todayDeliveredDa)} />
+        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received gold today" value={fmtG(data.todayReceivedGold)} />
+        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered gold today" value={fmtG(data.todayDeliveredGold)} />
+        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received DA today" value={fmtDA(data.todayReceivedDa)} />
+        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered DA today" value={fmtDA(data.todayDeliveredDa)} />
       </div>
 
       <section>
@@ -360,9 +361,9 @@ function StatCard({ icon, label, value, tone }: { icon?: React.ReactNode; label:
 function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_name?: string }> }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm min-w-[760px]">
         <thead className="border-b border-border bg-muted/20">
-          <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+          <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
             <th className="p-3">Date</th>
             <th className="p-3">#</th>
             <th className="p-3">Client</th>
@@ -426,13 +427,13 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Clients</h1>
           <p className="text-sm text-muted-foreground">{clients.length} client(s) in {refinery.name}</p>
         </div>
         {!readOnly && (
-          <Button onClick={() => { setEditing(null); setOpen(true); }}>
+          <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" /> New client
           </Button>
         )}
@@ -440,9 +441,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead className="border-b border-border bg-muted/20">
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                 <th className="p-3">Client</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3 text-right">Purity</th>
@@ -529,7 +530,7 @@ function ClientDialog({
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{editing ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
@@ -587,8 +588,10 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
+  const canDelete = assignment.isAdmin || assignment.role === "manager";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -598,29 +601,21 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
   }, [refinery.id]);
   useEffect(() => { load(); }, [load]);
 
-  const handleSettle = async (id: string) => {
-    try {
-      await settleTransaction({ data: { id } });
-      toast.success("Transaction settled");
-      load();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Settle failed"); }
-  };
-
-  const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this transaction?")) return;
-    try { await cancelTransaction({ data: { id } }); toast.success("Cancelled"); load(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this transaction? Balances and stock will be reversed.")) return;
+    try { await deleteTransaction({ data: { id } }); toast.success("Transaction deleted"); load(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Transactions</h1>
           <p className="text-sm text-muted-foreground">{rows.length} transaction(s)</p>
         </div>
         {!readOnly && (
-          <Button onClick={() => setOpenNew(true)}>
+          <Button onClick={() => setOpenNew(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" /> New transaction
           </Button>
         )}
@@ -628,20 +623,20 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3">Date</th>
-                <th className="p-3">#</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Dir</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Gross</th>
-                <th className="p-3 text-right">Pure</th>
-                <th className="p-3 text-right">DA</th>
-                <th className="p-3 text-right">Fee</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3 whitespace-nowrap">Date</th>
+                <th className="p-3 whitespace-nowrap">#</th>
+                <th className="p-3 whitespace-nowrap">Client</th>
+                <th className="p-3 whitespace-nowrap">Dir</th>
+                <th className="p-3 whitespace-nowrap">Type</th>
+                <th className="p-3 text-right whitespace-nowrap">Gross</th>
+                <th className="p-3 text-right whitespace-nowrap">Pure</th>
+                <th className="p-3 text-right whitespace-nowrap">DA</th>
+                <th className="p-3 text-right whitespace-nowrap">Fee</th>
+                <th className="p-3 whitespace-nowrap">Status</th>
+                <th className="p-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -651,28 +646,28 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
               )}
               {rows.map((t) => (
                 <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
-                  <td className="p-3">{t.client_name}</td>
-                  <td className="p-3 capitalize">{t.direction}</td>
-                  <td className="p-3 uppercase">{t.transaction_type}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
-                  <td className="p-3"><StatusBadge status={t.status} /></td>
-                  <td className="p-3 text-right space-x-1">
-                    <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)}><FileText className="h-3.5 w-3.5" /></Button>
-                    {!readOnly && t.status === "pending" && (
-                      <Button size="sm" variant="ghost" className="text-emerald-500" onClick={() => handleSettle(t.id)}>
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    {assignment.isAdmin && t.status !== "cancelled" && (
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleCancel(t.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                  <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
+                  <td className="p-3 whitespace-nowrap">{t.client_name}</td>
+                  <td className="p-3 capitalize whitespace-nowrap">{t.direction}</td>
+                  <td className="p-3 uppercase whitespace-nowrap">{t.transaction_type}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
+                  <td className="p-3 whitespace-nowrap"><StatusBadge status={t.status} /></td>
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
+                      {!readOnly && t.status !== "cancelled" && (
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+                      )}
+                      {canDelete && t.status !== "cancelled" && (
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -682,10 +677,19 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
       </Card>
 
       {openNew && (
-        <NewTransactionDialog
+        <TransactionDialog
           refinery={refinery}
+          editingId={null}
           onClose={() => setOpenNew(false)}
-          onCreated={() => { setOpenNew(false); load(); }}
+          onSaved={() => { setOpenNew(false); load(); }}
+        />
+      )}
+      {editingId && (
+        <TransactionDialog
+          refinery={refinery}
+          editingId={editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={() => { setEditingId(null); load(); }}
         />
       )}
       {viewing && (
@@ -700,9 +704,10 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
 // =============================================================
 type Bar = { item_number: string; item_type: "bar" | "scrap"; gross_weight: string; purity: string };
 
-function NewTransactionDialog({
-  refinery, onClose, onCreated,
-}: { refinery: Refinery; onClose: () => void; onCreated: () => void }) {
+function TransactionDialog({
+  refinery, editingId, onClose, onSaved,
+}: { refinery: Refinery; editingId: string | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = Boolean(editingId);
   const [clients, setClients] = useState<RefineryClient[]>([]);
   const [clientId, setClientId] = useState<string>("");
   const [direction, setDirection] = useState<RefineryDirection>("receiving");
@@ -713,17 +718,41 @@ function NewTransactionDialog({
   const [feePrice, setFeePrice] = useState("");
   const [bars, setBars] = useState<Bar[]>([{ item_number: "1", item_type: "bar", gross_weight: "", purity: "" }]);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEdit);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
-      .then((rs) => setClients(rs.filter((c) => c.status === "active")))
+      .then((rs) => setClients(rs))
       .catch(() => {});
   }, [refinery.id]);
 
+  useEffect(() => {
+    if (!editingId) return;
+    getTransaction({ data: { id: editingId } }).then((t) => {
+      const tx = t as RefineryTransaction;
+      setClientId(tx.client_id);
+      setDirection(tx.direction);
+      setType(tx.transaction_type);
+      setDate(tx.transaction_date);
+      setNotes(tx.notes ?? "");
+      setDaAmount(String(tx.da_amount ?? ""));
+      setFeePrice(String(tx.fee_price ?? ""));
+      const existingBars = (tx.bars ?? []).map((b, i) => ({
+        item_number: b.item_number ?? String(i + 1),
+        item_type: b.item_type,
+        gross_weight: String(b.gross_weight),
+        purity: String(b.purity),
+      }));
+      if (existingBars.length > 0) setBars(existingBars);
+      setLoadingExisting(false);
+    }).catch((err) => { toast.error(err instanceof Error ? err.message : "Load failed"); setLoadingExisting(false); });
+  }, [editingId]);
+
+
   const client = clients.find((c) => c.id === clientId);
   useEffect(() => {
-    if (client && !feePrice) setFeePrice(String(client.refining_fee_price));
-  }, [client, feePrice]);
+    if (!isEdit && client && !feePrice) setFeePrice(String(client.refining_fee_price));
+  }, [client, feePrice, isEdit]);
 
   const totals = useMemo(() => {
     let gross = 0, pure = 0;
@@ -771,19 +800,33 @@ function NewTransactionDialog({
             purity: Number(b.purity),
           }));
       }
-      await createTransaction({ data: payload });
-      toast.success("Transaction created (pending). Click ✓ to settle.");
-      onCreated();
+      if (isEdit && editingId) {
+        await updateTransaction({ data: { ...payload, id: editingId } });
+        toast.success("Transaction updated");
+      } else {
+        await createTransaction({ data: payload });
+        toast.success("Transaction saved");
+      }
+      onSaved();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSaving(false); }
   };
 
+  if (loadingExisting) {
+    return (
+      <Dialog open onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-3xl"><p className="text-sm text-muted-foreground py-8 text-center">Loading…</p></DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>New transaction</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader><DialogTitle>{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
             <div className="space-y-2">
               <Label>Direction</Label>
               <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
@@ -806,7 +849,7 @@ function NewTransactionDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Client *</Label>
               <Select value={clientId} onValueChange={setClientId}>
@@ -855,7 +898,7 @@ function NewTransactionDialog({
                 </div>
                 <Card>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm min-w-[560px]">
                       <thead className="bg-muted/20 border-b border-border">
                         <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
                           <th className="p-2">#</th>
@@ -979,7 +1022,7 @@ function TransactionReceiptDialog({
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
         <DialogHeader><DialogTitle>Transaction receipt</DialogTitle></DialogHeader>
         {!tx ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
@@ -1057,11 +1100,11 @@ function TransactionReceiptDialog({
                 </div>
               )}
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => exportPng("download")}>
+            <DialogFooter className="gap-2 flex-col sm:flex-row">
+              <Button variant="outline" onClick={() => exportPng("download")} className="w-full sm:w-auto">
                 <ImageIcon className="h-4 w-4 mr-1" /> Download image
               </Button>
-              <Button onClick={() => exportPng("whatsapp")}>
+              <Button onClick={() => exportPng("whatsapp")} className="w-full sm:w-auto">
                 <Share2 className="h-4 w-4 mr-1" /> Share on WhatsApp
               </Button>
             </DialogFooter>
@@ -1116,9 +1159,9 @@ function StockTab({ refinery }: { refinery: Refinery }) {
       </div>
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                 <th className="p-3">Date</th>
                 <th className="p-3">#</th>
                 <th className="p-3">Client</th>
@@ -1196,7 +1239,7 @@ function ProfileTab() {
         <p className="text-sm text-muted-foreground">Update your account details</p>
       </div>
       <Card className="p-6">
-        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Email</p><p>{p.email ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p><p>{p.username ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p><p className="capitalize">{p.isAdmin ? "admin" : p.role ?? "—"}</p></div>
