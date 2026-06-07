@@ -177,7 +177,7 @@ function StatementPage({
         fontSize: 9, color: MUTED, letterSpacing: 1,
         paddingTop: 8, borderTop: `1px solid ${LINE}`,
       }}>
-        <span>ATHER DESK · Refinery Account Statement · {data.refinery.name}</span>
+        <span>ATHER DESK · Account Statement · {data.client.name} · {data.refinery.name}</span>
         <span>{data.statement_number} · Page {pageIdx + 1}/{totalPages}</span>
       </div>
     </div>
