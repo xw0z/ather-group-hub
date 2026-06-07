@@ -404,20 +404,21 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
   if (loading || !data) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
-  // ---- Equity calculation (mirrors NetPositionTab) ----
+  // ---- Equity calculation (Pure Gold Equivalent only) ----
+  // Equity = Physical Pure Gold + Net Pure Gold owed by clients − Net Pure Gold owed to clients
   const goldPrice = Number(data.goldPrice || 0);
   const silverPrice = Number(data.silverPrice || 0);
-  const canCompute = goldPrice > 0;
+  const canCompute = true; // pure-gold equity does not depend on prices
   const silverStock = Number((data.stock as { silver_stock?: number }).silver_stock ?? 0);
   const daCash = Number(data.stock.da_stock);
   const goldStock = Number(data.stock.pure_gold_stock);
-  const silverEq = canCompute ? (silverStock * silverPrice) / goldPrice : 0;
-  const daCashEq = canCompute ? daCash / goldPrice : 0;
-  const clientsOweDaEq = canCompute ? data.clientsOweDa / goldPrice : 0;
-  const refineryOwesDaEq = canCompute ? data.refineryOwesDa / goldPrice : 0;
+  const silverEq = goldPrice > 0 ? (silverStock * silverPrice) / goldPrice : 0;
+  const daCashEq = goldPrice > 0 ? daCash / goldPrice : 0;
+  const clientsOweDaEq = goldPrice > 0 ? data.clientsOweDa / goldPrice : 0;
+  const refineryOwesDaEq = goldPrice > 0 ? data.refineryOwesDa / goldPrice : 0;
   const totalAssets = goldStock + silverEq + daCashEq + data.clientsOweGold + clientsOweDaEq;
   const totalLiabilities = data.refineryOwesGold + refineryOwesDaEq;
-  const refineryEquity = totalAssets - totalLiabilities;
+  const refineryEquity = goldStock + data.clientsOweGold - data.refineryOwesGold;
 
   // ---- Alerts ----
   type Alert = { tone: "danger" | "warn"; text: string; onClick?: () => void };
