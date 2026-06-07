@@ -645,6 +645,7 @@ export type SettlementPair = {
   from: {
     client_id: string;
     client_name: string;
+    client_code: string | null;
     transaction_number: string;
     previous_purity: number; new_purity: number;
     previous_da: number; new_da: number;
@@ -652,6 +653,7 @@ export type SettlementPair = {
   to: {
     client_id: string;
     client_name: string;
+    client_code: string | null;
     transaction_number: string;
     previous_purity: number; new_purity: number;
     previous_da: number; new_da: number;
