@@ -51,6 +51,14 @@ import {
   updateSwapOwnPassword,
   getSwapOwnProfile,
   updateSwapOwnProfile,
+  setAvatar,
+  removeAvatar,
+  getLoginHistory,
+  getNotificationPrefs,
+  updateNotificationPrefs,
+  getUserPreferences,
+  updateUserPreferences,
+  signOutEverywhere,
 } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { logClientAuditEvent } from "@/lib/swap-audit.functions";
