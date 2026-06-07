@@ -3210,17 +3210,30 @@ async function renderStatementToCanvases(
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
-    await new Promise<void>((resolve) => {
-      root.render(<AccountStatementReport data={statement} />);
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
+    root.render(<AccountStatementReport data={statement} />);
+
+    // Poll until React 18 concurrent renderer has committed AND pages are laid out.
+    // The previous double-rAF approach raced on first click (commit hadn't happened yet).
+    const waitForPages = async (): Promise<HTMLElement[]> => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const wrapper = host.firstElementChild as HTMLElement | null;
+        if (wrapper) {
+          const pages = Array.from(
+            wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"),
+          );
+          if (pages.length > 0 && pages[0].offsetHeight > 0) return pages;
+        }
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      }
+      throw new Error("Statement renderer timed out before producing pages");
+    };
+
+    const pages = await waitForPages();
     // Wait for fonts so text is crisp
     try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
-
-    const wrapper = host.firstElementChild as HTMLElement | null;
-    if (!wrapper) throw new Error("Statement render failed");
-    const pages = Array.from(wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"));
-    if (pages.length === 0) throw new Error("Statement has no pages");
+    // One more frame so font swap is painted before capture.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     const canvases: HTMLCanvasElement[] = [];
     for (const page of pages) {
@@ -3233,6 +3246,10 @@ async function renderStatementToCanvases(
       canvases.push(c);
     }
     return canvases;
+  } catch (err) {
+    // Surface technical detail in the console for debugging; the caller shows a clean toast.
+    console.error("[AccountStatement] renderStatementToCanvases failed:", err);
+    throw err;
   } finally {
     try { root.unmount(); } catch { /* noop */ }
     try { host.remove(); } catch { /* noop */ }
@@ -3287,33 +3304,48 @@ function AccountStatementDialog({
 
   const fileBase = `${(client.code ?? client.name).replace(/\s+/g, "_")}_Statement`;
 
-  const preview = async () => {
-    if (from > to) { toast.error("Start date must be before end date"); return; }
-    setLoading(true);
-    try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
-      setStatement(s);
-      await logRefineryReport({ data: {
-        refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
-        statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
-      } }).catch(() => null);
-      loadHistory();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally { setLoading(false); }
-  };
+  const loadStatement = useCallback(
+    async (silent = false): Promise<AccountStatement | null> => {
+      if (from > to) {
+        if (!silent) toast.error("Start date must be before end date");
+        return null;
+      }
+      setLoading(true);
+      try {
+        const s = await getAccountStatement({
+          data: { refineryId: refinery.id, clientId: client.id, from, to },
+        });
+        setStatement(s);
+        await logRefineryReport({ data: {
+          refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
+          statement_number: s.statement_number, format: "PREVIEW", channel: "preview",
+        } }).catch(() => null);
+        loadHistory();
+        return s;
+      } catch (e) {
+        console.error("[AccountStatement] load failed:", e);
+        if (!silent) toast.error(e instanceof Error ? e.message : "Failed to load statement");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [from, to, refinery.id, client.id, loadHistory],
+  );
+
+  // Auto-load statement when dialog opens or date range changes so the
+  // renderer is always primed before the user clicks PDF / PNG / Share.
+  useEffect(() => {
+    if (!open) return;
+    void loadStatement(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, from, to]);
+
+  const preview = () => loadStatement(false);
 
   const ensureStatement = async (): Promise<AccountStatement | null> => {
     if (statement) return statement;
-    if (from > to) { toast.error("Start date must be before end date"); return null; }
-    try {
-      const s = await getAccountStatement({ data: { refineryId: refinery.id, clientId: client.id, from, to } });
-      setStatement(s);
-      return s;
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-      return null;
-    }
+    return loadStatement(false);
   };
 
   const downloadPdf = async () => {
@@ -3421,20 +3453,20 @@ function AccountStatementDialog({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={preview} disabled={loading} className="flex-1 min-w-[120px]">
-            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Loading…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
+          <Button onClick={preview} disabled={loading || busy !== null} className="flex-1 min-w-[120px]">
+            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Preparing statement…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
           </Button>
-          <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={downloadPdf} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-            PDF
+            {loading && !statement ? "Preparing…" : "PDF"}
           </Button>
-          <Button variant="outline" onClick={() => downloadOrSharePng("download")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={() => downloadOrSharePng("download")} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />}
-            PNG
+            {loading && !statement ? "Preparing…" : "PNG"}
           </Button>
-          <Button variant="outline" onClick={() => downloadOrSharePng("whatsapp")} disabled={busy !== null} className="flex-1 min-w-[120px]">
+          <Button variant="outline" onClick={() => downloadOrSharePng("whatsapp")} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />}
-            Share
+            {loading && !statement ? "Preparing…" : "Share"}
           </Button>
         </div>
 
