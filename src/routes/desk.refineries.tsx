@@ -2305,7 +2305,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
-  const canCompute = goldPrice > 0; // only needed for DA/Silver conversion display
+  const canCompute = goldPrice > 0; // required for DA → gold equivalent
 
   // Sign convention: stored balances are positive when the refinery OWES the client.
   // Asset side (client owes refinery) is when stored balance < 0.
@@ -2336,8 +2336,12 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   const refineryOwesDaEq = canCompute ? refineryOwesDa / goldPrice : 0;
   const netClientDaEq = canCompute ? netClientDa / goldPrice : 0;
 
-  // Pure-gold equity: physical gold owned + net pure gold owed by clients
-  const refineryEquity = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
+  // Refinery Equity (Pure Gold Equivalent):
+  //   Pure Gold Stock + Clients Owe Gold + Clients Owe DA (gold eq)
+  //   − Refinery Owes Gold − Refinery Owes DA (gold eq)
+  const totalReceivables = clientsOweGold + clientsOweDaEq;
+  const totalPayables = refineryOwesGold + refineryOwesDaEq;
+  const refineryEquity = stock.pure_gold_stock + totalReceivables - totalPayables;
   // Extended balance-sheet view (informational only)
   const totalAssets =
     stock.pure_gold_stock + silverEq + daCashEq + clientsOweGold + clientsOweDaEq;
