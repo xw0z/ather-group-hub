@@ -1594,11 +1594,18 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
+    // Hard re-entry guard — protects against double-clicks and any prior
+    // invocation whose finally block somehow never ran.
+    if (shareInFlightRef.current) return;
+    shareInFlightRef.current = true;
     setBusyKey(`img:${r.name}`);
     const started = Date.now();
     let reportId = "";
     try {
-      await logActivity("share_started", "purity_report", {
+      // Fire-and-forget the analytics insert. Awaiting it can deadlock the
+      // share flow if Supabase keeps the request socket open after a previous
+      // call (observed across multiple share attempts in the same session).
+      void logActivity("share_started", "purity_report", {
         format: "image",
         supplier: r.name,
         bars: r.bars.length,
@@ -1633,12 +1640,21 @@ export function ClientBreakdown({
 
       if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
         try {
-          await nav.share({
-            files: [file],
-            title: `Gold Purity Report — Client ${data.clientCode}`,
-            text: shareText,
-          });
-          await logActivity("share_completed", "purity_report", {
+          // Wrap nav.share in a timeout — on some browsers (Chromium-based,
+          // certain Android WebViews) the returned promise never settles
+          // after the first invocation in a session because the user
+          // activation token has expired. Without this, the spinner hangs
+          // forever on the second Share Photo click.
+          await withTimeout(
+            nav.share({
+              files: [file],
+              title: `Gold Purity Report — Client ${data.clientCode}`,
+              text: shareText,
+            }),
+            60_000,
+            "Share dialog",
+          );
+          void logActivity("share_completed", "purity_report", {
             format: "image",
             supplier: r.name,
             report_id: reportId,
@@ -1649,7 +1665,7 @@ export function ClientBreakdown({
           return;
         } catch (e) {
           if ((e as DOMException)?.name === "AbortError") {
-            await logActivity("share_cancelled", "purity_report", {
+            void logActivity("share_cancelled", "purity_report", {
               format: "image",
               supplier: r.name,
               report_id: reportId,
@@ -1673,7 +1689,7 @@ export function ClientBreakdown({
         "_blank",
         "noopener,noreferrer",
       );
-      await logActivity("share_completed", "purity_report", {
+      void logActivity("share_completed", "purity_report", {
         format: "image",
         supplier: r.name,
         report_id: reportId,
@@ -1683,7 +1699,7 @@ export function ClientBreakdown({
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error("[purity] shareClientImage failed:", err);
-      await logActivity("share_failed", "purity_report", {
+      void logActivity("share_failed", "purity_report", {
         format: "image",
         supplier: r.name,
         report_id: reportId || null,
@@ -1692,6 +1708,7 @@ export function ClientBreakdown({
       });
       toast.error("Could not generate the image report", { description: reason });
     } finally {
+      shareInFlightRef.current = false;
       setBusyKey(null);
     }
   }
