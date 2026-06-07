@@ -780,6 +780,12 @@ export type StatementRow = {
   da_credit: number;
   running_gold: number;
   running_da: number;
+  // Refining-fee details (populated on refining_fee rows)
+  original_weight?: number;
+  original_purity?: number;
+  weight_at_730?: number;
+  fee_price?: number;
+  fee_total?: number;
 };
 
 export type AccountStatement = {
