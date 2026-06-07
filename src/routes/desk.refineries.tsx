@@ -3290,8 +3290,16 @@ function AccountStatementDialog({
   const [to, setTo] = useState(isoToday());
   const [statement, setStatement] = useState<AccountStatement | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
+  const [busy, setBusy] = useState<null | "preview" | "pdf" | "png" | "share">(null);
   const [history, setHistory] = useState<StatementHistoryRow[]>([]);
+  const previewUrlRef = useRef<string | null>(null);
+
+  const revokePreviewUrl = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  }, []);
 
   const loadHistory = useCallback(async () => {
     try { setHistory(await listRefineryReportHistory({ data: { refineryId: refinery.id, clientId: client.id } })); }
@@ -3299,8 +3307,11 @@ function AccountStatementDialog({
   }, [refinery.id, client.id]);
 
   useEffect(() => {
-    if (open) { setStatement(null); loadHistory(); }
-  }, [open, loadHistory]);
+    if (open) { setStatement(null); revokePreviewUrl(); loadHistory(); }
+  }, [open, loadHistory, revokePreviewUrl]);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => () => revokePreviewUrl(), [revokePreviewUrl]);
 
   const fileBase = `${(client.code ?? client.name).replace(/\s+/g, "_")}_Statement`;
 
@@ -3341,12 +3352,51 @@ function AccountStatementDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, from, to]);
 
-  const preview = () => loadStatement(false);
-
   const ensureStatement = async (): Promise<AccountStatement | null> => {
     if (statement) return statement;
     return loadStatement(false);
   };
+
+  const preview = async () => {
+    if (busy !== null) return;
+    console.log("[AccountStatement] Preview clicked", { from, to, clientId: client.id });
+    setBusy("preview");
+    try {
+      const s = await ensureStatement();
+      if (!s) { console.warn("[AccountStatement] Preview: no statement available"); return; }
+      const canvases = await renderStatementToCanvases(s);
+      if (!canvases.length) throw new Error("Renderer returned no pages");
+      const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      canvases.forEach((c, i) => {
+        if (i > 0) pdf.addPage();
+        const ratio = c.width / c.height;
+        let w = pageW, h = w / ratio;
+        if (h > pageH) { h = pageH; w = h * ratio; }
+        const x = (pageW - w) / 2, y = (pageH - h) / 2;
+        pdf.addImage(c.toDataURL("image/png"), "PNG", x, y, w, h, undefined, "FAST");
+      });
+      const blob = pdf.output("blob");
+      // Always create a fresh URL so stale data is never shown
+      revokePreviewUrl();
+      const url = URL.createObjectURL(blob);
+      previewUrlRef.current = url;
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        toast.error("Preview blocked by popup blocker — allow popups and try again");
+        console.error("[AccountStatement] window.open returned null (popup blocked)");
+      } else {
+        console.log("[AccountStatement] Preview opened", { pages: canvases.length });
+      }
+    } catch (e) {
+      console.error("[AccountStatement] Preview failed:", e);
+      toast.error(e instanceof Error ? `Preview failed: ${e.message}` : "Preview failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
 
   const downloadPdf = async () => {
     const s = await ensureStatement(); if (!s) return;
