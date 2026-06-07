@@ -1532,7 +1532,7 @@ export const updateBuySell = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Admin only — financial fields are immutable, only metadata can change.
     await assertAdmin(context.userId);
-    const patch: Record<string, unknown> = {};
+    const patch: { notes?: string | null; transaction_date?: string } = {};
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.date) patch.transaction_date = data.date;
     if (Object.keys(patch).length === 0) return { ok: true };
