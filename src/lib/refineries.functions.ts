@@ -50,6 +50,7 @@ export type RefineryTransaction = {
   refinery_id: string;
   client_id: string;
   client_name?: string;
+  client_code?: string | null;
   client_phone?: string | null;
   transaction_number: string;
   direction: RefineryDirection;
@@ -82,6 +83,7 @@ export type RefineryTransaction = {
   settlement_role?: string | null;
   counterparty_client_id?: string | null;
   counterparty_client_name?: string | null;
+  counterparty_client_code?: string | null;
   settlement_apply_fee?: boolean | null;
   settlement_amount?: number | null;
   // Buy/Sell-only fields
