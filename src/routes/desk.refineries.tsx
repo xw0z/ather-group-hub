@@ -2425,19 +2425,34 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {/* Refinery Equity Breakdown */}
       <Card className="p-4 border-amber-500/20">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-          <Scale className="h-4 w-4 text-amber-500" /> Refinery Equity Breakdown
+          <Scale className="h-4 w-4 text-amber-500" /> Position Calculation Breakdown
         </h3>
         <div className="space-y-2 text-sm">
-          <NPRow label="Physical Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} cls="text-amber-500" />
-          <NPRow label="Client Debit Gold Balances (owed to refinery)" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
-          <NPRow label="Client Credit Gold Balances (owed by refinery)" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Net Client Position</span>
-            <span className={`font-display text-base tabular-nums ${signClass(netClientGold)}`}>{signed(netClientGold, fmtG)}</span>
-          </div>
+          <NPRow label="Pure Gold Stock Available" value={`+ ${fmtG(stock.pure_gold_stock)}`} cls="text-amber-500" />
+          <NPRow label="Clients Owe Refinery Gold" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
+          <NPRow
+            label="Clients Owe Refinery DA (gold eq)"
+            value={canCompute ? `+ ${fmtG(clientsOweDaEq)}` : "— set gold price"}
+            cls={canCompute ? "text-emerald-500" : "text-muted-foreground"}
+          />
+          <NPRow label="Refinery Owes Clients Gold" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
+          <NPRow
+            label="Refinery Owes Clients DA (gold eq)"
+            value={canCompute ? `− ${fmtG(refineryOwesDaEq)}` : "— set gold price"}
+            cls={canCompute ? "text-red-500" : "text-muted-foreground"}
+          />
           <div className="flex items-center justify-between pt-2 border-t-2 border-amber-500/40">
             <span className="text-xs uppercase tracking-[0.18em] text-amber-500 font-semibold">Final Refinery Equity</span>
             <span className={`font-display text-2xl tabular-nums ${signClass(refineryEquity)}`}>{signed(refineryEquity, fmtG)}</span>
+          </div>
+          <div className="pt-2 mt-2 border-t border-dashed border-border text-[11px] text-muted-foreground">
+            <p className="uppercase tracking-wider mb-1">Formula Check</p>
+            <p className="font-mono">
+              {fmtG(stock.pure_gold_stock)} + {fmtG(totalReceivables)} − {fmtG(totalPayables)} = <span className={signClass(refineryEquity)}>{fmtG(refineryEquity)}</span>
+            </p>
+            {!canCompute && (
+              <p className="mt-1 text-amber-600">DA gold-equivalent is excluded until a Gold Price is saved below.</p>
+            )}
           </div>
         </div>
       </Card>
