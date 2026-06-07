@@ -1443,8 +1443,10 @@ function TransactionFormPage({
               kind={settlementKind} setKind={setSettlementKind}
               amount={settlementAmount} setAmount={setSettlementAmount}
               applyFee={applyFee} setApplyFee={setApplyFee}
-              feePrice={settlementFeePrice} setFeePrice={setSettlementFeePrice}
+              fromFeePrice={fromFeePrice} setFromFeePrice={(s) => { setFromFeeEdited(true); setFromFeePrice(s); }}
+              toFeePrice={toFeePrice} setToFeePrice={(s) => { setToFeeEdited(true); setToFeePrice(s); }}
               preview={settlementPreview}
+
             />
           )}
 
