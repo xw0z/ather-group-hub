@@ -2446,7 +2446,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <p className={`font-display text-5xl tabular-nums ${signClass(refineryEquity)}`}>
+            <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums break-all ${signClass(refineryEquity)}`}>
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
