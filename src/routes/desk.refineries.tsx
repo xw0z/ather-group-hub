@@ -755,7 +755,7 @@ function TransactionsTab({
                 <th className="p-3 text-right whitespace-nowrap">Pure</th>
                 <th className="p-3 text-right whitespace-nowrap">DA</th>
                 <th className="p-3 text-right whitespace-nowrap">Fee</th>
-                <th className="p-3 whitespace-nowrap">Status</th>
+                
                 <th className="p-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
