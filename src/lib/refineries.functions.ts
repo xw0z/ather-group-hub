@@ -70,6 +70,14 @@ export type RefineryTransaction = {
   created_by?: string | null;
   created_by_name?: string | null;
   bars?: RefineryGoldBar[];
+  // Settlement-only fields
+  settlement_group_id?: string | null;
+  settlement_kind?: RefinerySettlementKind | null;
+  settlement_role?: RefinerySettlementRole | null;
+  counterparty_client_id?: string | null;
+  counterparty_client_name?: string | null;
+  settlement_apply_fee?: boolean | null;
+  settlement_amount?: number | null;
 };
 
 // =========================================================
