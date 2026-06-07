@@ -2880,7 +2880,7 @@ function AccountStatementDialog({
     if (open) { setStatement(null); loadHistory(); }
   }, [open, loadHistory]);
 
-  const fileBase = `${client.name.replace(/\s+/g, "_")}_Statement`;
+  const fileBase = `${(client.code ?? client.name).replace(/\s+/g, "_")}_Statement`;
 
   const preview = async () => {
     if (from > to) { toast.error("Start date must be before end date"); return; }
