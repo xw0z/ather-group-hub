@@ -282,7 +282,7 @@ function BalanceCard({ label, value, color, emphasized }: { label: string; value
   );
 }
 
-function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: number }) {
+function TxTable({ rows, startIndex, t }: { rows: StatementRow[]; startIndex: number; t: (k: string) => string }) {
   const th: React.CSSProperties = {
     padding: "9px 8px", fontSize: 9, textAlign: "left",
     letterSpacing: 1, textTransform: "uppercase", fontWeight: 800,
@@ -312,36 +312,37 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
       </colgroup>
       <thead>
         <tr>
-          <th style={th}>Date</th>
-          <th style={th}>Type</th>
-          <th style={thC}>Metal</th>
-          <th style={thC}>Dir</th>
-          <th style={thR}>Gold (g)</th>
-          <th style={thR}>DA Amount</th>
-          <th style={th}>Description</th>
+          <th style={th}>{t("ref.statement.col.date")}</th>
+          <th style={th}>{t("ref.statement.col.type")}</th>
+          <th style={thC}>{t("ref.statement.col.metal")}</th>
+          <th style={thC}>{t("ref.statement.col.dir")}</th>
+          <th style={thR}>{t("ref.statement.col.gold")}</th>
+          <th style={thR}>{t("ref.statement.col.da")}</th>
+          <th style={th}>{t("ref.statement.col.description")}</th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 && (
           <tr>
             <td colSpan={7} style={{ ...td, textAlign: "center", padding: 28, color: SUB }}>
-              No transactions in this period.
+              {t("ref.statement.empty")}
             </td>
           </tr>
         )}
         {rows.map((r, i) => {
           const zebra = (startIndex + i) % 2 === 1;
-          const dir = directionOf(r);
+          const dir = directionOf(r, t);
           const goldNet = r.gold_credit - r.gold_debit;
           const daNet = r.da_credit - r.da_debit;
           const metalLabel = r.metal
-            ? (r.metal === "gold" ? "GOLD" : "SILVER")
-            : (r.type === "gold_received" || r.type === "gold_delivered" || (r.type === "settlement" && goldNet !== 0) ? "GOLD" : "—");
+            ? (r.metal === "gold" ? t("ref.statement.metal.gold") : t("ref.statement.metal.silver"))
+            : (r.type === "gold_received" || r.type === "gold_delivered" || (r.type === "settlement" && goldNet !== 0) ? t("ref.statement.metal.gold") : "—");
+          const typeLabel = t(TYPE_KEYS[r.type]);
 
           return (
             <tr key={i} style={{ background: zebra ? PAPER_ALT : PAPER }}>
               <td style={td}>{fmtDate(r.date)}</td>
-              <td style={td}>{TYPE_LABEL[r.type]}</td>
+              <td style={td}>{typeLabel}</td>
               <td style={{ ...td, textAlign: "center", fontSize: 9, fontWeight: 700, color: SUB }}>{metalLabel}</td>
               <td style={{ ...td, textAlign: "center" }}>
                 <span style={{
@@ -357,7 +358,7 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
                 {daNet !== 0 ? `${daNet > 0 ? "+" : ""}${num2(daNet)} DA` : "—"}
               </td>
               <td style={{ ...td, color: SUB, fontSize: 9.5 }}>
-                {r.description || TYPE_LABEL[r.type]}
+                {r.description || typeLabel}
               </td>
             </tr>
           );
