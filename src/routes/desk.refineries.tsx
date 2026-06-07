@@ -873,7 +873,8 @@ function TransactionFormPage({
     });
     const avg = gross > 0 ? (pure / gross) * 1000 : 0;
     const feeP = Number(feePrice) || 0;
-    return { gross, pure, avg, fee: gross * feeP };
+    const w730 = pure > 0 ? (pure * 1000) / 730 : 0; // equivalent weight at 730 purity
+    return { gross, pure, avg, w730, fee: w730 * feeP };
   }, [bars, feePrice]);
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
@@ -1051,11 +1052,20 @@ function TransactionFormPage({
                           <td></td>
                         </tr>
                         {direction === "receiving" && (
-                          <tr className="text-sm">
-                            <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>Total refining fee</td>
-                            <td className="p-2 text-right tabular-nums font-semibold">{fmtDA(totals.fee)}</td>
-                            <td></td>
-                          </tr>
+                          <>
+                            <tr className="text-sm">
+                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>Equivalent weight @ 730</td>
+                              <td className="p-2 text-right tabular-nums">{fmtG(totals.w730)}</td>
+                              <td></td>
+                            </tr>
+                            <tr className="text-sm">
+                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>
+                                Total refining fee <span className="normal-case text-muted-foreground/70">({fmtG(totals.w730)} × {fmtDA(Number(feePrice) || 0)}/g)</span>
+                              </td>
+                              <td className="p-2 text-right tabular-nums font-semibold">{fmtDA(totals.fee)}</td>
+                              <td></td>
+                            </tr>
+                          </>
                         )}
                       </tfoot>
                     </table>
@@ -1110,7 +1120,7 @@ function TransactionReceiptDialog({
         `Direction: ${tx.direction}\nType: ${tx.transaction_type}\n` +
         (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
         (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
-        (Number(tx.total_refining_fee) > 0 ? `Refining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "") +
+        (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nFee price: ${fmtDA(Number(tx.fee_price))}/g\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "") +
         (tx.new_purity_balance != null ? `New purity balance: ${fmtG(Number(tx.new_purity_balance))}\n` : "") +
         (tx.new_da_balance != null ? `New DA balance: ${fmtDA(Number(tx.new_da_balance))}\n` : "")
       );
@@ -1177,8 +1187,9 @@ function TransactionReceiptDialog({
                   </div>
                   {tx.direction === "receiving" && Number(tx.total_refining_fee) > 0 && (
                     <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+                      <div><p className="text-xs text-muted-foreground">Weight @ 730</p><p className="tabular-nums">{fmtG((Number(tx.total_pure_weight) * 1000) / 730)}</p></div>
                       <div><p className="text-xs text-muted-foreground">Fee price</p><p className="tabular-nums">{fmtDA(Number(tx.fee_price))}/g</p></div>
-                      <div><p className="text-xs text-muted-foreground">Total refining fee</p><p className="tabular-nums">{fmtDA(Number(tx.total_refining_fee))}</p></div>
+                      <div className="col-span-2"><p className="text-xs text-muted-foreground">Total refining fee</p><p className="tabular-nums text-base font-semibold">{fmtDA(Number(tx.total_refining_fee))}</p></div>
                     </div>
                   )}
                 </div>

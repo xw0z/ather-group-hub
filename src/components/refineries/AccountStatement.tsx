@@ -13,7 +13,9 @@ const LINE = "#e1d6b8";
 const fmtG = (n: number, d = 2) =>
   `${Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })} g`;
 const fmtDA = (n: number) =>
-  `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 })} DA`;
+  `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })} DA`;
+const fmtPurity = (n: number) =>
+  Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 const fmtDate = (s: string) => {
   try {
     const d = new Date(s.length === 10 ? `${s}T00:00:00Z` : s);
@@ -307,6 +309,11 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
               </td>
               <td style={{ ...cellBase, fontSize: 9.5, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {TYPE_LABEL[r.type]}{r.client_name ? ` — ${r.client_name}` : ""}
+                {r.type === "refining_fee" && r.original_weight != null && (
+                  <span style={{ color: MUTED, fontSize: 8.5, marginLeft: 4 }}>
+                    {` · ${fmtG(r.original_weight)} × ${fmtPurity(r.original_purity ?? 0)} / 730 = ${fmtG(r.weight_at_730 ?? 0)} @ ${fmtDA(r.fee_price ?? 0)}/g`}
+                  </span>
+                )}
               </td>
               <td style={{ ...numCell, color: r.gold_debit ? RED : MUTED }}>{r.gold_debit ? fmtG(r.gold_debit) : "—"}</td>
               <td style={{ ...numCell, color: r.gold_credit ? GREEN : MUTED }}>{r.gold_credit ? fmtG(r.gold_credit) : "—"}</td>

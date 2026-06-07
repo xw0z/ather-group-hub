@@ -299,7 +299,7 @@ export const createTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refinery_id);
 
-    // Compute totals
+    // Compute totals — refining fee charged on equivalent weight at 730 purity
     let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
     const bars = (data.bars ?? []).map((b) => {
       const pure = (b.gross_weight * b.purity) / 1000;
@@ -311,7 +311,8 @@ export const createTransaction = createServerFn({ method: "POST" })
     if (data.transaction_type === "gold") {
       if (bars.length === 0) throw new Error("At least one gold bar is required.");
       if (data.direction === "receiving") {
-        fee = total_gross * (data.fee_price ?? 0);
+        const weight_at_730 = (total_pure * 1000) / 730; // = sum(gross * purity / 730)
+        fee = weight_at_730 * (data.fee_price ?? 0);
       }
     } else {
       if (!data.da_amount || data.da_amount <= 0) throw new Error("DA amount must be greater than 0.");
@@ -376,7 +377,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
     if (revErr) throw new Error(revErr.message);
 
-    // Recompute totals
+    // Recompute totals — fee on weight at 730
     let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
     const bars = (data.bars ?? []).map((b) => {
       const pure = (b.gross_weight * b.purity) / 1000;
@@ -387,7 +388,10 @@ export const updateTransaction = createServerFn({ method: "POST" })
     if (total_gross > 0) avg_purity = (total_pure / total_gross) * 1000;
     if (data.transaction_type === "gold") {
       if (bars.length === 0) throw new Error("At least one gold bar is required.");
-      if (data.direction === "receiving") fee = total_gross * (data.fee_price ?? 0);
+      if (data.direction === "receiving") {
+        const weight_at_730 = (total_pure * 1000) / 730;
+        fee = weight_at_730 * (data.fee_price ?? 0);
+      }
     } else if (!data.da_amount || data.da_amount <= 0) {
       throw new Error("DA amount must be greater than 0.");
     }
@@ -776,6 +780,12 @@ export type StatementRow = {
   da_credit: number;
   running_gold: number;
   running_da: number;
+  // Refining-fee details (populated on refining_fee rows)
+  original_weight?: number;
+  original_purity?: number;
+  weight_at_730?: number;
+  fee_price?: number;
+  fee_total?: number;
 };
 
 export type AccountStatement = {
@@ -852,11 +862,13 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       txIds.length
         ? supabaseAdmin
             .from("refinery_transactions")
-            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, da_amount, transaction_type, direction")
+            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, total_gross_weight, average_purity, fee_price, da_amount, transaction_type, direction")
             .in("id", txIds)
         : Promise.resolve({ data: [] as Array<{
             id: string; transaction_number: string; transaction_date: string;
-            total_refining_fee: number; total_pure_weight: number; da_amount: number;
+            total_refining_fee: number; total_pure_weight: number;
+            total_gross_weight: number; average_purity: number; fee_price: number;
+            da_amount: number;
             transaction_type: "da" | "gold"; direction: "receiving" | "delivery";
           }> }),
       clientIds.length
@@ -932,8 +944,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         running_da: dasa,
       });
 
-      // For receiving_gold, also emit a derived "Refining Fee" line (client side; no stock movement)
+      // For receiving_gold, also emit a derived "Refining Fee" line with calculation details
       if (m.movement_type === "receiving_gold" && tx && Number(tx.total_refining_fee) > 0) {
+        const orig_w = Number(tx.total_gross_weight) || 0;
+        const orig_p = Number(tx.average_purity) || 0;
+        const w730 = orig_p > 0 ? (orig_w * orig_p) / 730 : 0;
         rows.push({
           date: dateStr,
           created_at: String(m.created_at),
@@ -947,6 +962,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           da_credit: 0,
           running_gold: ga,
           running_da: dasa,
+          original_weight: orig_w,
+          original_purity: orig_p,
+          weight_at_730: w730,
+          fee_price: Number(tx.fee_price) || 0,
+          fee_total: Number(tx.total_refining_fee) || 0,
         });
       }
     }
