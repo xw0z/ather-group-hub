@@ -21,18 +21,21 @@ import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
+  createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
-  type AccountStatement,
+  type AccountStatement, type SettlementPair,
 } from "@/lib/refineries.functions";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
 import { AccountStatementReport } from "@/components/refineries/AccountStatement";
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
+import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 type Tab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
