@@ -1394,3 +1394,32 @@ export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
       })),
     };
   });
+
+// =========================================================
+// Stock Adjustment Transactions (admin/manager) - V2
+// =========================================================
+export const createStockAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      metal: z.enum(["gold", "silver", "da"]),
+      kind: z.enum(["add", "remove", "correction", "loss", "manual"]),
+      // Positive amount; "remove" / "loss" convert it to a negative delta server-side
+      amount: z.number().positive(),
+      notes: z.string().max(2000).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const signed = data.kind === "remove" || data.kind === "loss" ? -data.amount : data.amount;
+    const { data: txId, error } = await supabaseAdmin.rpc("refinery_create_stock_adjustment", {
+      _refinery_id: data.refineryId,
+      _metal: data.metal,
+      _kind: data.kind,
+      _delta: signed,
+      _notes: data.notes ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, transactionId: txId as string };
+  });
