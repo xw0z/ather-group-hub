@@ -576,7 +576,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
           <Button size="sm" variant="ghost" onClick={() => onTab("clients")}>View all</Button>
         </div>
         <Card>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]">
               <thead className="border-b border-border bg-muted/20">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
@@ -611,7 +611,41 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
               </tbody>
             </table>
           </div>
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border">
+            {negRows.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No negative balances</p>
+            )}
+            {negRows.map((c) => {
+              const g = Number(c.purity_balance);
+              const d = Number(c.da_balance);
+              return (
+                <div key={c.id} className="p-3">
+                  <div className="flex items-center gap-2 mb-2 min-w-0">
+                    <StatusDot tone="negative" />
+                    <p className="font-medium text-sm truncate flex-1">{c.name}</p>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{c.last_activity ?? "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Gold</p>
+                      <p className={balClass(g)}>{signed(g, fmtG)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">DA</p>
+                      <p className={balClass(d)}>{signed(d, fmtDA)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Exposure</p>
+                      <p className="text-destructive">{canCompute ? `−${fmtG(c.exposureGold)}` : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
+
       </section>
 
       <section>
@@ -742,59 +776,96 @@ function txTypeBadge(t: RefineryTransaction) {
 }
 
 function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { client_name?: string }>; onOpen?: () => void }) {
+  const computeVals = (t: RefineryTransaction) => {
+    const goldVal = (t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell")
+      ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—";
+    const daVal = t.transaction_type === "buysell"
+      ? fmtDA(Number(t.buysell_total ?? 0))
+      : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")
+          ? fmtDA(Number(t.da_amount))
+          : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"));
+    return { goldVal, daVal };
+  };
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm min-w-[760px]">
-        <thead className="border-b border-border bg-muted/20">
-          <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-            <th className="p-3">Date</th>
-            <th className="p-3">#</th>
-            <th className="p-3">Client</th>
-            <th className="p-3">Type</th>
-            <th className="p-3 text-right">Gold</th>
-            <th className="p-3 text-right">DA</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
-          )}
-          {rows.map((t) => {
-            const badge = txTypeBadge(t);
-            const goldVal = (t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell")
-              ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—";
-            const daVal = t.transaction_type === "buysell"
-              ? fmtDA(Number(t.buysell_total ?? 0))
-              : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")
-                  ? fmtDA(Number(t.da_amount))
-                  : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"));
-            return (
-              <tr
-                key={t.id}
-                onClick={onOpen}
-                className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
-              >
-                <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-                <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
-                <td className="p-3">
-                  {t.client_name}
-                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
-                  )}
-                </td>
-                <td className="p-3">
-                  <Badge className={badge.cls}>{badge.label}</Badge>
-                </td>
-                <td className="p-3 text-right tabular-nums">{goldVal}</td>
-                <td className="p-3 text-right tabular-nums">{daVal}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      {/* Desktop / tablet: table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm min-w-[760px]">
+          <thead className="border-b border-border bg-muted/20">
+            <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+              <th className="p-3">Date</th>
+              <th className="p-3">#</th>
+              <th className="p-3">Client</th>
+              <th className="p-3">Type</th>
+              <th className="p-3 text-right">Gold</th>
+              <th className="p-3 text-right">DA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+            )}
+            {rows.map((t) => {
+              const badge = txTypeBadge(t);
+              const { goldVal, daVal } = computeVals(t);
+              return (
+                <tr
+                  key={t.id}
+                  onClick={onOpen}
+                  className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
+                >
+                  <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
+                  <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
+                  <td className="p-3">
+                    {t.client_name}
+                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <Badge className={badge.cls}>{badge.label}</Badge>
+                  </td>
+                  <td className="p-3 text-right tabular-nums">{goldVal}</td>
+                  <td className="p-3 text-right tabular-nums">{daVal}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {/* Mobile: card stack */}
+      <div className="md:hidden divide-y divide-border">
+        {rows.length === 0 && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No transactions</p>
+        )}
+        {rows.map((t) => {
+          const badge = txTypeBadge(t);
+          const { goldVal, daVal } = computeVals(t);
+          return (
+            <button
+              key={t.id}
+              onClick={onOpen}
+              className={`w-full text-left p-3 ${onOpen ? "hover:bg-muted/20 active:bg-muted/30" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{t.client_name ?? "—"}</p>
+                  <p className="text-[11px] text-muted-foreground font-mono">{t.transaction_number} · {t.transaction_date}</p>
+                </div>
+                <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-xs tabular-nums mt-2">
+                <span className="text-muted-foreground">Gold <span className="text-foreground">{goldVal}</span></span>
+                <span className="text-muted-foreground">DA <span className="text-foreground">{daVal}</span></span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
+
 
 
 
@@ -871,7 +942,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
 
       <Card>
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
@@ -943,7 +1014,70 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </tbody>
           </table>
         </div>
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {loading && <p className="p-6 text-center text-sm text-muted-foreground">Loading…</p>}
+          {!loading && filtered.length === 0 && (
+            <p className="p-6 text-center text-sm text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</p>
+          )}
+          {filtered.map((c) => {
+            const g = Number(c.purity_balance);
+            const d = Number(c.da_balance);
+            const tone: "negative" | "positive" | "neutral" =
+              g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
+            return (
+              <div
+                key={c.id}
+                className="p-3 active:bg-muted/30 cursor-pointer"
+                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <StatusDot tone={tone} />
+                      <span className="font-mono text-[11px] font-semibold tracking-wider">{c.code ?? "—"}</span>
+                    </div>
+                    <p className="font-medium text-sm truncate mt-0.5">{c.name}</p>
+                    {c.phone && <p className="text-[11px] text-muted-foreground truncate">{c.phone}</p>}
+                  </div>
+                  <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {canStatement && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-ember" onClick={() => setStmtClient(c)} title="Account Statement">
+                        <FileText className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {!readOnly && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Pure Gold</p>
+                    <p className={balClass(g)}>{signed(g, fmtG)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Dinar</p>
+                    <p className={balClass(d)}>{signed(d, fmtDA)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Fee/g</p>
+                    <p>{fmtDA(Number(c.refining_fee_price))}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Card>
+
 
       {open && (
         <ClientDialog
