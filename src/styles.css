@@ -135,7 +135,20 @@
     text-align: left;
     min-width: 0;
   }
+
+  /* Smooth momentum scrolling for horizontally scrollable tables/lists (iOS) */
+  .overflow-x-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Prevent the entire page from sliding horizontally on mobile */
+  html, body {
+    overflow-x: hidden;
+  }
 }
+
 
 @layer utilities {
   .font-display { font-family: var(--font-display); }
