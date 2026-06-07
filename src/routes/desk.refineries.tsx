@@ -1544,8 +1544,8 @@ function TransactionReceiptDialog({
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>Transaction Receipt</DialogTitle></DialogHeader>
-        {!tx ? <p className="text-muted-foreground text-sm">Loading…</p> : (
+        <DialogHeader><DialogTitle>{tx?.transaction_type === "settlement" ? "Settlement Receipt" : "Transaction Receipt"}</DialogTitle></DialogHeader>
+        {!tx || (tx.transaction_type === "settlement" && !settlement) ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
             <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
               <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
