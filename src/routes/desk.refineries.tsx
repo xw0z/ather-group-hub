@@ -420,7 +420,8 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   const totalAssets = goldStock + silverEq + daCashEq + data.clientsOweGold + clientsOweDaEq;
   const totalLiabilities = data.refineryOwesGold + refineryOwesDaEq;
   const refineryEquity =
-    goldStock + data.clientsOweGold + clientsOweDaEq - data.refineryOwesGold - refineryOwesDaEq;
+    goldStock + data.clientsOweGold - data.refineryOwesGold + silverEq + clientsOweDaEq - refineryOwesDaEq;
+
 
   // ---- Alerts ----
   type Alert = { tone: "danger" | "warn"; text: string; onClick?: () => void };
