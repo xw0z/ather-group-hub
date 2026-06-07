@@ -303,35 +303,60 @@ function RefineryShell({
 
   const { t: tr } = useLang();
 
+  const tabsScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const activeTabRef = React.useRef<HTMLButtonElement | null>(null);
+
+  React.useEffect(() => {
+    const el = activeTabRef.current;
+    const scroller = tabsScrollRef.current;
+    if (!el || !scroller) return;
+    const elLeft = el.offsetLeft;
+    const target = elLeft - scroller.clientWidth / 2 + el.clientWidth / 2;
+    scroller.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [tab]);
+
   const tabsBar = (
-    <nav className="border-b border-border bg-card/20">
-      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
+    <nav className="border-b border-border bg-card/20 sticky top-12 sm:top-16 z-20 backdrop-blur supports-[backdrop-filter]:bg-card/40">
+      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} flex items-stretch`}>
         {embedded && onBack && (
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
-            <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
+          <Button variant="ghost" size="sm" onClick={onBack} className="rounded-none px-2 shrink-0 self-center ml-1">
+            <ArrowLeft className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">{tr("ref.pageTitle")}</span>
           </Button>
         )}
-        <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => (
-            <button
-              key={td.id}
-              onClick={() => onTab(td.id)}
-              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                tab === td.id
-                  ? "border-ember text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tr(td.key)}
-            </button>
-          ))}
+        <div
+          ref={tabsScrollRef}
+          className="flex-1 min-w-0 overflow-x-auto overflow-y-hidden px-2 sm:px-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex gap-1 w-max">
+            {TAB_DEFS.filter((td) => !td.adminOnly || assignment.isAdmin).map((td) => {
+              const isActive = tab === td.id;
+              return (
+                <button
+                  key={td.id}
+                  ref={isActive ? activeTabRef : undefined}
+                  onClick={() => onTab(td.id)}
+                  className={`px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "border-ember text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tr(td.key)}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </nav>
   );
 
   const body = (
-    <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-6 sm:py-8`}>
+    <div
+      className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-4 sm:py-8`}
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}
+    >
       {showTxForm ? (
         <TransactionFormPage
           refinery={refinery}
@@ -360,6 +385,7 @@ function RefineryShell({
       )}
     </div>
   );
+
 
   if (embedded) {
     return (
