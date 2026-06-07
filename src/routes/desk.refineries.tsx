@@ -873,7 +873,8 @@ function TransactionFormPage({
     });
     const avg = gross > 0 ? (pure / gross) * 1000 : 0;
     const feeP = Number(feePrice) || 0;
-    return { gross, pure, avg, fee: gross * feeP };
+    const w730 = pure > 0 ? (pure * 1000) / 730 : 0; // equivalent weight at 730 purity
+    return { gross, pure, avg, w730, fee: w730 * feeP };
   }, [bars, feePrice]);
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
