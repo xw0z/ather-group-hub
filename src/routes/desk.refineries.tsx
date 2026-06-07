@@ -27,6 +27,7 @@ import {
   createBuySell, type BuySellKind, type BuySellSettlement,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
+  getNetPositionPrice, saveNetPositionPrice,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
   type AccountStatement, type SettlementPair,
@@ -40,13 +41,14 @@ import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "profile";
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "profile";
 const TABS: { id: Tab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "clients", label: "Clients" },
   { id: "transactions", label: "Transactions" },
   { id: "buysell", label: "Buy / Sell" },
   { id: "stock", label: "Stock" },
+  { id: "netposition", label: "Net Position" },
   { id: "profile", label: "Profile" },
 ];
 
