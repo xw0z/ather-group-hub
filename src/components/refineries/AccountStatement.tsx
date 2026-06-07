@@ -179,18 +179,18 @@ function StatementPage({
       {/* ─── Compact identity block ─── */}
       <div style={{ marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
         <div>
-          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>Client</div>
+          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.client")}</div>
           <div style={{ fontSize: 22, fontWeight: 900, color: INK, marginTop: 4, letterSpacing: -0.3 }}>
             {data.client.name}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>Statement</div>
+          <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.statement")}</div>
           <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: INK, marginTop: 4 }}>
             {data.statement_number}
           </div>
           <div style={{ fontSize: 10, color: SUB, marginTop: 4 }}>
-            Period:{" "}
+            {t("ref.statement.period")}:{" "}
             <span style={{ color: INK, fontWeight: 600 }}>
               {fmtDate(data.range.from)} – {fmtDate(data.range.to)}
             </span>
@@ -201,29 +201,29 @@ function StatementPage({
       {/* ─── Account overview: 4 large balance cards (first page only) ─── */}
       {isFirst && (
         <>
-          <SectionTitle>Account Overview</SectionTitle>
+          <SectionTitle>{t("ref.statement.accountOverview")}</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-            <BalanceCard label="Opening Gold" value={`${fmtG(data.opening_gold)} g`} color={balanceColor(data.opening_gold)} />
-            <BalanceCard label="Closing Gold" value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} emphasized />
-            <BalanceCard label="Opening DA" value={`${fmtDA(data.opening_da)} DA`} color={balanceColor(data.opening_da)} />
-            <BalanceCard label="Closing DA" value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} emphasized />
+            <BalanceCard label={t("ref.statement.openingGold")} value={`${fmtG(data.opening_gold)} g`} color={balanceColor(data.opening_gold)} />
+            <BalanceCard label={t("ref.statement.closingGold")} value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} emphasized />
+            <BalanceCard label={t("ref.statement.openingDa")} value={`${fmtDA(data.opening_da)} DA`} color={balanceColor(data.opening_da)} />
+            <BalanceCard label={t("ref.statement.closingDa")} value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} emphasized />
           </div>
         </>
       )}
 
       {/* ─── Transactions ─── */}
       <SectionTitle>
-        Transactions{totalPages > 1 ? ` — Part ${pageIdx + 1} / ${totalPages}` : ""}
+        {t("ref.statement.transactions")}{totalPages > 1 ? ` — ${t("ref.statement.part")} ${pageIdx + 1} / ${totalPages}` : ""}
       </SectionTitle>
-      <TxTable rows={rows} startIndex={startIndex} />
+      <TxTable rows={rows} startIndex={startIndex} t={t} />
 
       {/* ─── Closing balances (last page only) ─── */}
       {isLast && (
         <>
-          <SectionTitle>Closing Balances</SectionTitle>
+          <SectionTitle>{t("ref.statement.closingBalances")}</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <BigBalance label="Closing Gold Balance" value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} />
-            <BigBalance label="Closing DA Balance" value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} />
+            <BigBalance label={t("ref.statement.closingGoldBalance")} value={`${fmtG(data.closing_gold)} g`} color={balanceColor(data.closing_gold)} />
+            <BigBalance label={t("ref.statement.closingDaBalance")} value={`${fmtDA(data.closing_da)} DA`} color={balanceColor(data.closing_da)} />
           </div>
         </>
       )}
@@ -236,13 +236,13 @@ function StatementPage({
         fontSize: 9, color: SUB, letterSpacing: 0.6,
       }}>
         <span>
-          Generated on: <span style={{ color: INK, fontWeight: 600 }}>{fmtDateTime(data.generated_at)}</span>
+          {t("ref.statement.generatedOn")} <span style={{ color: INK, fontWeight: 600 }}>{fmtDateTime(data.generated_at)}</span>
         </span>
         <span>
           <strong style={{ color: INK, letterSpacing: 2 }}>ATHER GROUP</strong>
-          {" · "}Refinery Management System
+          {" · "}{t("ref.statement.system")}
         </span>
-        <span style={{ fontFamily: MONO }}>Page {pageIdx + 1}/{totalPages}</span>
+        <span style={{ fontFamily: MONO }}>{t("ref.statement.page")} {pageIdx + 1}/{totalPages}</span>
       </div>
     </div>
   );
