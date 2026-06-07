@@ -1362,6 +1362,7 @@ export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
       stock: {
         pure_gold_stock: Number(stockR.data?.pure_gold_stock ?? 0),
         da_stock: Number(stockR.data?.da_stock ?? 0),
+        silver_stock: Number((stockR.data as { silver_stock?: number } | null)?.silver_stock ?? 0),
         total_bars: Math.max(0, barCount),
         average_purity: avgPurity,
       },
