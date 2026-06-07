@@ -2015,9 +2015,10 @@ async function writeAudit(opts: {
   let ip: string | null = null;
   let ua: string | null = null;
   try {
-    const { getRequestHeader } = await import("@tanstack/react-start/server");
-    ip = (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() || null;
-    ua = getRequestHeader("user-agent") ?? null;
+    const mod = await import("./refineries-request.server");
+    const meta = mod.getRequestMeta();
+    ip = meta.ip;
+    ua = meta.ua;
   } catch { /* outside request scope (e.g. cron) */ }
   await supabaseAdmin.from("refinery_audit_log").insert({
     refinery_id: opts.refineryId,
