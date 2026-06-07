@@ -1146,10 +1146,12 @@ function TransactionFormPage({
                   <span className="text-muted-foreground">Total Pure Gold</span>
                   <span className="tabular-nums font-semibold">{fmtG(totals.pure)}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">Total Equivalent @ 730</span>
-                  <span className="tabular-nums font-semibold">{fmtG(totals.w730)}</span>
-                </div>
+                {direction === "receiving" && (
+                  <div className="flex items-center justify-between text-sm py-1 border-b border-border/60">
+                    <span className="text-muted-foreground">Total Equivalent @ 730</span>
+                    <span className="tabular-nums font-semibold">{fmtG(totals.w730)}</span>
+                  </div>
+                )}
                 {direction === "receiving" && (
                   <>
                     <div className="flex items-center justify-between gap-3 text-sm py-1 border-b border-border/60">
