@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient,
-  listTransactions, createTransaction, settleTransaction, cancelTransaction, getTransaction,
+  listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard,
   getMyRefineryProfile, updateMyRefineryProfile,
   type Refinery, type RefineryClient, type RefineryTransaction,
