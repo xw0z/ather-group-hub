@@ -2485,7 +2485,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
       {/* Refinery Holdings */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3">Refinery Holdings</h3>
+        <h3 className="font-semibold text-sm mb-3">Other Holdings <span className="text-xs font-normal text-muted-foreground">(not included in Pure Gold Equity unless converted)</span></h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-xs uppercase tracking-wider text-amber-500/80">Pure Gold</p>
