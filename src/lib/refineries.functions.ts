@@ -463,6 +463,71 @@ export const listStockMovements = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const adjustStock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      pure_gold_stock: z.number().min(0),
+      da_stock: z.number().min(0),
+      notes: z.string().max(500).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: existing } = await supabaseAdmin
+      .from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle();
+    const before = {
+      gold: Number(existing?.pure_gold_stock ?? 0),
+      da: Number(existing?.da_stock ?? 0),
+    };
+    if (existing) {
+      const { error } = await supabaseAdmin.from("refinery_stock")
+        .update({ pure_gold_stock: data.pure_gold_stock, da_stock: data.da_stock, updated_at: new Date().toISOString() })
+        .eq("refinery_id", data.refineryId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin.from("refinery_stock")
+        .insert({ refinery_id: data.refineryId, pure_gold_stock: data.pure_gold_stock, da_stock: data.da_stock });
+      if (error) throw new Error(error.message);
+    }
+    const { error: me } = await supabaseAdmin.from("refinery_stock_movements").insert({
+      refinery_id: data.refineryId,
+      movement_type: "adjustment",
+      gold_change: data.pure_gold_stock - before.gold,
+      da_change: data.da_stock - before.da,
+      gold_stock_before: before.gold,
+      gold_stock_after: data.pure_gold_stock,
+      da_stock_before: before.da,
+      da_stock_after: data.da_stock,
+      notes: data.notes ?? "Manual stock adjustment",
+      created_by: context.userId,
+    });
+    if (me) throw new Error(me.message);
+    return { ok: true };
+  });
+
+export const adjustClientBalances = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      purity_balance: z.number(),
+      da_balance: z.number(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: existing, error: e1 } = await supabaseAdmin
+      .from("refinery_clients").select("refinery_id").eq("id", data.id).single();
+    if (e1) throw new Error(e1.message);
+    await assertAccess(context.userId, existing.refinery_id);
+    const { error } = await supabaseAdmin.from("refinery_clients")
+      .update({ purity_balance: data.purity_balance, da_balance: data.da_balance })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // =========================================================
 // Dashboard
 // =========================================================
