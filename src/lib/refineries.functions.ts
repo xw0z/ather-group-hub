@@ -513,7 +513,7 @@ export const createSettlement = createServerFn({ method: "POST" })
       _apply_fee: data.apply_fee,
       _fee_price: data.fee_price,
       _date: data.transaction_date,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? "",
     });
     if (error) throw new Error(error.message);
     return { group_id: (groupId ?? "") as string };
