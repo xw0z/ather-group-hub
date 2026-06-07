@@ -1633,7 +1633,9 @@ function TransactionFormPage({
 function SettlementFields({
   clients, fromClientId, setFromClientId, toClientId, setToClientId,
   fromClient, toClient, kind, setKind, amount, setAmount,
-  applyFee, setApplyFee, feePrice, setFeePrice, preview,
+  applyFee, setApplyFee,
+  fromFeePrice, setFromFeePrice, toFeePrice, setToFeePrice,
+  preview,
 }: {
   clients: RefineryClient[];
   fromClientId: string; setFromClientId: (s: string) => void;
@@ -1642,17 +1644,18 @@ function SettlementFields({
   kind: "gold" | "da"; setKind: (k: "gold" | "da") => void;
   amount: string; setAmount: (s: string) => void;
   applyFee: boolean; setApplyFee: (b: boolean) => void;
-  feePrice: string; setFeePrice: (s: string) => void;
-  preview: { amt: number; fp: number; w730: number; fee: number };
+  fromFeePrice: string; setFromFeePrice: (s: string) => void;
+  toFeePrice: string; setToFeePrice: (s: string) => void;
+  preview: { amt: number; fromFp: number; toFp: number; fromCredit: number; toDebit: number; netProfit: number };
 }) {
   const fromOptions = clients.filter((c) => c.id !== toClientId);
   const toOptions = clients.filter((c) => c.id !== fromClientId);
 
   const amt = preview.amt;
   const fromGoldImpact = kind === "gold" ? -amt : 0;
-  const fromDaImpact = kind === "da" ? -amt : 0;
+  const fromDaImpact = (kind === "da" ? -amt : 0) + (kind === "gold" && applyFee ? preview.fromCredit : 0);
   const toGoldImpact = kind === "gold" ? amt : 0;
-  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.fee : 0);
+  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.toDebit : 0);
 
   return (
     <div className="space-y-4">
@@ -1715,22 +1718,44 @@ function SettlementFields({
             <div className="flex-1">
               <Label htmlFor="apply-fee" className="cursor-pointer font-medium">Apply Refinery Fee</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                When checked, charges the receiving client a refining fee based on Weight @ 730.
+                Credits the From client at their fee price and debits the To client at the entered fee price. The difference is recorded as refinery fee profit.
               </p>
             </div>
           </div>
           {applyFee && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
-              <div className="space-y-2">
-                <Label>Refinery Fee Price (DA/g)</Label>
-                <Input type="number" step="0.01" min="0" inputMode="decimal" value={feePrice}
-                  onChange={(e) => setFeePrice(e.target.value)} />
+            <div className="space-y-3 pt-2 border-t border-border/40">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>From Client Fee Price (DA/g)</Label>
+                  <Input type="number" step="0.01" min="0" inputMode="decimal" value={fromFeePrice}
+                    onChange={(e) => setFromFeePrice(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Auto-filled from {fromClient?.name ?? "From client"}{fromClient ? "" : ""} profile.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>To Client Fee Price (DA/g)</Label>
+                  <Input type="number" step="0.01" min="0" inputMode="decimal" value={toFeePrice}
+                    onChange={(e) => setToFeePrice(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Auto-filled from {toClient?.name ?? "To client"} profile · editable.</p>
+                </div>
               </div>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Weight @ 730</span><span className="tabular-nums">{fmtG(preview.w730)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Refinery Fee</span><span className="tabular-nums font-semibold text-ember">{fmtDA(preview.fee)}</span></div>
-                <p className="text-xs text-muted-foreground pt-1">Charged to {toClient?.name ?? "receiving client"}</p>
-              </div>
+              {amt > 0 && (
+                <div className="space-y-1 text-sm rounded-md border border-border/40 bg-background/40 p-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">From Credit ({fmtG(amt)} × {fmtDA(preview.fromFp)}/g)</span>
+                    <span className="tabular-nums font-semibold text-emerald-500">+{fmtDA(preview.fromCredit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">To Debit ({fmtG(amt)} × {fmtDA(preview.toFp)}/g)</span>
+                    <span className="tabular-nums font-semibold text-ember">−{fmtDA(preview.toDebit)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/40 mt-1 pt-1">
+                    <span className="font-medium">Refinery Fee Profit</span>
+                    <span className={`tabular-nums font-semibold ${preview.netProfit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {preview.netProfit >= 0 ? "+" : ""}{fmtDA(preview.netProfit)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -1764,6 +1789,7 @@ function SettlementFields({
     </div>
   );
 }
+
 
 // =============================================================
 // Receipt dialog
