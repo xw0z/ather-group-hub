@@ -2461,12 +2461,11 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
                     <p className="font-semibold mb-1">Refinery Equity (Pure Gold)</p>
-                    <p>= Pure Gold Stock Available</p>
-                    <p>+ Clients Owe Refinery Gold</p>
+                    <p>= Net Physical Pure Gold Position</p>
+                    <p>+ Silver Gold Equivalent</p>
                     <p>+ Clients Owe Refinery DA (gold equivalent)</p>
-                    <p>− Refinery Owes Clients Gold</p>
                     <p>− Refinery Owes Clients DA (gold equivalent)</p>
-                    <p className="mt-2 text-muted-foreground">Silver and DA cash are shown in Other Holdings.</p>
+                    <p className="mt-2 text-muted-foreground">Silver is converted using the saved Silver &amp; Gold prices. DA cash held in stock is shown in Other Holdings.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -2475,8 +2474,9 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {fmtG(stock.pure_gold_stock)} stock + {fmtG(totalReceivables)} receivables − {fmtG(totalPayables)} payables
+              Net Gold Position + Silver (gold eq) + DA Receivables − DA Payables
             </p>
+
           </div>
           <div className="flex flex-col gap-2 items-start md:items-end">
             <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusBadgeCls(refineryEquity)}`}>
