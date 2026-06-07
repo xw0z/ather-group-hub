@@ -1843,10 +1843,11 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: s }, cls, price] = await Promise.all([
+      const [{ data: s }, cls, price, snaps] = await Promise.all([
         supabase.from("refinery_stock").select("pure_gold_stock, da_stock, silver_stock").eq("refinery_id", refinery.id).maybeSingle(),
         listClients({ data: { refineryId: refinery.id } }),
         getNetPositionPrice({ data: { refineryId: refinery.id } }),
+        listPositionSnapshots({ data: { refineryId: refinery.id, limit: 60 } }),
       ]);
       const stockRow = (s as { pure_gold_stock: number; da_stock: number; silver_stock: number } | null) ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 };
       setStock({
