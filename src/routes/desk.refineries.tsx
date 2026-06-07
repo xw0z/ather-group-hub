@@ -636,7 +636,13 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
 }
 
 function TodaysActivityCard({ data }: {
-  data: { todayCount: number; todayBuyWeight: number; todaySellWeight: number; todayReceivedDa: number; todayDeliveredDa: number };
+  data: {
+    todayCount: number;
+    todayGoldBought: number; todayGoldSold: number;
+    todaySilverBought: number; todaySilverSold: number;
+    todayBuyTotal: number; todaySellTotal: number;
+    todayReceivedDa: number; todayDeliveredDa: number;
+  };
 }) {
   return (
     <Card className="p-4">
@@ -646,8 +652,12 @@ function TodaysActivityCard({ data }: {
       </div>
       <p className="text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
       <div className="text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
-        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayBuyWeight)}</span></div>
-        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todaySellWeight)}</span></div>
+        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayGoldBought)}</span></div>
+        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todayGoldSold)}</span></div>
+        <div className="flex justify-between"><span>Silver bought</span><span className="text-emerald-500">{fmtG(data.todaySilverBought)}</span></div>
+        <div className="flex justify-between"><span>Silver sold</span><span className="text-destructive">{fmtG(data.todaySilverSold)}</span></div>
+        <div className="flex justify-between"><span>Buy total</span><span className="text-emerald-500">{fmtDA(data.todayBuyTotal)}</span></div>
+        <div className="flex justify-between"><span>Sell total</span><span className="text-destructive">{fmtDA(data.todaySellTotal)}</span></div>
         <div className="flex justify-between"><span>DA received</span><span className="text-emerald-500">{fmtDA(data.todayReceivedDa)}</span></div>
         <div className="flex justify-between"><span>DA delivered</span><span className="text-destructive">{fmtDA(data.todayDeliveredDa)}</span></div>
       </div>
