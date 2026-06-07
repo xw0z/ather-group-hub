@@ -28,6 +28,7 @@ import {
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   getNetPositionPrice, saveNetPositionPrice,
+  listPositionSnapshots, recordPositionSnapshot, type PositionSnapshot,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
   type AccountStatement, type SettlementPair,
