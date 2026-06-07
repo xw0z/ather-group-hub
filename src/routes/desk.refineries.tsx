@@ -438,6 +438,16 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
+  const canDelete = assignment.isAdmin || assignment.role === "manager";
+
+  const handleDelete = async (c: RefineryClient) => {
+    if (!confirm(`Delete client "${c.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteClient({ data: { id: c.id } });
+      toast.success("Client deleted");
+      load();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
