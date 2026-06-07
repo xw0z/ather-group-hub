@@ -61,6 +61,7 @@ export function TransactionReceiptReport({
 
   return (
     <div
+      data-receipt-root
       style={{
         width: W,
         minHeight: 1123,
