@@ -1418,7 +1418,7 @@ export const createStockAdjustment = createServerFn({ method: "POST" })
       _metal: data.metal,
       _kind: data.kind,
       _delta: signed,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? "",
     });
     if (error) throw new Error(error.message);
     return { ok: true, transactionId: txId as string };
