@@ -1188,7 +1188,11 @@ function TransactionFormPage({
   const [settlementKind, setSettlementKind] = useState<"gold" | "da">("gold");
   const [settlementAmount, setSettlementAmount] = useState<string>("");
   const [applyFee, setApplyFee] = useState<boolean>(false);
-  const [settlementFeePrice, setSettlementFeePrice] = useState<string>("");
+  const [fromFeePrice, setFromFeePrice] = useState<string>("");
+  const [toFeePrice, setToFeePrice] = useState<string>("");
+  // User-edit tracking so we only auto-fill once per client selection
+  const [fromFeeEdited, setFromFeeEdited] = useState(false);
+  const [toFeeEdited, setToFeeEdited] = useState(false);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
@@ -1241,19 +1245,29 @@ function TransactionFormPage({
   // Settlement live preview
   const fromClient = clients.find((c) => c.id === fromClientId);
   const toClient = clients.find((c) => c.id === toClientId);
+  // Auto-fill From fee price from selected From client
   useEffect(() => {
-    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !settlementFeePrice) {
-      setSettlementFeePrice(String(toClient.refining_fee_price));
+    if (type === "settlement" && settlementKind === "gold" && applyFee && fromClient && !fromFeeEdited) {
+      setFromFeePrice(String(fromClient.refining_fee_price ?? 0));
     }
-  }, [type, settlementKind, applyFee, toClient, settlementFeePrice]);
+  }, [type, settlementKind, applyFee, fromClient, fromFeeEdited]);
+  // Auto-fill To fee price from selected To client
+  useEffect(() => {
+    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !toFeeEdited) {
+      setToFeePrice(String(toClient.refining_fee_price ?? 0));
+    }
+  }, [type, settlementKind, applyFee, toClient, toFeeEdited]);
 
   const settlementPreview = useMemo(() => {
     const amt = Number(settlementAmount) || 0;
-    const fp = Number(settlementFeePrice) || 0;
-    const w730 = settlementKind === "gold" && applyFee && amt > 0 ? (amt * 1000) / 730 : 0;
-    const fee = w730 * fp;
-    return { amt, fp, w730, fee };
-  }, [settlementAmount, settlementFeePrice, settlementKind, applyFee]);
+    const fromFp = Number(fromFeePrice) || 0;
+    const toFp = Number(toFeePrice) || 0;
+    const fromCredit = settlementKind === "gold" && applyFee ? amt * fromFp : 0;
+    const toDebit = settlementKind === "gold" && applyFee ? amt * toFp : 0;
+    const netProfit = toDebit - fromCredit;
+    return { amt, fromFp, toFp, fromCredit, toDebit, netProfit };
+  }, [settlementAmount, fromFeePrice, toFeePrice, settlementKind, applyFee]);
+
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
@@ -1269,9 +1283,10 @@ function TransactionFormPage({
         if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
         const amt = Number(settlementAmount);
         if (!(amt > 0)) { setSaving(false); toast.error("Amount must be greater than 0"); return; }
-        const fp = Number(settlementFeePrice) || 0;
-        if (settlementKind === "gold" && applyFee && !(fp >= 0)) {
-          setSaving(false); toast.error("Fee price must be ≥ 0"); return;
+        const fromFp = Number(fromFeePrice) || 0;
+        const toFp = Number(toFeePrice) || 0;
+        if (settlementKind === "gold" && applyFee && (!(fromFp >= 0) || !(toFp >= 0))) {
+          setSaving(false); toast.error("Fee prices must be ≥ 0"); return;
         }
         await createSettlement({ data: {
           refinery_id: refinery.id,
@@ -1280,7 +1295,8 @@ function TransactionFormPage({
           kind: settlementKind,
           amount: amt,
           apply_fee: settlementKind === "gold" ? applyFee : false,
-          fee_price: settlementKind === "gold" && applyFee ? fp : 0,
+          from_fee_price: settlementKind === "gold" && applyFee ? fromFp : 0,
+          to_fee_price: settlementKind === "gold" && applyFee ? toFp : 0,
           transaction_date: date,
           notes: notes || null,
         }});
@@ -1288,6 +1304,7 @@ function TransactionFormPage({
         onSaved();
         return;
       }
+
 
       // ----- Existing Gold / DA branch -----
       if (!clientId) { toast.error("Select a client"); setSaving(false); return; }
@@ -1426,8 +1443,10 @@ function TransactionFormPage({
               kind={settlementKind} setKind={setSettlementKind}
               amount={settlementAmount} setAmount={setSettlementAmount}
               applyFee={applyFee} setApplyFee={setApplyFee}
-              feePrice={settlementFeePrice} setFeePrice={setSettlementFeePrice}
+              fromFeePrice={fromFeePrice} setFromFeePrice={(s) => { setFromFeeEdited(true); setFromFeePrice(s); }}
+              toFeePrice={toFeePrice} setToFeePrice={(s) => { setToFeeEdited(true); setToFeePrice(s); }}
               preview={settlementPreview}
+
             />
           )}
 
@@ -1614,7 +1633,9 @@ function TransactionFormPage({
 function SettlementFields({
   clients, fromClientId, setFromClientId, toClientId, setToClientId,
   fromClient, toClient, kind, setKind, amount, setAmount,
-  applyFee, setApplyFee, feePrice, setFeePrice, preview,
+  applyFee, setApplyFee,
+  fromFeePrice, setFromFeePrice, toFeePrice, setToFeePrice,
+  preview,
 }: {
   clients: RefineryClient[];
   fromClientId: string; setFromClientId: (s: string) => void;
@@ -1623,17 +1644,18 @@ function SettlementFields({
   kind: "gold" | "da"; setKind: (k: "gold" | "da") => void;
   amount: string; setAmount: (s: string) => void;
   applyFee: boolean; setApplyFee: (b: boolean) => void;
-  feePrice: string; setFeePrice: (s: string) => void;
-  preview: { amt: number; fp: number; w730: number; fee: number };
+  fromFeePrice: string; setFromFeePrice: (s: string) => void;
+  toFeePrice: string; setToFeePrice: (s: string) => void;
+  preview: { amt: number; fromFp: number; toFp: number; fromCredit: number; toDebit: number; netProfit: number };
 }) {
   const fromOptions = clients.filter((c) => c.id !== toClientId);
   const toOptions = clients.filter((c) => c.id !== fromClientId);
 
   const amt = preview.amt;
   const fromGoldImpact = kind === "gold" ? -amt : 0;
-  const fromDaImpact = kind === "da" ? -amt : 0;
+  const fromDaImpact = (kind === "da" ? -amt : 0) + (kind === "gold" && applyFee ? preview.fromCredit : 0);
   const toGoldImpact = kind === "gold" ? amt : 0;
-  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.fee : 0);
+  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.toDebit : 0);
 
   return (
     <div className="space-y-4">
@@ -1696,22 +1718,44 @@ function SettlementFields({
             <div className="flex-1">
               <Label htmlFor="apply-fee" className="cursor-pointer font-medium">Apply Refinery Fee</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                When checked, charges the receiving client a refining fee based on Weight @ 730.
+                Credits the From client at their fee price and debits the To client at the entered fee price. The difference is recorded as refinery fee profit.
               </p>
             </div>
           </div>
           {applyFee && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
-              <div className="space-y-2">
-                <Label>Refinery Fee Price (DA/g)</Label>
-                <Input type="number" step="0.01" min="0" inputMode="decimal" value={feePrice}
-                  onChange={(e) => setFeePrice(e.target.value)} />
+            <div className="space-y-3 pt-2 border-t border-border/40">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>From Client Fee Price (DA/g)</Label>
+                  <Input type="number" step="0.01" min="0" inputMode="decimal" value={fromFeePrice}
+                    onChange={(e) => setFromFeePrice(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Auto-filled from {fromClient?.name ?? "From client"}{fromClient ? "" : ""} profile.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>To Client Fee Price (DA/g)</Label>
+                  <Input type="number" step="0.01" min="0" inputMode="decimal" value={toFeePrice}
+                    onChange={(e) => setToFeePrice(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Auto-filled from {toClient?.name ?? "To client"} profile · editable.</p>
+                </div>
               </div>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Weight @ 730</span><span className="tabular-nums">{fmtG(preview.w730)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Refinery Fee</span><span className="tabular-nums font-semibold text-ember">{fmtDA(preview.fee)}</span></div>
-                <p className="text-xs text-muted-foreground pt-1">Charged to {toClient?.name ?? "receiving client"}</p>
-              </div>
+              {amt > 0 && (
+                <div className="space-y-1 text-sm rounded-md border border-border/40 bg-background/40 p-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">From Credit ({fmtG(amt)} × {fmtDA(preview.fromFp)}/g)</span>
+                    <span className="tabular-nums font-semibold text-emerald-500">+{fmtDA(preview.fromCredit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">To Debit ({fmtG(amt)} × {fmtDA(preview.toFp)}/g)</span>
+                    <span className="tabular-nums font-semibold text-ember">−{fmtDA(preview.toDebit)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/40 mt-1 pt-1">
+                    <span className="font-medium">Refinery Fee Profit</span>
+                    <span className={`tabular-nums font-semibold ${preview.netProfit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                      {preview.netProfit >= 0 ? "+" : ""}{fmtDA(preview.netProfit)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -1745,6 +1789,7 @@ function SettlementFields({
     </div>
   );
 }
+
 
 // =============================================================
 // Receipt dialog

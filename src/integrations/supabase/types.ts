@@ -1581,12 +1581,13 @@ export type Database = {
           _amount: number
           _apply_fee: boolean
           _date: string
-          _fee_price: number
           _from_client: string
+          _from_fee_price: number
           _kind: string
           _notes: string
           _refinery_id: string
           _to_client: string
+          _to_fee_price: number
         }
         Returns: string
       }

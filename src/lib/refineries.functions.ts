@@ -514,7 +514,8 @@ const settlementCreate = z.object({
   kind: z.enum(["gold", "da"]),
   amount: z.number().positive(),
   apply_fee: z.boolean().default(false),
-  fee_price: z.number().min(0).default(0),
+  from_fee_price: z.number().min(0).default(0),
+  to_fee_price: z.number().min(0).default(0),
   transaction_date: z.string(),
   notes: z.string().max(2000).optional().nullable(),
 });
@@ -534,13 +535,15 @@ export const createSettlement = createServerFn({ method: "POST" })
       _kind: data.kind,
       _amount: data.amount,
       _apply_fee: data.apply_fee,
-      _fee_price: data.fee_price,
+      _from_fee_price: data.from_fee_price,
+      _to_fee_price: data.to_fee_price,
       _date: data.transaction_date,
       _notes: data.notes ?? "",
     });
     if (error) throw new Error(error.message);
     return { group_id: (groupId ?? "") as string };
   });
+
 
 export type SettlementPair = {
   group_id: string;
@@ -551,7 +554,17 @@ export type SettlementPair = {
   kind: "gold" | "da";
   amount: number;
   apply_fee: boolean;
+  /** Legacy: kept for back-compat. Equals to_fee_price. */
   fee_price: number;
+  from_fee_price: number;
+  to_fee_price: number;
+  /** From-client credit (DA). */
+  from_fee_credit: number;
+  /** To-client debit (DA). */
+  to_fee_debit: number;
+  /** Net refinery fee profit = to_fee_debit - from_fee_credit. */
+  net_fee_profit: number;
+  /** Legacy fields kept for back-compat; net_fee_profit is the new source of truth. */
   total_fee: number;
   weight_730: number;
   notes: string | null;
@@ -570,6 +583,7 @@ export type SettlementPair = {
     previous_da: number; new_da: number;
   };
 };
+
 
 export const getSettlement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -600,8 +614,11 @@ export const getSettlement = createServerFn({ method: "POST" })
     const kind = ((fromRow as { settlement_kind?: string }).settlement_kind ?? "gold") as "gold" | "da";
     const amount = Number((fromRow as { settlement_amount?: number }).settlement_amount ?? 0);
     const apply_fee = Boolean((fromRow as { settlement_apply_fee?: boolean }).settlement_apply_fee);
-    const fee_price = Number((fromRow as { fee_price?: number }).fee_price ?? 0);
-    const total_fee = Number((toRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const from_fee_price = Number((fromRow as { fee_price?: number }).fee_price ?? 0);
+    const to_fee_price = Number((toRow as { fee_price?: number }).fee_price ?? 0);
+    const from_fee_credit = Number((fromRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const to_fee_debit = Number((toRow as { total_refining_fee?: number }).total_refining_fee ?? 0);
+    const net_fee_profit = to_fee_debit - from_fee_credit;
     const weight_730 = kind === "gold" && apply_fee ? (amount * 1000) / 730 : 0;
 
     return {
@@ -610,7 +627,12 @@ export const getSettlement = createServerFn({ method: "POST" })
       transaction_date: (fromRow as { transaction_date: string }).transaction_date,
       created_at: (fromRow as { created_at: string }).created_at,
       created_by_name,
-      kind, amount, apply_fee, fee_price, total_fee, weight_730,
+      kind, amount, apply_fee,
+      fee_price: to_fee_price,
+      from_fee_price, to_fee_price,
+      from_fee_credit, to_fee_debit, net_fee_profit,
+      total_fee: to_fee_debit, weight_730,
+
       notes: (fromRow as { notes: string | null }).notes,
       from: {
         client_id: (fromRow as { client_id: string }).client_id,
