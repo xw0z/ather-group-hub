@@ -86,6 +86,7 @@ export type RefineryTransaction = {
   // Buy/Sell-only fields
   buysell_kind?: BuySellKind | string | null;
   buysell_settlement?: BuySellSettlement | string | null;
+  buysell_metal?: BuySellMetal | string | null;
   buysell_weight?: number | null;
   buysell_purity?: number | null;
   buysell_price_per_gram?: number | null;
