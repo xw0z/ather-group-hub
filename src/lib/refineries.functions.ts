@@ -351,20 +351,22 @@ export const listTransactions = createServerFn({ method: "POST" })
     await assertAccess(context.userId, data.refineryId);
     const { data: rows, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map((r) => {
       const { client, counterparty, ...rest } = r as typeof r & {
-        client?: { name: string; phone: string | null };
-        counterparty?: { name: string } | null;
+        client?: { name: string; code: string | null; phone: string | null };
+        counterparty?: { name: string; code: string | null } | null;
       };
       return {
         ...rest,
         client_name: client?.name ?? "",
+        client_code: client?.code ?? null,
         client_phone: client?.phone ?? null,
         counterparty_client_name: counterparty?.name ?? null,
+        counterparty_client_code: counterparty?.code ?? null,
       } as RefineryTransaction;
     });
   });
@@ -375,7 +377,7 @@ export const getTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: tx, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
     await assertAccess(context.userId, (tx as { refinery_id: string }).refinery_id);
@@ -383,8 +385,8 @@ export const getTransaction = createServerFn({ method: "POST" })
       .from("refinery_transaction_gold_bars")
       .select("*").eq("transaction_id", data.id).order("created_at");
     const { client, counterparty, ...rest } = tx as typeof tx & {
-      client?: { name: string; phone: string | null };
-      counterparty?: { name: string } | null;
+      client?: { name: string; code: string | null; phone: string | null };
+      counterparty?: { name: string; code: string | null } | null;
     };
     let created_by_name: string | null = null;
     const createdBy = (rest as { created_by?: string | null }).created_by;
@@ -396,12 +398,15 @@ export const getTransaction = createServerFn({ method: "POST" })
     return {
       ...rest,
       client_name: client?.name ?? "",
+      client_code: client?.code ?? null,
       client_phone: client?.phone ?? null,
       counterparty_client_name: counterparty?.name ?? null,
+      counterparty_client_code: counterparty?.code ?? null,
       created_by_name,
       bars: (bars ?? []) as RefineryGoldBar[],
     } as RefineryTransaction;
   });
+
 
 export const createTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
