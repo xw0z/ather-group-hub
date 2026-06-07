@@ -3259,6 +3259,7 @@ function BuySellDialog({
   onSaved: () => void;
 }) {
   const [clientId, setClientId] = useState<string>("");
+  const [metal, setMetal] = useState<BuySellMetal>("gold");
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [weight, setWeight] = useState<string>("");
   const [purity, setPurity] = useState<string>("1000");
@@ -3271,6 +3272,7 @@ function BuySellDialog({
   const w = Number(weight) || 0;
   const p = Number(price) || 0;
   const total = Math.round(w * p);
+  const metalLabel = metal === "gold" ? "Gold" : "Silver";
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -3283,6 +3285,7 @@ function BuySellDialog({
         refineryId: refinery.id,
         clientId,
         kind,
+        metal,
         settlement,
         weight: w,
         purity: Number(purity) || 1000,
@@ -3290,7 +3293,7 @@ function BuySellDialog({
         date,
         notes: notes || null,
       }});
-      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} for ${fmtDA(total)}`);
+      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} of ${metalLabel} for ${fmtDA(total)}`);
       onSaved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save");
@@ -3305,9 +3308,9 @@ function BuySellDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {kind === "buy" ? (
-              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy Gold</span>
+              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy {metalLabel}</span>
             ) : (
-              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell Gold</span>
+              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell {metalLabel}</span>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -3320,6 +3323,16 @@ function BuySellDialog({
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Metal Type</Label>
+            <Select value={metal} onValueChange={(v) => setMetal(v as BuySellMetal)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gold">Gold</SelectItem>
+                <SelectItem value="silver">Silver</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -3369,7 +3382,7 @@ function BuySellDialog({
               className={kind === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              {kind === "buy" ? "Record Buy" : "Record Sell"}
+              {kind === "buy" ? `Record Buy` : `Record Sell`}
             </Button>
           </DialogFooter>
         </form>
