@@ -3133,18 +3133,20 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   // Quick statistics for the period (today by default)
   const today = new Date().toISOString().slice(0, 10);
   const todayRows = rows.filter((r) => (r.transaction_date ?? "").startsWith(today));
-  const todayBuy = todayRows.filter((r) => r.buysell_kind === "buy");
-  const todaySell = todayRows.filter((r) => r.buysell_kind === "sell");
-  const sum = (arr: RefineryTransaction[], k: "buysell_weight" | "buysell_total") =>
-    arr.reduce((s, r) => s + Number(r[k] ?? 0), 0);
+  const sumWeight = (kind: BuySellKind, metal: BuySellMetal) =>
+    todayRows.filter((r) => r.buysell_kind === kind && (r.buysell_metal ?? "gold") === metal)
+      .reduce((s, r) => s + Number(r.buysell_weight ?? 0), 0);
+  const sumTotal = (kind: BuySellKind) =>
+    todayRows.filter((r) => r.buysell_kind === kind)
+      .reduce((s, r) => s + Number(r.buysell_total ?? 0), 0);
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Buy / Sell Gold</h1>
+          <h1 className="font-display text-2xl">Buy / Sell Metals</h1>
           <p className="text-sm text-muted-foreground">
-            Record physical gold purchases and sales paid in DA.
+            Record physical gold and silver purchases and sales paid in DA.
           </p>
         </div>
         <div className="flex gap-2">
@@ -3152,22 +3154,24 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             onClick={() => setOpenKind("buy")}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <Plus className="h-4 w-4 mr-1" /> Buy Gold
+            <Plus className="h-4 w-4 mr-1" /> Buy
           </Button>
           <Button
             onClick={() => setOpenKind("sell")}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+            <TrendingDown className="h-4 w-4 mr-1" /> Sell
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Today · Buy weight" value={fmtG(sum(todayBuy, "buysell_weight"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
-        <StatCard label="Today · Buy total" value={fmtDA(sum(todayBuy, "buysell_total"))} />
-        <StatCard label="Today · Sell weight" value={fmtG(sum(todaySell, "buysell_weight"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
-        <StatCard label="Today · Sell total" value={fmtDA(sum(todaySell, "buysell_total"))} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatCard label="Today · Gold bought" value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
+        <StatCard label="Today · Gold sold" value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
+        <StatCard label="Today · Silver bought" value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label="Today · Silver sold" value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label="Today · Buy total (DA)" value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
+        <StatCard label="Today · Sell total (DA)" value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
       </div>
 
       <Card>
@@ -3178,6 +3182,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <th className="p-3">Date</th>
                 <th className="p-3">Tx #</th>
                 <th className="p-3">Client</th>
+                <th className="p-3">Metal</th>
                 <th className="p-3">Type</th>
                 <th className="p-3 text-right">Weight</th>
                 <th className="p-3 text-right">Price / g</th>
@@ -3187,18 +3192,27 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
               )}
               {rows.map((r) => {
                 const buy = r.buysell_kind === "buy";
+                const metal = (r.buysell_metal ?? "gold") as BuySellMetal;
+                const isGold = metal === "gold";
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
                     <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
                     <td className="p-3">{r.client_name ?? "—"}</td>
+                    <td className="p-3">
+                      <Badge className={isGold
+                        ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
+                        : "bg-muted text-muted-foreground border-border"}>
+                        {isGold ? "GOLD" : "SILVER"}
+                      </Badge>
+                    </td>
                     <td className="p-3">
                       <Badge className={buy ? "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" : "bg-destructive/15 text-destructive border-destructive/30"}>
                         {buy ? "BUY" : "SELL"}
