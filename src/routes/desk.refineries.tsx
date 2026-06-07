@@ -1116,12 +1116,14 @@ function TransactionFormPage({
                               {g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Equivalent @ 730</Label>
-                            <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
-                              {g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}
+                          {direction === "receiving" && (
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Equivalent @ 730</Label>
+                              <div className="h-9 px-3 flex items-center justify-end rounded-md bg-muted/30 border border-border tabular-nums text-sm">
+                                {g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </Card>
                     );
