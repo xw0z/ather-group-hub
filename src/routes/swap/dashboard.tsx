@@ -745,45 +745,51 @@ export function SwapDashboard({
         </header>
 
         <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
-          {effectiveTab === "dashboard" && (
-            <DashboardOverview
-              isAdmin={isAdmin}
-              livePrice={livePrice}
-              livePriceLoading={livePriceLoading}
-              onRefreshPrice={refreshPrice}
-              onPriceChanged={setLivePrice}
-              perms={perms}
-            />
+          {!tabAllowed ? (
+            <AccessDenied />
+          ) : (
+            <>
+              {effectiveTab === "dashboard" && (
+                <DashboardOverview
+                  isAdmin={isAdmin}
+                  livePrice={livePrice}
+                  livePriceLoading={livePriceLoading}
+                  onRefreshPrice={refreshPrice}
+                  onPriceChanged={setLivePrice}
+                  perms={perms}
+                />
+              )}
+              {effectiveTab === "purity" && can(perms, "purity", "view") && <PurityDashboard inShell tripId={purityTripId} />}
+              {effectiveTab === "clients" && can(perms, "swap", "view") && <ClientsTab livePrice={livePrice} />}
+              {effectiveTab === "swap-fees" && can(perms, "swap", "view") && (
+                <HomeTab
+                  isAdmin={isAdmin}
+                  livePrice={livePrice}
+                  livePriceLoading={livePriceLoading}
+                  onRefreshPrice={refreshPrice}
+                  onPriceChanged={setLivePrice}
+                />
+              )}
+              {effectiveTab === "margin" && can(perms, "margin", "view") && (
+                <MarginTab
+                  livePrice={livePrice}
+                  showLiveCard
+                  isAdmin={isAdmin}
+                  livePriceLoading={livePriceLoading}
+                  onRefreshPrice={refreshPrice}
+                  onPriceChanged={setLivePrice}
+                />
+              )}
+              {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
+              {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
+              {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
+              {effectiveTab === "users" && isAdmin && (
+                <UsersPanel currentUsername={username} />
+              )}
+              {effectiveTab === "settings" && can(perms, "settings", "view") && <SettingsTab />}
+              {effectiveTab === "profile" && <ProfileTab username={username} />}
+            </>
           )}
-          {effectiveTab === "purity" && can(perms, "purity", "view") && <PurityDashboard inShell tripId={purityTripId} />}
-          {effectiveTab === "clients" && can(perms, "swap", "view") && <ClientsTab livePrice={livePrice} />}
-          {effectiveTab === "swap-fees" && can(perms, "swap", "view") && (
-            <HomeTab
-              isAdmin={isAdmin}
-              livePrice={livePrice}
-              livePriceLoading={livePriceLoading}
-              onRefreshPrice={refreshPrice}
-              onPriceChanged={setLivePrice}
-            />
-          )}
-          {effectiveTab === "margin" && can(perms, "margin", "view") && (
-            <MarginTab
-              livePrice={livePrice}
-              showLiveCard
-              isAdmin={isAdmin}
-              livePriceLoading={livePriceLoading}
-              onRefreshPrice={refreshPrice}
-              onPriceChanged={setLivePrice}
-            />
-          )}
-          {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
-          {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
-          {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
-          {effectiveTab === "users" && isAdmin && (
-            <UsersPanel currentUsername={username} />
-          )}
-          {effectiveTab === "settings" && can(perms, "settings", "view") && <SettingsTab />}
-          {effectiveTab === "profile" && <ProfileTab username={username} />}
         </main>
         <SwapFooter />
       </div>
