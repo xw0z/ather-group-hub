@@ -1889,7 +1889,7 @@ async function writeAudit(opts: {
     user_email: opts.userEmail,
     action: opts.action,
     file_name: opts.fileName ?? null,
-    details: opts.details ?? null,
+    details: (opts.details ?? null) as never,
     ip, user_agent: ua,
   });
 }
