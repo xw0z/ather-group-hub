@@ -1471,6 +1471,10 @@ export function ClientBreakdown({
   pieces: Piece[];
 }) {
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  // Re-entry guard: even if React state hasn't flushed yet, a second click
+  // must not re-enter the share flow. This survives stale closures and any
+  // hung await inside a previous invocation.
+  const shareInFlightRef = useRef(false);
 
   const rows = useMemo(() => {
     const map = new Map<
