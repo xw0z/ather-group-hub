@@ -487,6 +487,7 @@ export type Database = {
         Row: {
           average_purity: number
           client_id: string
+          counterparty_client_id: string | null
           created_at: string
           created_by: string | null
           da_amount: number
@@ -504,6 +505,11 @@ export type Database = {
           previous_purity_balance: number | null
           refinery_id: string
           settled_at: string | null
+          settlement_amount: number | null
+          settlement_apply_fee: boolean | null
+          settlement_group_id: string | null
+          settlement_kind: string | null
+          settlement_role: string | null
           status: Database["public"]["Enums"]["refinery_tx_status"]
           total_gross_weight: number
           total_pure_weight: number
@@ -516,6 +522,7 @@ export type Database = {
         Insert: {
           average_purity?: number
           client_id: string
+          counterparty_client_id?: string | null
           created_at?: string
           created_by?: string | null
           da_amount?: number
@@ -533,6 +540,11 @@ export type Database = {
           previous_purity_balance?: number | null
           refinery_id: string
           settled_at?: string | null
+          settlement_amount?: number | null
+          settlement_apply_fee?: boolean | null
+          settlement_group_id?: string | null
+          settlement_kind?: string | null
+          settlement_role?: string | null
           status?: Database["public"]["Enums"]["refinery_tx_status"]
           total_gross_weight?: number
           total_pure_weight?: number
@@ -545,6 +557,7 @@ export type Database = {
         Update: {
           average_purity?: number
           client_id?: string
+          counterparty_client_id?: string | null
           created_at?: string
           created_by?: string | null
           da_amount?: number
@@ -562,6 +575,11 @@ export type Database = {
           previous_purity_balance?: number | null
           refinery_id?: string
           settled_at?: string | null
+          settlement_amount?: number | null
+          settlement_apply_fee?: boolean | null
+          settlement_group_id?: string | null
+          settlement_kind?: string | null
+          settlement_role?: string | null
           status?: Database["public"]["Enums"]["refinery_tx_status"]
           total_gross_weight?: number
           total_pure_weight?: number
@@ -575,6 +593,13 @@ export type Database = {
           {
             foreignKeyName: "refinery_transactions_client_id_fkey"
             columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "refinery_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refinery_transactions_counterparty_client_id_fkey"
+            columns: ["counterparty_client_id"]
             isOneToOne: false
             referencedRelation: "refinery_clients"
             referencedColumns: ["id"]
@@ -1199,11 +1224,30 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_create_settlement: {
+        Args: {
+          _amount: number
+          _apply_fee: boolean
+          _date: string
+          _fee_price: number
+          _from_client: string
+          _kind: string
+          _notes: string
+          _refinery_id: string
+          _to_client: string
+        }
+        Returns: string
+      }
+      refinery_delete_settlement: {
+        Args: { _group_id: string }
+        Returns: undefined
+      }
       refinery_reverse_transaction: {
         Args: { _tx_id: string }
         Returns: {
           average_purity: number
           client_id: string
+          counterparty_client_id: string | null
           created_at: string
           created_by: string | null
           da_amount: number
@@ -1221,6 +1265,11 @@ export type Database = {
           previous_purity_balance: number | null
           refinery_id: string
           settled_at: string | null
+          settlement_amount: number | null
+          settlement_apply_fee: boolean | null
+          settlement_group_id: string | null
+          settlement_kind: string | null
+          settlement_role: string | null
           status: Database["public"]["Enums"]["refinery_tx_status"]
           total_gross_weight: number
           total_pure_weight: number
@@ -1242,6 +1291,7 @@ export type Database = {
         Returns: {
           average_purity: number
           client_id: string
+          counterparty_client_id: string | null
           created_at: string
           created_by: string | null
           da_amount: number
@@ -1259,6 +1309,11 @@ export type Database = {
           previous_purity_balance: number | null
           refinery_id: string
           settled_at: string | null
+          settlement_amount: number | null
+          settlement_apply_fee: boolean | null
+          settlement_group_id: string | null
+          settlement_kind: string | null
+          settlement_role: string | null
           status: Database["public"]["Enums"]["refinery_tx_status"]
           total_gross_weight: number
           total_pure_weight: number
@@ -1298,7 +1353,7 @@ export type Database = {
       refinery_role: "manager" | "staff" | "viewer"
       refinery_tx_direction: "receiving" | "delivery"
       refinery_tx_status: "draft" | "pending" | "settled" | "cancelled"
-      refinery_tx_type: "da" | "gold"
+      refinery_tx_type: "da" | "gold" | "settlement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1448,7 +1503,7 @@ export const Constants = {
       refinery_role: ["manager", "staff", "viewer"],
       refinery_tx_direction: ["receiving", "delivery"],
       refinery_tx_status: ["draft", "pending", "settled", "cancelled"],
-      refinery_tx_type: ["da", "gold"],
+      refinery_tx_type: ["da", "gold", "settlement"],
     },
   },
 } as const
