@@ -299,7 +299,7 @@ export const createTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refinery_id);
 
-    // Compute totals
+    // Compute totals — refining fee charged on equivalent weight at 730 purity
     let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
     const bars = (data.bars ?? []).map((b) => {
       const pure = (b.gross_weight * b.purity) / 1000;
@@ -311,7 +311,8 @@ export const createTransaction = createServerFn({ method: "POST" })
     if (data.transaction_type === "gold") {
       if (bars.length === 0) throw new Error("At least one gold bar is required.");
       if (data.direction === "receiving") {
-        fee = total_gross * (data.fee_price ?? 0);
+        const weight_at_730 = (total_pure * 1000) / 730; // = sum(gross * purity / 730)
+        fee = weight_at_730 * (data.fee_price ?? 0);
       }
     } else {
       if (!data.da_amount || data.da_amount <= 0) throw new Error("DA amount must be greater than 0.");
