@@ -790,6 +790,7 @@ export type StatementRow = {
 
 export type AccountStatement = {
   refinery: { id: string; name: string };
+  client: { id: string; name: string; phone: string | null };
   range: { from: string; to: string };
   statement_number: string;
   generated_at: string;
@@ -816,6 +817,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       refineryId: z.string().uuid(),
+      clientId: z.string().uuid(),
       from: dateStrR,
       to: dateStrR,
     }).parse(d),
@@ -823,150 +825,119 @@ export const getAccountStatement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<AccountStatement> => {
     await assertAccess(context.userId, data.refineryId);
 
-    const { data: ref, error: rErr } = await supabaseAdmin
-      .from("refineries").select("id, name").eq("id", data.refineryId).single();
+    const [{ data: ref, error: rErr }, { data: cli, error: cErr }] = await Promise.all([
+      supabaseAdmin.from("refineries").select("id, name").eq("id", data.refineryId).single(),
+      supabaseAdmin.from("refinery_clients").select("id, name, phone, refinery_id")
+        .eq("id", data.clientId).single(),
+    ]);
     if (rErr) throw new Error(rErr.message);
+    if (cErr) throw new Error(cErr.message);
+    if (cli.refinery_id !== data.refineryId) throw new Error("Client does not belong to this refinery");
 
     const fromTs = `${data.from}T00:00:00.000Z`;
     const toTs = `${data.to}T23:59:59.999Z`;
 
-    // Opening balances: latest movement strictly before window start
-    const { data: priorRows } = await supabaseAdmin
-      .from("refinery_stock_movements")
-      .select("gold_stock_after, da_stock_after, created_at")
-      .eq("refinery_id", data.refineryId)
-      .lt("created_at", fromTs)
-      .order("created_at", { ascending: false })
+    // Opening: latest settled tx for this client strictly before window
+    const { data: priorTx } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("new_purity_balance, new_da_balance, settled_at")
+      .eq("client_id", data.clientId)
+      .eq("status", "settled")
+      .lt("settled_at", fromTs)
+      .order("settled_at", { ascending: false })
       .limit(1);
     let openingGold = 0;
     let openingDa = 0;
-    if (priorRows && priorRows.length > 0) {
-      openingGold = Number(priorRows[0].gold_stock_after);
-      openingDa = Number(priorRows[0].da_stock_after);
+    if (priorTx && priorTx.length > 0) {
+      openingGold = Number(priorTx[0].new_purity_balance ?? 0);
+      openingDa = Number(priorTx[0].new_da_balance ?? 0);
     }
 
-    // Movements in window
-    const { data: movs, error: mErr } = await supabaseAdmin
-      .from("refinery_stock_movements")
-      .select("id, created_at, movement_type, gold_change, da_change, gold_stock_before, gold_stock_after, da_stock_before, da_stock_after, notes, client_id, transaction_id")
-      .eq("refinery_id", data.refineryId)
-      .gte("created_at", fromTs)
-      .lte("created_at", toTs)
-      .order("created_at", { ascending: true });
-    if (mErr) throw new Error(mErr.message);
-
-    const txIds = Array.from(new Set((movs ?? []).map((m) => m.transaction_id).filter((x): x is string => !!x)));
-    const clientIds = Array.from(new Set((movs ?? []).map((m) => m.client_id).filter((x): x is string => !!x)));
-
-    const [{ data: txs }, { data: clients }] = await Promise.all([
-      txIds.length
-        ? supabaseAdmin
-            .from("refinery_transactions")
-            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, total_gross_weight, average_purity, fee_price, da_amount, transaction_type, direction")
-            .in("id", txIds)
-        : Promise.resolve({ data: [] as Array<{
-            id: string; transaction_number: string; transaction_date: string;
-            total_refining_fee: number; total_pure_weight: number;
-            total_gross_weight: number; average_purity: number; fee_price: number;
-            da_amount: number;
-            transaction_type: "da" | "gold"; direction: "receiving" | "delivery";
-          }> }),
-      clientIds.length
-        ? supabaseAdmin.from("refinery_clients").select("id, name").in("id", clientIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
-    ]);
-    const txMap = new Map((txs ?? []).map((t) => [t.id, t]));
-    const cliMap = new Map((clients ?? []).map((c) => [c.id, c.name as string]));
+    // Transactions in window (settled)
+    const { data: txs, error: tErr } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance")
+      .eq("client_id", data.clientId)
+      .eq("status", "settled")
+      .gte("settled_at", fromTs)
+      .lte("settled_at", toTs)
+      .order("settled_at", { ascending: true });
+    if (tErr) throw new Error(tErr.message);
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
-    const txCounted = new Set<string>();
 
-    for (const m of movs ?? []) {
-      const tx = m.transaction_id ? txMap.get(m.transaction_id) : null;
-      const clientName = m.client_id ? (cliMap.get(m.client_id) ?? null) : null;
-      const dateStr = tx?.transaction_date ?? String(m.created_at).slice(0, 10);
-      const reference = tx?.transaction_number ?? `MOV-${String(m.id).slice(0, 8).toUpperCase()}`;
-      const gold = Number(m.gold_change);
-      const da = Number(m.da_change);
-      const ga = Number(m.gold_stock_after);
-      const dasa = Number(m.da_stock_after);
+    for (const tx of txs ?? []) {
+      const dateStr = tx.transaction_date ?? String(tx.settled_at).slice(0, 10);
+      const refn = tx.transaction_number;
+      const runGold = Number(tx.new_purity_balance ?? 0);
+      const runDa = Number(tx.new_da_balance ?? 0);
 
-      let rowType: StatementRowType = "adjustment";
-      let description = "Balance Adjustment";
-      switch (m.movement_type) {
-        case "receiving_gold":
-          rowType = "gold_received";
-          description = `Gold Received${clientName ? ` from ${clientName}` : ""}`;
-          totalGoldRecv += Math.max(gold, 0);
-          if (tx) { totalFees += Number(tx.total_refining_fee || 0); txCounted.add(tx.id); }
-          break;
-        case "delivery_gold":
-          rowType = "gold_delivered";
-          description = `Gold Delivered${clientName ? ` to ${clientName}` : ""}`;
-          totalGoldDeliv += Math.max(-gold, 0);
-          if (tx) txCounted.add(tx.id);
-          break;
-        case "receiving_da":
-          rowType = "da_received";
-          description = `DA Payment Received${clientName ? ` from ${clientName}` : ""}`;
-          totalDaRecv += Math.max(da, 0);
-          if (tx) txCounted.add(tx.id);
-          break;
-        case "delivery_da":
-          rowType = "da_paid";
-          description = `DA Payment Paid${clientName ? ` to ${clientName}` : ""}`;
-          totalDaPaid += Math.max(-da, 0);
-          if (tx) txCounted.add(tx.id);
-          break;
-        case "adjustment":
-          rowType = "adjustment";
-          description = m.notes ? `Adjustment — ${m.notes}` : "Balance Adjustment";
-          break;
-        case "reversal":
-          rowType = "reversal";
-          description = m.notes ? `Reversal — ${m.notes}` : "Reversal";
-          break;
-      }
-
-      rows.push({
-        date: dateStr,
-        created_at: String(m.created_at),
-        reference,
-        type: rowType,
-        description,
-        client_name: clientName,
-        gold_debit: gold < 0 ? -gold : 0,
-        gold_credit: gold > 0 ? gold : 0,
-        da_debit: da < 0 ? -da : 0,
-        da_credit: da > 0 ? da : 0,
-        running_gold: ga,
-        running_da: dasa,
-      });
-
-      // For receiving_gold, also emit a derived "Refining Fee" line with calculation details
-      if (m.movement_type === "receiving_gold" && tx && Number(tx.total_refining_fee) > 0) {
-        const orig_w = Number(tx.total_gross_weight) || 0;
-        const orig_p = Number(tx.average_purity) || 0;
-        const w730 = orig_p > 0 ? (orig_w * orig_p) / 730 : 0;
+      if (tx.transaction_type === "gold" && tx.direction === "receiving") {
+        const gold = Number(tx.total_pure_weight) || 0;
+        totalGoldRecv += gold;
         rows.push({
-          date: dateStr,
-          created_at: String(m.created_at),
-          reference,
-          type: "refining_fee",
-          description: `Refining Fee${clientName ? ` — ${clientName}` : ""}`,
-          client_name: clientName,
-          gold_debit: 0,
-          gold_credit: 0,
-          da_debit: 0,
-          da_credit: 0,
-          running_gold: ga,
-          running_da: dasa,
-          original_weight: orig_w,
-          original_purity: orig_p,
-          weight_at_730: w730,
-          fee_price: Number(tx.fee_price) || 0,
-          fee_total: Number(tx.total_refining_fee) || 0,
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn, type: "gold_received",
+          description: `Gold Received — ${cli.name}`,
+          client_name: cli.name,
+          gold_debit: 0, gold_credit: gold,
+          da_debit: 0, da_credit: 0,
+          running_gold: runGold, running_da: runDa,
+        });
+        if (Number(tx.total_refining_fee) > 0) {
+          const orig_w = Number(tx.total_gross_weight) || 0;
+          const orig_p = Number(tx.average_purity) || 0;
+          const w730 = orig_p > 0 ? (orig_w * orig_p) / 730 : 0;
+          const fee = Number(tx.total_refining_fee) || 0;
+          totalFees += fee;
+          rows.push({
+            date: dateStr, created_at: String(tx.settled_at),
+            reference: refn, type: "refining_fee",
+            description: `Refining Fee — ${cli.name}`,
+            client_name: cli.name,
+            gold_debit: 0, gold_credit: 0,
+            da_debit: fee, da_credit: 0,
+            running_gold: runGold, running_da: runDa,
+            original_weight: orig_w, original_purity: orig_p,
+            weight_at_730: w730, fee_price: Number(tx.fee_price) || 0, fee_total: fee,
+          });
+        }
+      } else if (tx.transaction_type === "gold" && tx.direction === "delivery") {
+        const gold = Number(tx.total_pure_weight) || 0;
+        totalGoldDeliv += gold;
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn, type: "gold_delivered",
+          description: `Gold Delivered — ${cli.name}`,
+          client_name: cli.name,
+          gold_debit: gold, gold_credit: 0,
+          da_debit: 0, da_credit: 0,
+          running_gold: runGold, running_da: runDa,
+        });
+      } else if (tx.transaction_type === "da" && tx.direction === "receiving") {
+        const da = Number(tx.da_amount) || 0;
+        totalDaRecv += da;
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn, type: "da_received",
+          description: `DA Payment Received — ${cli.name}`,
+          client_name: cli.name,
+          gold_debit: 0, gold_credit: 0,
+          da_debit: 0, da_credit: da,
+          running_gold: runGold, running_da: runDa,
+        });
+      } else if (tx.transaction_type === "da" && tx.direction === "delivery") {
+        const da = Number(tx.da_amount) || 0;
+        totalDaPaid += da;
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn, type: "da_paid",
+          description: `DA Payment Paid — ${cli.name}`,
+          client_name: cli.name,
+          gold_debit: 0, gold_credit: 0,
+          da_debit: da, da_credit: 0,
+          running_gold: runGold, running_da: runDa,
         });
       }
     }
@@ -984,11 +955,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       genName = ru?.display_name ?? "User";
     }
 
-
     const stmtNum = `STMT-${data.from.replace(/-/g, "")}-${data.to.replace(/-/g, "")}-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 
     return {
       refinery: { id: ref.id, name: ref.name },
+      client: { id: cli.id, name: cli.name, phone: cli.phone ?? null },
       range: { from: data.from, to: data.to },
       statement_number: stmtNum,
       generated_at: new Date().toISOString(),
@@ -1004,7 +975,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         total_da_received: totalDaRecv,
         total_da_paid: totalDaPaid,
         total_refining_fees: totalFees,
-        transaction_count: txCounted.size,
+        transaction_count: (txs ?? []).length,
       },
     };
   });
@@ -1014,6 +985,7 @@ export const logRefineryReport = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       refinery_id: z.string().uuid(),
+      client_id: z.string().uuid().nullable().optional(),
       date_from: dateStrR,
       date_to: dateStrR,
       statement_number: z.string().max(120).nullable().optional(),
@@ -1030,6 +1002,7 @@ export const logRefineryReport = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.from("refinery_report_history").insert({
       refinery_id: data.refinery_id,
+      client_id: data.client_id ?? null,
       report_type: "account_statement",
       date_from: data.date_from,
       date_to: data.date_to,
@@ -1039,22 +1012,28 @@ export const logRefineryReport = createServerFn({ method: "POST" })
       generated_by: context.userId,
       generated_by_username: username,
       details: (data.details ?? null) as never,
-    });
+    } as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const listRefineryReportHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .inputValidator((d) => z.object({
+    refineryId: z.string().uuid(),
+    clientId: z.string().uuid().nullable().optional(),
+  }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refineryId);
-    const { data: rows, error } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("refinery_report_history")
-      .select("id, date_from, date_to, statement_number, format, channel, generated_by_username, created_at")
+      .select("id, client_id, date_from, date_to, statement_number, format, channel, generated_by_username, created_at")
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false })
       .limit(100);
+    if (data.clientId) q = q.eq("client_id", data.clientId);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
