@@ -2405,7 +2405,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
-                <p className={`font-display text-5xl tabular-nums mt-1 ${signClass(netPhysical)}`}>
+                <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums mt-1 break-all ${signClass(netPhysical)}`}>
                   {signed(netPhysical, fmtG)}
                 </p>
                 <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
