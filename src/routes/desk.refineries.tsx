@@ -1262,8 +1262,10 @@ function TransactionReceiptDialog({
   const exportPng = async (channel: "download" | "whatsapp") => {
     if (!tx) return;
     setBusy(channel === "whatsapp" ? "share" : "png");
+    const shareWindow = channel === "whatsapp" ? window.open("", "_blank") : null;
     try {
       if (channel === "whatsapp") {
+        if (!shareWindow) throw new Error("WhatsApp popup was blocked");
         const { signedUrl, fileName } = await uploadReceiptPdfAndGetSignedUrl();
         const msg = encodeURIComponent(
           `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
@@ -1273,8 +1275,7 @@ function TransactionReceiptDialog({
         );
         const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
         const whatsappUrl = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
-        const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-        if (!opened) throw new Error("WhatsApp popup was blocked");
+        shareWindow.location.href = whatsappUrl;
         toast.success("WhatsApp share link opened");
         return;
       }
@@ -1290,6 +1291,7 @@ function TransactionReceiptDialog({
       toast.success("Image downloaded");
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
+      shareWindow?.close();
       toast.error(
         channel === "whatsapp"
           ? "Unable to share receipt. Please download the file and send it manually."
@@ -1316,7 +1318,7 @@ function TransactionReceiptDialog({
               <Button variant="outline" onClick={() => exportPng("download")} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "png" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-1" />} Download Image
               </Button>
-              <Button onClick={() => exportPng("whatsapp")} disabled={busy !== null || !tx.client_phone} className="w-full sm:w-auto">
+              <Button onClick={() => exportPng("whatsapp")} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "share" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Share2 className="h-4 w-4 mr-1" />} Share on WhatsApp
               </Button>
             </DialogFooter>
