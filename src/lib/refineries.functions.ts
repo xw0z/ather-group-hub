@@ -514,7 +514,8 @@ const settlementCreate = z.object({
   kind: z.enum(["gold", "da"]),
   amount: z.number().positive(),
   apply_fee: z.boolean().default(false),
-  fee_price: z.number().min(0).default(0),
+  from_fee_price: z.number().min(0).default(0),
+  to_fee_price: z.number().min(0).default(0),
   transaction_date: z.string(),
   notes: z.string().max(2000).optional().nullable(),
 });
@@ -534,13 +535,15 @@ export const createSettlement = createServerFn({ method: "POST" })
       _kind: data.kind,
       _amount: data.amount,
       _apply_fee: data.apply_fee,
-      _fee_price: data.fee_price,
+      _from_fee_price: data.from_fee_price,
+      _to_fee_price: data.to_fee_price,
       _date: data.transaction_date,
       _notes: data.notes ?? "",
     });
     if (error) throw new Error(error.message);
     return { group_id: (groupId ?? "") as string };
   });
+
 
 export type SettlementPair = {
   group_id: string;
