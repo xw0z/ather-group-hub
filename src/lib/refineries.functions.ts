@@ -1969,7 +1969,7 @@ async function createBackupInternal(opts: {
       file_size_bytes: sizeBytes,
       kind: opts.kind,
       schema_version: payload.schema_version,
-      payload: payload as unknown as Record<string, unknown>,
+      payload: payload as never,
       created_by: opts.userId,
       created_by_email: opts.userEmail,
     })
