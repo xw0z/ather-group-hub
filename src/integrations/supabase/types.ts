@@ -507,6 +507,12 @@ export type Database = {
           adjustment_kind: string | null
           adjustment_metal: string | null
           average_purity: number
+          buysell_kind: string | null
+          buysell_price_per_gram: number | null
+          buysell_purity: number | null
+          buysell_settlement: string | null
+          buysell_total: number | null
+          buysell_weight: number | null
           client_id: string
           counterparty_client_id: string | null
           created_at: string
@@ -547,6 +553,12 @@ export type Database = {
           adjustment_kind?: string | null
           adjustment_metal?: string | null
           average_purity?: number
+          buysell_kind?: string | null
+          buysell_price_per_gram?: number | null
+          buysell_purity?: number | null
+          buysell_settlement?: string | null
+          buysell_total?: number | null
+          buysell_weight?: number | null
           client_id: string
           counterparty_client_id?: string | null
           created_at?: string
@@ -587,6 +599,12 @@ export type Database = {
           adjustment_kind?: string | null
           adjustment_metal?: string | null
           average_purity?: number
+          buysell_kind?: string | null
+          buysell_price_per_gram?: number | null
+          buysell_purity?: number | null
+          buysell_settlement?: string | null
+          buysell_total?: number | null
+          buysell_weight?: number | null
           client_id?: string
           counterparty_client_id?: string | null
           created_at?: string
@@ -1257,6 +1275,20 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_create_buysell: {
+        Args: {
+          _client_id: string
+          _date: string
+          _kind: string
+          _notes: string
+          _price_per_gram: number
+          _purity: number
+          _refinery_id: string
+          _settlement: string
+          _weight: number
+        }
+        Returns: string
+      }
       refinery_create_settlement: {
         Args: {
           _amount: number
@@ -1296,6 +1328,12 @@ export type Database = {
           adjustment_kind: string | null
           adjustment_metal: string | null
           average_purity: number
+          buysell_kind: string | null
+          buysell_price_per_gram: number | null
+          buysell_purity: number | null
+          buysell_settlement: string | null
+          buysell_total: number | null
+          buysell_weight: number | null
           client_id: string
           counterparty_client_id: string | null
           created_at: string
@@ -1345,6 +1383,12 @@ export type Database = {
           adjustment_kind: string | null
           adjustment_metal: string | null
           average_purity: number
+          buysell_kind: string | null
+          buysell_price_per_gram: number | null
+          buysell_purity: number | null
+          buysell_settlement: string | null
+          buysell_total: number | null
+          buysell_weight: number | null
           client_id: string
           counterparty_client_id: string | null
           created_at: string
@@ -1407,10 +1451,17 @@ export type Database = {
         | "delivery_gold"
         | "adjustment"
         | "reversal"
+        | "buy_gold"
+        | "sell_gold"
       refinery_role: "manager" | "staff" | "viewer"
       refinery_tx_direction: "receiving" | "delivery"
       refinery_tx_status: "draft" | "pending" | "settled" | "cancelled"
-      refinery_tx_type: "da" | "gold" | "settlement" | "stock_adjustment"
+      refinery_tx_type:
+        | "da"
+        | "gold"
+        | "settlement"
+        | "stock_adjustment"
+        | "buysell"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1556,11 +1607,19 @@ export const Constants = {
         "delivery_gold",
         "adjustment",
         "reversal",
+        "buy_gold",
+        "sell_gold",
       ],
       refinery_role: ["manager", "staff", "viewer"],
       refinery_tx_direction: ["receiving", "delivery"],
       refinery_tx_status: ["draft", "pending", "settled", "cancelled"],
-      refinery_tx_type: ["da", "gold", "settlement", "stock_adjustment"],
+      refinery_tx_type: [
+        "da",
+        "gold",
+        "settlement",
+        "stock_adjustment",
+        "buysell",
+      ],
     },
   },
 } as const

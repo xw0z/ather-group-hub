@@ -24,6 +24,7 @@ import {
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   createStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
+  createBuySell, type BuySellKind, type BuySellSettlement,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   type Refinery, type RefineryClient, type RefineryTransaction,
@@ -39,14 +40,16 @@ import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "profile";
 const TABS: { id: Tab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "clients", label: "Clients" },
   { id: "transactions", label: "Transactions" },
+  { id: "buysell", label: "Buy / Sell" },
   { id: "stock", label: "Stock" },
   { id: "profile", label: "Profile" },
 ];
+
 
 export const Route = createFileRoute("/desk/refineries")({
   head: () => ({
@@ -312,6 +315,7 @@ function RefineryShell({
           {tab === "transactions" && (
             <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
           )}
+          {tab === "buysell" && <BuySellTab refinery={refinery} assignment={assignment} />}
           {tab === "stock" && <StockTab refinery={refinery} />}
           {tab === "profile" && <ProfileTab />}
         </>
@@ -473,8 +477,8 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
               </td>
               <td className="p-3 capitalize">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
               <td className="p-3 uppercase">{t.transaction_type}</td>
-              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-              <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
+              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell") ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—"}</td>
+              <td className="p-3 text-right tabular-nums">{t.transaction_type === "buysell" ? fmtDA(Number(t.buysell_total ?? 0)) : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"))}</td>
             </tr>
           ))}
         </tbody>
@@ -2481,5 +2485,266 @@ export function RefineriesEmbedded() {
       onSignOut={() => {}}
       embedded
     />
+  );
+}
+
+// =============================================================
+// Buy / Sell Gold (DA-priced)
+// =============================================================
+function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: RefineryAssignment }) {
+  const [rows, setRows] = useState<RefineryTransaction[]>([]);
+  const [clients, setClients] = useState<RefineryClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openKind, setOpenKind] = useState<BuySellKind | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tx, cl] = await Promise.all([
+        listTransactions({ data: { refineryId: refinery.id } }),
+        listClients({ data: { refineryId: refinery.id } }),
+      ]);
+      setRows(tx.filter((t) => t.transaction_type === "buysell"));
+      setClients(cl);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }, [refinery.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Quick statistics for the period (today by default)
+  const today = new Date().toISOString().slice(0, 10);
+  const todayRows = rows.filter((r) => (r.transaction_date ?? "").startsWith(today));
+  const todayBuy = todayRows.filter((r) => r.buysell_kind === "buy");
+  const todaySell = todayRows.filter((r) => r.buysell_kind === "sell");
+  const sum = (arr: RefineryTransaction[], k: "buysell_weight" | "buysell_total") =>
+    arr.reduce((s, r) => s + Number(r[k] ?? 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl">Buy / Sell Gold</h1>
+          <p className="text-sm text-muted-foreground">
+            Record physical gold purchases and sales paid in DA.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setOpenKind("buy")}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Buy Gold
+          </Button>
+          <Button
+            onClick={() => setOpenKind("sell")}
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          >
+            <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Today · Buy weight" value={fmtG(sum(todayBuy, "buysell_weight"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
+        <StatCard label="Today · Buy total" value={fmtDA(sum(todayBuy, "buysell_total"))} />
+        <StatCard label="Today · Sell weight" value={fmtG(sum(todaySell, "buysell_weight"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
+        <StatCard label="Today · Sell total" value={fmtDA(sum(todaySell, "buysell_total"))} />
+      </div>
+
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-muted/20">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="p-3">Date</th>
+                <th className="p-3">Tx #</th>
+                <th className="p-3">Client</th>
+                <th className="p-3">Type</th>
+                <th className="p-3 text-right">Weight</th>
+                <th className="p-3 text-right">Price / g</th>
+                <th className="p-3 text-right">Total DA</th>
+                <th className="p-3">Settlement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+              )}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
+              )}
+              {rows.map((r) => {
+                const buy = r.buysell_kind === "buy";
+                return (
+                  <tr key={r.id} className="border-b border-border last:border-0">
+                    <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
+                    <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
+                    <td className="p-3">{r.client_name ?? "—"}</td>
+                    <td className="p-3">
+                      <Badge className={buy ? "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" : "bg-destructive/15 text-destructive border-destructive/30"}>
+                        {buy ? "BUY" : "SELL"}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-right tabular-nums">{fmtG(Number(r.buysell_weight ?? 0))}</td>
+                    <td className="p-3 text-right tabular-nums">{fmtDA(Number(r.buysell_price_per_gram ?? 0))}</td>
+                    <td className="p-3 text-right tabular-nums font-semibold">{fmtDA(Number(r.buysell_total ?? 0))}</td>
+                    <td className="p-3">
+                      <span className="text-xs uppercase tracking-wider">
+                        {r.buysell_settlement === "cash" ? "Cash" : "Settlement"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {openKind && (
+        <BuySellDialog
+          refinery={refinery}
+          clients={clients}
+          kind={openKind}
+          isAdmin={assignment.isAdmin}
+          onClose={() => setOpenKind(null)}
+          onSaved={() => { setOpenKind(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BuySellDialog({
+  refinery, clients, kind, isAdmin, onClose, onSaved,
+}: {
+  refinery: Refinery;
+  clients: RefineryClient[];
+  kind: BuySellKind;
+  isAdmin: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [clientId, setClientId] = useState<string>("");
+  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [weight, setWeight] = useState<string>("");
+  const [purity, setPurity] = useState<string>("1000");
+  const [price, setPrice] = useState<string>("");
+  const [settlement, setSettlement] = useState<BuySellSettlement>("settlement");
+  const [notes, setNotes] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  void isAdmin;
+  const w = Number(weight) || 0;
+  const p = Number(price) || 0;
+  const total = Math.round(w * p);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!clientId) { toast.error("Select a client"); return; }
+    if (w <= 0) { toast.error("Weight must be greater than 0"); return; }
+    if (p < 0) { toast.error("Price per gram must be >= 0"); return; }
+    setSaving(true);
+    try {
+      await createBuySell({ data: {
+        refineryId: refinery.id,
+        clientId,
+        kind,
+        settlement,
+        weight: w,
+        purity: Number(purity) || 1000,
+        pricePerGram: p,
+        date,
+        notes: notes || null,
+      }});
+      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} for ${fmtDA(total)}`);
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {kind === "buy" ? (
+              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy Gold</span>
+            ) : (
+              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell Gold</span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <Label>Client</Label>
+            <Select value={clientId} onValueChange={setClientId}>
+              <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Settlement</Label>
+              <Select value={settlement} onValueChange={(v) => setSettlement(v as BuySellSettlement)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="settlement">Settlement (affects DA balance)</SelectItem>
+                  <SelectItem value="cash">Cash (no balance change)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Weight (g)</Label>
+              <Input type="number" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
+            </div>
+            <div>
+              <Label>Purity (‰)</Label>
+              <Input type="number" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
+            </div>
+            <div>
+              <Label>Price / g (DA)</Label>
+              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Total amount</span>
+            <span className={`tabular-nums font-semibold ${kind === "buy" ? "text-emerald-500" : "text-destructive"}`}>{fmtDA(total)}</span>
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button
+              type="submit"
+              disabled={saving}
+              className={kind === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {kind === "buy" ? "Record Buy" : "Record Sell"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
