@@ -522,7 +522,7 @@ function MetaRow({
         <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
         <div
           style={{
-            fontFamily: mono ? "ui-monospace, Menlo, Consolas, monospace" : "'Inter', system-ui, sans-serif",
+            fontFamily: "'Inter', system-ui, sans-serif",
             fontSize: 40,
             color: "#1c2431",
             fontWeight: 600,
