@@ -1667,24 +1667,12 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [metalFilter, setMetalFilter] = useState<"all" | "gold" | "silver" | "da">("all");
-  const [goldPrice, setGoldPrice] = useState<number>(() => Number(localStorage.getItem("ather:refinery:goldPrice") || 12000));
-  const [silverPrice, setSilverPrice] = useState<number>(() => Number(localStorage.getItem("ather:refinery:silverPrice") || 150));
-
-  useEffect(() => {
-    localStorage.setItem("ather:refinery:goldPrice", String(goldPrice));
-    localStorage.setItem("ather:refinery:silverPrice", String(silverPrice));
-  }, [goldPrice, silverPrice]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Stock + bars count + adjustments transactions
-      const [{ data: s }, { data: bars }, { data: adj }] = await Promise.all([
+      const [{ data: s }, { data: adj }] = await Promise.all([
         supabase.from("refinery_stock").select("pure_gold_stock, da_stock, silver_stock").eq("refinery_id", refinery.id).maybeSingle(),
-        supabase
-          .from("refinery_transaction_gold_bars")
-          .select("gross_weight, purity, transaction:refinery_transactions!inner(refinery_id, direction, status)")
-          .eq("transaction.refinery_id", refinery.id),
         supabase
           .from("refinery_transactions")
           .select("id, transaction_number, transaction_date, created_at, adjustment_metal, adjustment_kind, adjustment_delta, previous_gold_stock, new_gold_stock, previous_silver_stock, new_silver_stock, previous_da_stock, new_da_stock, notes, created_by")
@@ -1698,22 +1686,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
         da_stock: Number(stockRow.da_stock),
         silver_stock: Number(stockRow.silver_stock ?? 0),
       });
-      // Bars + avg purity
-      type BarRow = { gross_weight: number; purity: number; transaction: { direction: string; status: string } | { direction: string; status: string }[] };
-      const list = (bars ?? []) as unknown as BarRow[];
-      let count = 0; let sumPG = 0; let sumG = 0;
-      for (const b of list) {
-        const t = Array.isArray(b.transaction) ? b.transaction[0] : b.transaction;
-        if (!t || t.status !== "settled") continue;
-        const sign = t.direction === "receiving" ? 1 : -1;
-        count += sign;
-        sumPG += sign * Number(b.gross_weight) * Number(b.purity);
-        sumG += sign * Number(b.gross_weight);
-      }
-      const avgPurity = sumG > 0 ? sumPG / sumG : 0;
-      setAvg({ bars: Math.max(0, count), purity: avgPurity });
 
-      // Resolve usernames
       const adjList = (adj ?? []) as unknown as Array<AdjTx & { created_by: string | null }>;
       const ids = Array.from(new Set(adjList.map((a) => a.created_by).filter(Boolean))) as string[];
       let nameMap: Record<string, string> = {};
@@ -1726,67 +1699,37 @@ function StockTab({ refinery }: { refinery: Refinery }) {
     finally { setLoading(false); }
   }, [refinery.id]);
 
-  const [avg, setAvg] = useState<{ bars: number; purity: number }>({ bars: 0, purity: 0 });
   useEffect(() => { load(); }, [load]);
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
   const visibleAdjustments = adjustments.filter((a) => metalFilter === "all" || a.adjustment_metal === metalFilter);
-  const goldValue = stock.pure_gold_stock * goldPrice;
-  const silverValue = stock.silver_stock * silverPrice;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Stock</h1>
-          <p className="text-sm text-muted-foreground">{refinery.name}</p>
+          <p className="text-sm text-muted-foreground">{refinery.name} · physical inventory currently available</p>
         </div>
         <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" /> New Stock Adjustment
         </Button>
       </div>
 
-      {/* Price inputs */}
-      <Card className="p-3">
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <Label className="text-xs">Gold Price (DA / g)</Label>
-            <Input type="number" value={goldPrice} onChange={(e) => setGoldPrice(Number(e.target.value))} className="w-[160px]" />
-          </div>
-          <div>
-            <Label className="text-xs">Silver Price (DA / g)</Label>
-            <Input type="number" value={silverPrice} onChange={(e) => setSilverPrice(Number(e.target.value))} className="w-[160px]" />
-          </div>
-          <p className="text-xs text-muted-foreground">Stored locally; used to estimate values.</p>
-        </div>
-      </Card>
-
-      {/* GOLD + SILVER + DA cards */}
+      {/* Physical stock cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-ember" /> Gold Stock</h3>
-          <div className="space-y-1.5 text-sm">
-            <Row2 label="Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} bold />
-            <Row2 label="Total Gold Bars" value={String(avg.bars)} />
-            <Row2 label="Average Purity" value={`${avg.purity.toFixed(2)}%`} />
-            <Row2 label="Estimated Gold Value" value={fmtDA(goldValue)} cls="text-amber-600" />
-          </div>
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
+          <p className="text-2xl font-display tabular-nums">{fmtG(stock.pure_gold_stock)}</p>
         </Card>
         <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30">
           <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
-          <div className="space-y-1.5 text-sm">
-            <Row2 label="Silver Stock" value={fmtG(stock.silver_stock)} bold />
-            <Row2 label="Total Silver Pieces" value="—" />
-            <Row2 label="Average Silver Purity" value="—" />
-            <Row2 label="Estimated Silver Value" value={fmtDA(silverValue)} cls="text-slate-500" />
-          </div>
+          <p className="text-2xl font-display tabular-nums">{fmtG(stock.silver_stock)}</p>
         </Card>
         <Card className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> DA Stock</h3>
-          <div className="space-y-1.5 text-sm">
-            <Row2 label="DA Balance" value={fmtDA(stock.da_stock)} bold />
-          </div>
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
+          <p className="text-2xl font-display tabular-nums">{fmtDA(stock.da_stock)}</p>
         </Card>
       </div>
 
@@ -1802,6 +1745,9 @@ function StockTab({ refinery }: { refinery: Refinery }) {
 
       {/* Adjustment history */}
       <Card>
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="font-semibold text-sm">Stock Adjustments & Movement History</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
@@ -1876,13 +1822,240 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   );
 }
 
-function Row2({ label, value, cls, bold }: { label: string; value: string; cls?: string; bold?: boolean }) {
+// =============================================================
+// Net Position tab
+// =============================================================
+function NetPositionTab({ refinery }: { refinery: Refinery }) {
+  type Stock = { pure_gold_stock: number; da_stock: number; silver_stock: number };
+  const [stock, setStock] = useState<Stock | null>(null);
+  const [clients, setClients] = useState<RefineryClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [goldPrice, setGoldPrice] = useState<number>(0);
+  const [silverPrice, setSilverPrice] = useState<number>(0);
+  const [savedBy, setSavedBy] = useState<{ name: string | null; at: string | null }>({ name: null, at: null });
+  const [saving, setSaving] = useState(false);
+  const [draftGold, setDraftGold] = useState<string>("");
+  const [draftSilver, setDraftSilver] = useState<string>("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [{ data: s }, cls, price] = await Promise.all([
+        supabase.from("refinery_stock").select("pure_gold_stock, da_stock, silver_stock").eq("refinery_id", refinery.id).maybeSingle(),
+        listClients({ data: { refineryId: refinery.id } }),
+        getNetPositionPrice({ data: { refineryId: refinery.id } }),
+      ]);
+      const stockRow = (s as { pure_gold_stock: number; da_stock: number; silver_stock: number } | null) ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 };
+      setStock({
+        pure_gold_stock: Number(stockRow.pure_gold_stock),
+        da_stock: Number(stockRow.da_stock),
+        silver_stock: Number(stockRow.silver_stock ?? 0),
+      });
+      setClients(cls);
+      setGoldPrice(price.goldPrice);
+      setSilverPrice(price.silverPrice);
+      setDraftGold(String(price.goldPrice || ""));
+      setDraftSilver(String(price.silverPrice || ""));
+      setSavedBy({ name: price.setByUsername, at: price.setAt });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setLoading(false); }
+  }, [refinery.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function onSavePrices() {
+    const g = Number(draftGold); const s = Number(draftSilver);
+    if (!Number.isFinite(g) || g <= 0) return toast.error("Gold price must be greater than 0");
+    if (!Number.isFinite(s) || s < 0) return toast.error("Silver price must be ≥ 0");
+    setSaving(true);
+    try {
+      await saveNetPositionPrice({ data: { refineryId: refinery.id, goldPrice: g, silverPrice: s } });
+      toast.success("Prices saved");
+      await load();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setSaving(false); }
+  }
+
+  if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  const canCompute = goldPrice > 0;
+
+  // Sign convention: stored balances are positive when the refinery OWES the client.
+  // Per spec: refinery-owes-client = NEGATIVE; client-owes-refinery = POSITIVE.
+  const clientRows = clients.map((c) => {
+    const goldPos = -Number(c.purity_balance);              // grams
+    const daPos = -Number(c.da_balance);                    // DA
+    const daEq = canCompute ? daPos / goldPrice : 0;        // grams
+    const net = goldPos + daEq;
+    return { id: c.id, name: c.name, goldPos, daPos, daEq, net };
+  });
+
+  const silverValueDA = stock.silver_stock * silverPrice;
+  const silverEq = canCompute ? silverValueDA / goldPrice : 0;
+  const daEqStock = canCompute ? stock.da_stock / goldPrice : 0;
+
+  const totalClientGold = clientRows.reduce((a, r) => a + r.goldPos, 0);
+  const totalClientDaEq = clientRows.reduce((a, r) => a + r.daEq, 0);
+
+  const netPosition = stock.pure_gold_stock + silverEq + daEqStock + totalClientGold + totalClientDaEq;
+
   return (
-    <div className={`flex items-center justify-between ${bold ? "font-semibold" : ""}`}>
-      <span className="text-muted-foreground">{label}</span>
-      <span className={`tabular-nums ${cls ?? ""}`}>{value}</span>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl">Net Position</h1>
+        <p className="text-sm text-muted-foreground">{refinery.name} · refinery exposure expressed in Pure Gold Equivalent (read-only)</p>
+      </div>
+
+      {/* Price inputs */}
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs</h3>
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <Label className="text-xs">Gold Price (DA / g)</Label>
+            <Input type="number" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-[180px]" />
+          </div>
+          <div>
+            <Label className="text-xs">Silver Price (DA / g)</Label>
+            <Input type="number" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-[180px]" />
+          </div>
+          <Button onClick={onSavePrices} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Prices
+          </Button>
+          {savedBy.at && (
+            <p className="text-xs text-muted-foreground">
+              Last saved by <span className="font-medium">{savedBy.name ?? "—"}</span> on {new Date(savedBy.at).toLocaleString()}
+            </p>
+          )}
+        </div>
+        {!canCompute && (
+          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> Save a Gold Price greater than 0 to compute net position.</p>
+        )}
+      </Card>
+
+      {/* Physical Assets */}
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-3">Physical Assets</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <NPRow label="Pure Gold Stock" value={fmtGkg(stock.pure_gold_stock)} />
+          <NPRow label="Silver Stock" value={fmtG(stock.silver_stock)} />
+          <NPRow label="Silver Value (DA)" value={fmtDA(silverValueDA)} muted />
+          <NPRow label="Silver Equivalent (Pure Gold)" value={fmtGkg(silverEq)} cls={signClass(silverEq)} />
+          <NPRow label="DA Cash Balance" value={fmtDA(stock.da_stock)} muted />
+          <NPRow label="DA Equivalent (Pure Gold)" value={fmtGkg(daEqStock)} cls={signClass(daEqStock)} />
+        </div>
+      </Card>
+
+      {/* Client positions */}
+      <Card>
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="font-semibold text-sm">Client Positions <span className="text-xs text-muted-foreground font-normal">· all clients included</span></h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead className="border-b border-border bg-muted/20">
+              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                <th className="p-3">Client</th>
+                <th className="p-3 text-right">Gold Balance (g)</th>
+                <th className="p-3 text-right">DA Balance</th>
+                <th className="p-3 text-right">DA Equivalent (g)</th>
+                <th className="p-3 text-right">Net Position (g)</th>
+                <th className="p-3 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientRows.length === 0 && (
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients</td></tr>
+              )}
+              {clientRows.map((r) => (
+                <tr key={r.id} className="border-b border-border last:border-0">
+                  <td className="p-3 font-medium">{r.name}</td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(r.goldPos)}`}>{signed(r.goldPos, fmtG)}</td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(r.daPos)}`}>{signed(r.daPos, fmtDA)}</td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(r.daEq)}`}>{signed(r.daEq, fmtG)}</td>
+                  <td className={`p-3 text-right tabular-nums font-semibold ${signClass(r.net)}`}>{signed(r.net, fmtG)}</td>
+                  <td className="p-3 text-center">
+                    <Badge variant="secondary" className={statusBadgeCls(r.net)}>{statusLabel(r.net)}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {clientRows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-border bg-muted/10 font-semibold">
+                  <td className="p-3">Total</td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(totalClientGold)}`}>{signed(totalClientGold, fmtG)}</td>
+                  <td className="p-3"></td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(totalClientDaEq)}`}>{signed(totalClientDaEq, fmtG)}</td>
+                  <td className={`p-3 text-right tabular-nums ${signClass(totalClientGold + totalClientDaEq)}`}>{signed(totalClientGold + totalClientDaEq, fmtG)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </Card>
+
+      {/* Summary */}
+      <Card className="p-4">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-ember" /> Net Position Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+          <NPRow label="Pure Gold Stock" value={fmtGkg(stock.pure_gold_stock)} />
+          <NPRow label="Silver Equivalent" value={fmtGkg(silverEq)} cls={signClass(silverEq)} />
+          <NPRow label="DA Equivalent" value={fmtGkg(daEqStock)} cls={signClass(daEqStock)} />
+          <NPRow label="Total Client Gold Position" value={fmtGkg(totalClientGold)} cls={signClass(totalClientGold)} />
+          <NPRow label="Total Client DA Equivalent" value={fmtGkg(totalClientDaEq)} cls={signClass(totalClientDaEq)} />
+        </div>
+        <div className="mt-4 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Final Net Position</p>
+            <p className={`font-display text-3xl tabular-nums ${signClass(netPosition)}`}>{signed(netPosition, fmtG)}</p>
+            {Math.abs(netPosition) >= 1000 && (
+              <p className={`text-sm tabular-nums ${signClass(netPosition)}`}>≈ {(netPosition / 1000).toLocaleString(undefined, { maximumFractionDigits: 4 })} kg</p>
+            )}
+          </div>
+          <Badge variant="secondary" className={`text-base px-3 py-1 ${statusBadgeCls(netPosition)}`}>
+            {netPosition > 0.0001 ? "Positive in Pure Gold" : netPosition < -0.0001 ? "Negative in Pure Gold" : "Neutral"}
+          </Badge>
+        </div>
+      </Card>
     </div>
   );
+}
+
+function NPRow({ label, value, cls, muted }: { label: string; value: string; cls?: string; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+      <span className={`text-xs ${muted ? "text-muted-foreground" : ""}`}>{label}</span>
+      <span className={`tabular-nums font-medium ${cls ?? ""}`}>{value}</span>
+    </div>
+  );
+}
+
+function fmtGkg(g: number): string {
+  const main = fmtG(g);
+  if (Math.abs(g) >= 1000) {
+    const kg = (g / 1000).toLocaleString(undefined, { maximumFractionDigits: 4 });
+    return `${main} (${kg} kg)`;
+  }
+  return main;
+}
+
+function signClass(v: number): string {
+  if (v > 0.0001) return "text-emerald-500";
+  if (v < -0.0001) return "text-red-500";
+  return "text-muted-foreground";
+}
+
+function statusLabel(v: number): string {
+  if (v > 0.0001) return "Positive";
+  if (v < -0.0001) return "Negative";
+  return "Neutral";
+}
+
+function statusBadgeCls(v: number): string {
+  if (v > 0.0001) return "bg-emerald-500/15 text-emerald-500 border-emerald-500/30";
+  if (v < -0.0001) return "bg-red-500/15 text-red-500 border-red-500/30";
+  return "bg-muted text-muted-foreground";
 }
 
 function NewStockAdjustmentDialog({
