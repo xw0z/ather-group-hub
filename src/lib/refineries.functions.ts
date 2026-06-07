@@ -1202,3 +1202,187 @@ export const listRefineryReportHistory = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+
+// =========================================================
+// Refinery Dashboard Overview (admin)
+// =========================================================
+export type RefineryDashboardOverview = {
+  refinery: { id: string; name: string };
+  range: { from: string; to: string };
+  stock: {
+    pure_gold_stock: number;
+    da_stock: number;
+    total_bars: number;
+    average_purity: number;
+  };
+  totals: {
+    totalClientGoldBalance: number;
+    totalClientDaBalance: number;
+    clientGoldLiability: number;     // sum of positive client gold balances (we owe them)
+    clientDaLiability: number;       // sum of positive client da balances (we owe them)
+    clientGoldReceivable: number;    // sum of negative balances (they owe us), as positive number
+    clientDaReceivable: number;
+    refiningFeesEarned: number;      // all-time
+    refiningFeesEarnedInRange: number;
+  };
+  rangeTotals: {
+    goldReceived: number;
+    goldDelivered: number;
+    daReceived: number;
+    daDelivered: number;
+    settlementsCount: number;
+    settlementsGoldVolume: number;
+    settlementsDaVolume: number;
+    txCount: number;
+  };
+  clients: Array<{
+    id: string;
+    code: string;
+    name: string;
+    purity_balance: number;
+    da_balance: number;
+    last_tx_date: string | null;
+  }>;
+};
+
+export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      from: z.string(),
+      to: z.string(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<RefineryDashboardOverview> => {
+    await assertAdmin(context.userId);
+
+    const [refR, stockR, barsR, clientsR, lastTxR, rangeTxR, feesAllR] = await Promise.all([
+      supabaseAdmin.from("refineries").select("id, name").eq("id", data.refineryId).single(),
+      supabaseAdmin.from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle(),
+      supabaseAdmin.from("refinery_transaction_gold_bars")
+        .select("pure_weight, purity, gross_weight, transaction:refinery_transactions!inner(refinery_id, direction, status)")
+        .eq("transaction.refinery_id", data.refineryId),
+      supabaseAdmin.from("refinery_clients")
+        .select("id, name, purity_balance, da_balance")
+        .eq("refinery_id", data.refineryId)
+        .order("name"),
+      supabaseAdmin.from("refinery_transactions")
+        .select("client_id, transaction_date, created_at")
+        .eq("refinery_id", data.refineryId)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin.from("refinery_transactions")
+        .select("direction, transaction_type, total_pure_weight, da_amount, total_refining_fee, status, settlement_role, settlement_kind, settlement_amount, settlement_group_id")
+        .eq("refinery_id", data.refineryId)
+        .gte("transaction_date", data.from)
+        .lte("transaction_date", data.to),
+      supabaseAdmin.from("refinery_transactions")
+        .select("total_refining_fee, status")
+        .eq("refinery_id", data.refineryId),
+    ]);
+
+    if (refR.error || !refR.data) throw new Error("Refinery not found");
+
+    // Bars in current stock (receiving - delivery, settled only)
+    type BarRow = { pure_weight: number; purity: number; gross_weight: number; transaction: { direction: string; status: string } | { direction: string; status: string }[] };
+    const bars = (barsR.data ?? []) as unknown as BarRow[];
+    let barCount = 0;
+    let weightedPuritySum = 0;
+    let totalGrossForPurity = 0;
+    for (const b of bars) {
+      const tx = Array.isArray(b.transaction) ? b.transaction[0] : b.transaction;
+      if (!tx || tx.status !== "settled") continue;
+      const sign = tx.direction === "receiving" ? 1 : -1;
+      barCount += sign;
+      weightedPuritySum += sign * Number(b.gross_weight) * Number(b.purity);
+      totalGrossForPurity += sign * Number(b.gross_weight);
+    }
+    const avgPurity = totalGrossForPurity > 0 ? weightedPuritySum / totalGrossForPurity : 0;
+
+    // Client aggregates
+    const clientsAll = clientsR.data ?? [];
+    let totalGold = 0, totalDa = 0;
+    let liabGold = 0, liabDa = 0, recvGold = 0, recvDa = 0;
+    for (const c of clientsAll) {
+      const g = Number(c.purity_balance ?? 0);
+      const d2 = Number(c.da_balance ?? 0);
+      totalGold += g; totalDa += d2;
+      if (g > 0) liabGold += g; else recvGold += -g;
+      if (d2 > 0) liabDa += d2; else recvDa += -d2;
+    }
+
+    // Last tx date per client
+    const lastByClient = new Map<string, string>();
+    for (const r of (lastTxR.data ?? [])) {
+      if (!lastByClient.has(r.client_id)) lastByClient.set(r.client_id, r.transaction_date);
+    }
+
+    // Range totals
+    const rng = rangeTxR.data ?? [];
+    let goldReceived = 0, goldDelivered = 0, daReceived = 0, daDelivered = 0;
+    let feesInRange = 0;
+    const settlementGroups = new Set<string>();
+    let settGold = 0, settDa = 0;
+    for (const t of rng) {
+      if (t.status !== "settled") continue;
+      if (t.transaction_type === "settlement") {
+        if (t.settlement_group_id) settlementGroups.add(t.settlement_group_id);
+        if (t.settlement_role === "to") {
+          if (t.settlement_kind === "gold") settGold += Number(t.settlement_amount ?? 0);
+          else if (t.settlement_kind === "da") settDa += Number(t.settlement_amount ?? 0);
+          feesInRange += Number(t.total_refining_fee ?? 0);
+        }
+        continue;
+      }
+      if (t.transaction_type === "gold") {
+        if (t.direction === "receiving") { goldReceived += Number(t.total_pure_weight ?? 0); feesInRange += Number(t.total_refining_fee ?? 0); }
+        else goldDelivered += Number(t.total_pure_weight ?? 0);
+      } else if (t.transaction_type === "da") {
+        if (t.direction === "receiving") daReceived += Number(t.da_amount ?? 0);
+        else daDelivered += Number(t.da_amount ?? 0);
+      }
+    }
+
+    const feesAllTime = (feesAllR.data ?? [])
+      .filter((r) => r.status === "settled")
+      .reduce((s, r) => s + Number(r.total_refining_fee ?? 0), 0);
+
+    return {
+      refinery: refR.data,
+      range: { from: data.from, to: data.to },
+      stock: {
+        pure_gold_stock: Number(stockR.data?.pure_gold_stock ?? 0),
+        da_stock: Number(stockR.data?.da_stock ?? 0),
+        total_bars: Math.max(0, barCount),
+        average_purity: avgPurity,
+      },
+      totals: {
+        totalClientGoldBalance: totalGold,
+        totalClientDaBalance: totalDa,
+        clientGoldLiability: liabGold,
+        clientDaLiability: liabDa,
+        clientGoldReceivable: recvGold,
+        clientDaReceivable: recvDa,
+        refiningFeesEarned: feesAllTime,
+        refiningFeesEarnedInRange: feesInRange,
+      },
+      rangeTotals: {
+        goldReceived,
+        goldDelivered,
+        daReceived,
+        daDelivered,
+        settlementsCount: settlementGroups.size,
+        settlementsGoldVolume: settGold,
+        settlementsDaVolume: settDa,
+        txCount: rng.filter((t) => t.status === "settled").length,
+      },
+      clients: clientsAll.map((c, i) => ({
+        id: c.id,
+        code: `C-${String(i + 1).padStart(4, "0")}`,
+        name: c.name,
+        purity_balance: Number(c.purity_balance ?? 0),
+        da_balance: Number(c.da_balance ?? 0),
+        last_tx_date: lastByClient.get(c.id) ?? null,
+      })),
+    };
+  });
