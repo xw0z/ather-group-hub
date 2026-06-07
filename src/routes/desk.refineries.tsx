@@ -492,30 +492,31 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   }).sort((a, b) => b.exposureGold - a.exposureGold);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
+          <h1 className="font-display text-xl sm:text-2xl">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">{refinery.name} overview</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <Button size="sm" className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
             <Plus className="h-4 w-4 mr-1" /> Buy Gold
           </Button>
-          <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
+          <Button size="sm" className="h-9 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
             <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onTab("stock")}>
-            <Plus className="h-4 w-4 mr-1" /> Stock Adjustment
+          <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("stock")}>
+            <Plus className="h-4 w-4 mr-1" /> Stock Adj
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onTab("clients")}>
+          <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("clients")}>
             <Plus className="h-4 w-4 mr-1" /> Add Client
           </Button>
         </div>
       </header>
 
+
       {/* Top row: physical metrics + equity hero */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
         <StatCard icon={<Coins className="h-4 w-4 text-amber-500" />} label="Pure Gold Stock" value={fmtG(goldStock)} valueClass="text-amber-500" />
         <StatCard icon={<Coins className="h-4 w-4 text-slate-400" />} label="Silver Stock" value={fmtG(silverStock)} valueClass="text-slate-300" />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Cash Stock" value={fmtDA(daCash)} />
@@ -523,7 +524,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
       </div>
 
       {/* Second row: clients, exposure, today summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
         <StatCard label="Total Clients" value={String(data.totalClients)} onClick={() => onTab("clients")} />
         <StatCard
           label="Clients Owing Gold"
@@ -539,6 +540,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         />
         <TodaysActivityCard data={data} />
       </div>
+
 
       {/* Alerts */}
       {alerts.length > 0 && (
@@ -651,12 +653,12 @@ function StatCard({
 }) {
   const interactive = onClick ? "cursor-pointer hover:border-ember/40 transition-colors" : "";
   return (
-    <Card className={`p-4 ${interactive}`} onClick={onClick}>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+    <Card className={`p-3 sm:p-4 h-full flex flex-col justify-between ${interactive}`} onClick={onClick}>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">{label}</p>
         {icon}
       </div>
-      <p className={`text-xl font-semibold tabular-nums ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
+      <p className={`text-lg sm:text-xl font-semibold tabular-nums break-words ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
     </Card>
   );
 }
@@ -669,21 +671,24 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
   return (
     <Card
       onClick={onClick}
-      className={`p-4 bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
+      className={`p-3 sm:p-4 h-full flex flex-col justify-between bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Refinery Equity</p>
-        <Coins className="h-4 w-4 text-amber-500" />
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Refinery Equity</p>
+        <Coins className="h-4 w-4 text-amber-500 shrink-0" />
       </div>
-      <p className={`text-2xl font-semibold tabular-nums ${valueCls}`}>
-        {canCompute ? signed(equity, fmtG) : "—"}
-      </p>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1">
-        {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
-      </p>
+      <div>
+        <p className={`text-xl sm:text-2xl font-semibold tabular-nums break-words ${valueCls}`}>
+          {canCompute ? signed(equity, fmtG) : "—"}
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1 leading-tight">
+          {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
+        </p>
+      </div>
     </Card>
   );
 }
+
 
 function TodaysActivityCard({ data }: {
   data: {
@@ -695,25 +700,26 @@ function TodaysActivityCard({ data }: {
   };
 }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Today's Activity</p>
-        <TrendingUp className="h-4 w-4 text-emerald-500" />
+    <Card className="p-3 sm:p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Today's Activity</p>
+        <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0" />
       </div>
-      <p className="text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
-      <div className="text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
-        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayGoldBought)}</span></div>
-        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todayGoldSold)}</span></div>
-        <div className="flex justify-between"><span>Silver bought</span><span className="text-emerald-500">{fmtG(data.todaySilverBought)}</span></div>
-        <div className="flex justify-between"><span>Silver sold</span><span className="text-destructive">{fmtG(data.todaySilverSold)}</span></div>
-        <div className="flex justify-between"><span>Buy total</span><span className="text-emerald-500">{fmtDA(data.todayBuyTotal)}</span></div>
-        <div className="flex justify-between"><span>Sell total</span><span className="text-destructive">{fmtDA(data.todaySellTotal)}</span></div>
-        <div className="flex justify-between"><span>DA received</span><span className="text-emerald-500">{fmtDA(data.todayReceivedDa)}</span></div>
-        <div className="flex justify-between"><span>DA delivered</span><span className="text-destructive">{fmtDA(data.todayDeliveredDa)}</span></div>
+      <p className="text-lg sm:text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
+      <div className="text-[10px] sm:text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
+        <div className="flex justify-between gap-2"><span className="truncate">Gold bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todayGoldBought)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Gold sold</span><span className="text-destructive shrink-0">{fmtG(data.todayGoldSold)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Silver bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todaySilverBought)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Silver sold</span><span className="text-destructive shrink-0">{fmtG(data.todaySilverSold)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Buy total</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayBuyTotal)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">Sell total</span><span className="text-destructive shrink-0">{fmtDA(data.todaySellTotal)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">DA received</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayReceivedDa)}</span></div>
+        <div className="flex justify-between gap-2"><span className="truncate">DA delivered</span><span className="text-destructive shrink-0">{fmtDA(data.todayDeliveredDa)}</span></div>
       </div>
     </Card>
   );
 }
+
 
 function txTypeBadge(t: RefineryTransaction) {
   const type = t.transaction_type;
