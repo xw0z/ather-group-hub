@@ -1549,7 +1549,9 @@ function TransactionReceiptDialog({
           <>
             <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
               <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
-                <TransactionReceiptReport tx={tx} refineryName={refinery.name} />
+                {isSettlement && settlement
+                  ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
+                  : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />}
               </div>
             </div>
             <DialogFooter className="gap-2 flex-col sm:flex-row">
