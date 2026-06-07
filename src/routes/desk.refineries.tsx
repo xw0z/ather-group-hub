@@ -2361,11 +2361,12 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   const netClientDaEq = canCompute ? netClientDa / goldPrice : 0;
 
   // Refinery Equity (Pure Gold Equivalent):
-  //   Pure Gold Stock + Clients Owe Gold + Clients Owe DA (gold eq)
-  //   − Refinery Owes Gold − Refinery Owes DA (gold eq)
+  //   Net Physical Gold + Silver (gold eq) + Clients Owe DA (gold eq) − Refinery Owes DA (gold eq)
+  const netPhysicalGold = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
   const totalReceivables = clientsOweGold + clientsOweDaEq;
   const totalPayables = refineryOwesGold + refineryOwesDaEq;
-  const refineryEquity = stock.pure_gold_stock + totalReceivables - totalPayables;
+  const refineryEquity = netPhysicalGold + silverEq + clientsOweDaEq - refineryOwesDaEq;
+
   // Extended balance-sheet view (informational only)
   const totalAssets =
     stock.pure_gold_stock + silverEq + daCashEq + clientsOweGold + clientsOweDaEq;
