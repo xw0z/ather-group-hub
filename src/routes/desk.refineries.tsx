@@ -290,13 +290,8 @@ function RefineryShell({
           </>
         )}
       </div>
-      {canStatement && (
-        <AccountStatementDialog
-          open={stmtOpen}
-          onClose={() => setStmtOpen(false)}
-          refinery={refinery}
-        />
-      )}
+
+
     </main>
   );
 }
