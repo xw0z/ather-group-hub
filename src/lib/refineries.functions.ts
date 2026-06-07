@@ -335,7 +335,6 @@ export const settleTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    // Access check
     const { data: tx, error: e0 } = await supabaseAdmin
       .from("refinery_transactions").select("refinery_id").eq("id", data.id).single();
     if (e0) throw new Error(e0.message);
@@ -345,11 +344,90 @@ export const settleTransaction = createServerFn({ method: "POST" })
     return settled as RefineryTransaction;
   });
 
+const txUpdate = txCreate.extend({ id: z.string().uuid() });
+
+export const updateTransaction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => txUpdate.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refinery_id);
+
+    // Reverse current settlement (if any)
+    const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
+    if (revErr) throw new Error(revErr.message);
+
+    // Recompute totals
+    let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
+    const bars = (data.bars ?? []).map((b) => {
+      const pure = (b.gross_weight * b.purity) / 1000;
+      total_gross += b.gross_weight;
+      total_pure += pure;
+      return { ...b, pure_weight: pure };
+    });
+    if (total_gross > 0) avg_purity = (total_pure / total_gross) * 1000;
+    if (data.transaction_type === "gold") {
+      if (bars.length === 0) throw new Error("At least one gold bar is required.");
+      if (data.direction === "receiving") fee = total_gross * (data.fee_price ?? 0);
+    } else if (!data.da_amount || data.da_amount <= 0) {
+      throw new Error("DA amount must be greater than 0.");
+    }
+
+    const { error: ue } = await supabaseAdmin
+      .from("refinery_transactions").update({
+        client_id: data.client_id,
+        direction: data.direction,
+        transaction_type: data.transaction_type,
+        transaction_date: data.transaction_date,
+        notes: data.notes ?? null,
+        da_amount: data.transaction_type === "da" ? data.da_amount ?? 0 : 0,
+        fee_price: data.transaction_type === "gold" && data.direction === "receiving" ? data.fee_price ?? 0 : 0,
+        total_gross_weight: total_gross,
+        total_pure_weight: total_pure,
+        average_purity: avg_purity,
+        total_refining_fee: fee,
+        status: "pending",
+      }).eq("id", data.id);
+    if (ue) throw new Error(ue.message);
+
+    // Replace bars
+    await supabaseAdmin.from("refinery_transaction_gold_bars").delete().eq("transaction_id", data.id);
+    if (bars.length > 0) {
+      const { error: be } = await supabaseAdmin
+        .from("refinery_transaction_gold_bars")
+        .insert(bars.map((b) => ({ ...b, transaction_id: data.id })));
+      if (be) throw new Error(be.message);
+    }
+
+    // Re-apply
+    const { data: settled, error: se } = await supabaseAdmin.rpc("refinery_settle_transaction", { _tx_id: data.id });
+    if (se) throw new Error(se.message);
+    return settled as RefineryTransaction;
+  });
+
+export const deleteTransaction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: tx, error: e0 } = await supabaseAdmin
+      .from("refinery_transactions").select("refinery_id").eq("id", data.id).single();
+    if (e0) throw new Error(e0.message);
+    await assertAccess(context.userId, tx.refinery_id);
+    const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
+    if (revErr) throw new Error(revErr.message);
+    await supabaseAdmin.from("refinery_transaction_gold_bars").delete().eq("transaction_id", data.id);
+    await supabaseAdmin.from("refinery_stock_movements").delete().eq("transaction_id", data.id);
+    const { error } = await supabaseAdmin.from("refinery_transactions").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const cancelTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
+    if (revErr) throw new Error(revErr.message);
     const { error } = await supabaseAdmin
       .from("refinery_transactions").update({ status: "cancelled" }).eq("id", data.id);
     if (error) throw new Error(error.message);
