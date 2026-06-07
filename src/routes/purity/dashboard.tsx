@@ -1721,11 +1721,13 @@ export function ClientBreakdown({
     totalPure: number;
     totalLoss: number;
   }) {
+    if (shareInFlightRef.current) return;
+    shareInFlightRef.current = true;
     setBusyKey(`pdf:${r.name}`);
     const started = Date.now();
     let reportId = "";
     try {
-      await logActivity("share_started", "purity_report", {
+      void logActivity("share_started", "purity_report", {
         format: "pdf",
         supplier: r.name,
         bars: r.bars.length,
@@ -1765,7 +1767,7 @@ export function ClientBreakdown({
       }
       const fileName = `Gold-Purity-Report_${data.clientCode}_${data.reportSerial}.pdf`;
       doc.save(fileName);
-      await logActivity("share_completed", "purity_report", {
+      void logActivity("share_completed", "purity_report", {
         format: "pdf",
         supplier: r.name,
         report_id: reportId,
@@ -1775,7 +1777,7 @@ export function ClientBreakdown({
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error("[purity] shareClientPDF failed:", err);
-      await logActivity("share_failed", "purity_report", {
+      void logActivity("share_failed", "purity_report", {
         format: "pdf",
         supplier: r.name,
         report_id: reportId || null,
@@ -1784,6 +1786,7 @@ export function ClientBreakdown({
       });
       toast.error("Could not generate the PDF", { description: reason });
     } finally {
+      shareInFlightRef.current = false;
       setBusyKey(null);
     }
   }
