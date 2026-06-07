@@ -1066,7 +1066,9 @@ function TransactionFormPage({
                                   onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} />
                               </td>
                               <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(pure) : <span className="text-muted-foreground">—</span>}</td>
-                              <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}</td>
+                              {direction === "receiving" && (
+                                <td className="p-2 text-right tabular-nums">{g > 0 && p > 0 ? fmtG(eq730) : <span className="text-muted-foreground">—</span>}</td>
+                              )}
                               <td className="p-2 text-right">
                                 <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => rmBar(i)} disabled={bars.length === 1}>
                                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
