@@ -38,7 +38,7 @@ const signedColor = (n: number) => (n > 0 ? GREEN : n < 0 ? RED : INK);
 const signedStr = (n: number, fmt: (x: number) => string) =>
   `${n > 0 ? "+" : ""}${fmt(n)}`;
 
-const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
+const MONO = "'Inter', 'Helvetica Neue', Arial, sans-serif";
 
 export function TransactionReceiptReport({
   tx, refineryName,
