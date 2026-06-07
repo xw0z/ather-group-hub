@@ -3002,56 +3002,142 @@ function Stat({ label, value, accent, tone }: { label: string; value: string; ac
 
 /* ---------------------------- PROFILE ---------------------------- */
 
+type ProfileSubTab = "general" | "security" | "sessions" | "preferences";
+
+function passwordStrength(p: string): { label: string; score: number; color: string } {
+  let s = 0;
+  if (p.length >= 8) s++;
+  if (p.length >= 12) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/\d/.test(p)) s++;
+  if (/[^A-Za-z0-9]/.test(p)) s++;
+  if (s <= 2) return { label: "Weak", score: s, color: "bg-destructive" };
+  if (s <= 3) return { label: "Medium", score: s, color: "bg-amber-500" };
+  return { label: "Strong", score: s, color: "bg-emerald-500" };
+}
+
 function ProfileTab({ username }: { username: string }) {
   const navigate = useNavigate();
+  const [sub, setSub] = useState<ProfileSubTab>("general");
 
   // Profile fields
   const [loading, setLoading] = useState(true);
   const [uname, setUname] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<string>("");
+  const [refineryName, setRefineryName] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [lastSignIn, setLastSignIn] = useState<string | null>(null);
+  const [passwordChangedAt, setPasswordChangedAt] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [profileErr, setProfileErr] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Password fields
+  const [currentPwd, setCurrentPwd] = useState("");
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
   const [savingPwd, setSavingPwd] = useState(false);
+  const strength = passwordStrength(pwd);
+  const passwordsMatch = pwd === pwd2;
 
-  const [copied, setCopied] = useState(false);
+  // Login history
+  const [history, setHistory] = useState<Array<{
+    id: string; occurred_at: string; ip: string | null;
+    device: string | null; browser: string | null; status: string;
+  }>>([]);
+
+  // Notification prefs
+  const [notif, setNotif] = useState({
+    email_enabled: true,
+    margin_alerts: true,
+    backup_notifications: true,
+    security_notifications: true,
+    system_announcements: true,
+  });
+  const [savingNotif, setSavingNotif] = useState(false);
+
+  // User prefs
+  const [prefs, setPrefs] = useState<{
+    theme: "light" | "dark" | "system";
+    number_format: "en" | "eu";
+    date_format: "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
+  }>({ theme: "system", number_format: "en", date_format: "DD/MM/YYYY" });
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
   const [signingOut, setSigningOut] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const p = await getSwapOwnProfile();
+        const [p, h, n, pr] = await Promise.all([
+          getSwapOwnProfile(),
+          getLoginHistory().catch(() => []),
+          getNotificationPrefs().catch(() => null),
+          getUserPreferences().catch(() => null),
+        ]);
         if (cancelled) return;
         setUname(p.username ?? "");
+        setDisplayName(p.displayName ?? "");
         setEmail(p.email ?? "");
         setPhone(p.phone ?? "");
         setIsAdmin(p.isAdmin);
+        setRole(p.role ?? "");
+        setRefineryName(p.refineryName ?? null);
         setCreatedAt(p.createdAt);
         setLastSignIn(p.lastSignInAt);
+        setPasswordChangedAt(p.passwordChangedAt);
+        setAvatarUrl(p.avatarUrl);
         setUserId(p.id);
+        setHistory(h as typeof history);
+        if (n) setNotif({
+          email_enabled: n.email_enabled,
+          margin_alerts: n.margin_alerts,
+          backup_notifications: n.backup_notifications,
+          security_notifications: n.security_notifications,
+          system_announcements: n.system_announcements,
+        });
+        if (pr) setPrefs({
+          theme: pr.theme as "light" | "dark" | "system",
+          number_format: pr.number_format as "en" | "eu",
+          date_format: pr.date_format as "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD",
+        });
       } catch (e) {
         setProfileErr(e instanceof Error ? e.message : "Failed to load profile.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  // Apply theme preference
+  useEffect(() => {
+    const root = document.documentElement;
+    const resolve = (t: string) => {
+      if (t === "system") {
+        return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      return t;
+    };
+    const mode = resolve(prefs.theme);
+    root.classList.toggle("dark", mode === "dark");
+  }, [prefs.theme]);
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
@@ -3061,7 +3147,7 @@ function ProfileTab({ username }: { username: string }) {
     try {
       await updateSwapOwnProfile({
         data: {
-          username: uname.trim(),
+          display_name: displayName.trim(),
           email: email.trim(),
           phone: phone.trim(),
         },
@@ -3079,13 +3165,14 @@ function ProfileTab({ username }: { username: string }) {
     e.preventDefault();
     setPwdMsg(null);
     setPwdErr(null);
-    if (pwd.length < 6) return setPwdErr("Password must be at least 6 characters.");
-    if (pwd !== pwd2) return setPwdErr("Passwords don't match.");
+    if (!currentPwd) return setPwdErr("Current password is required.");
+    if (pwd.length < 6) return setPwdErr("New password must be at least 6 characters.");
+    if (pwd !== pwd2) return setPwdErr("New password and confirmation don't match.");
     setSavingPwd(true);
     try {
-      await updateSwapOwnPassword({ data: { password: pwd } });
-      setPwd("");
-      setPwd2("");
+      await updateSwapOwnPassword({ data: { current_password: currentPwd, password: pwd } });
+      setCurrentPwd(""); setPwd(""); setPwd2("");
+      setPasswordChangedAt(new Date().toISOString());
       setPwdMsg("Password updated.");
     } catch (e) {
       setPwdErr(e instanceof Error ? e.message : "Failed.");
@@ -3094,13 +3181,57 @@ function ProfileTab({ username }: { username: string }) {
     }
   }
 
-  async function copyId() {
+  async function onPickAvatar(file: File) {
+    setAvatarBusy(true);
     try {
-      await navigator.clipboard.writeText(userId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
+      const dataUrl = await new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = () => rej(new Error("read failed"));
+        r.readAsDataURL(file);
+      });
+      const r = await setAvatar({ data: { data_url: dataUrl, content_type: file.type || "image/png" } });
+      setAvatarUrl(r.url);
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Avatar upload failed.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function onRemoveAvatar() {
+    setAvatarBusy(true);
+    try {
+      await removeAvatar();
+      setAvatarUrl(null);
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function saveNotif(next: typeof notif) {
+    setNotif(next);
+    setSavingNotif(true);
+    try {
+      await updateNotificationPrefs({ data: next });
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setSavingNotif(false);
+    }
+  }
+
+  async function savePrefs(next: typeof prefs) {
+    setPrefs(next);
+    setSavingPrefs(true);
+    try {
+      await updateUserPreferences({ data: next });
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setSavingPrefs(false);
     }
   }
 
@@ -3114,166 +3245,430 @@ function ProfileTab({ username }: { username: string }) {
     }
   }
 
-  const initial = (uname || username || "?").slice(0, 1).toUpperCase();
-  const fmtDate = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleString() : "—";
+  async function doSignOutAll() {
+    setSigningOutAll(true);
+    try {
+      await signOutEverywhere();
+      await supabase.auth.signOut();
+      navigate({ to: "/desk/login", replace: true });
+    } catch (e) {
+      setProfileErr(e instanceof Error ? e.message : "Failed.");
+    } finally {
+      setSigningOutAll(false);
+      setConfirmSignOutAll(false);
+    }
+  }
+
+  const initial = (displayName || uname || username || "?").slice(0, 1).toUpperCase();
+  const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleString() : "—";
+
+  const subTabs: Array<{ id: ProfileSubTab; label: string }> = [
+    { id: "general", label: "General" },
+    { id: "security", label: "Security" },
+    { id: "sessions", label: "Sessions" },
+    { id: "preferences", label: "Preferences" },
+  ];
 
   return (
     <div className="space-y-4">
-      {/* Header card */}
+      {/* Header */}
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-primary/15 text-primary grid place-items-center text-lg font-semibold">
-            {initial}
+          <div className="h-14 w-14 rounded-full bg-primary/15 text-primary grid place-items-center text-xl font-semibold overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : initial}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-semibold truncate">
-                {uname || username}
-              </h2>
+              <h2 className="text-sm font-semibold truncate">{displayName || uname || username}</h2>
               {isAdmin && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                  Admin
-                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">Admin</span>
+              )}
+              {refineryName && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{refineryName}</span>
               )}
             </div>
             <p className="text-[11px] text-muted-foreground truncate">
-              {email || "No email set"}
-              {phone ? ` · ${phone}` : ""}
+              @{uname || username}{email ? ` · ${email}` : ""}
             </p>
           </div>
         </div>
       </section>
 
-      {/* Account info */}
-      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
-        <h3 className="text-sm font-semibold">Account</h3>
-        <form onSubmit={saveProfile} className="space-y-3 max-w-md">
-          <div>
-            <Label className="text-xs">Username</Label>
-            <Input
-              value={uname}
-              onChange={(e) => setUname(e.target.value)}
-              placeholder="username"
-              disabled={loading}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Letters, numbers, . _ - only
+      {/* Sub-tab nav */}
+      <div className="flex gap-1 border-b border-border/60 overflow-x-auto">
+        {subTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSub(t.id)}
+            className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+              sub === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {profileErr && <p className="text-sm text-destructive">{profileErr}</p>}
+
+      {/* GENERAL */}
+      {sub === "general" && (
+        <>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Profile photo</h3>
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-20 rounded-full bg-primary/15 text-primary grid place-items-center text-2xl font-semibold overflow-hidden">
+                {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" /> : initial}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onPickAvatar(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button variant="outline" size="sm" disabled={avatarBusy} onClick={() => fileRef.current?.click()}>
+                  {avatarUrl ? "Change photo" : "Upload photo"}
+                </Button>
+                {avatarUrl && (
+                  <Button variant="outline" size="sm" disabled={avatarBusy} onClick={onRemoveAvatar}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">PNG, JPG up to 3 MB.</p>
+          </section>
+
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">User information</h3>
+            <form onSubmit={saveProfile} className="space-y-3 max-w-md">
+              <div>
+                <Label className="text-xs">Display name</Label>
+                <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} disabled={loading} />
+              </div>
+              <div>
+                <Label className="text-xs">Username</Label>
+                <Input value={uname} disabled readOnly />
+                <p className="text-[10px] text-muted-foreground mt-1">Username cannot be changed.</p>
+              </div>
+              <div>
+                <Label className="text-xs">Email</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+              </div>
+              <div>
+                <Label className="text-xs">Phone number</Label>
+                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={loading} placeholder="+1 555 123 4567" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Role</Label>
+                  <Input value={isAdmin ? "Administrator" : (role || "Member")} disabled readOnly />
+                </div>
+                <div>
+                  <Label className="text-xs">Assigned refinery</Label>
+                  <Input value={refineryName || "—"} disabled readOnly />
+                </div>
+              </div>
+              {profileMsg && <p className="text-sm text-primary">{profileMsg}</p>}
+              <Button type="submit" disabled={savingProfile || loading}>
+                {savingProfile ? "Saving…" : "Save changes"}
+              </Button>
+            </form>
+          </section>
+        </>
+      )}
+
+      {/* SECURITY */}
+      {sub === "security" && (
+        <>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Change password</h3>
+            <form onSubmit={savePassword} className="space-y-3 max-w-md">
+              <div>
+                <Label className="text-xs">Current password</Label>
+                <div className="relative">
+                  <Input type={showCurrent ? "text" : "password"} value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} />
+                  <button type="button" onClick={() => setShowCurrent((v) => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground">
+                    {showCurrent ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">New password</Label>
+                <div className="relative">
+                  <Input type={showNew ? "text" : "password"} value={pwd} onChange={(e) => setPwd(e.target.value)} />
+                  <button type="button" onClick={() => setShowNew((v) => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground">
+                    {showNew ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {pwd && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-muted rounded overflow-hidden">
+                        <div className={`h-full ${strength.color}`} style={{ width: `${(strength.score / 5) * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{strength.label}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs">Confirm new password</Label>
+                <div className="relative">
+                  <Input type={showConfirm ? "text" : "password"} value={pwd2} onChange={(e) => setPwd2(e.target.value)} />
+                  <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground">
+                    {showConfirm ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {pwd2 && !passwordsMatch && <p className="text-[11px] text-destructive mt-1">Passwords do not match.</p>}
+              </div>
+              {pwdErr && <p className="text-sm text-destructive">{pwdErr}</p>}
+              {pwdMsg && <p className="text-sm text-primary">{pwdMsg}</p>}
+              <Button type="submit" disabled={savingPwd || !pwd || !passwordsMatch || !currentPwd}>
+                {savingPwd ? "Saving…" : "Change password"}
+              </Button>
+            </form>
+          </section>
+
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-2">
+            <h3 className="text-sm font-semibold">Account security</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="text-muted-foreground">Last login</div>
+                <div className="font-medium">{fmtDate(lastSignIn)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Last login device</div>
+                <div className="font-medium">{history[0]?.device || "—"} · {history[0]?.browser || "—"}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Last login IP</div>
+                <div className="font-mono text-[11px]">{history[0]?.ip || "—"}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Account created</div>
+                <div className="font-medium">{fmtDate(createdAt)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Password last changed</div>
+                <div className="font-medium">{fmtDate(passwordChangedAt)}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-muted-foreground">User ID</div>
+                <div className="font-mono text-[11px] truncate">{userId}</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Login history</h3>
+            <p className="text-[11px] text-muted-foreground">Last 10 sign-ins to your account.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="py-1.5 pr-3 font-medium">Date</th>
+                    <th className="py-1.5 pr-3 font-medium">Device</th>
+                    <th className="py-1.5 pr-3 font-medium">Browser</th>
+                    <th className="py-1.5 pr-3 font-medium">IP</th>
+                    <th className="py-1.5 pr-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.length === 0 && (
+                    <tr><td colSpan={5} className="py-3 text-center text-muted-foreground">No login activity recorded yet.</td></tr>
+                  )}
+                  {history.map((h) => (
+                    <tr key={h.id} className="border-t border-border/40">
+                      <td className="py-1.5 pr-3">{new Date(h.occurred_at).toLocaleString()}</td>
+                      <td className="py-1.5 pr-3">{h.device || "—"}</td>
+                      <td className="py-1.5 pr-3">{h.browser || "—"}</td>
+                      <td className="py-1.5 pr-3 font-mono">{h.ip || "—"}</td>
+                      <td className="py-1.5 pr-3">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          h.status === "success" ? "bg-emerald-500/15 text-emerald-500" : "bg-destructive/15 text-destructive"
+                        }`}>{h.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-destructive">Emergency actions</h3>
+            <p className="text-[11px] text-muted-foreground">Use these if you suspect your account is compromised.</p>
+            {!confirmSignOutAll ? (
+              <Button variant="outline" onClick={() => setConfirmSignOutAll(true)}>
+                Logout all devices
+              </Button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-destructive">This will sign you out everywhere. Continue?</span>
+                <Button variant="destructive" size="sm" disabled={signingOutAll} onClick={doSignOutAll}>
+                  {signingOutAll ? "Signing out…" : "Yes, sign out everywhere"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmSignOutAll(false)}>Cancel</Button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* SESSIONS */}
+      {sub === "sessions" && (
+        <>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Current session</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="text-muted-foreground">Device</div>
+                <div className="font-medium">{history[0]?.device || "This device"}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Browser</div>
+                <div className="font-medium">{history[0]?.browser || "—"}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Last activity</div>
+                <div className="font-medium">{fmtDate(lastSignIn)}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">IP</div>
+                <div className="font-mono text-[11px]">{history[0]?.ip || "—"}</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Per-session listing isn't exposed by the authentication provider. You can sign out
+              of this device, or sign out of every device at once below.
             </p>
-          </div>
-          <div>
-            <Label className="text-xs">Email</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              disabled={loading}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Used for sign-in and notifications.
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={doSignOut} disabled={signingOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                {signingOut ? "Signing out…" : "Sign out this device"}
+              </Button>
+              <Button variant="destructive" onClick={doSignOutAll} disabled={signingOutAll}>
+                {signingOutAll ? "Signing out…" : "Logout other sessions"}
+              </Button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* PREFERENCES */}
+      {sub === "preferences" && (
+        <>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Notifications</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Choose which notifications you receive. {savingNotif && "Saving…"}
             </p>
-          </div>
-          <div>
-            <Label className="text-xs">Phone number</Label>
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+1 555 123 4567"
-              disabled={loading}
-            />
-          </div>
-          {profileErr && <p className="text-sm text-destructive">{profileErr}</p>}
-          {profileMsg && <p className="text-sm text-primary">{profileMsg}</p>}
-          <Button type="submit" disabled={savingProfile || loading}>
-            {savingProfile ? "Saving…" : "Save changes"}
-          </Button>
-        </form>
-      </section>
+            <div className="space-y-2">
+              {[
+                { k: "email_enabled", label: "Email notifications" },
+                { k: "margin_alerts", label: "Margin alerts" },
+                { k: "backup_notifications", label: "Backup notifications" },
+                { k: "security_notifications", label: "Security notifications" },
+                { k: "system_announcements", label: "System announcements" },
+              ].map((row) => {
+                const key = row.k as keyof typeof notif;
+                return (
+                  <label key={row.k} className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={notif[key]}
+                      onChange={(e) => saveNotif({ ...notif, [key]: e.target.checked })}
+                    />
+                    {row.label}
+                  </label>
+                );
+              })}
+            </div>
+          </section>
 
-      {/* Password */}
-      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
-        <h3 className="text-sm font-semibold">Password</h3>
-        <form onSubmit={savePassword} className="space-y-3 max-w-md">
-          <div>
-            <Label className="text-xs">New password</Label>
-            <Input
-              type={showPwd ? "text" : "password"}
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
-          <div>
-            <Label className="text-xs">Confirm new password</Label>
-            <Input
-              type={showPwd ? "text" : "password"}
-              value={pwd2}
-              onChange={(e) => setPwd2(e.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={showPwd}
-              onChange={(e) => setShowPwd(e.target.checked)}
-            />
-            Show password
-          </label>
-          {pwdErr && <p className="text-sm text-destructive">{pwdErr}</p>}
-          {pwdMsg && <p className="text-sm text-primary">{pwdMsg}</p>}
-          <Button type="submit" disabled={savingPwd}>
-            {savingPwd ? "Saving…" : "Change password"}
-          </Button>
-        </form>
-      </section>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Appearance & format</h3>
+            <p className="text-[11px] text-muted-foreground">{savingPrefs && "Saving…"}</p>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Theme</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {(["dark", "light", "system"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => savePrefs({ ...prefs, theme: t })}
+                      className={`px-3 py-1 text-xs rounded border ${
+                        prefs.theme === t ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {t === "dark" ? "Dark Mode" : t === "light" ? "Light Mode" : "System Default"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Number format</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {([
+                    { v: "en", label: "1,000.00" },
+                    { v: "eu", label: "1.000,00" },
+                  ] as const).map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      onClick={() => savePrefs({ ...prefs, number_format: o.v })}
+                      className={`px-3 py-1 text-xs rounded border ${
+                        prefs.number_format === o.v ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Date format</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"] as const).map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => savePrefs({ ...prefs, date_format: o })}
+                      className={`px-3 py-1 text-xs rounded border ${
+                        prefs.date_format === o ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
 
-      {/* Details */}
-      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-2">
-        <h3 className="text-sm font-semibold">Details</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div>
-            <div className="text-muted-foreground">Role</div>
-            <div className="font-medium">{isAdmin ? "Administrator" : "Member"}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Member since</div>
-            <div className="font-medium">{fmtDate(createdAt)}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Last sign-in</div>
-            <div className="font-medium">{fmtDate(lastSignIn)}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-muted-foreground">User ID</div>
-            <button
-              type="button"
-              onClick={copyId}
-              className="font-mono text-[11px] truncate block w-full text-left hover:text-primary"
-              title="Copy ID"
-            >
-              {copied ? "Copied!" : userId || "—"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Danger zone */}
-      <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
-        <h3 className="text-sm font-semibold">Session</h3>
-        <p className="text-[11px] text-muted-foreground">
-          Sign out of this device. You'll need to log in again to continue.
-        </p>
-        <Button variant="outline" onClick={doSignOut} disabled={signingOut}>
-          <LogOut className="h-4 w-4 mr-2" />
-          {signingOut ? "Signing out…" : "Sign out"}
-        </Button>
-      </section>
+          <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Session</h3>
+            <Button variant="outline" onClick={doSignOut} disabled={signingOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              {signingOut ? "Signing out…" : "Sign out"}
+            </Button>
+          </section>
+        </>
+      )}
     </div>
   );
 }
+
 
 /* ----------------------------- USERS ----------------------------- */
 
