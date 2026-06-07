@@ -500,8 +500,9 @@ export function SwapDashboard({
           replace: false,
         });
       } else {
+        // Admin: keep inside ATHER Desk shell with sidebar visible.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        navigate({ to: "/desk/refineries" as any, replace: false });
+        navigate({ to: "/desk/app/refineries" as any, replace: false });
       }
       return;
     }
