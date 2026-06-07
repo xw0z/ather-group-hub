@@ -1283,9 +1283,10 @@ function TransactionFormPage({
         if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
         const amt = Number(settlementAmount);
         if (!(amt > 0)) { setSaving(false); toast.error("Amount must be greater than 0"); return; }
-        const fp = Number(settlementFeePrice) || 0;
-        if (settlementKind === "gold" && applyFee && !(fp >= 0)) {
-          setSaving(false); toast.error("Fee price must be ≥ 0"); return;
+        const fromFp = Number(fromFeePrice) || 0;
+        const toFp = Number(toFeePrice) || 0;
+        if (settlementKind === "gold" && applyFee && (!(fromFp >= 0) || !(toFp >= 0))) {
+          setSaving(false); toast.error("Fee prices must be ≥ 0"); return;
         }
         await createSettlement({ data: {
           refinery_id: refinery.id,
@@ -1294,7 +1295,8 @@ function TransactionFormPage({
           kind: settlementKind,
           amount: amt,
           apply_fee: settlementKind === "gold" ? applyFee : false,
-          fee_price: settlementKind === "gold" && applyFee ? fp : 0,
+          from_fee_price: settlementKind === "gold" && applyFee ? fromFp : 0,
+          to_fee_price: settlementKind === "gold" && applyFee ? toFp : 0,
           transaction_date: date,
           notes: notes || null,
         }});
@@ -1302,6 +1304,7 @@ function TransactionFormPage({
         onSaved();
         return;
       }
+
 
       // ----- Existing Gold / DA branch -----
       if (!clientId) { toast.error("Select a client"); setSaving(false); return; }
