@@ -805,8 +805,8 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </thead>
             <tbody>
               {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
-              {!loading && clients.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
