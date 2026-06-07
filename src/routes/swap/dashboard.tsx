@@ -495,7 +495,8 @@ export function SwapDashboard({
         navigate({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           to: "/desk/refineries/$refineryId/$tab" as any,
-          params: { refineryId: refineryAssignment.refineryId, tab: "dashboard" },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          params: { refineryId: refineryAssignment.refineryId, tab: "dashboard" } as any,
           replace: false,
         });
       } else {
