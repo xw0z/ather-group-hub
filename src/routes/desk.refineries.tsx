@@ -3503,8 +3503,8 @@ function AccountStatementDialog({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={preview} disabled={loading || busy !== null} className="flex-1 min-w-[120px]">
-            {loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Preparing statement…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
+          <Button onClick={preview} disabled={busy !== null} className="flex-1 min-w-[120px]">
+            {busy === "preview" ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Opening preview…</> : loading ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Loading…</> : <><FileText className="h-4 w-4 mr-1" />Preview</>}
           </Button>
           <Button variant="outline" onClick={downloadPdf} disabled={loading || busy !== null || !statement} className="flex-1 min-w-[120px]">
             {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
