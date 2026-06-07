@@ -576,7 +576,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
           <Button size="sm" variant="ghost" onClick={() => onTab("clients")}>View all</Button>
         </div>
         <Card>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]">
               <thead className="border-b border-border bg-muted/20">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
@@ -611,7 +611,41 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
               </tbody>
             </table>
           </div>
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border">
+            {negRows.length === 0 && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No negative balances</p>
+            )}
+            {negRows.map((c) => {
+              const g = Number(c.purity_balance);
+              const d = Number(c.da_balance);
+              return (
+                <div key={c.id} className="p-3">
+                  <div className="flex items-center gap-2 mb-2 min-w-0">
+                    <StatusDot tone="negative" />
+                    <p className="font-medium text-sm truncate flex-1">{c.name}</p>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{c.last_activity ?? "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Gold</p>
+                      <p className={balClass(g)}>{signed(g, fmtG)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">DA</p>
+                      <p className={balClass(d)}>{signed(d, fmtDA)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Exposure</p>
+                      <p className="text-destructive">{canCompute ? `−${fmtG(c.exposureGold)}` : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
+
       </section>
 
       <section>
