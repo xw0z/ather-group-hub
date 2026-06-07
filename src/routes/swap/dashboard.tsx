@@ -484,7 +484,7 @@ export function SwapDashboard({
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [refineryAssignment, setRefineryAssignment] = useState<RefineryAssignment | null>(null);
-  const { perms } = useMyPermissions();
+  const { perms, loading: permsLoading } = useMyPermissions();
   const { t } = useLang();
 
 
