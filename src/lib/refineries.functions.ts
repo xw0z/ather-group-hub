@@ -8,7 +8,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 // =========================================================
 export type RefineryRole = "manager" | "staff" | "viewer";
 export type RefineryDirection = "receiving" | "delivery";
-export type RefineryTxType = "da" | "gold" | "settlement";
+export type RefineryTxType = "da" | "gold" | "settlement" | "stock_adjustment";
+export type StockAdjustmentMetal = "gold" | "silver" | "da";
+export type StockAdjustmentKind = "add" | "remove" | "correction" | "loss" | "manual";
 export type RefinerySettlementKind = "gold" | "da";
 export type RefinerySettlementRole = "from" | "to";
 export type RefineryTxStatus = "draft" | "pending" | "settled" | "cancelled";
