@@ -519,6 +519,17 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className="p-3"><StatusBadge status={c.status} /></td>
                   <td className="p-3 text-right">
                     <div className="inline-flex gap-1">
+                      {canStatement && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-ember hover:bg-ember/10"
+                          onClick={() => setStmtClient(c)}
+                          title="Account Statement"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       {!readOnly && (
                         <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
                           <Pencil className="h-3.5 w-3.5" />
