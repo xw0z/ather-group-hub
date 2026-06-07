@@ -245,8 +245,7 @@ function RefineryShell({
   onSignOut: () => void;
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
-  const [stmtOpen, setStmtOpen] = useState(false);
-  const canStatement = assignment.isAdmin || assignment.role === "manager";
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
