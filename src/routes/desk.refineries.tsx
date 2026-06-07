@@ -3798,3 +3798,464 @@ function SummaryCard({ label, value, cls, muted }: { label: string; value: strin
     </Card>
   );
 }
+
+// =============================================================
+// Backup Tab (admin only)
+// =============================================================
+function fmtBytes(n: number): string {
+  if (!n) return "0 B";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+function fmtAuditWhen(s: string): string {
+  try { return new Date(s).toLocaleString(); } catch { return s; }
+}
+const KIND_BADGE: Record<string, string> = {
+  manual: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  scheduled: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  safety: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+};
+
+function BackupTab({ refinery }: { refinery: Refinery }) {
+  const [backups, setBackups] = useState<RefineryBackupMeta[]>([]);
+  const [audit, setAudit] = useState<RefineryAuditLogRow[]>([]);
+  const [settings, setSettings] = useState<RefineryBackupSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  // Restore-from-history confirm
+  const [restoreFromBackup, setRestoreFromBackup] = useState<RefineryBackupMeta | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+  // Restore-from-file
+  const [uploadedPayload, setUploadedPayload] = useState<{
+    fileName: string;
+    sizeBytes: number;
+    payload: unknown;
+  } | null>(null);
+  const [uploadConfirmText, setUploadConfirmText] = useState("");
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [b, a, s] = await Promise.all([
+        listBackups({ data: { refineryId: refinery.id } }),
+        listAuditLog({ data: { refineryId: refinery.id, limit: 100 } }),
+        getBackupSettings({ data: { refineryId: refinery.id } }),
+      ]);
+      setBackups(b);
+      setAudit(a);
+      setSettings(s);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load backup data");
+    } finally {
+      setLoading(false);
+    }
+  }, [refinery.id]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  function downloadJson(name: string, data: unknown) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  async function handleCreate() {
+    setCreating(true);
+    try {
+      const meta = await createBackup({ data: { refineryId: refinery.id } });
+      toast.success(`Backup created: ${meta.file_name}`);
+      // Auto-download the newly created backup
+      try {
+        const full = await getBackupPayload({ data: { backupId: meta.id } });
+        downloadJson(full.file_name, full.payload);
+      } catch { /* download is optional; backup is saved */ }
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create backup");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleDownload(b: RefineryBackupMeta) {
+    try {
+      const full = await getBackupPayload({ data: { backupId: b.id } });
+      downloadJson(full.file_name, full.payload);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    }
+  }
+
+  async function handleDelete(b: RefineryBackupMeta) {
+    if (!confirm(`Delete backup "${b.file_name}"? This cannot be undone.`)) return;
+    try {
+      await deleteBackup({ data: { backupId: b.id } });
+      toast.success("Backup deleted");
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
+
+  async function handleConfirmRestoreFromHistory() {
+    if (!restoreFromBackup) return;
+    setRestoring(true);
+    try {
+      await restoreBackupFromHistory({
+        data: { backupId: restoreFromBackup.id, confirmText },
+      });
+      toast.success("Backup restored. Refreshing data…");
+      setRestoreFromBackup(null);
+      setConfirmText("");
+      await reload();
+      // Trigger upstream pages to refresh by reloading window
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Restore failed");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  async function handleUploadFile(file: File) {
+    try {
+      if (file.size > 50 * 1024 * 1024) throw new Error("File too large (max 50MB).");
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || parsed.schema_version !== 1 || !parsed.refinery?.id) {
+        throw new Error("Invalid backup file structure.");
+      }
+      if (parsed.refinery.id !== refinery.id) {
+        throw new Error(`Backup belongs to a different refinery (${parsed.refinery.name ?? parsed.refinery.id}).`);
+      }
+      setUploadedPayload({ fileName: file.name, sizeBytes: file.size, payload: parsed });
+      setUploadConfirmText("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read backup file");
+    }
+  }
+
+  async function handleConfirmRestoreFromFile() {
+    if (!uploadedPayload) return;
+    setRestoring(true);
+    try {
+      await restoreBackupFromFile({
+        data: {
+          refineryId: refinery.id,
+          payload: uploadedPayload.payload,
+          sourceFileName: uploadedPayload.fileName,
+          confirmText: uploadConfirmText,
+        },
+      });
+      toast.success("Backup restored. Refreshing data…");
+      setUploadedPayload(null);
+      setUploadConfirmText("");
+      await reload();
+      setTimeout(() => window.location.reload(), 500);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Restore failed");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  async function handleSaveSettings(e: FormEvent) {
+    e.preventDefault();
+    if (!settings) return;
+    setSavingSettings(true);
+    try {
+      await updateBackupSettings({
+        data: {
+          refineryId: refinery.id,
+          daily_enabled: settings.daily_enabled,
+          daily_time: settings.daily_time.slice(0, 5),
+          keep_last: settings.keep_last,
+        },
+      });
+      toast.success("Scheduled backup settings saved");
+      await reload();
+    } catch (e2) {
+      toast.error(e2 instanceof Error ? e2.message : "Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  const latest = backups[0];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display text-2xl">Backup &amp; Restore</h2>
+        <p className="text-sm text-muted-foreground">
+          Admin-only. Backups include all refinery data — clients, transactions, stock, prices, and audit history.
+        </p>
+      </div>
+
+      {/* A. Create Backup */}
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="font-display text-lg">A. Create Backup</h3>
+            <p className="text-sm text-muted-foreground">Snapshot the entire refinery into a downloadable JSON file.</p>
+            {latest && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Last backup: <span className="text-foreground">{latest.file_name}</span> ·
+                {" "}{fmtAuditWhen(latest.created_at)} · {fmtBytes(latest.file_size_bytes)}
+                {latest.created_by_email ? ` · by ${latest.created_by_email}` : ""}
+              </p>
+            )}
+          </div>
+          <Button onClick={handleCreate} disabled={creating} className="gap-2">
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {creating ? "Creating…" : "Create Backup"}
+          </Button>
+        </div>
+      </Card>
+
+      {/* B. Restore Backup (from file) */}
+      <Card className="p-6 border-destructive/30">
+        <h3 className="font-display text-lg flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-destructive" /> B. Restore Backup
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Upload a previously downloaded backup file (.json) to restore this refinery.
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <input
+            type="file"
+            accept="application/json,.json"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleUploadFile(f);
+              e.target.value = "";
+            }}
+            className="block text-sm text-muted-foreground file:mr-3 file:px-3 file:py-2 file:rounded-md file:border-0 file:bg-secondary file:text-foreground file:cursor-pointer"
+          />
+        </div>
+      </Card>
+
+      {/* C. Backup History */}
+      <Card className="p-6">
+        <h3 className="font-display text-lg">C. Backup History</h3>
+        <p className="text-sm text-muted-foreground">All saved backups for this refinery. Safety backups are created automatically before any restore.</p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left py-2 px-2">Date</th>
+                <th className="text-left py-2 px-2">Kind</th>
+                <th className="text-left py-2 px-2">File Name</th>
+                <th className="text-left py-2 px-2">Created By</th>
+                <th className="text-right py-2 px-2">Size</th>
+                <th className="text-right py-2 px-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading…</td></tr>
+              )}
+              {!loading && backups.length === 0 && (
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No backups yet.</td></tr>
+              )}
+              {backups.map((b) => (
+                <tr key={b.id} className="border-b border-border/50 hover:bg-card/40">
+                  <td className="py-2 px-2 whitespace-nowrap">{fmtAuditWhen(b.created_at)}</td>
+                  <td className="py-2 px-2">
+                    <span className={`text-xs px-2 py-0.5 rounded border ${KIND_BADGE[b.kind] ?? "bg-secondary"}`}>
+                      {b.kind.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 font-mono text-xs">{b.file_name}</td>
+                  <td className="py-2 px-2 text-muted-foreground">{b.created_by_email ?? "—"}</td>
+                  <td className="py-2 px-2 text-right">{fmtBytes(b.file_size_bytes)}</td>
+                  <td className="py-2 px-2 text-right">
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => handleDownload(b)} title="Download">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setRestoreFromBackup(b); setConfirmText(""); }} title="Restore" className="text-amber-400 hover:text-amber-300">
+                        <HistoryIcon className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(b)} title="Delete" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* D. Scheduled Backup Settings */}
+      <Card className="p-6">
+        <h3 className="font-display text-lg">D. Scheduled Backup Settings</h3>
+        <p className="text-sm text-muted-foreground">Automatically create a backup every day at the chosen time.</p>
+        {settings && (
+          <form onSubmit={handleSaveSettings} className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+              <Label className="text-xs uppercase">Enable Daily Backup</Label>
+              <div className="mt-2 flex items-center gap-2">
+                <Checkbox
+                  id="daily-enabled"
+                  checked={settings.daily_enabled}
+                  onCheckedChange={(v) => setSettings({ ...settings, daily_enabled: Boolean(v) })}
+                />
+                <label htmlFor="daily-enabled" className="text-sm">
+                  {settings.daily_enabled ? "Enabled" : "Disabled"}
+                </label>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase">Backup Time (24h)</Label>
+              <Input
+                type="time"
+                value={settings.daily_time.slice(0, 5)}
+                onChange={(e) => setSettings({ ...settings, daily_time: e.target.value })}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label className="text-xs uppercase">Keep Last N Backups</Label>
+              <Input
+                type="number" min={1} max={500}
+                value={settings.keep_last}
+                onChange={(e) => setSettings({ ...settings, keep_last: Math.max(1, Math.min(500, Number(e.target.value) || 30)) })}
+                className="mt-2"
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <Button type="submit" disabled={savingSettings} className="gap-2">
+                {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save Settings
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
+
+      {/* Audit Log */}
+      <Card className="p-6">
+        <h3 className="font-display text-lg">Audit Log</h3>
+        <p className="text-sm text-muted-foreground">Recent backup and restore actions for this refinery.</p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase text-muted-foreground border-b border-border">
+              <tr>
+                <th className="text-left py-2 px-2">When</th>
+                <th className="text-left py-2 px-2">User</th>
+                <th className="text-left py-2 px-2">Action</th>
+                <th className="text-left py-2 px-2">File</th>
+                <th className="text-left py-2 px-2">IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.length === 0 && (
+                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No audit entries yet.</td></tr>
+              )}
+              {audit.map((row) => (
+                <tr key={row.id} className="border-b border-border/50">
+                  <td className="py-1.5 px-2 whitespace-nowrap text-xs text-muted-foreground">{fmtAuditWhen(row.created_at)}</td>
+                  <td className="py-1.5 px-2 text-xs">{row.user_email ?? "system"}</td>
+                  <td className="py-1.5 px-2">
+                    <span className="text-xs uppercase tracking-wider">{row.action.replace(/_/g, " ")}</span>
+                  </td>
+                  <td className="py-1.5 px-2 font-mono text-xs">{row.file_name ?? "—"}</td>
+                  <td className="py-1.5 px-2 text-xs text-muted-foreground">{row.ip ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Confirm restore from history */}
+      <Dialog open={!!restoreFromBackup} onOpenChange={(o) => { if (!o) { setRestoreFromBackup(null); setConfirmText(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" /> Restore Backup
+            </DialogTitle>
+          </DialogHeader>
+          {restoreFromBackup && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                Restoring this backup will <strong>overwrite current refinery data</strong>.
+                This action cannot be undone unless you create a new backup first. A safety backup of the
+                current state will be automatically created before the restore.
+              </div>
+              <div className="text-sm space-y-1">
+                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{restoreFromBackup.file_name}</span></div>
+                <div><span className="text-muted-foreground">Created:</span> {fmtAuditWhen(restoreFromBackup.created_at)}</div>
+                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(restoreFromBackup.file_size_bytes)}</div>
+              </div>
+              <div>
+                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setRestoreFromBackup(null); setConfirmText(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={confirmText !== "RESTORE" || restoring}
+              onClick={handleConfirmRestoreFromHistory}
+              className="gap-2"
+            >
+              {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Restore Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm restore from uploaded file */}
+      <Dialog open={!!uploadedPayload} onOpenChange={(o) => { if (!o) { setUploadedPayload(null); setUploadConfirmText(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" /> Restore From File
+            </DialogTitle>
+          </DialogHeader>
+          {uploadedPayload && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                Restoring this file will <strong>overwrite current refinery data</strong>.
+                A safety backup will be created automatically beforehand.
+              </div>
+              <div className="text-sm space-y-1">
+                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{uploadedPayload.fileName}</span></div>
+                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(uploadedPayload.sizeBytes)}</div>
+              </div>
+              <div>
+                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Input value={uploadConfirmText} onChange={(e) => setUploadConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setUploadedPayload(null); setUploadConfirmText(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={uploadConfirmText !== "RESTORE" || restoring}
+              onClick={handleConfirmRestoreFromFile}
+              className="gap-2"
+            >
+              {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Restore Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
