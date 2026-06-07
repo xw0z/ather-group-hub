@@ -315,6 +315,7 @@ function RefineryShell({
           {tab === "transactions" && (
             <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
           )}
+          {tab === "buysell" && <BuySellTab refinery={refinery} assignment={assignment} />}
           {tab === "stock" && <StockTab refinery={refinery} />}
           {tab === "profile" && <ProfileTab />}
         </>
