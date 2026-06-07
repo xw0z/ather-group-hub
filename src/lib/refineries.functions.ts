@@ -860,9 +860,12 @@ export const getDashboard = createServerFn({ method: "POST" })
     const sum = (arr: typeof todayTx, dir: string, type: string, field: "total_pure_weight" | "da_amount") =>
       arr.filter((t) => t.direction === dir && t.transaction_type === type && t.status === "settled")
         .reduce((s, t) => s + Number(t[field] ?? 0), 0);
-    const sumBuySell = (kind: "buy" | "sell", field: "buysell_weight" | "buysell_total") =>
-      todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === kind)
-        .reduce((s, t) => s + Number(t[field] ?? 0), 0);
+    const sumBuySell = (kind: "buy" | "sell", metal: "gold" | "silver" | null, field: "buysell_weight" | "buysell_total") =>
+      todayTx.filter((t) =>
+        t.transaction_type === "buysell"
+        && t.buysell_kind === kind
+        && (metal === null || (t.buysell_metal ?? "gold") === metal),
+      ).reduce((s, t) => s + Number(t[field] ?? 0), 0);
 
     // Aggregate ALL client balances for equity (positive stored = refinery owes client)
     let clientsOweGold = 0, refineryOwesGold = 0, clientsOweDa = 0, refineryOwesDa = 0;
@@ -884,10 +887,12 @@ export const getDashboard = createServerFn({ method: "POST" })
       todayDeliveredDa: sum(todayTx, "delivery", "da", "da_amount"),
       todayBuyCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "buy").length,
       todaySellCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "sell").length,
-      todayBuyWeight: sumBuySell("buy", "buysell_weight"),
-      todayBuyTotal: sumBuySell("buy", "buysell_total"),
-      todaySellWeight: sumBuySell("sell", "buysell_weight"),
-      todaySellTotal: sumBuySell("sell", "buysell_total"),
+      todayGoldBought: sumBuySell("buy", "gold", "buysell_weight"),
+      todayGoldSold: sumBuySell("sell", "gold", "buysell_weight"),
+      todaySilverBought: sumBuySell("buy", "silver", "buysell_weight"),
+      todaySilverSold: sumBuySell("sell", "silver", "buysell_weight"),
+      todayBuyTotal: sumBuySell("buy", null, "buysell_total"),
+      todaySellTotal: sumBuySell("sell", null, "buysell_total"),
       todayAdjustCount: todayTx.filter((t) => t.transaction_type === "stock_adjustment").length,
       goldPrice: Number(priceR.data?.gold_price ?? 0),
       silverPrice: Number(priceR.data?.silver_price ?? 0),
