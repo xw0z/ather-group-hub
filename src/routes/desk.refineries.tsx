@@ -1033,7 +1033,7 @@ function TransactionFormPage({
                         <col />
                         <col />
                         <col />
-                        <col />
+                        {direction === "receiving" && <col />}
                         <col style={{ width: "56px" }} />
                       </colgroup>
                       <thead className="bg-muted/20 border-b border-border">
@@ -1042,7 +1042,7 @@ function TransactionFormPage({
                           <th className="p-3 text-right">Gross Weight (g)</th>
                           <th className="p-3 text-right">Purity</th>
                           <th className="p-3 text-right">Pure Gold (g)</th>
-                          <th className="p-3 text-right">Equivalent @ 730</th>
+                          {direction === "receiving" && <th className="p-3 text-right">Equivalent @ 730</th>}
                           <th className="p-3"></th>
                         </tr>
                       </thead>
