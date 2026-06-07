@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
   TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon, X,
-  Eye, EyeOff, Monitor, Sun, Moon, Globe, ShieldCheck, Settings as SettingsIcon, User as UserIcon,
+  Eye, EyeOff, Monitor, Sun, Moon, Globe, ShieldCheck, Settings as SettingsIcon, User as UserIcon, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
