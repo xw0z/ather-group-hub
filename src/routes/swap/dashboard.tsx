@@ -3595,6 +3595,8 @@ function ProfileTab({ username }: { username: string }) {
             </div>
           </section>
 
+          <LanguagePreferencesSection />
+
           <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
             <h3 className="text-sm font-semibold">Appearance & format</h3>
             <p className="text-[11px] text-muted-foreground">{savingPrefs && "Saving…"}</p>
