@@ -492,27 +492,28 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   }).sort((a, b) => b.exposureGold - a.exposureGold);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
+          <h1 className="font-display text-xl sm:text-2xl">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">{refinery.name} overview</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <Button size="sm" className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
             <Plus className="h-4 w-4 mr-1" /> Buy Gold
           </Button>
-          <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
+          <Button size="sm" className="h-9 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
             <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onTab("stock")}>
-            <Plus className="h-4 w-4 mr-1" /> Stock Adjustment
+          <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("stock")}>
+            <Plus className="h-4 w-4 mr-1" /> Stock Adj
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onTab("clients")}>
+          <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("clients")}>
             <Plus className="h-4 w-4 mr-1" /> Add Client
           </Button>
         </div>
       </header>
+
 
       {/* Top row: physical metrics + equity hero */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
