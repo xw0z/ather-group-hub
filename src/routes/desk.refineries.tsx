@@ -686,7 +686,7 @@ function TransactionsTab({
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
               )}
-              {canDelete && t.status !== "cancelled" && (
+              {canDelete && (
                 <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(t.id)}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                 </Button>
