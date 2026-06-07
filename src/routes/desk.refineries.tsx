@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
   TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon, X,
+  Eye, EyeOff, Monitor, Sun, Moon, Globe, ShieldCheck, Settings as SettingsIcon, User as UserIcon,
 } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,12 @@ import { TransactionReceiptReport } from "@/components/refineries/TransactionRec
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useLang } from "@/lib/purity-i18n";
+import { useLang, type Lang } from "@/lib/purity-i18n";
+import {
+  getSwapOwnProfile, updateSwapOwnProfile, updateSwapOwnPassword,
+  getUserPreferences, updateUserPreferences,
+  signOutEverywhere, getLoginHistory,
+} from "@/lib/swap-profile.functions";
 
 
 type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile" | "translations";
