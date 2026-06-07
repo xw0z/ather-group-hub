@@ -445,8 +445,8 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
       onClick: () => goToClients("owing-gold"),
     });
   }
-  if (!canCompute) {
-    alerts.push({ tone: "warn", text: "Net Position prices not set — equity unavailable.", onClick: () => onTab("netposition") });
+  if (goldPrice <= 0) {
+    alerts.push({ tone: "warn", text: "Net Position prices not set — DA/Silver conversion unavailable.", onClick: () => onTab("netposition") });
   }
 
   // ---- Negative clients with exposure (sorted highest negative first) ----
