@@ -1317,9 +1317,10 @@ function StockTab({ refinery }: { refinery: Refinery }) {
 }
 
 function AdjustStockDialog({
-  refineryId, currentGold, currentDa, onClose, onSaved,
+  refineryId, currentGold, currentDa, editMovementId, onClose, onSaved,
 }: {
   refineryId: string; currentGold: number; currentDa: number;
+  editMovementId?: string;
   onClose: () => void; onSaved: () => void;
 }) {
   const [gold, setGold] = useState(String(currentGold));
@@ -1335,8 +1336,13 @@ function AdjustStockDialog({
     }
     setSaving(true);
     try {
-      await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
-      toast.success("Stock adjusted");
+      if (editMovementId) {
+        await updateStockAdjustment({ data: { movementId: editMovementId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+        toast.success("Adjustment updated");
+      } else {
+        await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+        toast.success("Stock adjusted");
+      }
       onSaved();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSaving(false); }
@@ -1344,7 +1350,7 @@ function AdjustStockDialog({
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>Adjust stock</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editMovementId ? "Edit adjustment" : "Adjust stock"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <p className="text-xs text-muted-foreground">
             Set the absolute stock values. A movement record will be created for the difference.
