@@ -1534,9 +1534,40 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_translation_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          locale: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          locale: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          locale?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       swap_user_preferences: {
         Row: {
           date_format: string
+          locale: string
           number_format: string
           theme: string
           updated_at: string
@@ -1544,6 +1575,7 @@ export type Database = {
         }
         Insert: {
           date_format?: string
+          locale?: string
           number_format?: string
           theme?: string
           updated_at?: string
@@ -1551,6 +1583,7 @@ export type Database = {
         }
         Update: {
           date_format?: string
+          locale?: string
           number_format?: string
           theme?: string
           updated_at?: string
