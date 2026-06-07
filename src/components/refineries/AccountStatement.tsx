@@ -1,4 +1,5 @@
 import type { AccountStatement, StatementRow } from "@/lib/refineries.functions";
+import { useLang } from "@/lib/purity-i18n";
 
 /* ============================================================
    Professional Client Account Statement — Simplified
