@@ -1,0 +1,1 @@
+UPDATE public.refinery_clients SET purity_balance = 0, da_balance = 0 WHERE name ILIKE 'Yassine Ghachem';
