@@ -83,8 +83,8 @@ export type RefineryTransaction = {
   settlement_apply_fee?: boolean | null;
   settlement_amount?: number | null;
   // Buy/Sell-only fields
-  buysell_kind?: BuySellKind | null;
-  buysell_settlement?: BuySellSettlement | null;
+  buysell_kind?: BuySellKind | string | null;
+  buysell_settlement?: BuySellSettlement | string | null;
   buysell_weight?: number | null;
   buysell_purity?: number | null;
   buysell_price_per_gram?: number | null;
