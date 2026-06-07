@@ -1188,7 +1188,11 @@ function TransactionFormPage({
   const [settlementKind, setSettlementKind] = useState<"gold" | "da">("gold");
   const [settlementAmount, setSettlementAmount] = useState<string>("");
   const [applyFee, setApplyFee] = useState<boolean>(false);
-  const [settlementFeePrice, setSettlementFeePrice] = useState<string>("");
+  const [fromFeePrice, setFromFeePrice] = useState<string>("");
+  const [toFeePrice, setToFeePrice] = useState<string>("");
+  // User-edit tracking so we only auto-fill once per client selection
+  const [fromFeeEdited, setFromFeeEdited] = useState(false);
+  const [toFeeEdited, setToFeeEdited] = useState(false);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
@@ -1241,19 +1245,29 @@ function TransactionFormPage({
   // Settlement live preview
   const fromClient = clients.find((c) => c.id === fromClientId);
   const toClient = clients.find((c) => c.id === toClientId);
+  // Auto-fill From fee price from selected From client
   useEffect(() => {
-    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !settlementFeePrice) {
-      setSettlementFeePrice(String(toClient.refining_fee_price));
+    if (type === "settlement" && settlementKind === "gold" && applyFee && fromClient && !fromFeeEdited) {
+      setFromFeePrice(String(fromClient.refining_fee_price ?? 0));
     }
-  }, [type, settlementKind, applyFee, toClient, settlementFeePrice]);
+  }, [type, settlementKind, applyFee, fromClient, fromFeeEdited]);
+  // Auto-fill To fee price from selected To client
+  useEffect(() => {
+    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !toFeeEdited) {
+      setToFeePrice(String(toClient.refining_fee_price ?? 0));
+    }
+  }, [type, settlementKind, applyFee, toClient, toFeeEdited]);
 
   const settlementPreview = useMemo(() => {
     const amt = Number(settlementAmount) || 0;
-    const fp = Number(settlementFeePrice) || 0;
-    const w730 = settlementKind === "gold" && applyFee && amt > 0 ? (amt * 1000) / 730 : 0;
-    const fee = w730 * fp;
-    return { amt, fp, w730, fee };
-  }, [settlementAmount, settlementFeePrice, settlementKind, applyFee]);
+    const fromFp = Number(fromFeePrice) || 0;
+    const toFp = Number(toFeePrice) || 0;
+    const fromCredit = settlementKind === "gold" && applyFee ? amt * fromFp : 0;
+    const toDebit = settlementKind === "gold" && applyFee ? amt * toFp : 0;
+    const netProfit = toDebit - fromCredit;
+    return { amt, fromFp, toFp, fromCredit, toDebit, netProfit };
+  }, [settlementAmount, fromFeePrice, toFeePrice, settlementKind, applyFee]);
+
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
