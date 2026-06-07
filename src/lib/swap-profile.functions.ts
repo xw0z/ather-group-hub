@@ -315,9 +315,9 @@ export const recordLogin = createServerFn({ method: "POST" })
     }
     const { device, browser } = parseUA(ua);
     const ip = clientIpFromHeaders();
-    if (data.status === "success" && !data.user_id) return { ok: true };
+    if (!data.user_id) return { ok: true };
     await supabaseAdmin.from("swap_login_history").insert({
-      user_id: data.user_id ?? null,
+      user_id: data.user_id,
       identifier: data.identifier ?? null,
       status: data.status,
       ip,
