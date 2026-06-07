@@ -30,7 +30,7 @@ import {
 } from "@/lib/refineries.functions";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
-import { AccountStatementReport, AccountStatementSummary } from "@/components/refineries/AccountStatement";
+import { AccountStatementReport } from "@/components/refineries/AccountStatement";
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 
@@ -1548,55 +1548,76 @@ function isoMonthStart(): string { return isoToday().slice(0, 7) + "-01"; }
 
 type StatementHistoryRow = Awaited<ReturnType<typeof listRefineryReportHistory>>[number];
 
-async function renderNodeToPngBlob(node: HTMLElement, scale = 3): Promise<Blob> {
-  const canvas = await html2canvas(node, {
-    backgroundColor: null,
-    scale,
-    useCORS: true,
-    logging: false,
-  });
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG render failed"))), "image/png"),
-  );
-}
-
+/**
+ * Render the AccountStatementReport off-screen and return one canvas per page.
+ * The SAME template is used for both PDF and PNG to guarantee identical output.
+ */
 async function renderStatementToCanvases(
   statement: AccountStatement,
-  variant: "report" | "summary",
 ): Promise<HTMLCanvasElement[]> {
   const host = document.createElement("div");
   host.style.position = "fixed";
   host.style.left = "-99999px";
   host.style.top = "0";
   host.style.zIndex = "-1";
+  host.style.background = "#ffffff";
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
     await new Promise<void>((resolve) => {
-      root.render(
-        variant === "report"
-          ? <AccountStatementReport data={statement} />
-          : <AccountStatementSummary data={statement} />,
-      );
-      // wait a tick for layout + fonts
+      root.render(<AccountStatementReport data={statement} />);
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    // Each page is a top-level child of the AccountStatementReport wrapper
+    // Wait for fonts so text is crisp
+    try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
+
     const wrapper = host.firstElementChild as HTMLElement | null;
-    if (!wrapper) throw new Error("Render failed");
-    const targets: HTMLElement[] = variant === "report"
-      ? Array.from(wrapper.children) as HTMLElement[]
-      : [wrapper];
+    if (!wrapper) throw new Error("Statement render failed");
+    const pages = Array.from(wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"));
+    if (pages.length === 0) throw new Error("Statement has no pages");
+
     const canvases: HTMLCanvasElement[] = [];
-    for (const t of targets) {
-      const c = await html2canvas(t, { backgroundColor: variant === "summary" ? "#1a1a1a" : "#ffffff", scale: 2.5, useCORS: true, logging: false });
+    for (const page of pages) {
+      const c = await html2canvas(page, {
+        backgroundColor: "#ffffff",
+        scale: 2.5,
+        useCORS: true,
+        logging: false,
+      });
       canvases.push(c);
     }
     return canvases;
   } finally {
-    root.unmount();
-    host.remove();
+    try { root.unmount(); } catch { /* noop */ }
+    try { host.remove(); } catch { /* noop */ }
   }
+}
+
+/** Stitch multiple page canvases into one tall PNG canvas (white background). */
+function stitchCanvasesVertically(canvases: HTMLCanvasElement[]): HTMLCanvasElement {
+  const width = Math.max(...canvases.map((c) => c.width));
+  const gap = canvases.length > 1 ? 16 : 0;
+  const height = canvases.reduce((s, c) => s + c.height, 0) + gap * (canvases.length - 1);
+  const out = document.createElement("canvas");
+  out.width = width;
+  out.height = height;
+  const ctx = out.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D not supported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  let y = 0;
+  for (const c of canvases) {
+    const x = Math.floor((width - c.width) / 2);
+    ctx.drawImage(c, x, y);
+    y += c.height + gap;
+  }
+  return out;
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type = "image/png"): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG encode failed"))), type),
+  );
 }
 
 function AccountStatementDialog({
@@ -1653,7 +1674,7 @@ function AccountStatementDialog({
     const s = await ensureStatement(); if (!s) return;
     setBusy("pdf");
     try {
-      const canvases = await renderStatementToCanvases(s, "report");
+      const canvases = await renderStatementToCanvases(s);
       const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
@@ -1682,35 +1703,53 @@ function AccountStatementDialog({
     const s = await ensureStatement(); if (!s) return;
     setBusy(channel === "whatsapp" ? "share" : "png");
     try {
-      const [canvas] = await renderStatementToCanvases(s, "summary");
-      const blob: Blob = await new Promise((resolve, reject) =>
-        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("PNG failed")), "image/png")
-      );
+      const canvases = await renderStatementToCanvases(s);
+      // Stitch all pages vertically — identical content to the PDF, one PNG file.
+      const stitched = stitchCanvasesVertically(canvases);
+      const blob = await canvasToBlob(stitched, "image/png");
       const filename = `${fileBase}_${s.range.from}_${s.range.to}.png`;
       const file = new File([blob], filename, { type: "image/png" });
-      const nav = navigator as Navigator & {
-        canShare?: (d: ShareData) => boolean;
-        share?: (d: ShareData) => Promise<void>;
-      };
-      if (channel === "whatsapp" && nav.canShare?.({ files: [file] }) && nav.share) {
-        try { await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` }); }
-        catch { /* fallthrough to download */ }
-      } else {
+
+      let didShare = false;
+      if (channel === "whatsapp") {
+        const nav = navigator as Navigator & {
+          canShare?: (d: ShareData) => boolean;
+          share?: (d: ShareData) => Promise<void>;
+        };
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          try {
+            await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` });
+            didShare = true;
+          } catch (err) {
+            const name = (err as { name?: string } | null)?.name;
+            if (name === "AbortError") {
+              toast.message("Share cancelled");
+              return;
+            }
+            // Other errors: fall back to download.
+          }
+        }
+      }
+
+      if (!didShare) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
+
       await logRefineryReport({ data: {
         refinery_id: refinery.id, client_id: client.id, date_from: from, date_to: to,
         statement_number: s.statement_number, format: "PNG", channel,
       } }).catch(() => null);
       loadHistory();
-      toast.success(channel === "whatsapp" ? "Ready to share" : "PNG downloaded");
+      toast.success(channel === "whatsapp" && didShare ? "Shared" : "PNG ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "PNG failed");
-    } finally { setBusy(null); }
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (

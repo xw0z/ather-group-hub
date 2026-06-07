@@ -1,21 +1,33 @@
 import type { AccountStatement, StatementRow } from "@/lib/refineries.functions";
 
-const GOLD = "#C79A19";
-const GOLD_SOFT = "#E7C66B";
-const INK = "#1c2431";
-const MUTED = "#5b6577";
-const PAPER = "#fffdf8";
-const PAPER_2 = "#f7f2e8";
+/* ============================================================
+   Professional Client Account Statement
+   A4 portrait, 794 × 1123 base size (px @ 96 dpi)
+   WHITE background. Used as the SINGLE source of truth for
+   both PDF export and PNG share — guarantees identical output.
+============================================================ */
+
+const ORANGE = "#e85d3a";
+const ORANGE_SOFT = "#fdece6";
+const INK = "#111111";
+const SUB = "#5b6577";
+const LINE = "#cfd3da";
+const LINE_SOFT = "#e5e7eb";
+const PAPER = "#ffffff";
+const PAPER_ALT = "#f7f8fa";
+const HEAD = "#eceef2";
 const RED = "#b3261e";
 const GREEN = "#1f7a4d";
-const LINE = "#e1d6b8";
+const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
-const fmtG = (n: number, d = 2) =>
-  `${Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })} g`;
-const fmtDA = (n: number) =>
-  `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })} DA`;
+const num2 = (n: number) =>
+  Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num0 = (n: number) =>
+  Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmtG = (n: number) => `${num2(n)}`;
+const fmtDA = (n: number) => `${num2(n)}`;
 const fmtPurity = (n: number) =>
-  Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+  Number(n).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmtDate = (s: string) => {
   try {
     const d = new Date(s.length === 10 ? `${s}T00:00:00Z` : s);
@@ -35,165 +47,216 @@ const TYPE_LABEL: Record<StatementRow["type"], string> = {
   gold_received: "Gold Received",
   gold_delivered: "Gold Delivered",
   refining_fee: "Refining Fee",
-  da_received: "DA Payment Received",
-  da_paid: "DA Payment Paid",
-  adjustment: "Balance Adjustment",
-  reversal: "Manual Correction",
+  da_received: "DA Received",
+  da_paid: "DA Paid",
+  adjustment: "Adjustment",
+  reversal: "Correction",
 };
 
+function directionOf(r: StatementRow): { label: string; color: string } {
+  const goldIn = r.gold_credit > 0;
+  const goldOut = r.gold_debit > 0;
+  const daIn = r.da_credit > 0;
+  const daOut = r.da_debit > 0;
+  if (r.type === "refining_fee") return { label: "FEE", color: ORANGE };
+  if (goldIn || daIn) return { label: "IN", color: GREEN };
+  if (goldOut || daOut) return { label: "OUT", color: RED };
+  return { label: "—", color: SUB };
+}
+
 /* ============================================================
-   FULL STATEMENT (for PDF) — A4 portrait, 794 × 1123 base size
-   Rendered at scale=3 → ~2382 × 3369 px = print-grade.
+   FULL REPORT — pages of A4 (used for BOTH PDF and PNG)
 ============================================================ */
 
 export function AccountStatementReport({ data }: { data: AccountStatement }) {
   const PAGE_W = 794;
+  const ROWS_PER_PAGE_FIRST = 18; // first page has summary, fewer rows
   const ROWS_PER_PAGE = 26;
   const pages: StatementRow[][] = [];
-  for (let i = 0; i < data.rows.length; i += ROWS_PER_PAGE) {
-    pages.push(data.rows.slice(i, i + ROWS_PER_PAGE));
+  if (data.rows.length === 0) {
+    pages.push([]);
+  } else {
+    let i = 0;
+    const first = data.rows.slice(0, ROWS_PER_PAGE_FIRST);
+    pages.push(first);
+    i = first.length;
+    while (i < data.rows.length) {
+      pages.push(data.rows.slice(i, i + ROWS_PER_PAGE));
+      i += ROWS_PER_PAGE;
+    }
   }
-  if (pages.length === 0) pages.push([]);
 
   return (
     <div
+      data-statement-root
       style={{
         fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
         color: INK,
-        background: "#ffffff",
+        background: PAPER,
       }}
     >
-      {pages.map((pageRows, pageIdx) => (
-        <StatementPage
-          key={pageIdx}
-          data={data}
-          rows={pageRows}
-          pageIdx={pageIdx}
-          totalPages={pages.length}
-          width={PAGE_W}
-        />
-      ))}
+      {pages.map((pageRows, idx) => {
+        const startIndex =
+          idx === 0 ? 0 : ROWS_PER_PAGE_FIRST + (idx - 1) * ROWS_PER_PAGE;
+        return (
+          <StatementPage
+            key={idx}
+            data={data}
+            rows={pageRows}
+            pageIdx={idx}
+            totalPages={pages.length}
+            width={PAGE_W}
+            startIndex={startIndex}
+          />
+        );
+      })}
     </div>
   );
 }
 
 function StatementPage({
-  data, rows, pageIdx, totalPages, width,
+  data, rows, pageIdx, totalPages, width, startIndex,
 }: {
   data: AccountStatement;
   rows: StatementRow[];
   pageIdx: number;
   totalPages: number;
   width: number;
+  startIndex: number;
 }) {
   const isFirst = pageIdx === 0;
   const isLast = pageIdx === totalPages - 1;
 
   return (
     <div
+      data-statement-page
       style={{
         width,
         minHeight: 1123,
-        background: `linear-gradient(180deg, ${PAPER} 0%, ${PAPER_2} 100%)`,
-        padding: "28px 34px 34px",
+        background: PAPER,
+        padding: "30px 36px 60px",
         boxSizing: "border-box",
-        borderTop: pageIdx === 0 ? `4px solid ${GOLD}` : "none",
         position: "relative",
-        breakAfter: "page",
+        borderTop: `5px solid ${ORANGE}`,
+        color: INK,
       }}
     >
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 14, borderBottom: `2px solid ${GOLD}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* ─── Header ─── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 10,
-            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})`,
+            width: 56, height: 56, borderRadius: 10,
+            background: ORANGE,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#1a1a1a", fontWeight: 900, fontSize: 24, letterSpacing: -1,
+            color: "#fff", fontWeight: 900, fontSize: 26, letterSpacing: -1,
           }}>A</div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 2, color: INK }}>ATHER DESK</div>
-            <div style={{ fontSize: 10, color: MUTED, letterSpacing: 3, textTransform: "uppercase", marginTop: 2 }}>
-              Refinery Account Statement
+            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 3, color: INK }}>ATHER GROUP</div>
+            <div style={{ fontSize: 10, color: SUB, letterSpacing: 2, textTransform: "uppercase", marginTop: 2 }}>
+              Refinery Management System
+            </div>
+            <div style={{ fontSize: 11, color: INK, marginTop: 4, fontWeight: 600 }}>
+              {data.refinery.name}
             </div>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 9, color: MUTED, letterSpacing: 2, textTransform: "uppercase" }}>Statement №</div>
-          <div style={{ fontFamily: '"SF Mono", Menlo, monospace', fontSize: 11, fontWeight: 700, color: INK, marginTop: 2 }}>
+          <div style={{
+            display: "inline-block",
+            background: ORANGE_SOFT, color: ORANGE,
+            padding: "4px 10px", borderRadius: 4,
+            fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase",
+          }}>Account Statement</div>
+          <div style={{ marginTop: 8, fontSize: 9, color: SUB, letterSpacing: 1.5, textTransform: "uppercase" }}>Statement №</div>
+          <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: INK, marginTop: 1 }}>
             {data.statement_number}
           </div>
-          <div style={{ fontSize: 9, color: MUTED, marginTop: 6 }}>
+          <div style={{ fontSize: 9, color: SUB, marginTop: 4 }}>
             Page {pageIdx + 1} of {totalPages}
           </div>
         </div>
       </div>
 
-      {/* Meta block */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginTop: 18 }}>
-        <MetaBox label="Client" value={data.client.name} accent />
-        <MetaBox label="Refinery" value={data.refinery.name} />
-        <MetaBox
+      <div style={{ height: 4, background: ORANGE, marginTop: 14, borderRadius: 2 }} />
+
+      {/* ─── Meta block ─── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginTop: 16, border: `1px solid ${LINE}`, borderRadius: 6, overflow: "hidden" }}>
+        <MetaCell label="Client" value={data.client.name} strong rightBorder bottomBorder />
+        <MetaCell label="Refinery" value={data.refinery.name} bottomBorder />
+        <MetaCell
           label="Statement Period"
           value={`${fmtDate(data.range.from)}  →  ${fmtDate(data.range.to)}`}
+          rightBorder
+          bottomBorder={isFirst}
         />
-        <MetaBox label="Generated By" value={data.generated_by} />
-        <MetaBox label="Generated" value={fmtDateTime(data.generated_at)} />
-        {data.client.phone && <MetaBox label="Phone" value={data.client.phone} />}
+        <MetaCell
+          label="Statement Date"
+          value={fmtDateTime(data.generated_at)}
+          bottomBorder={isFirst}
+        />
+        {isFirst && (
+          <>
+            <MetaCell label="Generated By" value={data.generated_by} rightBorder />
+            <MetaCell label="Transactions" value={String(data.summary.transaction_count)} />
+          </>
+        )}
       </div>
 
-
-      {/* Summary — first page only */}
+      {/* ─── Summary (first page only) ─── */}
       {isFirst && (
         <>
-          <SectionTitle>Summary</SectionTitle>
-          <div style={{
-            border: `1px solid ${LINE}`, borderRadius: 10, overflow: "hidden",
-            background: "rgba(255,255,255,0.55)",
-          }}>
-            <SummaryGrid data={data} />
-          </div>
+          <SectionTitle>Account Summary</SectionTitle>
+          <SummaryTable data={data} />
         </>
       )}
 
-      {/* Transactions table */}
+      {/* ─── Transactions ─── */}
       <SectionTitle>
-        Transactions {totalPages > 1 ? `(part ${pageIdx + 1}/${totalPages})` : ""}
+        Transactions{totalPages > 1 ? ` — Part ${pageIdx + 1} / ${totalPages}` : ""}
       </SectionTitle>
-      <TxTable rows={rows} startIndex={pageIdx * 26} />
+      <TxTable rows={rows} startIndex={startIndex} />
 
-      {/* Footer (last page only) */}
+      {/* ─── Closing balances (last page only) ─── */}
       {isLast && (
-        <div style={{ marginTop: 22 }}>
-          <ClosingBlock data={data} />
+        <>
+          <SectionTitle>Closing Balances</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <BigBalance label="Closing Gold Balance" value={`${fmtG(data.closing_gold)} g`} />
+            <BigBalance label="Closing DA Balance" value={`${fmtDA(data.closing_da)} DA`} />
+          </div>
           <SignatureBlock />
-        </div>
+        </>
       )}
 
-      {/* Page footer bar */}
+      {/* ─── Footer ─── */}
       <div style={{
-        position: "absolute", left: 34, right: 34, bottom: 14,
+        position: "absolute", left: 36, right: 36, bottom: 16,
+        paddingTop: 8, borderTop: `1px solid ${LINE_SOFT}`,
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        fontSize: 9, color: MUTED, letterSpacing: 1,
-        paddingTop: 8, borderTop: `1px solid ${LINE}`,
+        fontSize: 9, color: SUB, letterSpacing: 0.6,
       }}>
-        <span>ATHER DESK · Account Statement · {data.client.name} · {data.refinery.name}</span>
-        <span>{data.statement_number} · Page {pageIdx + 1}/{totalPages}</span>
+        <span>
+          <strong style={{ color: INK, letterSpacing: 2 }}>ATHER GROUP</strong>
+          {" · "}Refinery Management System{" · "}Generated by ATHER DESK
+        </span>
+        <span style={{ fontFamily: MONO }}>{data.statement_number} · Page {pageIdx + 1}/{totalPages}</span>
       </div>
     </div>
   );
 }
 
-function MetaBox({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function MetaCell({
+  label, value, strong, rightBorder, bottomBorder,
+}: { label: string; value: string; strong?: boolean; rightBorder?: boolean; bottomBorder?: boolean }) {
   return (
     <div style={{
-      border: `1px solid ${LINE}`,
-      borderLeft: `3px solid ${accent ? GOLD : "transparent"}`,
-      padding: "10px 14px", borderRadius: 6,
-      background: "rgba(255,255,255,0.6)",
+      padding: "10px 14px",
+      borderRight: rightBorder ? `1px solid ${LINE}` : "none",
+      borderBottom: bottomBorder ? `1px solid ${LINE}` : "none",
+      background: PAPER,
     }}>
-      <div style={{ fontSize: 8.5, color: MUTED, letterSpacing: 2, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: INK, marginTop: 3 }}>{value}</div>
+      <div style={{ fontSize: 8.5, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: strong ? 14 : 12, fontWeight: strong ? 800 : 600, color: INK, marginTop: 3 }}>{value}</div>
     </div>
   );
 }
@@ -201,129 +264,160 @@ function MetaBox({ label, value, accent }: { label: string; value: string; accen
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontSize: 10, letterSpacing: 4, textTransform: "uppercase", color: GOLD,
-      fontWeight: 700, marginTop: 18, marginBottom: 8,
+      fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: INK,
+      fontWeight: 800, marginTop: 18, marginBottom: 8,
       display: "flex", alignItems: "center", gap: 10,
     }}>
-      <span style={{ height: 1, flex: "0 0 18px", background: GOLD }} />
-      {children}
-      <span style={{ height: 1, flex: 1, background: LINE }} />
+      <span style={{ height: 3, flex: "0 0 22px", background: ORANGE, borderRadius: 2 }} />
+      <span>{children}</span>
+      <span style={{ height: 1, flex: 1, background: LINE_SOFT }} />
     </div>
   );
 }
 
-function SummaryGrid({ data }: { data: AccountStatement }) {
-  const items: Array<{ label: string; value: string; tone?: "gold" | "da" | "neutral" | "positive" | "negative" }> = [
-    { label: "Opening Gold Balance", value: fmtG(data.opening_gold), tone: "gold" },
-    { label: "Opening DA Balance", value: fmtDA(data.opening_da), tone: "da" },
-    { label: "Total Gold Received", value: fmtG(data.summary.total_gold_received), tone: "positive" },
-    { label: "Total Gold Delivered", value: fmtG(data.summary.total_gold_delivered), tone: "negative" },
-    { label: "Total DA Received", value: fmtDA(data.summary.total_da_received), tone: "positive" },
-    { label: "Total DA Paid", value: fmtDA(data.summary.total_da_paid), tone: "negative" },
-    { label: "Total Refining Fees", value: fmtDA(data.summary.total_refining_fees), tone: "neutral" },
-    { label: "Transactions", value: String(data.summary.transaction_count), tone: "neutral" },
-    { label: "Closing Gold Balance", value: fmtG(data.closing_gold), tone: "gold" },
-    { label: "Closing DA Balance", value: fmtDA(data.closing_da), tone: "da" },
+function SummaryTable({ data }: { data: AccountStatement }) {
+  const items: Array<{ label: string; value: string; tone?: "pos" | "neg" | "accent" | "neutral" }> = [
+    { label: "Opening Gold Balance", value: `${fmtG(data.opening_gold)} g`, tone: "neutral" },
+    { label: "Opening DA Balance", value: `${fmtDA(data.opening_da)} DA`, tone: "neutral" },
+    { label: "Total Gold Received", value: `${fmtG(data.summary.total_gold_received)} g`, tone: "pos" },
+    { label: "Total Gold Delivered", value: `${fmtG(data.summary.total_gold_delivered)} g`, tone: "neg" },
+    { label: "Total DA Received", value: `${fmtDA(data.summary.total_da_received)} DA`, tone: "pos" },
+    { label: "Total DA Paid", value: `${fmtDA(data.summary.total_da_paid)} DA`, tone: "neg" },
+    { label: "Total Refining Fees", value: `${fmtDA(data.summary.total_refining_fees)} DA`, tone: "accent" },
+    { label: "Transactions in Period", value: num0(data.summary.transaction_count), tone: "neutral" },
+    { label: "Closing Gold Balance", value: `${fmtG(data.closing_gold)} g`, tone: "accent" },
+    { label: "Closing DA Balance", value: `${fmtDA(data.closing_da)} DA`, tone: "accent" },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)" }}>
-      {items.map((it, i) => {
-        const isLastTwo = i >= items.length - 2;
-        const color =
-          it.tone === "positive" ? GREEN :
-          it.tone === "negative" ? RED :
-          it.tone === "gold" || it.tone === "da" ? INK : INK;
-        return (
-          <div key={i} style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 16px",
-            borderBottom: i < items.length - 2 ? `1px solid ${LINE}` : "none",
-            borderRight: i % 2 === 0 ? `1px solid ${LINE}` : "none",
-            background: isLastTwo ? `rgba(199,154,25,0.08)` : "transparent",
-          }}>
-            <span style={{
-              fontSize: 11, color: MUTED, letterSpacing: 1, textTransform: "uppercase",
-              fontWeight: isLastTwo ? 700 : 500,
-            }}>{it.label}</span>
-            <span style={{
-              fontSize: isLastTwo ? 15 : 13, fontWeight: 700, color,
-              fontFamily: '"SF Mono", Menlo, monospace',
-            }}>{it.value}</span>
-          </div>
-        );
-      })}
+    <div style={{ border: `1px solid ${LINE}`, borderRadius: 6, overflow: "hidden" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+        {items.map((it, i) => {
+          const isClosing = i >= items.length - 2;
+          const color =
+            it.tone === "pos" ? GREEN :
+            it.tone === "neg" ? RED :
+            it.tone === "accent" ? ORANGE : INK;
+          return (
+            <div key={i} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "9px 14px",
+              borderBottom: i < items.length - 2 ? `1px solid ${LINE_SOFT}` : "none",
+              borderRight: i % 2 === 0 ? `1px solid ${LINE_SOFT}` : "none",
+              background: isClosing ? ORANGE_SOFT : (i % 4 < 2 ? PAPER : PAPER_ALT),
+            }}>
+              <span style={{
+                fontSize: 10.5, color: SUB, letterSpacing: 1, textTransform: "uppercase",
+                fontWeight: isClosing ? 800 : 600,
+              }}>{it.label}</span>
+              <span style={{
+                fontSize: isClosing ? 14 : 12, fontWeight: 800, color,
+                fontFamily: MONO,
+              }}>{it.value}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: number }) {
-  const cellBase: React.CSSProperties = { padding: "6px 6px", fontSize: 9.5, verticalAlign: "middle" };
-  const numCell: React.CSSProperties = { ...cellBase, textAlign: "right", fontFamily: '"SF Mono", Menlo, monospace' };
+  const th: React.CSSProperties = {
+    padding: "7px 5px", fontSize: 8.5, textAlign: "left",
+    letterSpacing: 0.8, textTransform: "uppercase", fontWeight: 800,
+    color: INK, background: HEAD, borderBottom: `2px solid ${INK}`,
+  };
+  const thR: React.CSSProperties = { ...th, textAlign: "right" };
+  const td: React.CSSProperties = {
+    padding: "6px 5px", fontSize: 9, verticalAlign: "middle",
+    borderBottom: `1px solid ${LINE_SOFT}`, color: INK,
+  };
+  const tdR: React.CSSProperties = { ...td, textAlign: "right", fontFamily: MONO };
+
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 4, tableLayout: "fixed" }}>
+    <table style={{
+      width: "100%", borderCollapse: "collapse", marginTop: 4, tableLayout: "fixed",
+      border: `1px solid ${LINE}`,
+    }}>
       <colgroup>
-        <col style={{ width: 24 }} />
+        <col style={{ width: 26 }} />
         <col style={{ width: 64 }} />
+        <col style={{ width: 70 }} />
         <col style={{ width: 78 }} />
-        <col style={{ width: 86 }} />
-        <col />
+        <col style={{ width: 38 }} />
+        <col style={{ width: 56 }} />
+        <col style={{ width: 44 }} />
         <col style={{ width: 56 }} />
         <col style={{ width: 56 }} />
-        <col style={{ width: 64 }} />
-        <col style={{ width: 64 }} />
-        <col style={{ width: 70 }} />
-        <col style={{ width: 70 }} />
+        <col style={{ width: 60 }} />
+        <col style={{ width: 60 }} />
+        <col style={{ width: 60 }} />
+        <col style={{ width: 60 }} />
       </colgroup>
       <thead>
-        <tr style={{ background: INK, color: PAPER }}>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "center", letterSpacing: 1 }}>#</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "left", letterSpacing: 1, textTransform: "uppercase" }}>Date</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "left", letterSpacing: 1, textTransform: "uppercase" }}>Reference</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "left", letterSpacing: 1, textTransform: "uppercase" }}>Type</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "left", letterSpacing: 1, textTransform: "uppercase" }}>Description</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>Gold Dr</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>Gold Cr</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>DA Dr</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>DA Cr</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>Bal Gold</th>
-          <th style={{ ...cellBase, fontSize: 8, textAlign: "right", letterSpacing: 1, textTransform: "uppercase" }}>Bal DA</th>
+        <tr>
+          <th style={{ ...th, textAlign: "center" }}>#</th>
+          <th style={th}>Date</th>
+          <th style={th}>Ref №</th>
+          <th style={th}>Type</th>
+          <th style={{ ...th, textAlign: "center" }}>Dir</th>
+          <th style={thR}>Gross (g)</th>
+          <th style={thR}>Purity</th>
+          <th style={thR}>Pure (g)</th>
+          <th style={thR}>W @ 730</th>
+          <th style={thR}>Ref. Fee</th>
+          <th style={thR}>DA Mov.</th>
+          <th style={thR}>Gold Bal.</th>
+          <th style={thR}>DA Bal.</th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 && (
           <tr>
-            <td colSpan={11} style={{ ...cellBase, textAlign: "center", padding: 24, color: MUTED }}>
+            <td colSpan={13} style={{ ...td, textAlign: "center", padding: 24, color: SUB }}>
               No transactions in this period.
             </td>
           </tr>
         )}
         {rows.map((r, i) => {
           const zebra = (startIndex + i) % 2 === 1;
+          const dir = directionOf(r);
+          const goldNet = r.gold_credit - r.gold_debit;
+          const daNet = r.da_credit - r.da_debit;
+          const refFee = r.type === "refining_fee" ? (r.fee_total ?? 0) : 0;
+
+          const gross = r.original_weight ?? 0;
+          const purity = r.original_purity ?? 0;
+          const pure = r.type === "refining_fee"
+            ? (gross * purity) / 1000
+            : Math.max(r.gold_credit, r.gold_debit);
+          const w730 = r.weight_at_730 ?? 0;
+
           return (
-            <tr key={i} style={{
-              background: zebra ? "rgba(199,154,25,0.05)" : "transparent",
-              borderBottom: `1px solid ${LINE}`,
-            }}>
-              <td style={{ ...cellBase, textAlign: "center", color: MUTED }}>{startIndex + i + 1}</td>
-              <td style={{ ...cellBase }}>{fmtDate(r.date)}</td>
-              <td style={{ ...cellBase, fontFamily: '"SF Mono", Menlo, monospace', fontSize: 9 }}>{r.reference}</td>
-              <td style={{ ...cellBase, fontSize: 9 }}>
-                <TypePill type={r.type} />
+            <tr key={i} style={{ background: zebra ? PAPER_ALT : PAPER }}>
+              <td style={{ ...td, textAlign: "center", color: SUB, fontFamily: MONO }}>{startIndex + i + 1}</td>
+              <td style={td}>{fmtDate(r.date)}</td>
+              <td style={{ ...td, fontFamily: MONO, fontSize: 8.5 }}>{r.reference}</td>
+              <td style={{ ...td, fontSize: 9 }}>{TYPE_LABEL[r.type]}</td>
+              <td style={{ ...td, textAlign: "center" }}>
+                <span style={{
+                  display: "inline-block", padding: "1px 6px", borderRadius: 3,
+                  fontSize: 8, fontWeight: 800, letterSpacing: 0.6,
+                  color: dir.color, background: `${dir.color}1A`, border: `1px solid ${dir.color}40`,
+                }}>{dir.label}</span>
               </td>
-              <td style={{ ...cellBase, fontSize: 9.5, color: INK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {TYPE_LABEL[r.type]}{r.client_name ? ` — ${r.client_name}` : ""}
-                {r.type === "refining_fee" && r.original_weight != null && (
-                  <span style={{ color: MUTED, fontSize: 8.5, marginLeft: 4 }}>
-                    {` · ${fmtG(r.original_weight)} × ${fmtPurity(r.original_purity ?? 0)} / 730 = ${fmtG(r.weight_at_730 ?? 0)} @ ${fmtDA(r.fee_price ?? 0)}/g`}
-                  </span>
-                )}
+              <td style={tdR}>{gross > 0 ? num2(gross) : "—"}</td>
+              <td style={tdR}>{purity > 0 ? fmtPurity(purity) : "—"}</td>
+              <td style={tdR}>{pure > 0 ? num2(pure) : "—"}</td>
+              <td style={tdR}>{w730 > 0 ? num2(w730) : "—"}</td>
+              <td style={{ ...tdR, color: refFee > 0 ? ORANGE : SUB, fontWeight: refFee > 0 ? 700 : 400 }}>
+                {refFee > 0 ? num2(refFee) : "—"}
               </td>
-              <td style={{ ...numCell, color: r.gold_debit ? RED : MUTED }}>{r.gold_debit ? fmtG(r.gold_debit) : "—"}</td>
-              <td style={{ ...numCell, color: r.gold_credit ? GREEN : MUTED }}>{r.gold_credit ? fmtG(r.gold_credit) : "—"}</td>
-              <td style={{ ...numCell, color: r.da_debit ? RED : MUTED }}>{r.da_debit ? fmtDA(r.da_debit) : "—"}</td>
-              <td style={{ ...numCell, color: r.da_credit ? GREEN : MUTED }}>{r.da_credit ? fmtDA(r.da_credit) : "—"}</td>
-              <td style={{ ...numCell, fontWeight: 700 }}>{fmtG(r.running_gold)}</td>
-              <td style={{ ...numCell, fontWeight: 700 }}>{fmtDA(r.running_da)}</td>
+              <td style={{ ...tdR, color: daNet > 0 ? GREEN : daNet < 0 ? RED : SUB, fontWeight: daNet !== 0 ? 700 : 400 }}>
+                {daNet !== 0 ? `${daNet > 0 ? "+" : ""}${num2(daNet)}` : "—"}
+              </td>
+              <td style={{ ...tdR, fontWeight: 800 }}>{num2(r.running_gold)}</td>
+              <td style={{ ...tdR, fontWeight: 800 }}>{num2(r.running_da)}</td>
             </tr>
           );
         })}
@@ -332,42 +426,14 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
   );
 }
 
-function TypePill({ type }: { type: StatementRow["type"] }) {
-  const color =
-    type === "gold_received" || type === "da_received" ? GREEN :
-    type === "gold_delivered" || type === "da_paid" || type === "refining_fee" ? RED :
-    GOLD;
-  return (
-    <span style={{
-      display: "inline-block",
-      padding: "2px 6px", borderRadius: 4,
-      fontSize: 8, letterSpacing: 0.6,
-      fontWeight: 700, textTransform: "uppercase",
-      color, background: `${color}1A`, border: `1px solid ${color}40`,
-    }}>{TYPE_LABEL[type]}</span>
-  );
-}
-
-function ClosingBlock({ data }: { data: AccountStatement }) {
+function BigBalance({ label, value }: { label: string; value: string }) {
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12,
-      marginTop: 16,
+      border: `2px solid ${ORANGE}`, borderRadius: 8, padding: "14px 18px",
+      background: ORANGE_SOFT,
     }}>
-      <BigBalance label="Closing Gold Balance" value={fmtG(data.closing_gold)} accent={GOLD} />
-      <BigBalance label="Closing DA Balance" value={fmtDA(data.closing_da)} accent={INK} />
-    </div>
-  );
-}
-
-function BigBalance({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <div style={{
-      border: `2px solid ${accent}`, borderRadius: 10, padding: "14px 18px",
-      background: "rgba(255,255,255,0.6)",
-    }}>
-      <div style={{ fontSize: 9, color: MUTED, letterSpacing: 2.5, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: accent, fontFamily: '"SF Mono", Menlo, monospace', marginTop: 4 }}>{value}</div>
+      <div style={{ fontSize: 9.5, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 800 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: INK, fontFamily: MONO, marginTop: 4 }}>{value}</div>
     </div>
   );
 }
@@ -375,17 +441,17 @@ function BigBalance({ label, value, accent }: { label: string; value: string; ac
 function SignatureBlock() {
   return (
     <div style={{
-      marginTop: 32,
+      marginTop: 36,
       display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60,
     }}>
       <div>
-        <div style={{ borderTop: `1px solid ${INK}`, paddingTop: 6, fontSize: 9, color: MUTED, letterSpacing: 1.5, textTransform: "uppercase" }}>
-          Prepared by
+        <div style={{ borderTop: `1px solid ${INK}`, paddingTop: 6, fontSize: 9, color: SUB, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700 }}>
+          Prepared By
         </div>
       </div>
       <div>
-        <div style={{ borderTop: `1px solid ${INK}`, paddingTop: 6, fontSize: 9, color: MUTED, letterSpacing: 1.5, textTransform: "uppercase" }}>
-          Authorised signature
+        <div style={{ borderTop: `1px solid ${INK}`, paddingTop: 6, fontSize: 9, color: SUB, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700 }}>
+          Authorised Signature
         </div>
       </div>
     </div>
@@ -393,137 +459,8 @@ function SignatureBlock() {
 }
 
 /* ============================================================
-   PNG SUMMARY (WhatsApp-ready) — 1080 × 1350 vertical card
+   PNG SHARE — uses the EXACT same template as the PDF.
+   The dialog stitches all pages into a single tall PNG.
 ============================================================ */
 
-export function AccountStatementSummary({ data }: { data: AccountStatement }) {
-  return (
-    <div style={{
-      width: 1080, height: 1350,
-      background: `linear-gradient(160deg, #1a1a1a 0%, #2a2418 55%, #1a1a1a 100%)`,
-      color: "#f4f1ec",
-      padding: 56, boxSizing: "border-box",
-      fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
-      position: "relative",
-      borderTop: `8px solid ${GOLD}`,
-    }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <div style={{
-            width: 78, height: 78, borderRadius: 16,
-            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_SOFT})`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#1a1a1a", fontWeight: 900, fontSize: 40,
-          }}>A</div>
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 3 }}>ATHER DESK</div>
-            <div style={{ fontSize: 14, color: GOLD_SOFT, letterSpacing: 4, textTransform: "uppercase", marginTop: 2 }}>
-              Account Statement
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: "right", fontSize: 13, color: "#bdb59f", lineHeight: 1.6 }}>
-          <div style={{ letterSpacing: 2, textTransform: "uppercase", fontSize: 11 }}>Statement</div>
-          <div style={{ fontFamily: '"SF Mono", Menlo, monospace', fontWeight: 700, color: "#f4f1ec" }}>{data.statement_number}</div>
-        </div>
-      </div>
-
-      {/* Client + period */}
-      <div style={{ marginTop: 44 }}>
-        <div style={{ fontSize: 13, color: GOLD_SOFT, letterSpacing: 4, textTransform: "uppercase" }}>Client</div>
-        <div style={{ fontSize: 56, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{data.client.name}</div>
-        <div style={{ fontSize: 16, color: "#bdb59f", marginTop: 4, letterSpacing: 1 }}>{data.refinery.name}</div>
-        <div style={{ fontSize: 20, color: "#d9d4cc", marginTop: 8, letterSpacing: 1 }}>
-          {fmtDate(data.range.from)}  →  {fmtDate(data.range.to)}
-        </div>
-      </div>
-
-
-      {/* Balances split */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 44 }}>
-        <BalanceCard
-          title="Gold Balance (g)"
-          opening={fmtG(data.opening_gold)}
-          closing={fmtG(data.closing_gold)}
-          accent={GOLD}
-        />
-        <BalanceCard
-          title="DA Balance"
-          opening={fmtDA(data.opening_da)}
-          closing={fmtDA(data.closing_da)}
-          accent="#7ec3a8"
-        />
-      </div>
-
-      {/* Activity */}
-      <div style={{ marginTop: 36 }}>
-        <div style={{ fontSize: 13, color: GOLD_SOFT, letterSpacing: 4, textTransform: "uppercase", marginBottom: 16 }}>
-          Activity in period
-        </div>
-        <div style={{
-          border: "1px solid rgba(199,154,25,0.35)", borderRadius: 14,
-          background: "rgba(255,255,255,0.03)", padding: "8px 24px",
-        }}>
-          <ActivityRow label="Total Gold Received" value={fmtG(data.summary.total_gold_received)} color="#7ec3a8" />
-          <ActivityRow label="Total Gold Delivered" value={fmtG(data.summary.total_gold_delivered)} color="#ef8a7a" />
-          <ActivityRow label="Total Refining Fees" value={fmtDA(data.summary.total_refining_fees)} color={GOLD_SOFT} />
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        position: "absolute", left: 56, right: 56, bottom: 40,
-        display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-        fontSize: 13, color: "#9a937e",
-      }}>
-        <div>
-          <div style={{ letterSpacing: 2, textTransform: "uppercase", fontSize: 10 }}>Generated</div>
-          <div style={{ marginTop: 4, color: "#d9d4cc" }}>{fmtDateTime(data.generated_at)} · {data.generated_by}</div>
-        </div>
-        <div style={{ letterSpacing: 4, fontSize: 12, color: GOLD_SOFT, fontWeight: 700 }}>
-          ATHER GROUP
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BalanceCard({
-  title, opening, closing, accent,
-}: { title: string; opening: string; closing: string; accent: string }) {
-  return (
-    <div style={{
-      border: `1px solid ${accent}55`, borderRadius: 18,
-      background: "rgba(255,255,255,0.04)", padding: 22,
-    }}>
-      <div style={{ fontSize: 13, letterSpacing: 3, textTransform: "uppercase", color: accent, fontWeight: 700 }}>
-        {title}
-      </div>
-      <div style={{ marginTop: 14, fontSize: 12, color: "#bdb59f", letterSpacing: 2, textTransform: "uppercase" }}>
-        Opening
-      </div>
-      <div style={{ fontSize: 22, fontFamily: '"SF Mono", Menlo, monospace', color: "#e6e2d6", fontWeight: 600 }}>
-        {opening}
-      </div>
-      <div style={{ marginTop: 14, fontSize: 12, color: "#bdb59f", letterSpacing: 2, textTransform: "uppercase" }}>
-        Closing
-      </div>
-      <div style={{ fontSize: 34, fontFamily: '"SF Mono", Menlo, monospace', color: accent, fontWeight: 800, letterSpacing: -1 }}>
-        {closing}
-      </div>
-    </div>
-  );
-}
-
-function ActivityRow({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "center",
-      padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.06)",
-    }}>
-      <span style={{ fontSize: 16, color: "#d9d4cc", letterSpacing: 0.5 }}>{label}</span>
-      <span style={{ fontSize: 20, fontFamily: '"SF Mono", Menlo, monospace', fontWeight: 700, color }}>{value}</span>
-    </div>
-  );
-}
+export const AccountStatementSummary = AccountStatementReport;
