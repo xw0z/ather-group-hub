@@ -39,27 +39,30 @@ const fmtDateTime = (s: string) => {
   } catch { return s; }
 };
 
-const TYPE_LABEL: Record<StatementRow["type"], string> = {
-  gold_received: "Buy",
-  gold_delivered: "Sell",
-  refining_fee: "Refining Fee",
-  da_received: "DA Received",
-  da_paid: "DA Paid",
-  settlement: "Settlement",
-  buy_metal: "Metal Buy",
-  sell_metal: "Metal Sell",
-  adjustment: "Adjustment",
-  reversal: "Correction",
+const TYPE_KEYS: Record<StatementRow["type"], string> = {
+  gold_received: "ref.statement.type.gold_received",
+  gold_delivered: "ref.statement.type.gold_delivered",
+  refining_fee: "ref.statement.type.refining_fee",
+  da_received: "ref.statement.type.da_received",
+  da_paid: "ref.statement.type.da_paid",
+  settlement: "ref.statement.type.settlement",
+  buy_metal: "ref.statement.type.buy_metal",
+  sell_metal: "ref.statement.type.sell_metal",
+  adjustment: "ref.statement.type.adjustment",
+  reversal: "ref.statement.type.reversal",
 };
 
-function directionOf(r: StatementRow): { label: string; color: string } {
+function directionOf(
+  r: StatementRow,
+  t: (k: string) => string,
+): { label: string; color: string } {
   const goldIn = r.gold_credit > 0;
   const goldOut = r.gold_debit > 0;
   const daIn = r.da_credit > 0;
   const daOut = r.da_debit > 0;
-  if (r.type === "refining_fee") return { label: "FEE", color: ORANGE };
-  if (goldIn || daIn) return { label: "IN", color: GREEN };
-  if (goldOut || daOut) return { label: "OUT", color: RED };
+  if (r.type === "refining_fee") return { label: t("ref.statement.dir.fee"), color: ORANGE };
+  if (goldIn || daIn) return { label: t("ref.statement.dir.in"), color: GREEN };
+  if (goldOut || daOut) return { label: t("ref.statement.dir.out"), color: RED };
   return { label: "—", color: SUB };
 }
 
