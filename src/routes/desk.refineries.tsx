@@ -999,52 +999,77 @@ function TransactionFormPage({
       <Card className="p-4 sm:p-6">
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-            <div className="space-y-2">
-              <Label>Direction</Label>
-              <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="receiving">Receiving</SelectItem>
-                  <SelectItem value="delivery">Delivery</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {type !== "settlement" ? (
+              <div className="space-y-2">
+                <Label>Direction</Label>
+                <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receiving">Receiving</SelectItem>
+                    <SelectItem value="delivery">Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as RefineryTxType)}>
+              <Select value={type} onValueChange={(v) => setType(v as RefineryTxType)} disabled={isEdit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gold">Gold</SelectItem>
                   <SelectItem value="da">DA</SelectItem>
+                  <SelectItem value="settlement">Settlement (Client → Client)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Client *</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-          </div>
-
-          {client && (
-            <Card className="p-3 bg-muted/20">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Purity balance: <span className={`tabular-nums ${balClass(Number(client.purity_balance))}`}>{signed(Number(client.purity_balance), fmtG)}</span></div>
-                <div>DA balance: <span className={`tabular-nums ${balClass(Number(client.da_balance))}`}>{signed(Number(client.da_balance), fmtDA)}</span></div>
+          {type !== "settlement" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Client *</Label>
+                  <Select value={clientId} onValueChange={setClientId}>
+                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                    <SelectContent>
+                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
               </div>
-            </Card>
+
+              {client && (
+                <Card className="p-3 bg-muted/20">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Purity balance: <span className={`tabular-nums ${balClass(Number(client.purity_balance))}`}>{signed(Number(client.purity_balance), fmtG)}</span></div>
+                    <div>DA balance: <span className={`tabular-nums ${balClass(Number(client.da_balance))}`}>{signed(Number(client.da_balance), fmtDA)}</span></div>
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          {type === "settlement" && (
+            <SettlementFields
+              clients={clients}
+              fromClientId={fromClientId} setFromClientId={setFromClientId}
+              toClientId={toClientId} setToClientId={setToClientId}
+              fromClient={fromClient} toClient={toClient}
+              kind={settlementKind} setKind={setSettlementKind}
+              amount={settlementAmount} setAmount={setSettlementAmount}
+              applyFee={applyFee} setApplyFee={setApplyFee}
+              feePrice={settlementFeePrice} setFeePrice={setSettlementFeePrice}
+              preview={settlementPreview}
+            />
           )}
 
           {type === "da" && (
