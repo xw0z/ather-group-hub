@@ -1234,7 +1234,7 @@ function TransactionReceiptDialog({
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Phone</p><p>{tx.client_phone ?? "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Direction</p><p className="capitalize">{tx.direction}</p></div>
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Type</p><p className="uppercase">{tx.transaction_type}</p></div>
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p><p><StatusBadge status={tx.status} /></p></div>
+                
               </div>
 
               {tx.transaction_type === "da" && (
