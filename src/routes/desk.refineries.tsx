@@ -516,7 +516,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
 
       {/* Top row: physical metrics + equity hero */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
         <StatCard icon={<Coins className="h-4 w-4 text-amber-500" />} label="Pure Gold Stock" value={fmtG(goldStock)} valueClass="text-amber-500" />
         <StatCard icon={<Coins className="h-4 w-4 text-slate-400" />} label="Silver Stock" value={fmtG(silverStock)} valueClass="text-slate-300" />
         <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Cash Stock" value={fmtDA(daCash)} />
@@ -524,7 +524,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
       </div>
 
       {/* Second row: clients, exposure, today summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
         <StatCard label="Total Clients" value={String(data.totalClients)} onClick={() => onTab("clients")} />
         <StatCard
           label="Clients Owing Gold"
@@ -540,6 +540,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         />
         <TodaysActivityCard data={data} />
       </div>
+
 
       {/* Alerts */}
       {alerts.length > 0 && (
