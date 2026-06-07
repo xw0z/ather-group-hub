@@ -1120,7 +1120,7 @@ function TransactionReceiptDialog({
         `Direction: ${tx.direction}\nType: ${tx.transaction_type}\n` +
         (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
         (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
-        (Number(tx.total_refining_fee) > 0 ? `Refining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "") +
+        (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nFee price: ${fmtDA(Number(tx.fee_price))}/g\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "") +
         (tx.new_purity_balance != null ? `New purity balance: ${fmtG(Number(tx.new_purity_balance))}\n` : "") +
         (tx.new_da_balance != null ? `New DA balance: ${fmtDA(Number(tx.new_da_balance))}\n` : "")
       );
