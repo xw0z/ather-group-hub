@@ -184,7 +184,6 @@ function RefineryPicker({
                 </div>
                 <div>
                   <p className="font-display text-lg tracking-wide">{r.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">{r.status}</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
@@ -410,12 +409,11 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
             <th className="p-3">Type</th>
             <th className="p-3 text-right">Gold</th>
             <th className="p-3 text-right">DA</th>
-            <th className="p-3">Status</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 && (
-            <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+            <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
           )}
           {rows.map((t) => (
             <tr key={t.id} className="border-b border-border last:border-0">
@@ -426,7 +424,6 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
               <td className="p-3 uppercase">{t.transaction_type}</td>
               <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
               <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
-              <td className="p-3"><StatusBadge status={t.status} /></td>
             </tr>
           ))}
         </tbody>
@@ -435,14 +432,7 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cls =
-    status === "settled" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/40" :
-    status === "pending" ? "bg-amber-500/15 text-amber-500 border-amber-500/40" :
-    status === "cancelled" ? "bg-destructive/15 text-destructive border-destructive/40" :
-    "bg-muted text-muted-foreground border-border";
-  return <Badge variant="outline" className={`uppercase text-[10px] tracking-wider ${cls}`}>{status}</Badge>;
-}
+
 
 // =============================================================
 // Clients tab
@@ -500,14 +490,13 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <th className="p-3 text-right">Purity</th>
                 <th className="p-3 text-right">DA</th>
                 <th className="p-3 text-right">Fee/g</th>
-                <th className="p-3">Status</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && clients.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
               )}
               {clients.map((c) => (
                 <tr key={c.id} className="border-b border-border last:border-0">
@@ -516,7 +505,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(c.purity_balance))}`}>{signed(Number(c.purity_balance), fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(c.da_balance))}`}>{signed(Number(c.da_balance), fmtDA)}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
-                  <td className="p-3"><StatusBadge status={c.status} /></td>
+                  
                   <td className="p-3 text-right">
                     <div className="inline-flex gap-1">
                       {canStatement && (
@@ -578,7 +567,8 @@ function ClientDialog({
   const [da, setDa] = useState(String(editing?.da_balance ?? 0));
   const [fee, setFee] = useState(String(editing?.refining_fee_price ?? 0));
   const [notes, setNotes] = useState(editing?.notes ?? "");
-  const [status, setStatus] = useState<"active" | "inactive">((editing?.status as "active" | "inactive") ?? "active");
+  // Status field removed from the Refineries module; default all clients to "active" for backend compatibility.
+  const status: "active" = "active";
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: FormEvent) => {
@@ -640,16 +630,6 @@ function ClientDialog({
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={notes ?? ""} onChange={(e) => setNotes(e.target.value)} rows={2} />
-          </div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as "active" | "inactive")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
@@ -717,7 +697,6 @@ function TransactionsTab({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
-                  <StatusBadge status={t.status} />
                 </div>
                 <p className="text-sm font-medium truncate mt-1">{t.client_name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -767,14 +746,14 @@ function TransactionsTab({
                 <th className="p-3 text-right whitespace-nowrap">Pure</th>
                 <th className="p-3 text-right whitespace-nowrap">DA</th>
                 <th className="p-3 text-right whitespace-nowrap">Fee</th>
-                <th className="p-3 whitespace-nowrap">Status</th>
+                
                 <th className="p-3 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
               )}
               {rows.map((t) => (
                 <tr key={t.id} className="border-b border-border last:border-0">
@@ -787,7 +766,7 @@ function TransactionsTab({
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
-                  <td className="p-3 whitespace-nowrap"><StatusBadge status={t.status} /></td>
+                  
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
@@ -1246,7 +1225,7 @@ function TransactionReceiptDialog({
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Phone</p><p>{tx.client_phone ?? "—"}</p></div>
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Direction</p><p className="capitalize">{tx.direction}</p></div>
                 <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Type</p><p className="uppercase">{tx.transaction_type}</p></div>
-                <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p><p><StatusBadge status={tx.status} /></p></div>
+                
               </div>
 
               {tx.transaction_type === "da" && (
@@ -1289,7 +1268,7 @@ function TransactionReceiptDialog({
                 </div>
               )}
 
-              {tx.status === "settled" && (
+              {tx.previous_purity_balance != null && (
                 <div className="border-t border-border pt-3 grid grid-cols-2 gap-3 text-sm">
                   <div><p className="text-xs text-muted-foreground">Prev purity</p><p className={`tabular-nums ${balClass(Number(tx.previous_purity_balance ?? 0))}`}>{signed(Number(tx.previous_purity_balance ?? 0), fmtG)}</p></div>
                   <div><p className="text-xs text-muted-foreground">New purity</p><p className={`tabular-nums ${balClass(Number(tx.new_purity_balance ?? 0))}`}>{signed(Number(tx.new_purity_balance ?? 0), fmtG)}</p></div>
@@ -1559,7 +1538,7 @@ function ProfileTab() {
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p><p>{p.username ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p><p className="capitalize">{p.isAdmin ? "admin" : p.role ?? "—"}</p></div>
           <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Refinery</p><p>{p.refinery_name ?? "—"}</p></div>
-          <div><p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p><p className="capitalize">{p.status}</p></div>
+          
         </div>
 
         <form onSubmit={submit} className="space-y-4 border-t border-border pt-6">
