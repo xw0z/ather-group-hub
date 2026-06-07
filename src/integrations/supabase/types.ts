@@ -340,6 +340,7 @@ export type Database = {
           id: string
           pure_gold_stock: number
           refinery_id: string
+          silver_stock: number
           updated_at: string
         }
         Insert: {
@@ -347,6 +348,7 @@ export type Database = {
           id?: string
           pure_gold_stock?: number
           refinery_id: string
+          silver_stock?: number
           updated_at?: string
         }
         Update: {
@@ -354,6 +356,7 @@ export type Database = {
           id?: string
           pure_gold_stock?: number
           refinery_id?: string
+          silver_stock?: number
           updated_at?: string
         }
         Relationships: [
@@ -368,6 +371,7 @@ export type Database = {
       }
       refinery_stock_movements: {
         Row: {
+          adjustment_kind: string | null
           client_id: string | null
           created_at: string
           created_by: string | null
@@ -378,12 +382,17 @@ export type Database = {
           gold_stock_after: number
           gold_stock_before: number
           id: string
+          metal: string | null
           movement_type: Database["public"]["Enums"]["refinery_movement_type"]
           notes: string | null
           refinery_id: string
+          silver_change: number
+          silver_stock_after: number
+          silver_stock_before: number
           transaction_id: string | null
         }
         Insert: {
+          adjustment_kind?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -394,12 +403,17 @@ export type Database = {
           gold_stock_after?: number
           gold_stock_before?: number
           id?: string
+          metal?: string | null
           movement_type: Database["public"]["Enums"]["refinery_movement_type"]
           notes?: string | null
           refinery_id: string
+          silver_change?: number
+          silver_stock_after?: number
+          silver_stock_before?: number
           transaction_id?: string | null
         }
         Update: {
+          adjustment_kind?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -410,9 +424,13 @@ export type Database = {
           gold_stock_after?: number
           gold_stock_before?: number
           id?: string
+          metal?: string | null
           movement_type?: Database["public"]["Enums"]["refinery_movement_type"]
           notes?: string | null
           refinery_id?: string
+          silver_change?: number
+          silver_stock_after?: number
+          silver_stock_before?: number
           transaction_id?: string | null
         }
         Relationships: [
@@ -485,6 +503,9 @@ export type Database = {
       }
       refinery_transactions: {
         Row: {
+          adjustment_delta: number | null
+          adjustment_kind: string | null
+          adjustment_metal: string | null
           average_purity: number
           client_id: string
           counterparty_client_id: string | null
@@ -498,11 +519,13 @@ export type Database = {
           new_da_stock: number | null
           new_gold_stock: number | null
           new_purity_balance: number | null
+          new_silver_stock: number | null
           notes: string | null
           previous_da_balance: number | null
           previous_da_stock: number | null
           previous_gold_stock: number | null
           previous_purity_balance: number | null
+          previous_silver_stock: number | null
           refinery_id: string
           settled_at: string | null
           settlement_amount: number | null
@@ -520,6 +543,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjustment_delta?: number | null
+          adjustment_kind?: string | null
+          adjustment_metal?: string | null
           average_purity?: number
           client_id: string
           counterparty_client_id?: string | null
@@ -533,11 +559,13 @@ export type Database = {
           new_da_stock?: number | null
           new_gold_stock?: number | null
           new_purity_balance?: number | null
+          new_silver_stock?: number | null
           notes?: string | null
           previous_da_balance?: number | null
           previous_da_stock?: number | null
           previous_gold_stock?: number | null
           previous_purity_balance?: number | null
+          previous_silver_stock?: number | null
           refinery_id: string
           settled_at?: string | null
           settlement_amount?: number | null
@@ -555,6 +583,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjustment_delta?: number | null
+          adjustment_kind?: string | null
+          adjustment_metal?: string | null
           average_purity?: number
           client_id?: string
           counterparty_client_id?: string | null
@@ -568,11 +599,13 @@ export type Database = {
           new_da_stock?: number | null
           new_gold_stock?: number | null
           new_purity_balance?: number | null
+          new_silver_stock?: number | null
           notes?: string | null
           previous_da_balance?: number | null
           previous_da_stock?: number | null
           previous_gold_stock?: number | null
           previous_purity_balance?: number | null
+          previous_silver_stock?: number | null
           refinery_id?: string
           settled_at?: string | null
           settlement_amount?: number | null
@@ -1238,13 +1271,30 @@ export type Database = {
         }
         Returns: string
       }
+      refinery_create_stock_adjustment: {
+        Args: {
+          _delta: number
+          _kind: string
+          _metal: string
+          _notes: string
+          _refinery_id: string
+        }
+        Returns: string
+      }
       refinery_delete_settlement: {
         Args: { _group_id: string }
+        Returns: undefined
+      }
+      refinery_delete_stock_adjustment: {
+        Args: { _tx_id: string }
         Returns: undefined
       }
       refinery_reverse_transaction: {
         Args: { _tx_id: string }
         Returns: {
+          adjustment_delta: number | null
+          adjustment_kind: string | null
+          adjustment_metal: string | null
           average_purity: number
           client_id: string
           counterparty_client_id: string | null
@@ -1258,11 +1308,13 @@ export type Database = {
           new_da_stock: number | null
           new_gold_stock: number | null
           new_purity_balance: number | null
+          new_silver_stock: number | null
           notes: string | null
           previous_da_balance: number | null
           previous_da_stock: number | null
           previous_gold_stock: number | null
           previous_purity_balance: number | null
+          previous_silver_stock: number | null
           refinery_id: string
           settled_at: string | null
           settlement_amount: number | null
@@ -1289,6 +1341,9 @@ export type Database = {
       refinery_settle_transaction: {
         Args: { _tx_id: string }
         Returns: {
+          adjustment_delta: number | null
+          adjustment_kind: string | null
+          adjustment_metal: string | null
           average_purity: number
           client_id: string
           counterparty_client_id: string | null
@@ -1302,11 +1357,13 @@ export type Database = {
           new_da_stock: number | null
           new_gold_stock: number | null
           new_purity_balance: number | null
+          new_silver_stock: number | null
           notes: string | null
           previous_da_balance: number | null
           previous_da_stock: number | null
           previous_gold_stock: number | null
           previous_purity_balance: number | null
+          previous_silver_stock: number | null
           refinery_id: string
           settled_at: string | null
           settlement_amount: number | null
@@ -1353,7 +1410,7 @@ export type Database = {
       refinery_role: "manager" | "staff" | "viewer"
       refinery_tx_direction: "receiving" | "delivery"
       refinery_tx_status: "draft" | "pending" | "settled" | "cancelled"
-      refinery_tx_type: "da" | "gold" | "settlement"
+      refinery_tx_type: "da" | "gold" | "settlement" | "stock_adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1503,7 +1560,7 @@ export const Constants = {
       refinery_role: ["manager", "staff", "viewer"],
       refinery_tx_direction: ["receiving", "delivery"],
       refinery_tx_status: ["draft", "pending", "settled", "cancelled"],
-      refinery_tx_type: ["da", "gold", "settlement"],
+      refinery_tx_type: ["da", "gold", "settlement", "stock_adjustment"],
     },
   },
 } as const
