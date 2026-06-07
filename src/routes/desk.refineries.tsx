@@ -1187,8 +1187,9 @@ function TransactionReceiptDialog({
                   </div>
                   {tx.direction === "receiving" && Number(tx.total_refining_fee) > 0 && (
                     <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+                      <div><p className="text-xs text-muted-foreground">Weight @ 730</p><p className="tabular-nums">{fmtG((Number(tx.total_pure_weight) * 1000) / 730)}</p></div>
                       <div><p className="text-xs text-muted-foreground">Fee price</p><p className="tabular-nums">{fmtDA(Number(tx.fee_price))}/g</p></div>
-                      <div><p className="text-xs text-muted-foreground">Total refining fee</p><p className="tabular-nums">{fmtDA(Number(tx.total_refining_fee))}</p></div>
+                      <div className="col-span-2"><p className="text-xs text-muted-foreground">Total refining fee</p><p className="tabular-nums text-base font-semibold">{fmtDA(Number(tx.total_refining_fee))}</p></div>
                     </div>
                   )}
                 </div>
