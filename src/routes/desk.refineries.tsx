@@ -1268,7 +1268,7 @@ function TransactionReceiptDialog({
                 </div>
               )}
 
-              {tx.status === "settled" && (
+              {tx.previous_purity_balance != null && (
                 <div className="border-t border-border pt-3 grid grid-cols-2 gap-3 text-sm">
                   <div><p className="text-xs text-muted-foreground">Prev purity</p><p className={`tabular-nums ${balClass(Number(tx.previous_purity_balance ?? 0))}`}>{signed(Number(tx.previous_purity_balance ?? 0), fmtG)}</p></div>
                   <div><p className="text-xs text-muted-foreground">New purity</p><p className={`tabular-nums ${balClass(Number(tx.new_purity_balance ?? 0))}`}>{signed(Number(tx.new_purity_balance ?? 0), fmtG)}</p></div>
