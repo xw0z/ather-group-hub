@@ -1446,7 +1446,7 @@ function TransactionReceiptDialog({
       root.unmount();
       host.remove();
     }
-  }, [tx, refinery.name]);
+  }, [tx, refinery.name, settlement, isSettlement]);
 
   const createReceiptPdfBlob = useCallback(async (): Promise<Blob> => {
     const canvas = await renderReceiptCanvas();
