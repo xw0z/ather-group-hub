@@ -11,6 +11,7 @@ export type RefineryDirection = "receiving" | "delivery";
 export type RefineryTxType = "da" | "gold" | "settlement" | "stock_adjustment" | "buysell";
 export type BuySellKind = "buy" | "sell";
 export type BuySellSettlement = "settlement" | "cash";
+export type BuySellMetal = "gold" | "silver";
 export type StockAdjustmentMetal = "gold" | "silver" | "da";
 export type StockAdjustmentKind = "add" | "remove" | "correction" | "loss" | "manual";
 export type RefinerySettlementKind = "gold" | "da";
