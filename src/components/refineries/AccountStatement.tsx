@@ -298,16 +298,18 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
     }}>
       <colgroup>
         <col style={{ width: 90 }} />
-        <col style={{ width: 110 }} />
+        <col style={{ width: 100 }} />
         <col style={{ width: 60 }} />
-        <col style={{ width: 110 }} />
-        <col style={{ width: 130 }} />
+        <col style={{ width: 60 }} />
+        <col style={{ width: 100 }} />
+        <col style={{ width: 120 }} />
         <col style={{ width: "auto" }} />
       </colgroup>
       <thead>
         <tr>
           <th style={th}>Date</th>
           <th style={th}>Type</th>
+          <th style={thC}>Metal</th>
           <th style={thC}>Dir</th>
           <th style={thR}>Gold (g)</th>
           <th style={thR}>DA Amount</th>
@@ -317,7 +319,7 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
       <tbody>
         {rows.length === 0 && (
           <tr>
-            <td colSpan={6} style={{ ...td, textAlign: "center", padding: 28, color: SUB }}>
+            <td colSpan={7} style={{ ...td, textAlign: "center", padding: 28, color: SUB }}>
               No transactions in this period.
             </td>
           </tr>
@@ -327,11 +329,15 @@ function TxTable({ rows, startIndex }: { rows: StatementRow[]; startIndex: numbe
           const dir = directionOf(r);
           const goldNet = r.gold_credit - r.gold_debit;
           const daNet = r.da_credit - r.da_debit;
+          const metalLabel = r.metal
+            ? (r.metal === "gold" ? "GOLD" : "SILVER")
+            : (r.type === "gold_received" || r.type === "gold_delivered" || (r.type === "settlement" && goldNet !== 0) ? "GOLD" : "—");
 
           return (
             <tr key={i} style={{ background: zebra ? PAPER_ALT : PAPER }}>
               <td style={td}>{fmtDate(r.date)}</td>
               <td style={td}>{TYPE_LABEL[r.type]}</td>
+              <td style={{ ...td, textAlign: "center", fontSize: 9, fontWeight: 700, color: SUB }}>{metalLabel}</td>
               <td style={{ ...td, textAlign: "center" }}>
                 <span style={{
                   display: "inline-block", padding: "2px 8px", borderRadius: 3,
