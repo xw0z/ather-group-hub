@@ -1394,14 +1394,32 @@ function TransactionReceiptDialog({
   refinery, txId, onClose,
 }: { refinery: Refinery; txId: string; onClose: () => void }) {
   const [tx, setTx] = useState<RefineryTransaction | null>(null);
+  const [settlement, setSettlement] = useState<SettlementPair | null>(null);
   const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
 
   useEffect(() => {
-    getTransaction({ data: { id: txId } }).then((t) => setTx(t as RefineryTransaction)).catch(() => {});
+    let cancelled = false;
+    getTransaction({ data: { id: txId } })
+      .then(async (t) => {
+        if (cancelled) return;
+        const tt = t as RefineryTransaction;
+        setTx(tt);
+        if (tt.transaction_type === "settlement" && tt.settlement_group_id) {
+          try {
+            const pair = await getSettlement({ data: { group_id: tt.settlement_group_id } });
+            if (!cancelled) setSettlement(pair);
+          } catch { /* ignore */ }
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [txId]);
+
+  const isSettlement = tx?.transaction_type === "settlement" && Boolean(settlement);
 
   const renderReceiptCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     if (!tx) return null;
+    if (tx.transaction_type === "settlement" && !settlement) return null;
     const host = document.createElement("div");
     host.style.position = "fixed";
     host.style.left = "-99999px";
@@ -1412,7 +1430,11 @@ function TransactionReceiptDialog({
     const root = createRoot(host);
     try {
       await new Promise<void>((resolve) => {
-        root.render(<TransactionReceiptReport tx={tx} refineryName={refinery.name} />);
+        root.render(
+          isSettlement && settlement
+            ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
+            : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />
+        );
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
       const target = host.firstElementChild as HTMLElement | null;
