@@ -1052,11 +1052,20 @@ function TransactionFormPage({
                           <td></td>
                         </tr>
                         {direction === "receiving" && (
-                          <tr className="text-sm">
-                            <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>Total refining fee</td>
-                            <td className="p-2 text-right tabular-nums font-semibold">{fmtDA(totals.fee)}</td>
-                            <td></td>
-                          </tr>
+                          <>
+                            <tr className="text-sm">
+                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>Equivalent weight @ 730</td>
+                              <td className="p-2 text-right tabular-nums">{fmtG(totals.w730)}</td>
+                              <td></td>
+                            </tr>
+                            <tr className="text-sm">
+                              <td className="p-2 text-xs uppercase tracking-wider text-muted-foreground" colSpan={4}>
+                                Total refining fee <span className="normal-case text-muted-foreground/70">({fmtG(totals.w730)} × {fmtDA(Number(feePrice) || 0)}/g)</span>
+                              </td>
+                              <td className="p-2 text-right tabular-nums font-semibold">{fmtDA(totals.fee)}</td>
+                              <td></td>
+                            </tr>
+                          </>
                         )}
                       </tfoot>
                     </table>
