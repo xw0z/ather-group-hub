@@ -1548,55 +1548,76 @@ function isoMonthStart(): string { return isoToday().slice(0, 7) + "-01"; }
 
 type StatementHistoryRow = Awaited<ReturnType<typeof listRefineryReportHistory>>[number];
 
-async function renderNodeToPngBlob(node: HTMLElement, scale = 3): Promise<Blob> {
-  const canvas = await html2canvas(node, {
-    backgroundColor: null,
-    scale,
-    useCORS: true,
-    logging: false,
-  });
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG render failed"))), "image/png"),
-  );
-}
-
+/**
+ * Render the AccountStatementReport off-screen and return one canvas per page.
+ * The SAME template is used for both PDF and PNG to guarantee identical output.
+ */
 async function renderStatementToCanvases(
   statement: AccountStatement,
-  variant: "report" | "summary",
 ): Promise<HTMLCanvasElement[]> {
   const host = document.createElement("div");
   host.style.position = "fixed";
   host.style.left = "-99999px";
   host.style.top = "0";
   host.style.zIndex = "-1";
+  host.style.background = "#ffffff";
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
     await new Promise<void>((resolve) => {
-      root.render(
-        variant === "report"
-          ? <AccountStatementReport data={statement} />
-          : <AccountStatementSummary data={statement} />,
-      );
-      // wait a tick for layout + fonts
+      root.render(<AccountStatementReport data={statement} />);
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    // Each page is a top-level child of the AccountStatementReport wrapper
+    // Wait for fonts so text is crisp
+    try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
+
     const wrapper = host.firstElementChild as HTMLElement | null;
-    if (!wrapper) throw new Error("Render failed");
-    const targets: HTMLElement[] = variant === "report"
-      ? Array.from(wrapper.children) as HTMLElement[]
-      : [wrapper];
+    if (!wrapper) throw new Error("Statement render failed");
+    const pages = Array.from(wrapper.querySelectorAll<HTMLElement>("[data-statement-page]"));
+    if (pages.length === 0) throw new Error("Statement has no pages");
+
     const canvases: HTMLCanvasElement[] = [];
-    for (const t of targets) {
-      const c = await html2canvas(t, { backgroundColor: variant === "summary" ? "#1a1a1a" : "#ffffff", scale: 2.5, useCORS: true, logging: false });
+    for (const page of pages) {
+      const c = await html2canvas(page, {
+        backgroundColor: "#ffffff",
+        scale: 2.5,
+        useCORS: true,
+        logging: false,
+      });
       canvases.push(c);
     }
     return canvases;
   } finally {
-    root.unmount();
-    host.remove();
+    try { root.unmount(); } catch { /* noop */ }
+    try { host.remove(); } catch { /* noop */ }
   }
+}
+
+/** Stitch multiple page canvases into one tall PNG canvas (white background). */
+function stitchCanvasesVertically(canvases: HTMLCanvasElement[]): HTMLCanvasElement {
+  const width = Math.max(...canvases.map((c) => c.width));
+  const gap = canvases.length > 1 ? 16 : 0;
+  const height = canvases.reduce((s, c) => s + c.height, 0) + gap * (canvases.length - 1);
+  const out = document.createElement("canvas");
+  out.width = width;
+  out.height = height;
+  const ctx = out.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D not supported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  let y = 0;
+  for (const c of canvases) {
+    const x = Math.floor((width - c.width) / 2);
+    ctx.drawImage(c, x, y);
+    y += c.height + gap;
+  }
+  return out;
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type = "image/png"): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG encode failed"))), type),
+  );
 }
 
 function AccountStatementDialog({
