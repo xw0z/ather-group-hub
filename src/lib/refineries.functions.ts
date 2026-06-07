@@ -1127,7 +1127,7 @@ export type StatementRow = {
 
 export type AccountStatement = {
   refinery: { id: string; name: string };
-  client: { id: string; name: string; phone: string | null };
+  client: { id: string; name: string; code: string | null; phone: string | null };
   range: { from: string; to: string };
   statement_number: string;
   generated_at: string;
