@@ -494,9 +494,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && clients.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
               )}
               {clients.map((c) => (
                 <tr key={c.id} className="border-b border-border last:border-0">
