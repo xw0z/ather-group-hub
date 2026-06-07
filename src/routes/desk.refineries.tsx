@@ -2337,20 +2337,21 @@ function StockTab({ refinery }: { refinery: Refinery }) {
       </div>
 
       {/* Physical stock cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtG(stock.pure_gold_stock)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
+        <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.pure_gold_stock)}</p>
         </Card>
-        <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtG(stock.silver_stock)}</p>
+        <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.silver_stock)}</p>
         </Card>
-        <Card className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
-          <p className="text-2xl font-display tabular-nums">{fmtDA(stock.da_stock)}</p>
+        <Card className="p-4 h-full">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
+          <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtDA(stock.da_stock)}</p>
         </Card>
       </div>
+
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
