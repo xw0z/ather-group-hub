@@ -199,11 +199,12 @@ function RefineryPicker({
     if (onPick) onPick(id);
     else navigate({ to: "/desk/refineries", search: { r: id, tab: "dashboard" } });
   };
+  const { t: tr } = useLang();
   const grid = (
     <div className={embedded ? "" : "max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12"}>
-      <h1 className="font-display text-3xl mb-2">Refineries</h1>
+      <h1 className="font-display text-3xl mb-2">{tr("ref.pageTitle")}</h1>
       <p className="text-sm text-muted-foreground mb-8">
-        Choose a refinery to manage its clients, transactions, and stock.
+        {tr("ref.pickRefinery")}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {refineries.map((r) => (
@@ -220,7 +221,7 @@ function RefineryPicker({
                 <p className="font-display text-lg tracking-wide">{r.name}</p>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
+            <p className="text-sm text-muted-foreground">{tr("ref.tab.dashboard")} · {tr("ref.tab.clients")} · {tr("ref.tab.transactions")} · {tr("ref.tab.stock")}</p>
           </Card>
         ))}
       </div>
@@ -229,7 +230,7 @@ function RefineryPicker({
   if (embedded) return grid;
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
+      <TopBar title="REFINERIES" subtitle={isAdmin ? tr("ref.pickRefinery") : ""} onSignOut={onSignOut} />
       {grid}
     </main>
   );
