@@ -1545,6 +1545,7 @@ export const createBuySell = createServerFn({ method: "POST" })
       refineryId: z.string().uuid(),
       clientId: z.string().uuid(),
       kind: z.enum(["buy", "sell"]),
+      metal: z.enum(["gold", "silver"]).default("gold"),
       settlement: z.enum(["settlement", "cash"]),
       weight: z.number().positive(),
       purity: z.number().min(0).max(1000).optional().nullable(),
@@ -1565,6 +1566,7 @@ export const createBuySell = createServerFn({ method: "POST" })
       _price_per_gram: data.pricePerGram,
       _date: data.date ?? new Date().toISOString().slice(0, 10),
       _notes: data.notes ?? "",
+      _metal: data.metal,
     });
     if (error) throw new Error(error.message);
     return { ok: true, transactionId: txId as string };
