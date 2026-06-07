@@ -300,7 +300,10 @@ export const getTransaction = createServerFn({ method: "POST" })
     const { data: bars } = await supabaseAdmin
       .from("refinery_transaction_gold_bars")
       .select("*").eq("transaction_id", data.id).order("created_at");
-    const { client, ...rest } = tx as typeof tx & { client?: { name: string; phone: string | null } };
+    const { client, counterparty, ...rest } = tx as typeof tx & {
+      client?: { name: string; phone: string | null };
+      counterparty?: { name: string } | null;
+    };
     let created_by_name: string | null = null;
     const createdBy = (rest as { created_by?: string | null }).created_by;
     if (createdBy) {
@@ -312,6 +315,7 @@ export const getTransaction = createServerFn({ method: "POST" })
       ...rest,
       client_name: client?.name ?? "",
       client_phone: client?.phone ?? null,
+      counterparty_client_name: counterparty?.name ?? null,
       created_by_name,
       bars: (bars ?? []) as RefineryGoldBar[],
     } as RefineryTransaction;
