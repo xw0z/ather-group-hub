@@ -2379,11 +2379,11 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <p className="text-sm text-muted-foreground">{refinery.name} · refinery equity expressed in Pure Gold (real-time)</p>
       </div>
 
-      {/* HERO: Physical Pure Gold Stock (actual inventory only) */}
+      {/* HERO: Inventory Pure Gold Stock (actual inventory only) */}
       <Card className="p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Physical Pure Gold Stock</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
             <p className="font-display text-5xl tabular-nums text-amber-500 mt-1">
               {fmtG(stock.pure_gold_stock)}
             </p>
@@ -2397,7 +2397,31 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         </div>
       </Card>
 
-      {/* HERO: Refinery Equity */}
+      {/* HERO: Net Physical Pure Gold Position */}
+      {(() => {
+        const netPhysical = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
+        return (
+          <Card className="p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
+                <p className={`font-display text-5xl tabular-nums mt-1 ${signClass(netPhysical)}`}>
+                  {signed(netPhysical, fmtG)}
+                </p>
+                <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
+                  <p>Inventory: <span className="tabular-nums text-foreground">{fmtG(stock.pure_gold_stock)}</span></p>
+                  <p>Client Receivables: <span className="tabular-nums text-emerald-500">+ {fmtG(clientsOweGold)}</span></p>
+                  <p>Client Payables: <span className="tabular-nums text-red-500">− {fmtG(refineryOwesGold)}</span></p>
+                </div>
+              </div>
+              <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusBadgeCls(netPhysical)}`}>
+                Real Gold Position
+              </Badge>
+            </div>
+          </Card>
+        );
+      })()}
+
       <Card className="p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
