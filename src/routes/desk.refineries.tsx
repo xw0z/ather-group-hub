@@ -1043,13 +1043,12 @@ function TransactionReceiptDialog({
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Gold bars</p>
                   <table className="w-full text-sm">
                     <thead className="text-xs text-muted-foreground">
-                      <tr className="text-left"><th className="py-1">#</th><th>Type</th><th className="text-right">Gross</th><th className="text-right">Purity</th><th className="text-right">Pure</th></tr>
+                      <tr className="text-left"><th className="py-1">#</th><th className="text-right">Gross</th><th className="text-right">Purity</th><th className="text-right">Pure</th></tr>
                     </thead>
                     <tbody>
                       {tx.bars.map((b, i) => (
                         <tr key={i} className="border-t border-border/50">
                           <td className="py-1">{b.item_number ?? i + 1}</td>
-                          <td className="capitalize">{b.item_type}</td>
                           <td className="text-right tabular-nums">{fmtG(Number(b.gross_weight))}</td>
                           <td className="text-right tabular-nums">{fmtPurity(Number(b.purity))}</td>
                           <td className="text-right tabular-nums">{fmtG(Number(b.pure_weight))}</td>
