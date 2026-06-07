@@ -31,6 +31,7 @@ import {
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
 import { AccountStatementReport, AccountStatementSummary } from "@/components/refineries/AccountStatement";
+import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 
 
