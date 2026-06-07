@@ -873,17 +873,22 @@ function TransactionFormPage({
   };
 
   if (loadingExisting) {
-    return (
-      <Dialog open onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-3xl"><p className="text-sm text-muted-foreground py-8 text-center">Loading…</p></DialogContent>
-      </Dialog>
-    );
+    return <p className="text-sm text-muted-foreground py-8 text-center">Loading…</p>;
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>{isEdit ? "Edit transaction" : "New transaction"}</DialogTitle></DialogHeader>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          </Button>
+          <h1 className="font-display text-xl sm:text-2xl truncate">
+            {isEdit ? "Edit transaction" : "New transaction"}
+          </h1>
+        </div>
+      </div>
+      <Card className="p-4 sm:p-6">
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
