@@ -1168,7 +1168,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     const [{ data: ref, error: rErr }, { data: cli, error: cErr }] = await Promise.all([
       supabaseAdmin.from("refineries").select("id, name").eq("id", data.refineryId).single(),
-      supabaseAdmin.from("refinery_clients").select("id, name, code, phone, refinery_id")
+      supabaseAdmin.from("refinery_clients")
+        .select("id, name, code, phone, refinery_id, purity_balance, da_balance")
         .eq("id", data.clientId).single(),
     ]);
     if (rErr) throw new Error(rErr.message);
@@ -1192,6 +1193,11 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     if (priorTx && priorTx.length > 0) {
       openingGold = Number(priorTx[0].new_purity_balance ?? 0);
       openingDa = Number(priorTx[0].new_da_balance ?? 0);
+    } else {
+      // No prior settled transactions: fall back to the client's stored opening
+      // balance (used for imported clients / fresh data with no transactions yet).
+      openingGold = Number((cli as { purity_balance?: number | string | null }).purity_balance ?? 0);
+      openingDa = Number((cli as { da_balance?: number | string | null }).da_balance ?? 0);
     }
 
     // Transactions in window (settled)
