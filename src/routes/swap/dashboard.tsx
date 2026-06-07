@@ -991,6 +991,11 @@ function DashboardOverview({
     { label: "Reports", path: "/desk/app/reports", module: "reports" },
   ];
 
+  const canMargin = can(perms, "margin", "view");
+  const canSwap = can(perms, "swap", "view");
+  const canPurity = can(perms, "purity", "view");
+  const canPremium = can(perms, "premium", "view");
+
   return (
     <div className="space-y-5">
       {/* SECTION 1 — TOP SUMMARY */}
@@ -1002,29 +1007,39 @@ function DashboardOverview({
           accent="primary"
           onClick={onRefreshPrice}
         />
-        <StatCard
-          label="Total Clients"
-          value={computed ? String(computed.totalClients) : "…"}
-        />
-        <StatCard
-          label="Safe Clients"
-          value={computed ? String(computed.safe) : "…"}
-          accent="green"
-        />
-        <StatCard
-          label="Margin Calls"
-          value={computed ? String(computed.calls) : "…"}
-          accent={computed && computed.calls > 0 ? "red" : "muted"}
-        />
-        <StatCard
-          label="Today's Swap Fees"
-          value={`${totalToday < 0 ? "-" : totalToday > 0 ? "+" : ""}$${fmt(Math.abs(totalToday))}`}
-          accent={totalToday < 0 ? "red" : totalToday > 0 ? "green" : "muted"}
-        />
-        <StatCard
-          label="Gold Under Mgmt (g)"
-          value={fmt(clientGrams, 0)}
-        />
+        {canSwap && (
+          <StatCard
+            label="Total Clients"
+            value={computed ? String(computed.totalClients) : "…"}
+          />
+        )}
+        {canMargin && (
+          <StatCard
+            label="Safe Clients"
+            value={computed ? String(computed.safe) : "…"}
+            accent="green"
+          />
+        )}
+        {canMargin && (
+          <StatCard
+            label="Margin Calls"
+            value={computed ? String(computed.calls) : "…"}
+            accent={computed && computed.calls > 0 ? "red" : "muted"}
+          />
+        )}
+        {canSwap && (
+          <StatCard
+            label="Today's Swap Fees"
+            value={`${totalToday < 0 ? "-" : totalToday > 0 ? "+" : ""}$${fmt(Math.abs(totalToday))}`}
+            accent={totalToday < 0 ? "red" : totalToday > 0 ? "green" : "muted"}
+          />
+        )}
+        {canSwap && (
+          <StatCard
+            label="Gold Under Mgmt (g)"
+            value={fmt(clientGrams, 0)}
+          />
+        )}
       </section>
 
       {/* Hidden live price control to allow manual set on click; reuses existing card on price tab */}
@@ -1039,46 +1054,50 @@ function DashboardOverview({
       </div>
 
       {/* SECTION 2 — ALERTS */}
-      <section className="rounded-xl border border-border/60 bg-card p-4">
-        <h2 className="text-sm font-semibold mb-2">🚨 Margin Call Alerts</h2>
-        {!computed ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : computed.alerts.length === 0 ? (
-          <p className="text-sm text-green-600">✅ No margin calls</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {computed.alerts.slice(0, 8).map((a) => (
-              <li
-                key={a.code}
-                className="flex items-center justify-between text-sm rounded-md bg-red-500/10 px-3 py-2"
-              >
-                <span className="font-medium">{a.code}</span>
-                <span className="text-red-600 font-semibold">Needs {fmtMoney(a.needed)}</span>
-              </li>
-            ))}
-            {computed.alerts.length > 8 ? (
-              <li className="text-[11px] text-muted-foreground pt-1">
-                +{computed.alerts.length - 8} more — see Margin module.
-              </li>
-            ) : null}
-          </ul>
-        )}
-      </section>
+      {canMargin && (
+        <section className="rounded-xl border border-border/60 bg-card p-4">
+          <h2 className="text-sm font-semibold mb-2">🚨 Margin Call Alerts</h2>
+          {!computed ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : computed.alerts.length === 0 ? (
+            <p className="text-sm text-green-600">✅ No margin calls</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {computed.alerts.slice(0, 8).map((a) => (
+                <li
+                  key={a.code}
+                  className="flex items-center justify-between text-sm rounded-md bg-red-500/10 px-3 py-2"
+                >
+                  <span className="font-medium">{a.code}</span>
+                  <span className="text-red-600 font-semibold">Needs {fmtMoney(a.needed)}</span>
+                </li>
+              ))}
+              {computed.alerts.length > 8 ? (
+                <li className="text-[11px] text-muted-foreground pt-1">
+                  +{computed.alerts.length - 8} more — see Margin module.
+                </li>
+              ) : null}
+            </ul>
+          )}
+        </section>
+      )}
 
       {/* SECTION 3 — SNAPSHOT STATUS */}
-      <section className="rounded-xl border border-border/60 bg-card p-4">
-        <h2 className="text-sm font-semibold mb-2">Snapshot Status</h2>
-        <div className="text-sm space-y-1">
-          <div>
-            {snapshotOk ? "✅" : "❌"} Last snapshot:{" "}
-            <span className="font-medium">{lastSnapshot ?? "Never"}</span>
-            {fees?.lastXauPrice ? (
-              <span className="text-muted-foreground"> · XAUUSD ${fmt(fees.lastXauPrice)}</span>
-            ) : null}
+      {(canSwap || canMargin) && (
+        <section className="rounded-xl border border-border/60 bg-card p-4">
+          <h2 className="text-sm font-semibold mb-2">Snapshot Status</h2>
+          <div className="text-sm space-y-1">
+            <div>
+              {snapshotOk ? "✅" : "❌"} Last snapshot:{" "}
+              <span className="font-medium">{lastSnapshot ?? "Never"}</span>
+              {fees?.lastXauPrice ? (
+                <span className="text-muted-foreground"> · XAUUSD ${fmt(fees.lastXauPrice)}</span>
+              ) : null}
+            </div>
+            <div>⏰ Next scheduled: <span className="font-medium">Today 23:00 UTC</span></div>
           </div>
-          <div>⏰ Next scheduled: <span className="font-medium">Today 23:00 UTC</span></div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* SECTION 4 — QUICK ACCESS */}
       <section className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -1098,14 +1117,16 @@ function DashboardOverview({
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <h2 className="text-sm font-semibold mb-3">Today</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-          <MiniStat label="New Clients" value={extras ? String(extras.newClientsToday) : "…"} />
-          <MiniStat
-            label="Swap Fees Today"
-            value={`${totalToday < 0 ? "-" : ""}$${fmt(Math.abs(totalToday))}`}
-          />
-          <MiniStat label="Margin Calls Generated" value={extras ? String(extras.marginCallsToday) : "…"} />
-          <MiniStat label="Discount/Premium Tx" value={premium ? String(premium.txToday) : "…"} />
-          <MiniStat label="Purity Trips" value={extras ? String(extras.purityTripsToday) : "…"} />
+          {canSwap && <MiniStat label="New Clients" value={extras ? String(extras.newClientsToday) : "…"} />}
+          {canSwap && (
+            <MiniStat
+              label="Swap Fees Today"
+              value={`${totalToday < 0 ? "-" : ""}$${fmt(Math.abs(totalToday))}`}
+            />
+          )}
+          {canMargin && <MiniStat label="Margin Calls Generated" value={extras ? String(extras.marginCallsToday) : "…"} />}
+          {canPremium && <MiniStat label="Discount/Premium Tx" value={premium ? String(premium.txToday) : "…"} />}
+          {canPurity && <MiniStat label="Purity Trips" value={extras ? String(extras.purityTripsToday) : "…"} />}
         </div>
       </section>
 
@@ -1113,12 +1134,13 @@ function DashboardOverview({
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <h2 className="text-sm font-semibold mb-3">Gold Holdings</h2>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <MiniStat label="Client Gold" value={`${fmt(clientGrams, 0)} g`} />
-          <MiniStat label="Purity" value={`${fmt(purityGrams, 0)} g`} />
-          <MiniStat label="Discount / Premium" value={`${fmt(premiumGrams, 0)} g`} />
+          {canSwap && <MiniStat label="Client Gold" value={`${fmt(clientGrams, 0)} g`} />}
+          {canPurity && <MiniStat label="Purity" value={`${fmt(purityGrams, 0)} g`} />}
+          {canPremium && <MiniStat label="Discount / Premium" value={`${fmt(premiumGrams, 0)} g`} />}
           <MiniStat label="Total Managed" value={`${fmt(totalManagedGrams, 0)} g`} accent="primary" />
         </div>
       </section>
+
 
       {/* SECTION 7 — SYSTEM HEALTH */}
       <section className="rounded-xl border border-border/60 bg-card p-4">
