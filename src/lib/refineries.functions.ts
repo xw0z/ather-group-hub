@@ -817,28 +817,58 @@ export const getDashboard = createServerFn({ method: "POST" })
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString();
 
-    const [stockR, clientsR, todayTxR, negR, recentR] = await Promise.all([
+    const [stockR, clientsR, todayTxR, negR, recentR, priceR] = await Promise.all([
       supabaseAdmin.from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle(),
       supabaseAdmin.from("refinery_clients").select("id, purity_balance, da_balance").eq("refinery_id", data.refineryId),
       supabaseAdmin.from("refinery_transactions")
-        .select("direction, transaction_type, total_pure_weight, da_amount, status")
+        .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
         .eq("refinery_id", data.refineryId).gte("created_at", todayIso),
       supabaseAdmin.from("refinery_clients")
         .select("id, name, purity_balance, da_balance")
         .eq("refinery_id", data.refineryId)
         .or("purity_balance.lt.0,da_balance.lt.0")
-        .order("name").limit(50),
+        .order("name").limit(100),
       supabaseAdmin.from("refinery_transactions")
         .select("*, client:refinery_clients(name)")
         .eq("refinery_id", data.refineryId)
         .order("created_at", { ascending: false }).limit(10),
+      supabaseAdmin.from("refinery_price_log")
+        .select("gold_price, silver_price")
+        .eq("refinery_id", data.refineryId)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const clients = clientsR.data ?? [];
     const todayTx = todayTxR.data ?? [];
+
+    // Last activity per negative client (one extra query, scoped to those ids)
+    const negIds = (negR.data ?? []).map((c) => c.id);
+    const lastActivity: Record<string, string | null> = {};
+    if (negIds.length) {
+      const { data: acts } = await supabaseAdmin
+        .from("refinery_transactions")
+        .select("client_id, transaction_date")
+        .in("client_id", negIds)
+        .order("transaction_date", { ascending: false });
+      for (const a of (acts ?? []) as Array<{ client_id: string; transaction_date: string }>) {
+        if (!(a.client_id in lastActivity)) lastActivity[a.client_id] = a.transaction_date;
+      }
+    }
+
     const sum = (arr: typeof todayTx, dir: string, type: string, field: "total_pure_weight" | "da_amount") =>
       arr.filter((t) => t.direction === dir && t.transaction_type === type && t.status === "settled")
         .reduce((s, t) => s + Number(t[field] ?? 0), 0);
+    const sumBuySell = (kind: "buy" | "sell", field: "buysell_weight" | "buysell_total") =>
+      todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === kind)
+        .reduce((s, t) => s + Number(t[field] ?? 0), 0);
+
+    // Aggregate ALL client balances for equity (positive stored = refinery owes client)
+    let clientsOweGold = 0, refineryOwesGold = 0, clientsOweDa = 0, refineryOwesDa = 0;
+    for (const c of clients) {
+      const g = Number(c.purity_balance); const d = Number(c.da_balance);
+      if (g < 0) clientsOweGold += -g; else refineryOwesGold += g;
+      if (d < 0) clientsOweDa += -d; else refineryOwesDa += d;
+    }
 
     return {
       stock: stockR.data ?? { pure_gold_stock: 0, da_stock: 0, silver_stock: 0 },
@@ -850,13 +880,27 @@ export const getDashboard = createServerFn({ method: "POST" })
       todayDeliveredGold: sum(todayTx, "delivery", "gold", "total_pure_weight"),
       todayReceivedDa: sum(todayTx, "receiving", "da", "da_amount"),
       todayDeliveredDa: sum(todayTx, "delivery", "da", "da_amount"),
-      negativeClients: negR.data ?? [],
+      todayBuyCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "buy").length,
+      todaySellCount: todayTx.filter((t) => t.transaction_type === "buysell" && t.buysell_kind === "sell").length,
+      todayBuyWeight: sumBuySell("buy", "buysell_weight"),
+      todayBuyTotal: sumBuySell("buy", "buysell_total"),
+      todaySellWeight: sumBuySell("sell", "buysell_weight"),
+      todaySellTotal: sumBuySell("sell", "buysell_total"),
+      todayAdjustCount: todayTx.filter((t) => t.transaction_type === "stock_adjustment").length,
+      goldPrice: Number(priceR.data?.gold_price ?? 0),
+      silverPrice: Number(priceR.data?.silver_price ?? 0),
+      clientsOweGold, refineryOwesGold, clientsOweDa, refineryOwesDa,
+      negativeClients: (negR.data ?? []).map((c) => ({
+        ...c,
+        last_activity: lastActivity[c.id] ?? null,
+      })),
       recent: (recentR.data ?? []).map((r) => {
         const { client, ...rest } = r as typeof r & { client?: { name: string } };
         return { ...rest, client_name: client?.name ?? "" };
       }),
     };
   });
+
 
 // =========================================================
 // Profile

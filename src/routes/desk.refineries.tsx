@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
-  TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon,
+  TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon, X,
 } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export const Route = createFileRoute("/desk/refineries")({
     tab: typeof s.tab === "string" ? (s.tab as Tab) : ("dashboard" as Tab),
     action: s.action === "new" || s.action === "edit" ? (s.action as "new" | "edit") : undefined,
     txId: typeof s.txId === "string" ? s.txId : undefined,
+    filter: s.filter === "owing-gold" || s.filter === "owing-da" ? (s.filter as "owing-gold" | "owing-da") : undefined,
   }),
   component: RefineriesPage,
 });
@@ -356,6 +357,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   type Dash = Awaited<ReturnType<typeof getDashboard>>;
   const [data, setData] = useState<Dash | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -368,29 +370,138 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
   useEffect(() => { load(); }, [load]);
 
+  const goToClients = (filter?: "owing-gold" | "owing-da") =>
+    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", filter } });
+
   if (loading || !data) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  // ---- Equity calculation (mirrors NetPositionTab) ----
+  const goldPrice = Number(data.goldPrice || 0);
+  const silverPrice = Number(data.silverPrice || 0);
+  const canCompute = goldPrice > 0;
+  const silverStock = Number((data.stock as { silver_stock?: number }).silver_stock ?? 0);
+  const daCash = Number(data.stock.da_stock);
+  const goldStock = Number(data.stock.pure_gold_stock);
+  const silverEq = canCompute ? (silverStock * silverPrice) / goldPrice : 0;
+  const daCashEq = canCompute ? daCash / goldPrice : 0;
+  const clientsOweDaEq = canCompute ? data.clientsOweDa / goldPrice : 0;
+  const refineryOwesDaEq = canCompute ? data.refineryOwesDa / goldPrice : 0;
+  const totalAssets = goldStock + silverEq + daCashEq + data.clientsOweGold + clientsOweDaEq;
+  const totalLiabilities = data.refineryOwesGold + refineryOwesDaEq;
+  const refineryEquity = totalAssets - totalLiabilities;
+
+  // ---- Alerts ----
+  type Alert = { tone: "danger" | "warn"; text: string; onClick?: () => void };
+  const alerts: Alert[] = [];
+  if (data.clientsOweDa > daCash && daCash >= 0) {
+    alerts.push({
+      tone: "danger",
+      text: `Client DA exposure (${fmtDA(data.clientsOweDa)}) exceeds refinery DA stock (${fmtDA(daCash)}).`,
+      onClick: () => goToClients("owing-da"),
+    });
+  }
+  if (goldStock < 100) {
+    alerts.push({ tone: "warn", text: `Refinery gold stock below threshold (${fmtG(goldStock)}).`, onClick: () => onTab("stock") });
+  }
+  // Biggest gold-owing client alert
+  const biggestGold = [...data.negativeClients]
+    .map((c) => ({ ...c, owed: Number(c.purity_balance) < 0 ? -Number(c.purity_balance) : 0 }))
+    .filter((c) => c.owed > 0)
+    .sort((a, b) => b.owed - a.owed)[0];
+  if (biggestGold && biggestGold.owed >= 500) {
+    alerts.push({
+      tone: "danger",
+      text: `${biggestGold.name} owes ${fmtG(biggestGold.owed)}.`,
+      onClick: () => goToClients("owing-gold"),
+    });
+  }
+  if (!canCompute) {
+    alerts.push({ tone: "warn", text: "Net Position prices not set — equity unavailable.", onClick: () => onTab("netposition") });
+  }
+
+  // ---- Negative clients with exposure (sorted highest negative first) ----
+  const negRows = data.negativeClients.map((c) => {
+    const g = Number(c.purity_balance);
+    const d = Number(c.da_balance);
+    const exposureGold = (g < 0 ? -g : 0) + (canCompute && d < 0 ? -d / goldPrice : 0);
+    return { ...c, exposureGold };
+  }).sort((a, b) => b.exposureGold - a.exposureGold);
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="font-display text-2xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">{refinery.name} overview</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
+            <Plus className="h-4 w-4 mr-1" /> Buy Gold
+          </Button>
+          <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
+            <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onTab("stock")}>
+            <Plus className="h-4 w-4 mr-1" /> Stock Adjustment
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onTab("clients")}>
+            <Plus className="h-4 w-4 mr-1" /> Add Client
+          </Button>
+        </div>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={<Coins className="h-4 w-4" />} label="Pure Gold Stock" value={fmtG(Number(data.stock.pure_gold_stock))} />
-        <StatCard icon={<Coins className="h-4 w-4" />} label="Silver Stock" value={fmtG(Number((data.stock as { silver_stock?: number }).silver_stock ?? 0))} />
-        <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Stock" value={fmtDA(Number(data.stock.da_stock))} />
-        <StatCard label="Total clients" value={String(data.totalClients)} />
-        <StatCard label="Today's tx" value={String(data.todayCount)} />
-        <StatCard label="Negative purity" value={String(data.negativePurity)} tone={data.negativePurity > 0 ? "warn" : undefined} />
-        <StatCard label="Negative DA" value={String(data.negativeDa)} tone={data.negativeDa > 0 ? "warn" : undefined} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received gold today" value={fmtG(data.todayReceivedGold)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered gold today" value={fmtG(data.todayDeliveredGold)} />
-        <StatCard icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} label="Received DA today" value={fmtDA(data.todayReceivedDa)} />
-        <StatCard icon={<TrendingDown className="h-4 w-4 text-destructive" />} label="Delivered DA today" value={fmtDA(data.todayDeliveredDa)} />
+      {/* Top row: physical metrics + equity hero */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={<Coins className="h-4 w-4 text-amber-500" />} label="Pure Gold Stock" value={fmtG(goldStock)} valueClass="text-amber-500" />
+        <StatCard icon={<Coins className="h-4 w-4 text-slate-400" />} label="Silver Stock" value={fmtG(silverStock)} valueClass="text-slate-300" />
+        <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Cash Stock" value={fmtDA(daCash)} />
+        <EquityCard equity={refineryEquity} canCompute={canCompute} onClick={() => onTab("netposition")} />
       </div>
 
+      {/* Second row: clients, exposure, today summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Total Clients" value={String(data.totalClients)} onClick={() => onTab("clients")} />
+        <StatCard
+          label="Clients Owing Gold"
+          value={String(data.negativePurity)}
+          tone={data.negativePurity > 0 ? "warn" : undefined}
+          onClick={() => goToClients("owing-gold")}
+        />
+        <StatCard
+          label="Clients Owing DA"
+          value={String(data.negativeDa)}
+          tone={data.negativeDa > 0 ? "warn" : undefined}
+          onClick={() => goToClients("owing-da")}
+        />
+        <TodaysActivityCard data={data} />
+      </div>
+
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <section>
+          <h2 className="font-display text-lg flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-amber-500" /> Alerts
+          </h2>
+          <div className="space-y-2">
+            {alerts.map((a, i) => (
+              <button
+                key={i}
+                onClick={a.onClick}
+                className={`w-full text-left flex items-center gap-3 rounded-md border px-3 py-2 transition-colors ${
+                  a.tone === "danger"
+                    ? "border-destructive/40 bg-destructive/5 hover:bg-destructive/10"
+                    : "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10"
+                }`}
+              >
+                <StatusDot tone={a.tone === "danger" ? "negative" : "warn"} />
+                <span className="text-sm">{a.text}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Negative clients */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg flex items-center gap-2">
@@ -400,25 +511,37 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         </div>
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[760px]">
               <thead className="border-b border-border bg-muted/20">
-                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  <th className="p-3 w-8">Status</th>
                   <th className="p-3">Client</th>
-                  <th className="p-3 text-right">Purity</th>
-                  <th className="p-3 text-right">DA</th>
+                  <th className="p-3 text-right">Gold Balance</th>
+                  <th className="p-3 text-right">DA Balance</th>
+                  <th className="p-3 text-right">Exposure</th>
+                  <th className="p-3">Last Activity</th>
                 </tr>
               </thead>
               <tbody>
-                {data.negativeClients.length === 0 && (
-                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No negative balances</td></tr>
+                {negRows.length === 0 && (
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No negative balances</td></tr>
                 )}
-                {data.negativeClients.map((c) => (
-                  <tr key={c.id} className="border-b border-border last:border-0">
-                    <td className="p-3">{c.name}</td>
-                    <td className={`p-3 text-right tabular-nums ${balClass(Number(c.purity_balance))}`}>{signed(Number(c.purity_balance), fmtG)}</td>
-                    <td className={`p-3 text-right tabular-nums ${balClass(Number(c.da_balance))}`}>{signed(Number(c.da_balance), fmtDA)}</td>
-                  </tr>
-                ))}
+                {negRows.map((c) => {
+                  const g = Number(c.purity_balance);
+                  const d = Number(c.da_balance);
+                  return (
+                    <tr key={c.id} className="border-b border-border last:border-0">
+                      <td className="p-3"><StatusDot tone="negative" /></td>
+                      <td className="p-3 font-medium">{c.name}</td>
+                      <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
+                      <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
+                      <td className="p-3 text-right tabular-nums text-destructive">
+                        {canCompute ? `−${fmtG(c.exposureGold)}` : "—"}
+                      </td>
+                      <td className="p-3 text-muted-foreground">{c.last_activity ?? "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -431,26 +554,114 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
           <Button size="sm" variant="ghost" onClick={() => onTab("transactions")}>View all</Button>
         </div>
         <Card>
-          <RecentTxTable rows={data.recent} />
+          <RecentTxTable rows={data.recent} onOpen={() => onTab("transactions")} />
         </Card>
       </section>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, tone }: { icon?: React.ReactNode; label: string; value: string; tone?: "warn" }) {
+// Slowly pulsing colored dot
+function StatusDot({ tone }: { tone: "positive" | "negative" | "neutral" | "warn" }) {
+  const cls =
+    tone === "positive" ? "bg-emerald-500 shadow-[0_0_10px_2px_rgba(16,185,129,0.55)]"
+    : tone === "negative" ? "bg-destructive shadow-[0_0_10px_2px_rgba(239,68,68,0.55)]"
+    : tone === "warn" ? "bg-amber-500 shadow-[0_0_10px_2px_rgba(245,158,11,0.55)]"
+    : "bg-muted-foreground/60";
   return (
-    <Card className="p-4">
+    <span className="relative inline-flex items-center justify-center">
+      <span className={`inline-block h-2.5 w-2.5 rounded-full ${cls} animate-pulse`} />
+    </span>
+  );
+}
+
+function StatCard({
+  icon, label, value, tone, valueClass, onClick,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: "warn";
+  valueClass?: string;
+  onClick?: () => void;
+}) {
+  const interactive = onClick ? "cursor-pointer hover:border-ember/40 transition-colors" : "";
+  return (
+    <Card className={`p-4 ${interactive}`} onClick={onClick}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
         {icon}
       </div>
-      <p className={`text-xl font-semibold tabular-nums ${tone === "warn" ? "text-amber-500" : ""}`}>{value}</p>
+      <p className={`text-xl font-semibold tabular-nums ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
     </Card>
   );
 }
 
-function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_name?: string }> }) {
+function EquityCard({ equity, canCompute, onClick }: { equity: number; canCompute: boolean; onClick?: () => void }) {
+  const positive = equity > 0.0001;
+  const negative = equity < -0.0001;
+  const valueCls = positive ? "text-emerald-500" : negative ? "text-destructive" : "text-muted-foreground";
+  const borderCls = positive ? "border-emerald-500/40" : negative ? "border-destructive/40" : "border-amber-500/30";
+  return (
+    <Card
+      onClick={onClick}
+      className={`p-4 bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Refinery Equity</p>
+        <Coins className="h-4 w-4 text-amber-500" />
+      </div>
+      <p className={`text-2xl font-semibold tabular-nums ${valueCls}`}>
+        {canCompute ? signed(equity, fmtG) : "—"}
+      </p>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mt-1">
+        {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
+      </p>
+    </Card>
+  );
+}
+
+function TodaysActivityCard({ data }: {
+  data: { todayCount: number; todayBuyWeight: number; todaySellWeight: number; todayReceivedDa: number; todayDeliveredDa: number };
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Today's Activity</p>
+        <TrendingUp className="h-4 w-4 text-emerald-500" />
+      </div>
+      <p className="text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
+      <div className="text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
+        <div className="flex justify-between"><span>Gold bought</span><span className="text-emerald-500">{fmtG(data.todayBuyWeight)}</span></div>
+        <div className="flex justify-between"><span>Gold sold</span><span className="text-destructive">{fmtG(data.todaySellWeight)}</span></div>
+        <div className="flex justify-between"><span>DA received</span><span className="text-emerald-500">{fmtDA(data.todayReceivedDa)}</span></div>
+        <div className="flex justify-between"><span>DA delivered</span><span className="text-destructive">{fmtDA(data.todayDeliveredDa)}</span></div>
+      </div>
+    </Card>
+  );
+}
+
+function txTypeBadge(t: RefineryTransaction) {
+  const type = t.transaction_type;
+  if (type === "buysell") {
+    const buy = t.buysell_kind === "buy";
+    return buy
+      ? { label: "BUY", cls: "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" }
+      : { label: "SELL", cls: "bg-destructive/15 text-destructive border-destructive/30" };
+  }
+  if (type === "stock_adjustment") {
+    return { label: "ADJUSTMENT", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" };
+  }
+  if (type === "settlement") {
+    return { label: "SETTLEMENT", cls: "bg-sky-500/15 text-sky-400 border-sky-500/30" };
+  }
+  if (type === "gold") {
+    return { label: "GOLD", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" };
+  }
+  return { label: "DA", cls: "bg-muted text-muted-foreground border-border" };
+}
+
+function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { client_name?: string }>; onOpen?: () => void }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm min-w-[760px]">
@@ -459,7 +670,6 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
             <th className="p-3">Date</th>
             <th className="p-3">#</th>
             <th className="p-3">Client</th>
-            <th className="p-3">Dir</th>
             <th className="p-3">Type</th>
             <th className="p-3 text-right">Gold</th>
             <th className="p-3 text-right">DA</th>
@@ -467,29 +677,45 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
         </thead>
         <tbody>
           {rows.length === 0 && (
-            <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+            <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
           )}
-          {rows.map((t) => (
-            <tr key={t.id} className="border-b border-border last:border-0">
-              <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-              <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
-              <td className="p-3">
-                {t.client_name}
-                {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                  <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
-                )}
-              </td>
-              <td className="p-3 capitalize">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
-              <td className="p-3 uppercase">{t.transaction_type}</td>
-              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell") ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—"}</td>
-              <td className="p-3 text-right tabular-nums">{t.transaction_type === "buysell" ? fmtDA(Number(t.buysell_total ?? 0)) : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"))}</td>
-            </tr>
-          ))}
+          {rows.map((t) => {
+            const badge = txTypeBadge(t);
+            const goldVal = (t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell")
+              ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—";
+            const daVal = t.transaction_type === "buysell"
+              ? fmtDA(Number(t.buysell_total ?? 0))
+              : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")
+                  ? fmtDA(Number(t.da_amount))
+                  : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"));
+            return (
+              <tr
+                key={t.id}
+                onClick={onOpen}
+                className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
+              >
+                <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
+                <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
+                <td className="p-3">
+                  {t.client_name}
+                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  <Badge className={badge.cls}>{badge.label}</Badge>
+                </td>
+                <td className="p-3 text-right tabular-nums">{goldVal}</td>
+                <td className="p-3 text-right tabular-nums">{daVal}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
+
 
 
 
@@ -502,6 +728,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const [stmtClient, setStmtClient] = useState<RefineryClient | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const filter = search.filter;
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
   const canStatement = assignment.isAdmin || assignment.role === "manager";
@@ -525,19 +754,41 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   }, [refinery.id]);
   useEffect(() => { load(); }, [load]);
 
+  const filtered = clients.filter((c) => {
+    if (filter === "owing-gold") return Number(c.purity_balance) < 0;
+    if (filter === "owing-da") return Number(c.da_balance) < 0;
+    return true;
+  });
+  const filterLabel = filter === "owing-gold" ? "Clients owing gold" : filter === "owing-da" ? "Clients owing DA" : null;
+
+  const clearFilter = () =>
+    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">Clients</h1>
-          <p className="text-sm text-muted-foreground">{clients.length} client(s) in {refinery.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {filterLabel
+              ? `${filtered.length} of ${clients.length} client(s) · filtered: ${filterLabel}`
+              : `${clients.length} client(s) in ${refinery.name}`}
+          </p>
         </div>
-        {!readOnly && (
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-1" /> New client
-          </Button>
-        )}
+        <div className="flex gap-2 w-full sm:w-auto">
+          {filter && (
+            <Button variant="outline" size="sm" onClick={clearFilter}>
+              <X className="h-4 w-4 mr-1" /> Clear filter
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-1" /> New client
+            </Button>
+          )}
+        </div>
       </div>
+
 
       <Card>
         <div className="overflow-x-auto">
@@ -554,15 +805,25 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
             </thead>
             <tbody>
               {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
-              {!loading && clients.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet</td></tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
-              {clients.map((c) => (
+              {filtered.map((c) => {
+                const g = Number(c.purity_balance);
+                const d = Number(c.da_balance);
+                const tone: "negative" | "positive" | "neutral" =
+                  g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
+                return (
                 <tr key={c.id} className="border-b border-border last:border-0">
-                  <td className="p-3 font-medium">{c.name}</td>
+                  <td className="p-3 font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      <StatusDot tone={tone} />
+                      <span>{c.name}</span>
+                    </span>
+                  </td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(c.purity_balance))}`}>{signed(Number(c.purity_balance), fmtG)}</td>
-                  <td className={`p-3 text-right tabular-nums ${balClass(Number(c.da_balance))}`}>{signed(Number(c.da_balance), fmtDA)}</td>
+                  <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
+                  <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
                   
                   <td className="p-3 text-right">
@@ -591,7 +852,8 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
