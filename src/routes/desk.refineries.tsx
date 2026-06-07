@@ -169,37 +169,51 @@ function RefineriesPage() {
 // Refinery picker (admin only)
 // =============================================================
 function RefineryPicker({
-  refineries, isAdmin, onSignOut,
-}: { refineries: Refinery[]; isAdmin: boolean; onSignOut: () => void }) {
+  refineries, isAdmin, onSignOut, embedded, onPick,
+}: {
+  refineries: Refinery[];
+  isAdmin: boolean;
+  onSignOut: () => void;
+  embedded?: boolean;
+  onPick?: (refineryId: string) => void;
+}) {
   const navigate = useNavigate();
+  const pick = (id: string) => {
+    if (onPick) onPick(id);
+    else navigate({ to: "/desk/refineries", search: { r: id, tab: "dashboard" } });
+  };
+  const grid = (
+    <div className={embedded ? "" : "max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12"}>
+      <h1 className="font-display text-3xl mb-2">Refineries</h1>
+      <p className="text-sm text-muted-foreground mb-8">
+        Choose a refinery to manage its clients, transactions, and stock.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {refineries.map((r) => (
+          <Card
+            key={r.id}
+            className="p-6 cursor-pointer hover:border-ember/60 transition-colors"
+            onClick={() => pick(r.id)}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
+                <Scale className="h-5 w-5 text-ember" />
+              </div>
+              <div>
+                <p className="font-display text-lg tracking-wide">{r.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+  if (embedded) return grid;
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <h1 className="font-display text-3xl mb-2">Refineries</h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Choose a refinery to manage its clients, transactions, and stock.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {refineries.map((r) => (
-            <Card
-              key={r.id}
-              className="p-6 cursor-pointer hover:border-ember/60 transition-colors"
-              onClick={() => navigate({ to: "/desk/refineries", search: { r: r.id, tab: "dashboard" } })}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
-                  <Scale className="h-5 w-5 text-ember" />
-                </div>
-                <div>
-                  <p className="font-display text-lg tracking-wide">{r.name}</p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
-            </Card>
-          ))}
-        </div>
-      </div>
+      {grid}
     </main>
   );
 }
