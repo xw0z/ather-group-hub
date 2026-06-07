@@ -21,7 +21,7 @@ import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
-  getStock, listStockMovements, getDashboard, adjustStock,
+  getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   getMyRefineryProfile, updateMyRefineryProfile,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
@@ -1202,6 +1202,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [editing, setEditing] = useState<Movement | null>(null);
   const load = useCallback(async () => {
     try {
       const [s, m] = await Promise.all([
@@ -1245,11 +1246,12 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                 <th className="p-3 text-right">DA Δ</th>
                 <th className="p-3 text-right">Gold after</th>
                 <th className="p-3 text-right">DA after</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {moves.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No movements</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No movements</td></tr>
               )}
               {moves.map((m) => (
                 <tr key={m.id} className="border-b border-border last:border-0">
@@ -1261,6 +1263,30 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                   <td className={`p-3 text-right tabular-nums ${balClass(Number(m.da_change))}`}>{Number(m.da_change) !== 0 ? signed(Number(m.da_change), fmtDA) : "—"}</td>
                   <td className="p-3 text-right tabular-nums">{fmtG(Number(m.gold_stock_after))}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(m.da_stock_after))}</td>
+                  <td className="p-3 text-right">
+                    {m.movement_type === "adjustment" ? (
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setEditing(m)} title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Delete"
+                          onClick={async () => {
+                            if (!confirm("Delete this stock adjustment? Stock will be reverted.")) return;
+                            try {
+                              await deleteStockAdjustment({ data: { movementId: m.id } });
+                              toast.success("Adjustment deleted");
+                              load();
+                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1276,14 +1302,25 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           onSaved={() => { setAdjustOpen(false); load(); }}
         />
       )}
+      {editing && (
+        <AdjustStockDialog
+          refineryId={refinery.id}
+          currentGold={Number(editing.gold_stock_after)}
+          currentDa={Number(editing.da_stock_after)}
+          editMovementId={editing.id}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
+        />
+      )}
     </div>
   );
 }
 
 function AdjustStockDialog({
-  refineryId, currentGold, currentDa, onClose, onSaved,
+  refineryId, currentGold, currentDa, editMovementId, onClose, onSaved,
 }: {
   refineryId: string; currentGold: number; currentDa: number;
+  editMovementId?: string;
   onClose: () => void; onSaved: () => void;
 }) {
   const [gold, setGold] = useState(String(currentGold));
@@ -1299,8 +1336,13 @@ function AdjustStockDialog({
     }
     setSaving(true);
     try {
-      await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
-      toast.success("Stock adjusted");
+      if (editMovementId) {
+        await updateStockAdjustment({ data: { movementId: editMovementId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+        toast.success("Adjustment updated");
+      } else {
+        await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+        toast.success("Stock adjusted");
+      }
       onSaved();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSaving(false); }
@@ -1308,7 +1350,7 @@ function AdjustStockDialog({
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>Adjust stock</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editMovementId ? "Edit adjustment" : "Adjust stock"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <p className="text-xs text-muted-foreground">
             Set the absolute stock values. A movement record will be created for the difference.
