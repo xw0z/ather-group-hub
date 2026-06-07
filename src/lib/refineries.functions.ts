@@ -1097,7 +1097,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     // Transactions in window (settled)
     const { data: txs, error: tErr } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance, settlement_kind, settlement_role, settlement_amount, settlement_apply_fee, counterparty_client_id")
+      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance, settlement_kind, settlement_role, settlement_amount, settlement_apply_fee, counterparty_client_id, buysell_kind, buysell_metal, buysell_settlement, buysell_weight, buysell_total")
       .eq("client_id", data.clientId)
       .eq("status", "settled")
       .neq("transaction_type", "stock_adjustment")
