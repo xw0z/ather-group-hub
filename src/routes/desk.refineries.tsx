@@ -290,7 +290,7 @@ function RefineryShell({
           </Button>
         )}
         <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {TABS.map((t) => (
+          {TABS.filter((t) => !t.adminOnly || assignment.isAdmin).map((t) => (
             <button
               key={t.id}
               onClick={() => onTab(t.id)}
