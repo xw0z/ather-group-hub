@@ -1022,7 +1022,7 @@ function TransactionReceiptDialog({
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
         <DialogHeader><DialogTitle>Transaction receipt</DialogTitle></DialogHeader>
         {!tx ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
