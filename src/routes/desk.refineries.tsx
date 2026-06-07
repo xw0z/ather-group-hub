@@ -1052,16 +1052,16 @@ function ClientDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{editing ? "Purity balance (g)" : "Initial purity balance (g)"}</Label>
-              <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>{editing ? "DA balance" : "Initial DA balance"}</Label>
-              <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Refining fee price (DA/g)</Label>
-            <Input type="number" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
+            <Input type="number" inputMode="decimal" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -1540,7 +1540,7 @@ function TransactionFormPage({
           {type === "da" && (
             <div className="space-y-2">
               <Label>DA amount *</Label>
-              <Input type="number" step="any" min="0" value={daAmount} onChange={(e) => setDaAmount(e.target.value)} required />
+              <Input type="number" inputMode="decimal" step="any" min="0" value={daAmount} onChange={(e) => setDaAmount(e.target.value)} required />
             </div>
           )}
 
@@ -2038,13 +2038,37 @@ function TransactionReceiptDialog({
         <DialogHeader><DialogTitle>{tx?.transaction_type === "settlement" ? "Settlement Receipt" : "Transaction Receipt"}</DialogTitle></DialogHeader>
         {!tx || (tx.transaction_type === "settlement" && !settlement) ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
-              <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
+            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+              <div
+                className="mx-auto origin-top-left sm:origin-top"
+                style={{
+                  width: 794,
+                  transform: "scale(var(--receipt-scale, 0.78))",
+                  transformOrigin: "top left",
+                  height: `calc(var(--receipt-h, 1123px) * var(--receipt-scale, 0.78))`,
+                }}
+                ref={(el) => {
+                  if (!el) return;
+                  const parent = el.parentElement;
+                  if (!parent) return;
+                  const apply = () => {
+                    const w = parent.clientWidth;
+                    const s = Math.min(1, Math.max(0.35, w / 794));
+                    el.style.setProperty("--receipt-scale", String(s));
+                    el.style.setProperty("--receipt-h", `${el.firstElementChild ? (el.firstElementChild as HTMLElement).offsetHeight : 1123}px`);
+                  };
+                  apply();
+                  const ro = new ResizeObserver(apply);
+                  ro.observe(parent);
+                  (el as unknown as { __ro?: ResizeObserver }).__ro = ro;
+                }}
+              >
                 {isSettlement && settlement
                   ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
                   : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />}
               </div>
             </div>
+
             <DialogFooter className="gap-2 flex-col sm:flex-row">
               <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />} Download PDF
@@ -2384,7 +2408,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
-            <p className="font-display text-5xl tabular-nums text-amber-500 mt-1">
+            <p className="font-display text-3xl sm:text-4xl md:text-5xl tabular-nums text-amber-500 mt-1 break-all">
               {fmtG(stock.pure_gold_stock)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
@@ -2405,7 +2429,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
-                <p className={`font-display text-5xl tabular-nums mt-1 ${signClass(netPhysical)}`}>
+                <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums mt-1 break-all ${signClass(netPhysical)}`}>
                   {signed(netPhysical, fmtG)}
                 </p>
                 <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
@@ -2446,7 +2470,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <p className={`font-display text-5xl tabular-nums ${signClass(refineryEquity)}`}>
+            <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums break-all ${signClass(refineryEquity)}`}>
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
@@ -2502,18 +2526,19 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {/* Price inputs */}
       <Card className="p-4">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs <span className="text-xs font-normal text-muted-foreground">(for DA / silver display only)</span></h3>
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
+        <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+          <div className="w-full sm:w-auto">
             <Label className="text-xs">Gold Price (DA / g)</Label>
-            <Input type="number" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-[180px]" />
+            <Input type="number" inputMode="decimal" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <Label className="text-xs">Silver Price (DA / g)</Label>
-            <Input type="number" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-[180px]" />
+            <Input type="number" inputMode="decimal" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
-          <Button onClick={onSavePrices} disabled={saving}>
+          <Button onClick={onSavePrices} disabled={saving} className="w-full sm:w-auto">
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Prices
           </Button>
+
           {savedBy.at && (
             <p className="text-xs text-muted-foreground">
               Last saved by <span className="font-medium">{savedBy.name ?? "—"}</span> on {new Date(savedBy.at).toLocaleString()}
@@ -2814,7 +2839,7 @@ function NewStockAdjustmentDialog({
           </div>
           <div className="space-y-2">
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
-            <Input type="number" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+            <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
               Current: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
             </p>
@@ -4073,15 +4098,15 @@ function BuySellDialog({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>Weight (g)</Label>
-              <Input type="number" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
             </div>
             <div>
               <Label>Purity (‰)</Label>
-              <Input type="number" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div>
               <Label>Price / g (DA)</Label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
           </div>
           <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between">
@@ -4881,7 +4906,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
             <div>
               <Label className="text-xs uppercase">Keep Last N Backups</Label>
               <Input
-                type="number" min={1} max={500}
+                type="number" inputMode="decimal" min={1} max={500}
                 value={settings.keep_last}
                 onChange={(e) => setSettings({ ...settings, keep_last: Math.max(1, Math.min(500, Number(e.target.value) || 30)) })}
                 className="mt-2"
