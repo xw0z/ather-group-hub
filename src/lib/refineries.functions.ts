@@ -1002,6 +1002,8 @@ export type StatementRowType =
   | "da_received"
   | "da_paid"
   | "settlement"
+  | "buy_metal"
+  | "sell_metal"
   | "adjustment"
   | "reversal";
 
@@ -1012,6 +1014,7 @@ export type StatementRow = {
   type: StatementRowType;
   description: string;
   client_name: string | null;
+  metal?: "gold" | "silver" | null;
   gold_debit: number;
   gold_credit: number;
   da_debit: number;
