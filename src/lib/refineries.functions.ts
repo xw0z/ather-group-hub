@@ -1164,7 +1164,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     const [{ data: ref, error: rErr }, { data: cli, error: cErr }] = await Promise.all([
       supabaseAdmin.from("refineries").select("id, name").eq("id", data.refineryId).single(),
-      supabaseAdmin.from("refinery_clients").select("id, name, phone, refinery_id")
+      supabaseAdmin.from("refinery_clients").select("id, name, code, phone, refinery_id")
         .eq("id", data.clientId).single(),
     ]);
     if (rErr) throw new Error(rErr.message);
