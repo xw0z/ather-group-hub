@@ -180,8 +180,8 @@ function StatementPage({
       <div style={{ marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
         <div>
           <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.client")}</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: INK, marginTop: 4, letterSpacing: -0.3 }}>
-            {data.client.name}
+          <div style={{ fontSize: 22, fontWeight: 900, color: INK, marginTop: 4, letterSpacing: -0.3, fontFamily: MONO }}>
+            {data.client.code ?? "—"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>

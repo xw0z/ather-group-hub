@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
+  suggestClientCode, checkClientCode,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
@@ -823,21 +824,22 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[760px]">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Client</th>
+                <th className="p-3">Code</th>
+                <th className="p-3">Client Name</th>
                 <th className="p-3">Phone</th>
-                <th className="p-3 text-right">Purity</th>
-                <th className="p-3 text-right">DA</th>
+                <th className="p-3 text-right">Pure Gold</th>
+                <th className="p-3 text-right">Dinar</th>
                 <th className="p-3 text-right">Fee/g</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
@@ -850,12 +852,13 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
                 >
-                  <td className="p-3 font-medium">
+                  <td className="p-3 font-mono text-xs tracking-wider">
                     <span className="inline-flex items-center gap-2">
                       <StatusDot tone={tone} />
-                      <span>{c.name}</span>
+                      <span className="font-semibold">{c.code ?? "—"}</span>
                     </span>
                   </td>
+                  <td className="p-3 font-medium">{c.name}</td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
@@ -918,23 +921,72 @@ function ClientDialog({
   refineryId, editing, onClose, onSaved,
 }: { refineryId: string; editing: RefineryClient | null; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
+  const [code, setCode] = useState(editing?.code ?? "");
   const [phone, setPhone] = useState(editing?.phone ?? "");
   const [purity, setPurity] = useState(String(editing?.purity_balance ?? 0));
   const [da, setDa] = useState(String(editing?.da_balance ?? 0));
   const [fee, setFee] = useState(String(editing?.refining_fee_price ?? 0));
   const [notes, setNotes] = useState(editing?.notes ?? "");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeWarn, setCodeWarn] = useState<string | null>(null);
   // Status field removed from the Refineries module; default all clients to "active" for backend compatibility.
   const status: "active" = "active";
   const [saving, setSaving] = useState(false);
 
+  const codeFormatOk = (v: string) => /^[A-Z]{2}\d{4}$/.test(v);
+
+  // Auto-suggest a code when name is set and code is empty (new client only)
+  const onNameBlur = async () => {
+    if (editing || code.trim()) return;
+    if (!name.trim()) return;
+    try {
+      const r = await suggestClientCode({ data: { name: name.trim() } });
+      setCode(r.code);
+      setCodeError(null);
+      setCodeWarn(null);
+    } catch { /* silent */ }
+  };
+
+  // Validate manually-entered code
+  const onCodeBlur = async () => {
+    const v = code.trim().toUpperCase();
+    setCodeError(null);
+    setCodeWarn(null);
+    if (!v) return;
+    if (!codeFormatOk(v)) {
+      setCodeError("Format must be 2 capital letters + 4 digits (e.g. AM4821).");
+      return;
+    }
+    setCode(v);
+    try {
+      const r = await checkClientCode({
+        data: { code: v, excludeClientId: editing?.id ?? null },
+      });
+      if (r.duplicate) {
+        setCodeError(`This code is already used${r.duplicateOf ? ` by ${r.duplicateOf}` : ""}.`);
+      } else if (r.prefixCollision) {
+        const sample = r.prefixOthers.slice(0, 2).map((o) => `${o.code} (${o.name})`).join(", ");
+        setCodeWarn(`Prefix “${v.slice(0, 2)}” is also used by: ${sample}${r.prefixOthers.length > 2 ? "…" : ""}.`);
+      }
+    } catch { /* silent */ }
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("Name is required"); return; }
+    const trimmedCode = code.trim().toUpperCase();
+    if (trimmedCode && !codeFormatOk(trimmedCode)) {
+      toast.error("Code must be 2 capital letters + 4 digits (e.g. AM4821).");
+      return;
+    }
+    if (codeError) { toast.error(codeError); return; }
     setSaving(true);
     try {
       if (editing) {
         await updateClient({ data: {
-          id: editing.id, name: name.trim(), phone: phone || null,
+          id: editing.id, name: name.trim(),
+          code: trimmedCode || null,
+          phone: phone || null,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
         const newPurity = Number(purity) || 0;
@@ -945,7 +997,9 @@ function ClientDialog({
         toast.success("Client updated");
       } else {
         await createClient({ data: {
-          refinery_id: refineryId, name: name.trim(), phone: phone || null,
+          refinery_id: refineryId, name: name.trim(),
+          code: trimmedCode || null,
+          phone: phone || null,
           purity_balance: Number(purity) || 0, da_balance: Number(da) || 0,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
@@ -963,7 +1017,23 @@ function ClientDialog({
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={onNameBlur} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Client Code</Label>
+            <Input
+              value={code}
+              onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(null); setCodeWarn(null); }}
+              onBlur={onCodeBlur}
+              placeholder="Auto-generated (e.g. AM4821)"
+              maxLength={6}
+              className="font-mono tracking-wider"
+            />
+            {codeError && <p className="text-xs text-destructive">{codeError}</p>}
+            {!codeError && codeWarn && <p className="text-xs text-amber-500">{codeWarn}</p>}
+            {!codeError && !codeWarn && (
+              <p className="text-xs text-muted-foreground">2 capital letters + 4 digits. Leave blank to auto-generate from the client name.</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Phone</Label>
@@ -989,7 +1059,7 @@ function ClientDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+            <Button type="submit" disabled={saving || !!codeError}>{saving ? "Saving…" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -2810,7 +2880,7 @@ function AccountStatementDialog({
     if (open) { setStatement(null); loadHistory(); }
   }, [open, loadHistory]);
 
-  const fileBase = `${client.name.replace(/\s+/g, "_")}_Statement`;
+  const fileBase = `${(client.code ?? client.name).replace(/\s+/g, "_")}_Statement`;
 
   const preview = async () => {
     if (from > to) { toast.error("Start date must be before end date"); return; }
@@ -2889,7 +2959,7 @@ function AccountStatementDialog({
         };
         if (nav.share && nav.canShare?.({ files: [file] })) {
           try {
-            await nav.share({ files: [file], title: filename, text: `${client.name} — ${refinery.name} statement` });
+            await nav.share({ files: [file], title: filename, text: `${client.code ?? client.name} — ${refinery.name} statement` });
             didShare = true;
           } catch (err) {
             const name = (err as { name?: string } | null)?.name;
@@ -2928,7 +2998,7 @@ function AccountStatementDialog({
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display tracking-wide">
-            Account Statement — {client.name}
+            Account Statement — <span className="font-mono">{client.code ?? client.name}</span>
           </DialogTitle>
           <p className="text-xs text-muted-foreground">{refinery.name}{client.phone ? ` · ${client.phone}` : ""}</p>
         </DialogHeader>

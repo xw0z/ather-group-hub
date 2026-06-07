@@ -29,6 +29,7 @@ export type RefineryClient = {
   id: string;
   refinery_id: string;
   name: string;
+  code: string | null;
   phone: string | null;
   purity_balance: number;
   da_balance: number;
@@ -49,6 +50,7 @@ export type RefineryTransaction = {
   refinery_id: string;
   client_id: string;
   client_name?: string;
+  client_code?: string | null;
   client_phone?: string | null;
   transaction_number: string;
   direction: RefineryDirection;
@@ -81,6 +83,7 @@ export type RefineryTransaction = {
   settlement_role?: string | null;
   counterparty_client_id?: string | null;
   counterparty_client_name?: string | null;
+  counterparty_client_code?: string | null;
   settlement_apply_fee?: boolean | null;
   settlement_amount?: number | null;
   // Buy/Sell-only fields
@@ -150,9 +153,16 @@ export const listRefineries = createServerFn({ method: "GET" })
 // =========================================================
 // Clients
 // =========================================================
+const codeSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2}\d{4}$/, "Code must be 2 letters + 4 digits (e.g. AM4821)")
+  .transform((s) => s.toUpperCase());
+
 const clientCreate = z.object({
   refinery_id: z.string().uuid(),
   name: z.string().trim().min(1).max(200),
+  code: codeSchema.optional().nullable(),
   phone: z.string().trim().max(64).optional().nullable(),
   purity_balance: z.number().default(0),
   da_balance: z.number().default(0),
@@ -191,9 +201,15 @@ export const createClient = createServerFn({ method: "POST" })
   .inputValidator((d) => clientCreate.parse(d))
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refinery_id);
+    const payload = { ...data, code: data.code ?? null };
     const { data: row, error } = await supabaseAdmin
-      .from("refinery_clients").insert(data).select("*").single();
-    if (error) throw new Error(error.message);
+      .from("refinery_clients").insert(payload).select("*").single();
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        throw new Error("This client code is already used by another client.");
+      }
+      throw new Error(error.message);
+    }
     return row as RefineryClient;
   });
 
@@ -203,6 +219,7 @@ export const updateClient = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       name: z.string().trim().min(1).max(200).optional(),
+      code: codeSchema.optional().nullable(),
       phone: z.string().trim().max(64).optional().nullable(),
       refining_fee_price: z.number().min(0).optional(),
       notes: z.string().max(2000).optional().nullable(),
@@ -217,7 +234,12 @@ export const updateClient = createServerFn({ method: "POST" })
     const { id, ...patch } = data;
     const { data: row, error } = await supabaseAdmin
       .from("refinery_clients").update(patch).eq("id", id).select("*").single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        throw new Error("This client code is already used by another client.");
+      }
+      throw new Error(error.message);
+    }
     return row as RefineryClient;
   });
 
@@ -239,6 +261,53 @@ export const deleteClient = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("refinery_clients").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** Suggest a unique client code from a name (server-generated, format AA1234). */
+export const suggestClientCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ name: z.string().trim().min(1).max(200) }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: code, error } = await supabaseAdmin
+      .rpc("refinery_generate_client_code", { _name: data.name });
+    if (error) throw new Error(error.message);
+    return { code: code as string };
+  });
+
+/** Validate a manually entered client code: uniqueness + prefix collision warning. */
+export const checkClientCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      code: codeSchema,
+      excludeClientId: z.string().uuid().optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const prefix = data.code.slice(0, 2);
+    const exclude = data.excludeClientId ?? null;
+    const [{ data: dup }, { data: prefixHits }] = await Promise.all([
+      supabaseAdmin
+        .from("refinery_clients")
+        .select("id, name")
+        .eq("code", data.code)
+        .limit(2),
+      supabaseAdmin
+        .from("refinery_clients")
+        .select("id, name, code")
+        .ilike("code", `${prefix}%`)
+        .limit(20),
+    ]);
+    const duplicates = (dup ?? []).filter((c) => c.id !== exclude);
+    const prefixOthers = (prefixHits ?? []).filter(
+      (c) => c.id !== exclude && c.code !== data.code,
+    );
+    return {
+      duplicate: duplicates.length > 0,
+      duplicateOf: duplicates[0]?.name ?? null,
+      prefixCollision: prefixOthers.length > 0,
+      prefixOthers: prefixOthers.map((c) => ({ name: c.name, code: c.code as string })),
+    };
   });
 
 // =========================================================
@@ -282,20 +351,22 @@ export const listTransactions = createServerFn({ method: "POST" })
     await assertAccess(context.userId, data.refineryId);
     const { data: rows, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map((r) => {
       const { client, counterparty, ...rest } = r as typeof r & {
-        client?: { name: string; phone: string | null };
-        counterparty?: { name: string } | null;
+        client?: { name: string; code: string | null; phone: string | null };
+        counterparty?: { name: string; code: string | null } | null;
       };
       return {
         ...rest,
         client_name: client?.name ?? "",
+        client_code: client?.code ?? null,
         client_phone: client?.phone ?? null,
         counterparty_client_name: counterparty?.name ?? null,
+        counterparty_client_code: counterparty?.code ?? null,
       } as RefineryTransaction;
     });
   });
@@ -306,7 +377,7 @@ export const getTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: tx, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code, phone), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
       .eq("id", data.id).single();
     if (error) throw new Error(error.message);
     await assertAccess(context.userId, (tx as { refinery_id: string }).refinery_id);
@@ -314,8 +385,8 @@ export const getTransaction = createServerFn({ method: "POST" })
       .from("refinery_transaction_gold_bars")
       .select("*").eq("transaction_id", data.id).order("created_at");
     const { client, counterparty, ...rest } = tx as typeof tx & {
-      client?: { name: string; phone: string | null };
-      counterparty?: { name: string } | null;
+      client?: { name: string; code: string | null; phone: string | null };
+      counterparty?: { name: string; code: string | null } | null;
     };
     let created_by_name: string | null = null;
     const createdBy = (rest as { created_by?: string | null }).created_by;
@@ -327,12 +398,15 @@ export const getTransaction = createServerFn({ method: "POST" })
     return {
       ...rest,
       client_name: client?.name ?? "",
+      client_code: client?.code ?? null,
       client_phone: client?.phone ?? null,
       counterparty_client_name: counterparty?.name ?? null,
+      counterparty_client_code: counterparty?.code ?? null,
       created_by_name,
       bars: (bars ?? []) as RefineryGoldBar[],
     } as RefineryTransaction;
   });
+
 
 export const createTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -571,6 +645,7 @@ export type SettlementPair = {
   from: {
     client_id: string;
     client_name: string;
+    client_code: string | null;
     transaction_number: string;
     previous_purity: number; new_purity: number;
     previous_da: number; new_da: number;
@@ -578,6 +653,7 @@ export type SettlementPair = {
   to: {
     client_id: string;
     client_name: string;
+    client_code: string | null;
     transaction_number: string;
     previous_purity: number; new_purity: number;
     previous_da: number; new_da: number;
@@ -591,7 +667,7 @@ export const getSettlement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<SettlementPair> => {
     const { data: rows, error } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name)")
+      .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code)")
       .eq("settlement_group_id", data.group_id)
       .order("settlement_role", { ascending: true }); // 'from' before 'to'
     if (error) throw new Error(error.message);
@@ -599,8 +675,8 @@ export const getSettlement = createServerFn({ method: "POST" })
     const first = rows[0] as { refinery_id: string };
     await assertAccess(context.userId, first.refinery_id);
 
-    const fromRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "from") as typeof rows[0] & { client?: { name: string } };
-    const toRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "to") as typeof rows[0] & { client?: { name: string } };
+    const fromRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "from") as typeof rows[0] & { client?: { name: string; code: string | null } };
+    const toRow = rows.find((r) => (r as { settlement_role?: string }).settlement_role === "to") as typeof rows[0] & { client?: { name: string; code: string | null } };
     if (!fromRow || !toRow) throw new Error("Incomplete settlement");
 
     let created_by_name: string | null = null;
@@ -637,6 +713,7 @@ export const getSettlement = createServerFn({ method: "POST" })
       from: {
         client_id: (fromRow as { client_id: string }).client_id,
         client_name: fromRow.client?.name ?? "",
+        client_code: fromRow.client?.code ?? null,
         transaction_number: (fromRow as { transaction_number: string }).transaction_number,
         previous_purity: Number((fromRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
         new_purity: Number((fromRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
@@ -646,6 +723,7 @@ export const getSettlement = createServerFn({ method: "POST" })
       to: {
         client_id: (toRow as { client_id: string }).client_id,
         client_name: toRow.client?.name ?? "",
+        client_code: toRow.client?.code ?? null,
         transaction_number: (toRow as { transaction_number: string }).transaction_number,
         previous_purity: Number((toRow as { previous_purity_balance?: number }).previous_purity_balance ?? 0),
         new_purity: Number((toRow as { new_purity_balance?: number }).new_purity_balance ?? 0),
@@ -1053,7 +1131,7 @@ export type StatementRow = {
 
 export type AccountStatement = {
   refinery: { id: string; name: string };
-  client: { id: string; name: string; phone: string | null };
+  client: { id: string; name: string; code: string | null; phone: string | null };
   range: { from: string; to: string };
   statement_number: string;
   generated_at: string;
@@ -1090,7 +1168,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     const [{ data: ref, error: rErr }, { data: cli, error: cErr }] = await Promise.all([
       supabaseAdmin.from("refineries").select("id, name").eq("id", data.refineryId).single(),
-      supabaseAdmin.from("refinery_clients").select("id, name, phone, refinery_id")
+      supabaseAdmin.from("refinery_clients").select("id, name, code, phone, refinery_id")
         .eq("id", data.clientId).single(),
     ]);
     if (rErr) throw new Error(rErr.message);
@@ -1135,9 +1213,12 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     const counterMap = new Map<string, string>();
     if (counterIds.length > 0) {
       const { data: others } = await supabaseAdmin
-        .from("refinery_clients").select("id, name").in("id", counterIds);
-      for (const o of others ?? []) counterMap.set(o.id, o.name);
+        .from("refinery_clients").select("id, name, code").in("id", counterIds);
+      for (const o of others ?? []) counterMap.set(o.id, (o as { code?: string | null }).code ?? o.name);
     }
+
+    // For privacy, statements identify clients by code, not by name.
+    const cliLabel = (cli as { code?: string | null }).code ?? cli.name;
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
@@ -1172,7 +1253,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "settlement",
           description: descPrefix,
-          client_name: cli.name,
+          client_name: cliLabel,
           gold_debit: goldDebit, gold_credit: goldCredit,
           da_debit: daDebit, da_credit: daCredit,
           running_gold: runGold, running_da: runDa,
@@ -1191,8 +1272,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         rows.push({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "gold_received",
-          description: `Gold Received — ${cli.name}`,
-          client_name: cli.name,
+          description: `Gold Received — ${cliLabel}`,
+          client_name: cliLabel,
           gold_debit: 0, gold_credit: gold,
           da_debit: 0, da_credit: 0,
           running_gold: runGold, running_da: runDa,
@@ -1206,8 +1287,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           rows.push({
             date: dateStr, created_at: String(tx.settled_at),
             reference: refn, type: "refining_fee",
-            description: `Refining Fee — ${cli.name}`,
-            client_name: cli.name,
+            description: `Refining Fee — ${cliLabel}`,
+            client_name: cliLabel,
             gold_debit: 0, gold_credit: 0,
             da_debit: fee, da_credit: 0,
             running_gold: runGold, running_da: runDa,
@@ -1221,8 +1302,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         rows.push({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "gold_delivered",
-          description: `Gold Delivered — ${cli.name}`,
-          client_name: cli.name,
+          description: `Gold Delivered — ${cliLabel}`,
+          client_name: cliLabel,
           gold_debit: gold, gold_credit: 0,
           da_debit: 0, da_credit: 0,
           running_gold: runGold, running_da: runDa,
@@ -1233,8 +1314,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         rows.push({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "da_received",
-          description: `DA Payment Received — ${cli.name}`,
-          client_name: cli.name,
+          description: `DA Payment Received — ${cliLabel}`,
+          client_name: cliLabel,
           gold_debit: 0, gold_credit: 0,
           da_debit: 0, da_credit: da,
           running_gold: runGold, running_da: runDa,
@@ -1245,8 +1326,8 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         rows.push({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "da_paid",
-          description: `DA Payment Paid — ${cli.name}`,
-          client_name: cli.name,
+          description: `DA Payment Paid — ${cliLabel}`,
+          client_name: cliLabel,
           gold_debit: 0, gold_credit: 0,
           da_debit: da, da_credit: 0,
           running_gold: runGold, running_da: runDa,
@@ -1266,7 +1347,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           reference: refn,
           type: isBuy ? "buy_metal" : "sell_metal",
           description: `${isBuy ? "Bought" : "Sold"} ${metal === "gold" ? "Gold" : "Silver"} — ${weight.toFixed(2)} g`,
-          client_name: cli.name,
+          client_name: cliLabel,
           metal,
           gold_debit: 0, gold_credit: 0,
           da_debit: daDebit, da_credit: daCredit,
@@ -1292,7 +1373,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     return {
       refinery: { id: ref.id, name: ref.name },
-      client: { id: cli.id, name: cli.name, phone: cli.phone ?? null },
+      client: { id: cli.id, name: cli.name, code: (cli as { code?: string | null }).code ?? null, phone: cli.phone ?? null },
       range: { from: data.from, to: data.to },
       statement_number: stmtNum,
       generated_at: new Date().toISOString(),
