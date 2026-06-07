@@ -271,6 +271,44 @@ export type Database = {
           },
         ]
       }
+      refinery_price_log: {
+        Row: {
+          created_at: string
+          gold_price: number
+          id: string
+          refinery_id: string
+          set_by: string | null
+          set_by_username: string | null
+          silver_price: number
+        }
+        Insert: {
+          created_at?: string
+          gold_price: number
+          id?: string
+          refinery_id: string
+          set_by?: string | null
+          set_by_username?: string | null
+          silver_price: number
+        }
+        Update: {
+          created_at?: string
+          gold_price?: number
+          id?: string
+          refinery_id?: string
+          set_by?: string | null
+          set_by_username?: string | null
+          silver_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_price_log_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refinery_report_history: {
         Row: {
           channel: string
