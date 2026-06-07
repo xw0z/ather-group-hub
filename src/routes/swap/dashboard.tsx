@@ -22,6 +22,7 @@ import {
   Settings as SettingsIcon,
   Menu,
   Scale,
+  Factory,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ import { PremiumPanel } from "@/components/swap/PremiumPanel";
 import { BackupButton } from "@/components/BackupButton";
 import { RestoreButton } from "@/components/RestoreButton";
 import { PurityDashboard } from "@/routes/purity/dashboard";
+import { getMyRefineryAssignment, type RefineryAssignment } from "@/lib/refineries.functions";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
@@ -80,6 +82,7 @@ const TAB_VALUES = [
   "users",
   "settings",
   "profile",
+  "refineries",
 ] as const;
 type Tab = (typeof TAB_VALUES)[number];
 
@@ -96,6 +99,7 @@ export const TAB_TO_DESK_PATH: Record<Tab, string> = {
   users: "/desk/app/users",
   settings: "/desk/app/settings",
   profile: "/desk/app/profile",
+  refineries: "/desk/refineries",
 };
 
 // Legacy /swap/dashboard?tab=... → redirect to the new /desk/app/* URL.
@@ -425,6 +429,7 @@ type NavItem = {
   module?: AppModule; // when set, requires `view` permission on this module
   adminOnly?: boolean;
   external?: string; // external link (e.g. /purity/dashboard)
+  refineryGated?: boolean; // visible when admin OR user has a refinery assignment
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -434,6 +439,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "swap-fees", label: "nav.swapFees", icon: DollarSign, module: "swap" },
   { key: "margin", label: "nav.margin", icon: ShieldCheck, module: "margin" },
   { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
+  { key: "refineries", label: "Refineries", icon: Factory, refineryGated: true },
   { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
   { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
   { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
@@ -477,12 +483,28 @@ export function SwapDashboard({
   const [livePrice, setLivePrice] = useState<LiveXau | null>(null);
   const [livePriceLoading, setLivePriceLoading] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [refineryAssignment, setRefineryAssignment] = useState<RefineryAssignment | null>(null);
   const { perms } = useMyPermissions();
   const { t } = useLang();
 
 
   const setTab = (next: Tab) => {
     setNavOpen(false);
+    if (next === "refineries") {
+      if (!refineryAssignment?.isAdmin && refineryAssignment?.refineryId) {
+        navigate({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          to: "/desk/refineries/$refineryId/$tab" as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          params: { refineryId: refineryAssignment.refineryId, tab: "dashboard" } as any,
+          replace: false,
+        });
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        navigate({ to: "/desk/refineries" as any, replace: false });
+      }
+      return;
+    }
     const path = TAB_TO_DESK_PATH[next];
     const search = next === "swap-fees" ? { view: "fees" } : undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -527,6 +549,22 @@ export function SwapDashboard({
         setIsAdmin(me.isAdmin);
         setCanBackup(Boolean(me.canBackup));
         setUsername(me.username ?? "");
+        // Load refinery assignment in parallel; redirect refinery-only users
+        try {
+          const a = await getMyRefineryAssignment();
+          if (cancelled) return;
+          setRefineryAssignment(a);
+          if (!me.isAdmin && a.refineryId) {
+            navigate({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              to: "/desk/refineries/$refineryId/$tab" as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              params: { refineryId: a.refineryId, tab: "dashboard" } as any,
+              replace: true,
+            });
+            return;
+          }
+        } catch { /* not assigned */ }
         setReady(true);
       } catch {
         navigate({ to: "/desk/login", replace: true });
@@ -557,6 +595,7 @@ export function SwapDashboard({
 
   const visibleNav = NAV_ITEMS.filter((n) => {
     if (n.adminOnly && !isAdmin) return false;
+    if (n.refineryGated) return isAdmin || Boolean(refineryAssignment?.refineryId);
     if (!n.module) return true; // dashboard always visible
     return can(perms, n.module, "view");
   });

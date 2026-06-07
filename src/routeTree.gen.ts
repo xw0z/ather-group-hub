@@ -36,7 +36,9 @@ import { Route as DeskAppMarginRouteImport } from './routes/desk.app.margin'
 import { Route as DeskAppDiscountPremiumRouteImport } from './routes/desk.app.discount-premium'
 import { Route as DeskAppDashboardRouteImport } from './routes/desk.app.dashboard'
 import { Route as DeskAppAuditRouteImport } from './routes/desk.app.audit'
+import { Route as DeskRefineriesRefineryIdIndexRouteImport } from './routes/desk.refineries.$refineryId.index'
 import { Route as DeskAppPurityIndexRouteImport } from './routes/desk.app.purity.index'
+import { Route as DeskRefineriesRefineryIdTabRouteImport } from './routes/desk.refineries.$refineryId.$tab'
 import { Route as ApiPublicHooksSwapDailyFeesRouteImport } from './routes/api/public/hooks/swap-daily-fees'
 import { Route as DeskAppPurityTripsTripIdRouteImport } from './routes/desk.app.purity.trips.$tripId'
 
@@ -175,11 +177,23 @@ const DeskAppAuditRoute = DeskAppAuditRouteImport.update({
   path: '/desk/app/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskRefineriesRefineryIdIndexRoute =
+  DeskRefineriesRefineryIdIndexRouteImport.update({
+    id: '/$refineryId/',
+    path: '/$refineryId/',
+    getParentRoute: () => DeskRefineriesRoute,
+  } as any)
 const DeskAppPurityIndexRoute = DeskAppPurityIndexRouteImport.update({
   id: '/desk/app/purity/',
   path: '/desk/app/purity/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskRefineriesRefineryIdTabRoute =
+  DeskRefineriesRefineryIdTabRouteImport.update({
+    id: '/$refineryId/$tab',
+    path: '/$refineryId/$tab',
+    getParentRoute: () => DeskRefineriesRoute,
+  } as any)
 const ApiPublicHooksSwapDailyFeesRoute =
   ApiPublicHooksSwapDailyFeesRouteImport.update({
     id: '/api/public/hooks/swap-daily-fees',
@@ -203,7 +217,7 @@ export interface FileRoutesByFullPath {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
-  '/desk/refineries': typeof DeskRefineriesRoute
+  '/desk/refineries': typeof DeskRefineriesRouteWithChildren
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -222,7 +236,9 @@ export interface FileRoutesByFullPath {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity/': typeof DeskAppPurityIndexRoute
+  '/desk/refineries/$refineryId/': typeof DeskRefineriesRefineryIdIndexRoute
   '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRoutesByTo {
@@ -235,7 +251,7 @@ export interface FileRoutesByTo {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
-  '/desk/refineries': typeof DeskRefineriesRoute
+  '/desk/refineries': typeof DeskRefineriesRouteWithChildren
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk': typeof DeskIndexRoute
@@ -254,7 +270,9 @@ export interface FileRoutesByTo {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity': typeof DeskAppPurityIndexRoute
+  '/desk/refineries/$refineryId': typeof DeskRefineriesRefineryIdIndexRoute
   '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRoutesById {
@@ -268,7 +286,7 @@ export interface FileRoutesById {
   '/margin': typeof MarginRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
-  '/desk/refineries': typeof DeskRefineriesRoute
+  '/desk/refineries': typeof DeskRefineriesRouteWithChildren
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -287,7 +305,9 @@ export interface FileRoutesById {
   '/swap/clients/$clientId': typeof SwapClientsClientIdRoute
   '/desk/app/': typeof DeskAppIndexRoute
   '/api/public/hooks/swap-daily-fees': typeof ApiPublicHooksSwapDailyFeesRoute
+  '/desk/refineries/$refineryId/$tab': typeof DeskRefineriesRefineryIdTabRoute
   '/desk/app/purity/': typeof DeskAppPurityIndexRoute
+  '/desk/refineries/$refineryId/': typeof DeskRefineriesRefineryIdIndexRoute
   '/desk/app/purity/trips/$tripId': typeof DeskAppPurityTripsTripIdRoute
 }
 export interface FileRouteTypes {
@@ -321,7 +341,9 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity/'
+    | '/desk/refineries/$refineryId/'
     | '/desk/app/purity/trips/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -353,7 +375,9 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity'
+    | '/desk/refineries/$refineryId'
     | '/desk/app/purity/trips/$tripId'
   id:
     | '__root__'
@@ -385,7 +409,9 @@ export interface FileRouteTypes {
     | '/swap/clients/$clientId'
     | '/desk/app/'
     | '/api/public/hooks/swap-daily-fees'
+    | '/desk/refineries/$refineryId/$tab'
     | '/desk/app/purity/'
+    | '/desk/refineries/$refineryId/'
     | '/desk/app/purity/trips/$tripId'
   fileRoutesById: FileRoutesById
 }
@@ -399,7 +425,7 @@ export interface RootRouteChildren {
   MarginRoute: typeof MarginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   DeskLoginRoute: typeof DeskLoginRoute
-  DeskRefineriesRoute: typeof DeskRefineriesRoute
+  DeskRefineriesRoute: typeof DeskRefineriesRouteWithChildren
   PurityDashboardRoute: typeof PurityDashboardRoute
   SwapDashboardRoute: typeof SwapDashboardRoute
   DeskIndexRoute: typeof DeskIndexRoute
@@ -613,12 +639,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeskAppAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/refineries/$refineryId/': {
+      id: '/desk/refineries/$refineryId/'
+      path: '/$refineryId'
+      fullPath: '/desk/refineries/$refineryId/'
+      preLoaderRoute: typeof DeskRefineriesRefineryIdIndexRouteImport
+      parentRoute: typeof DeskRefineriesRoute
+    }
     '/desk/app/purity/': {
       id: '/desk/app/purity/'
       path: '/desk/app/purity'
       fullPath: '/desk/app/purity/'
       preLoaderRoute: typeof DeskAppPurityIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/desk/refineries/$refineryId/$tab': {
+      id: '/desk/refineries/$refineryId/$tab'
+      path: '/$refineryId/$tab'
+      fullPath: '/desk/refineries/$refineryId/$tab'
+      preLoaderRoute: typeof DeskRefineriesRefineryIdTabRouteImport
+      parentRoute: typeof DeskRefineriesRoute
     }
     '/api/public/hooks/swap-daily-fees': {
       id: '/api/public/hooks/swap-daily-fees'
@@ -637,6 +677,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DeskRefineriesRouteChildren {
+  DeskRefineriesRefineryIdTabRoute: typeof DeskRefineriesRefineryIdTabRoute
+  DeskRefineriesRefineryIdIndexRoute: typeof DeskRefineriesRefineryIdIndexRoute
+}
+
+const DeskRefineriesRouteChildren: DeskRefineriesRouteChildren = {
+  DeskRefineriesRefineryIdTabRoute: DeskRefineriesRefineryIdTabRoute,
+  DeskRefineriesRefineryIdIndexRoute: DeskRefineriesRefineryIdIndexRoute,
+}
+
+const DeskRefineriesRouteWithChildren = DeskRefineriesRoute._addFileChildren(
+  DeskRefineriesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -647,7 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarginRoute: MarginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   DeskLoginRoute: DeskLoginRoute,
-  DeskRefineriesRoute: DeskRefineriesRoute,
+  DeskRefineriesRoute: DeskRefineriesRouteWithChildren,
   PurityDashboardRoute: PurityDashboardRoute,
   SwapDashboardRoute: SwapDashboardRoute,
   DeskIndexRoute: DeskIndexRoute,
