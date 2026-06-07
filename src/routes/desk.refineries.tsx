@@ -225,15 +225,19 @@ function TopBar({
 // Shell with tabs
 // =============================================================
 function RefineryShell({
-  refinery, assignment, tab, onTab, onBack, onSignOut,
+  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut,
 }: {
   refinery: Refinery;
   assignment: RefineryAssignment;
   tab: Tab;
+  action?: "new" | "edit";
+  txId?: string;
   onTab: (t: Tab) => void;
+  onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
   onBack?: () => void;
   onSignOut: () => void;
 }) {
+  const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
@@ -255,11 +259,24 @@ function RefineryShell({
         </div>
       </nav>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
-        {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
-        {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
-        {tab === "transactions" && <TransactionsTab refinery={refinery} assignment={assignment} />}
-        {tab === "stock" && <StockTab refinery={refinery} />}
-        {tab === "profile" && <ProfileTab />}
+        {showTxForm ? (
+          <TransactionFormPage
+            refinery={refinery}
+            editingId={action === "edit" ? txId ?? null : null}
+            onClose={() => onAction(undefined, undefined)}
+            onSaved={() => onAction(undefined, undefined)}
+          />
+        ) : (
+          <>
+            {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
+            {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
+            {tab === "transactions" && (
+              <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
+            )}
+            {tab === "stock" && <StockTab refinery={refinery} />}
+            {tab === "profile" && <ProfileTab />}
+          </>
+        )}
       </div>
     </main>
   );
