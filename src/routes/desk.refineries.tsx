@@ -340,6 +340,7 @@ function RefineryShell({
           {tab === "stock" && <StockTab refinery={refinery} />}
           {tab === "netposition" && <NetPositionTab refinery={refinery} />}
           {tab === "backup" && assignment.isAdmin && <BackupTab refinery={refinery} />}
+          {tab === "translations" && assignment.isAdmin && <TranslationsTab />}
           {tab === "profile" && <ProfileTab />}
         </>
       )}
