@@ -1,78 +1,49 @@
-## Backup Module for Refinery
+This is a large feature touching DB, storage, server functions, and UI. Confirming the plan before I start so we agree on scope and tradeoffs.
 
-Add a new admin-only "Backup" tab to the Refinery system that lets admins export, download, restore, and schedule backups of all refinery data.
+## Scope by section
 
----
+### 1. Database (1 migration)
+- `swap_login_history` — user_id, occurred_at, ip, user_agent, device, browser, status (success/failed). Populated client-side after sign-in (and via a small login server fn that records IP from request headers).
+- `swap_notification_prefs` — one row per user; columns: email_enabled, margin_alerts, backup_notifications, security_notifications, system_announcements.
+- `swap_user_preferences` — theme ('dark'|'light'|'system'), number_format, date_format.
+- `swap_profiles.avatar_url` — new column.
+- `swap_profiles.password_changed_at` — new column, updated by password change fn.
+- Storage bucket `profile-avatars` (private, RLS: user reads/writes own folder).
+- RLS: each user sees only their own rows. Audit writes go into existing `swap_activity_log`.
 
-### A. Database (1 migration)
+### 2. Server functions (added to existing `*.functions.ts`)
+- `updateSwapOwnProfile` — extended to handle display name + phone + email (already exists; verify shape).
+- `updateSwapOwnPassword` — extended to verify current password (re-auth via `signInWithPassword` against current email) before update, and stamp `password_changed_at`.
+- `uploadAvatar` / `removeAvatar` — server fns that write to storage + update `avatar_url`.
+- `getLoginHistory` — last 10 rows.
+- `recordLogin` — called from the login page on success/failure; reads IP from request headers.
+- `getNotificationPrefs` / `updateNotificationPrefs`.
+- `getUserPreferences` / `updateUserPreferences`.
+- `getActiveSessions` / `signOutOtherSessions` — uses `supabase.auth.admin.listFactors` is NOT available for users; we will use Supabase's `signOut({ scope: 'others' })` for "logout other sessions" (real session list/per-session revoke isn't exposed by Supabase to end users; we'll show only the current session + a "sign out everywhere" action and be honest in the UI rather than fake a list).
+- All mutations append to `swap_activity_log` with action labels (profile_update, password_change, notif_prefs_change, session_signout_others, etc.). IP captured server-side.
 
-**New table: `refinery_backups`** — stores backup metadata + payload.
-- `id`, `refinery_id`, `file_name`, `file_size_bytes`, `created_by`, `created_by_email`, `created_at`
-- `kind` enum: `manual` | `scheduled` | `safety` (auto pre-restore)
-- `payload` jsonb — full snapshot (clients, transactions, stock, movements, gold bars, price log, notes, position snapshots, profile/settings)
-- `schema_version` int (for forward compatibility)
-- RLS: only platform admins can `SELECT/INSERT/DELETE` (uses existing `is_platform_admin`)
+### 3. UI — `ProfileTab` rewrite in `src/routes/swap/dashboard.tsx`
+Replace current single-page form with internal sub-tabs: **General · Security · Sessions · Preferences**, keeping the existing dark `ATHER Desk` styling (rounded-xl border, bg-card, primary accent).
 
-**New table: `refinery_backup_settings`** — one row per refinery.
-- `refinery_id` (PK), `daily_enabled` bool, `daily_time` time, `keep_last` int default 30, `updated_by`, `updated_at`
-- RLS: platform admin only
+- **General**: avatar (upload/change/remove, initials fallback), display name, username (read-only), email, phone, role (read-only), assigned refinery (read-only — from `refinery_users` for the current user), Save button.
+- **Security**:
+  - Change password (current / new / confirm) with show/hide toggles and a strength meter (length + char-class heuristic → Weak/Medium/Strong).
+  - Account summary: last login date/device/IP, account created, password last changed.
+  - Login history table (last 10).
+  - Danger actions: "Change password" jumps to form, "Logout all devices" with confirm dialog.
+- **Sessions**: current session card (device, browser, last activity from `lastSignInAt`) + "Sign out other sessions" button. Honest copy explaining that the auth provider doesn't expose a per-session list.
+- **Preferences**:
+  - Notification toggles (5 checkboxes), saved on change.
+  - Theme radio (Dark / Light / System) — wired to a `next-themes`-style provider; if none exists I'll add a minimal one in `src/components/theme-provider.tsx` and toggle the `dark` class on `<html>`.
+  - Number format + date format radios — stored in prefs, exposed via a `useUserPreferences()` hook for the rest of the app to consume later.
 
-**New table: `refinery_audit_log`** — append-only audit trail for backup/restore ops.
-- `id`, `refinery_id`, `user_id`, `user_email`, `action` (`backup_created` | `backup_downloaded` | `backup_deleted` | `restore_started` | `restore_completed` | `restore_failed` | `settings_updated`), `file_name`, `details` jsonb, `created_at`
-- Immutable trigger blocks UPDATE/DELETE
-- RLS: platform admin SELECT, server-only INSERT
+### Tradeoffs / honest limitations
+- **Per-session revoke** and **Login history with full device/browser/IP** require we record events ourselves; this only starts populating from the moment we ship. We won't be able to backfill history that pre-dates this change.
+- **Active sessions list** is not exposed by Supabase Auth to non-admin clients — we'll show only the current device with a global "sign out everywhere" rather than fabricate a list.
+- Theme/number/date format prefs will be saved + applied to the theme; full number/date formatting wiring across the app is out of scope for this PR (just the preference + a hook ready for adoption).
 
-**Restore RPC (`refinery_restore_backup`)** — SECURITY DEFINER plpgsql function that, in a single transaction:
-1. Verifies caller is platform admin and the backup belongs to the target refinery
-2. Deletes existing rows for the refinery from: stock_movements, transaction_gold_bars, transactions, client_notes, position_snapshots, price_log, clients, stock
-3. Re-inserts from the backup payload preserving IDs
-4. Raises on any error → full rollback
+### Files
+- New migration under `supabase/migrations/`.
+- Edits: `src/routes/swap/dashboard.tsx` (ProfileTab rewrite), `src/lib/swap.functions.ts` (new server fns), `src/routes/desk.login.tsx` (call `recordLogin`), new `src/components/theme-provider.tsx` if needed.
 
----
-
-### B. Server functions (`src/lib/refineries.functions.ts`)
-
-All gated with `requireSupabaseAuth` + admin check via `is_platform_admin`:
-- `createBackup({ refineryId, kind })` — snapshots all refinery data into the payload, inserts row, prunes to `keep_last`, audits
-- `listBackups({ refineryId })` — metadata only (omit payload for list)
-- `getBackupPayload({ backupId })` — returns full payload for download; audits `backup_downloaded`
-- `deleteBackup({ backupId })` — audits + deletes
-- `restoreBackup({ backupId, confirmText })` — requires `confirmText === "RESTORE"`, creates safety backup first, calls RPC, audits start/complete/fail
-- `restoreFromFile({ refineryId, payload, confirmText })` — same as above but for uploaded file; validates schema + refinery match
-- `getBackupSettings({ refineryId })` / `updateBackupSettings({ refineryId, ... })`
-- `listAuditLog({ refineryId, limit })`
-
-### C. Scheduled daily backup
-
-- New public route `src/routes/api/public/hooks/refinery-daily-backup.ts` — iterates refineries with `daily_enabled = true` whose `daily_time` matches the current hour, runs `createBackup({ kind: 'scheduled' })` for each
-- Auth via `apikey` header (Supabase anon key)
-- `pg_cron` schedule hourly via `supabase--insert`
-
-### D. UI (`src/routes/desk.refineries.tsx`)
-
-- Add `"backup"` to the tab list, gated by `assignment.role === 'admin'` (or `is_platform_admin`)
-- New `BackupTab` component with 4 sections:
-  - **A. Create Backup** — big "Create Backup" button, shows last-created summary
-  - **B. Restore Backup** — file upload + "Restore from History" actions, modal with red warning + `RESTORE` confirmation input
-  - **C. Backup History** — table (Date / Created By / File Name / Size / Actions: Download · Restore · Delete)
-  - **D. Scheduled Backup Settings** — toggle, time picker, keep-last number, save button
-  - **Audit Log** panel beneath history showing recent backup-related actions
-- Download: serializes the payload client-side to a Blob → triggers download with filename `ather-refinery-{refinery_id_short}-backup-YYYY-MM-DD-HH-mm.json`
-- Dark ATHER Desk theme; destructive actions use `destructive`/red tokens
-
----
-
-### Technical details
-
-- Backup format: JSON (single file) with shape `{ schema_version: 1, refinery: {...}, created_at, clients: [...], transactions: [...], gold_bars: [...], stock: {...}, stock_movements: [...], notes: [...], price_log: [...], position_snapshots: [...], settings: {...} }`
-- Safety backup created automatically before any restore (kind = `safety`)
-- Pruning: after each create, delete oldest backups beyond `keep_last` (excluding `safety` kind which is always kept)
-- File-size: computed from `Buffer.byteLength(JSON.stringify(payload))` server-side, stored in `file_size_bytes`
-- All admin checks use existing `public.is_platform_admin(auth.uid())`
-- Audit log includes IP via `getRequestHeader('x-forwarded-for')` and user-agent
-
-### Out of scope
-
-- Storing payloads in object storage (kept in JSONB for atomicity; can migrate later if size grows)
-- Restoring across refineries (blocked by RPC check)
-- Partial/selective restore
+Confirm and I'll start implementing. If you want me to cut anything (e.g. skip storage/avatars, or skip the theme provider), say the word.
