@@ -197,13 +197,14 @@ function TopBar({
               <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
             </Button>
           )}
-          <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
+          <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
             <Scale className="h-4 w-4 text-ember" />
           </div>
-          <div>
-            <p className="font-display text-sm tracking-[0.25em]">ATHER DESK · {title}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+          <div className="min-w-0">
+            <p className="font-display text-xs sm:text-sm tracking-[0.18em] sm:tracking-[0.25em] truncate">ATHER DESK · {title}</p>
+            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
           </div>
+
         </div>
         <Button variant="ghost" size="sm" onClick={onSignOut}>
           <LogOut className="h-4 w-4 mr-1" /> Sign out
