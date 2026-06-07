@@ -153,9 +153,16 @@ export const listRefineries = createServerFn({ method: "GET" })
 // =========================================================
 // Clients
 // =========================================================
+const codeSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2}\d{4}$/, "Code must be 2 letters + 4 digits (e.g. AM4821)")
+  .transform((s) => s.toUpperCase());
+
 const clientCreate = z.object({
   refinery_id: z.string().uuid(),
   name: z.string().trim().min(1).max(200),
+  code: codeSchema.optional().nullable(),
   phone: z.string().trim().max(64).optional().nullable(),
   purity_balance: z.number().default(0),
   da_balance: z.number().default(0),
@@ -194,9 +201,15 @@ export const createClient = createServerFn({ method: "POST" })
   .inputValidator((d) => clientCreate.parse(d))
   .handler(async ({ data, context }) => {
     await assertAccess(context.userId, data.refinery_id);
+    const payload = { ...data, code: data.code ?? null };
     const { data: row, error } = await supabaseAdmin
-      .from("refinery_clients").insert(data).select("*").single();
-    if (error) throw new Error(error.message);
+      .from("refinery_clients").insert(payload).select("*").single();
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        throw new Error("This client code is already used by another client.");
+      }
+      throw new Error(error.message);
+    }
     return row as RefineryClient;
   });
 
@@ -206,6 +219,7 @@ export const updateClient = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       name: z.string().trim().min(1).max(200).optional(),
+      code: codeSchema.optional().nullable(),
       phone: z.string().trim().max(64).optional().nullable(),
       refining_fee_price: z.number().min(0).optional(),
       notes: z.string().max(2000).optional().nullable(),
@@ -220,7 +234,12 @@ export const updateClient = createServerFn({ method: "POST" })
     const { id, ...patch } = data;
     const { data: row, error } = await supabaseAdmin
       .from("refinery_clients").update(patch).eq("id", id).select("*").single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        throw new Error("This client code is already used by another client.");
+      }
+      throw new Error(error.message);
+    }
     return row as RefineryClient;
   });
 
@@ -242,6 +261,53 @@ export const deleteClient = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("refinery_clients").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** Suggest a unique client code from a name (server-generated, format AA1234). */
+export const suggestClientCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ name: z.string().trim().min(1).max(200) }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: code, error } = await supabaseAdmin
+      .rpc("refinery_generate_client_code", { _name: data.name });
+    if (error) throw new Error(error.message);
+    return { code: code as string };
+  });
+
+/** Validate a manually entered client code: uniqueness + prefix collision warning. */
+export const checkClientCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      code: codeSchema,
+      excludeClientId: z.string().uuid().optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const prefix = data.code.slice(0, 2);
+    const exclude = data.excludeClientId ?? null;
+    const [{ data: dup }, { data: prefixHits }] = await Promise.all([
+      supabaseAdmin
+        .from("refinery_clients")
+        .select("id, name")
+        .eq("code", data.code)
+        .limit(2),
+      supabaseAdmin
+        .from("refinery_clients")
+        .select("id, name, code")
+        .ilike("code", `${prefix}%`)
+        .limit(20),
+    ]);
+    const duplicates = (dup ?? []).filter((c) => c.id !== exclude);
+    const prefixOthers = (prefixHits ?? []).filter(
+      (c) => c.id !== exclude && c.code !== data.code,
+    );
+    return {
+      duplicate: duplicates.length > 0,
+      duplicateOf: duplicates[0]?.name ?? null,
+      prefixCollision: prefixOthers.length > 0,
+      prefixOthers: prefixOthers.map((c) => ({ name: c.name, code: c.code as string })),
+    };
   });
 
 // =========================================================
