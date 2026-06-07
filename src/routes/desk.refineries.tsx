@@ -190,7 +190,7 @@ function TopBar({
 }: { title: string; subtitle?: string; onSignOut: () => void; onBack?: () => void }) {
   return (
     <header className="border-b border-border bg-card/40">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           {onBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
