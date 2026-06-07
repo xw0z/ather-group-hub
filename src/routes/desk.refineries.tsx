@@ -73,6 +73,10 @@ const balClass = (n: number) =>
   n > 0 ? "text-emerald-500" : n < 0 ? "text-destructive" : "text-muted-foreground";
 const signed = (n: number, fmt: (n: number) => string) =>
   `${n > 0 ? "+" : ""}${fmt(n)}`;
+const RECEIPT_BUCKET = "refinery-receipts";
+const RECEIPT_SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
+const receiptFileName = (receiptNumber: string, extension: "pdf" | "png") =>
+  `${receiptNumber.replace(/[^A-Za-z0-9._-]/g, "_")}.${extension}`;
 
 // =============================================================
 // Root page
