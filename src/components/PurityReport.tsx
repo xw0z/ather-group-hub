@@ -138,6 +138,7 @@ function PseudoQR({ seed, size = 180 }: { seed: string; size?: number }) {
 export function PurityReport({ data }: { data: PurityReportData }) {
   return (
     <div
+      data-report-root
       style={{
         width: 2480,
         minHeight: 3508,
