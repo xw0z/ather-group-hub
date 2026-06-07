@@ -1861,6 +1861,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       setDraftGold(String(price.goldPrice || ""));
       setDraftSilver(String(price.silverPrice || ""));
       setSavedBy({ name: price.setByUsername, at: price.setAt });
+      setHistory(snaps);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
     finally { setLoading(false); }
   }, [refinery.id]);
