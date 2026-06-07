@@ -477,8 +477,8 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
               </td>
               <td className="p-3 capitalize">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
               <td className="p-3 uppercase">{t.transaction_type}</td>
-              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-              <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
+              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold") || t.transaction_type === "buysell") ? fmtG(Number(t.transaction_type === "buysell" ? (t.buysell_weight ?? 0) : t.total_pure_weight)) : "—"}</td>
+              <td className="p-3 text-right tabular-nums">{t.transaction_type === "buysell" ? fmtDA(Number(t.buysell_total ?? 0)) : (t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"))}</td>
             </tr>
           ))}
         </tbody>
