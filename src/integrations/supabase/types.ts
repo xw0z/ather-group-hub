@@ -1170,6 +1170,42 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_login_history: {
+        Row: {
+          browser: string | null
+          device: string | null
+          id: string
+          identifier: string | null
+          ip: string | null
+          occurred_at: string
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          device?: string | null
+          id?: string
+          identifier?: string | null
+          ip?: string | null
+          occurred_at?: string
+          status?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          device?: string | null
+          id?: string
+          identifier?: string | null
+          ip?: string | null
+          occurred_at?: string
+          status?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       swap_margin_history: {
         Row: {
           changed_field: string
@@ -1236,6 +1272,36 @@ export type Database = {
           old_xauusd_price?: number | null
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      swap_notification_prefs: {
+        Row: {
+          backup_notifications: boolean
+          email_enabled: boolean
+          margin_alerts: boolean
+          security_notifications: boolean
+          system_announcements: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_notifications?: boolean
+          email_enabled?: boolean
+          margin_alerts?: boolean
+          security_notifications?: boolean
+          system_announcements?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_notifications?: boolean
+          email_enabled?: boolean
+          margin_alerts?: boolean
+          security_notifications?: boolean
+          system_announcements?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1312,29 +1378,35 @@ export type Database = {
       }
       swap_profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           id: string
           is_admin: boolean
           is_manager: boolean
+          password_changed_at: string | null
           phone: string | null
           username: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id: string
           is_admin?: boolean
           is_manager?: boolean
+          password_changed_at?: string | null
           phone?: string | null
           username: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_admin?: boolean
           is_manager?: boolean
+          password_changed_at?: string | null
           phone?: string | null
           username?: string
         }
@@ -1459,6 +1531,30 @@ export type Database = {
           xau_api_provider?: string | null
           xau_auto_refresh_seconds?: number
           xau_manual_fallback_price?: number | null
+        }
+        Relationships: []
+      }
+      swap_user_preferences: {
+        Row: {
+          date_format: string
+          number_format: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          date_format?: string
+          number_format?: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          date_format?: string
+          number_format?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
