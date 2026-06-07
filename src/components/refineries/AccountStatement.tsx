@@ -13,7 +13,9 @@ const LINE = "#e1d6b8";
 const fmtG = (n: number, d = 2) =>
   `${Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })} g`;
 const fmtDA = (n: number) =>
-  `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 })} DA`;
+  `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })} DA`;
+const fmtPurity = (n: number) =>
+  Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 const fmtDate = (s: string) => {
   try {
     const d = new Date(s.length === 10 ? `${s}T00:00:00Z` : s);
