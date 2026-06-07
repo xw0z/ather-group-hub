@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
-  TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon,
+  TrendingUp, TrendingDown, AlertTriangle, Pencil, Image as ImageIcon, X,
 } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import { Button } from "@/components/ui/button";
