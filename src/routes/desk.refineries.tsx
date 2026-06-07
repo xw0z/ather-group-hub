@@ -921,23 +921,72 @@ function ClientDialog({
   refineryId, editing, onClose, onSaved,
 }: { refineryId: string; editing: RefineryClient | null; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
+  const [code, setCode] = useState(editing?.code ?? "");
   const [phone, setPhone] = useState(editing?.phone ?? "");
   const [purity, setPurity] = useState(String(editing?.purity_balance ?? 0));
   const [da, setDa] = useState(String(editing?.da_balance ?? 0));
   const [fee, setFee] = useState(String(editing?.refining_fee_price ?? 0));
   const [notes, setNotes] = useState(editing?.notes ?? "");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeWarn, setCodeWarn] = useState<string | null>(null);
   // Status field removed from the Refineries module; default all clients to "active" for backend compatibility.
   const status: "active" = "active";
   const [saving, setSaving] = useState(false);
 
+  const codeFormatOk = (v: string) => /^[A-Z]{2}\d{4}$/.test(v);
+
+  // Auto-suggest a code when name is set and code is empty (new client only)
+  const onNameBlur = async () => {
+    if (editing || code.trim()) return;
+    if (!name.trim()) return;
+    try {
+      const r = await suggestClientCode({ data: { name: name.trim() } });
+      setCode(r.code);
+      setCodeError(null);
+      setCodeWarn(null);
+    } catch { /* silent */ }
+  };
+
+  // Validate manually-entered code
+  const onCodeBlur = async () => {
+    const v = code.trim().toUpperCase();
+    setCodeError(null);
+    setCodeWarn(null);
+    if (!v) return;
+    if (!codeFormatOk(v)) {
+      setCodeError("Format must be 2 capital letters + 4 digits (e.g. AM4821).");
+      return;
+    }
+    setCode(v);
+    try {
+      const r = await checkClientCode({
+        data: { code: v, excludeClientId: editing?.id ?? null },
+      });
+      if (r.duplicate) {
+        setCodeError(`This code is already used${r.duplicateOf ? ` by ${r.duplicateOf}` : ""}.`);
+      } else if (r.prefixCollision) {
+        const sample = r.prefixOthers.slice(0, 2).map((o) => `${o.code} (${o.name})`).join(", ");
+        setCodeWarn(`Prefix “${v.slice(0, 2)}” is also used by: ${sample}${r.prefixOthers.length > 2 ? "…" : ""}.`);
+      }
+    } catch { /* silent */ }
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { toast.error("Name is required"); return; }
+    const trimmedCode = code.trim().toUpperCase();
+    if (trimmedCode && !codeFormatOk(trimmedCode)) {
+      toast.error("Code must be 2 capital letters + 4 digits (e.g. AM4821).");
+      return;
+    }
+    if (codeError) { toast.error(codeError); return; }
     setSaving(true);
     try {
       if (editing) {
         await updateClient({ data: {
-          id: editing.id, name: name.trim(), phone: phone || null,
+          id: editing.id, name: name.trim(),
+          code: trimmedCode || null,
+          phone: phone || null,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
         const newPurity = Number(purity) || 0;
@@ -948,7 +997,9 @@ function ClientDialog({
         toast.success("Client updated");
       } else {
         await createClient({ data: {
-          refinery_id: refineryId, name: name.trim(), phone: phone || null,
+          refinery_id: refineryId, name: name.trim(),
+          code: trimmedCode || null,
+          phone: phone || null,
           purity_balance: Number(purity) || 0, da_balance: Number(da) || 0,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
@@ -966,7 +1017,23 @@ function ClientDialog({
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
             <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={onNameBlur} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Client Code</Label>
+            <Input
+              value={code}
+              onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(null); setCodeWarn(null); }}
+              onBlur={onCodeBlur}
+              placeholder="Auto-generated (e.g. AM4821)"
+              maxLength={6}
+              className="font-mono tracking-wider"
+            />
+            {codeError && <p className="text-xs text-destructive">{codeError}</p>}
+            {!codeError && codeWarn && <p className="text-xs text-amber-500">{codeWarn}</p>}
+            {!codeError && !codeWarn && (
+              <p className="text-xs text-muted-foreground">2 capital letters + 4 digits. Leave blank to auto-generate from the client name.</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Phone</Label>
@@ -992,7 +1059,7 @@ function ClientDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+            <Button type="submit" disabled={saving || !!codeError}>{saving ? "Saving…" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
