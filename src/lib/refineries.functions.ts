@@ -474,6 +474,12 @@ export const deleteTransaction = createServerFn({ method: "POST" })
       if (se) throw new Error(se.message);
       return { ok: true };
     }
+    // Stock adjustment: reverse stock + remove tx + movement
+    if (tx.transaction_type === "stock_adjustment") {
+      const { error: ae } = await supabaseAdmin.rpc("refinery_delete_stock_adjustment", { _tx_id: data.id });
+      if (ae) throw new Error(ae.message);
+      return { ok: true };
+    }
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
     if (revErr) throw new Error(revErr.message);
     await supabaseAdmin.from("refinery_transaction_gold_bars").delete().eq("transaction_id", data.id);
