@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { LanguageProvider } from "@/lib/purity-i18n";
+import { Toaster } from "@/components/ui/sonner";
 
 
 function NotFoundComponent() {
