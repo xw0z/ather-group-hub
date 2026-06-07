@@ -319,6 +319,7 @@ function RefineryShell({
           )}
           {tab === "buysell" && <BuySellTab refinery={refinery} assignment={assignment} />}
           {tab === "stock" && <StockTab refinery={refinery} />}
+          {tab === "netposition" && <NetPositionTab refinery={refinery} />}
           {tab === "profile" && <ProfileTab />}
         </>
       )}
