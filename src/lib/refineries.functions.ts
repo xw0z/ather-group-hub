@@ -823,7 +823,7 @@ export const getDashboard = createServerFn({ method: "POST" })
       supabaseAdmin.from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle(),
       supabaseAdmin.from("refinery_clients").select("id, purity_balance, da_balance").eq("refinery_id", data.refineryId),
       supabaseAdmin.from("refinery_transactions")
-        .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
+        .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_metal, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
         .eq("refinery_id", data.refineryId).gte("created_at", todayIso),
       supabaseAdmin.from("refinery_clients")
         .select("id, name, purity_balance, da_balance")
