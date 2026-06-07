@@ -1243,7 +1243,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn,
           type: isBuy ? "buy_metal" : "sell_metal",
-          description: `${isBuy ? "Bought" : "Sold"} ${metal === "gold" ? "Gold" : "Silver"} — ${num2(weight)} g`,
+          description: `${isBuy ? "Bought" : "Sold"} ${metal === "gold" ? "Gold" : "Silver"} — ${weight.toFixed(2)} g`,
           client_name: cli.name,
           metal,
           gold_debit: 0, gold_credit: 0,
