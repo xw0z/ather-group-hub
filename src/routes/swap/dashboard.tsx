@@ -3671,8 +3671,41 @@ function ProfileTab({ username }: { username: string }) {
   );
 }
 
+function LanguagePreferencesSection() {
+  const { lang, setLang, t } = useLang();
+  const options: Array<{ id: "en" | "fr" | "ar"; label: string }> = [
+    { id: "en", label: t("ref.profile.lang.en") },
+    { id: "fr", label: t("ref.profile.lang.fr") },
+    { id: "ar", label: t("ref.profile.lang.ar") },
+  ];
+  return (
+    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+      <h3 className="text-sm font-semibold">{t("ref.profile.language")}</h3>
+      <p className="text-[11px] text-muted-foreground">{t("ref.profile.languageNote")}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => setLang(o.id)}
+            className={`px-3 py-1 text-xs rounded border ${
+              lang === o.id
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+            aria-pressed={lang === o.id}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 /* ----------------------------- USERS ----------------------------- */
+
 
 function UsersTab() {
   const [users, setUsers] = useState<SwapUser[]>([]);
