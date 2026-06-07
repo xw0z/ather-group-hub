@@ -1366,7 +1366,7 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     return {
       refinery: { id: ref.id, name: ref.name },
-      client: { id: cli.id, name: cli.name, phone: cli.phone ?? null },
+      client: { id: cli.id, name: cli.name, code: (cli as { code?: string | null }).code ?? null, phone: cli.phone ?? null },
       range: { from: data.from, to: data.to },
       statement_number: stmtNum,
       generated_at: new Date().toISOString(),
