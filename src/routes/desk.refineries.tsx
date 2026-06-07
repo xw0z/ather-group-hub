@@ -184,7 +184,6 @@ function RefineryPicker({
                 </div>
                 <div>
                   <p className="font-display text-lg tracking-wide">{r.name}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-[0.18em]">{r.status}</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
