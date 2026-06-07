@@ -19,9 +19,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
-  listClients, createClient, updateClient,
+  listClients, createClient, updateClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
-  getStock, listStockMovements, getDashboard,
+  getStock, listStockMovements, getDashboard, adjustStock,
   getMyRefineryProfile, updateMyRefineryProfile,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
@@ -538,6 +538,11 @@ function ClientDialog({
           id: editing.id, name: name.trim(), phone: phone || null,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
+        const newPurity = Number(purity) || 0;
+        const newDa = Number(da) || 0;
+        if (newPurity !== Number(editing.purity_balance) || newDa !== Number(editing.da_balance)) {
+          await adjustClientBalances({ data: { id: editing.id, purity_balance: newPurity, da_balance: newDa } });
+        }
         toast.success("Client updated");
       } else {
         await createClient({ data: {
@@ -565,18 +570,16 @@ function ClientDialog({
             <Label>Phone</Label>
             <Input value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} placeholder="+213…" />
           </div>
-          {!editing && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Initial purity balance (g)</Label>
-                <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Initial DA balance</Label>
-                <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>{editing ? "Purity balance (g)" : "Initial purity balance (g)"}</Label>
+              <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
-          )}
+            <div className="space-y-2">
+              <Label>{editing ? "DA balance" : "Initial DA balance"}</Label>
+              <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Refining fee price (DA/g)</Label>
             <Input type="number" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
@@ -686,7 +689,7 @@ function TransactionsTab({
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
               )}
-              {canDelete && t.status !== "cancelled" && (
+              {canDelete && (
                 <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(t.id)}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                 </Button>
@@ -738,7 +741,7 @@ function TransactionsTab({
                       {!readOnly && t.status !== "cancelled" && (
                         <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
-                      {canDelete && t.status !== "cancelled" && (
+                      {canDelete && (
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -1181,27 +1184,32 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [stock, setStock] = useState<Stock | null>(null);
   const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    (async () => {
-      try {
-        const [s, m] = await Promise.all([
-          getStock({ data: { refineryId: refinery.id } }),
-          listStockMovements({ data: { refineryId: refinery.id } }),
-        ]);
-        setStock(s as Stock);
-        setMoves(m as Movement[]);
-      } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
-      finally { setLoading(false); }
-    })();
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const load = useCallback(async () => {
+    try {
+      const [s, m] = await Promise.all([
+        getStock({ data: { refineryId: refinery.id } }),
+        listStockMovements({ data: { refineryId: refinery.id } }),
+      ]);
+      setStock(s as Stock);
+      setMoves(m as Movement[]);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setLoading(false); }
   }, [refinery.id]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl">Stock</h1>
-        <p className="text-sm text-muted-foreground">{refinery.name}</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl">Stock</h1>
+          <p className="text-sm text-muted-foreground">{refinery.name}</p>
+        </div>
+        <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
+          <Pencil className="h-4 w-4 mr-2" /> Adjust stock
+        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatCard icon={<Coins className="h-4 w-4 text-ember" />} label="Pure Gold Stock" value={fmtG(Number(stock.pure_gold_stock))} />
@@ -1242,7 +1250,71 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           </table>
         </div>
       </Card>
+      {adjustOpen && (
+        <AdjustStockDialog
+          refineryId={refinery.id}
+          currentGold={Number(stock.pure_gold_stock)}
+          currentDa={Number(stock.da_stock)}
+          onClose={() => setAdjustOpen(false)}
+          onSaved={() => { setAdjustOpen(false); load(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function AdjustStockDialog({
+  refineryId, currentGold, currentDa, onClose, onSaved,
+}: {
+  refineryId: string; currentGold: number; currentDa: number;
+  onClose: () => void; onSaved: () => void;
+}) {
+  const [gold, setGold] = useState(String(currentGold));
+  const [da, setDa] = useState(String(currentDa));
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const g = Number(gold); const d = Number(da);
+    if (!Number.isFinite(g) || g < 0 || !Number.isFinite(d) || d < 0) {
+      toast.error("Stock values must be zero or positive");
+      return;
+    }
+    setSaving(true);
+    try {
+      await adjustStock({ data: { refineryId, pure_gold_stock: g, da_stock: d, notes: notes || null } });
+      toast.success("Stock adjusted");
+      onSaved();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader><DialogTitle>Adjust stock</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Set the absolute stock values. A movement record will be created for the difference.
+          </p>
+          <div className="space-y-2">
+            <Label>Pure gold stock (g)</Label>
+            <Input type="number" step="any" min="0" value={gold} onChange={(e) => setGold(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>DA stock</Label>
+            <Input type="number" step="any" min="0" value={da} onChange={(e) => setDa(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Initial stock, recount, correction…" />
+          </div>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
