@@ -1250,6 +1250,144 @@ function TransactionFormPage({
 }
 
 // =============================================================
+// Settlement form fields
+// =============================================================
+function SettlementFields({
+  clients, fromClientId, setFromClientId, toClientId, setToClientId,
+  fromClient, toClient, kind, setKind, amount, setAmount,
+  applyFee, setApplyFee, feePrice, setFeePrice, preview,
+}: {
+  clients: RefineryClient[];
+  fromClientId: string; setFromClientId: (s: string) => void;
+  toClientId: string; setToClientId: (s: string) => void;
+  fromClient?: RefineryClient; toClient?: RefineryClient;
+  kind: "gold" | "da"; setKind: (k: "gold" | "da") => void;
+  amount: string; setAmount: (s: string) => void;
+  applyFee: boolean; setApplyFee: (b: boolean) => void;
+  feePrice: string; setFeePrice: (s: string) => void;
+  preview: { amt: number; fp: number; w730: number; fee: number };
+}) {
+  const fromOptions = clients.filter((c) => c.id !== toClientId);
+  const toOptions = clients.filter((c) => c.id !== fromClientId);
+
+  const amt = preview.amt;
+  const fromGoldImpact = kind === "gold" ? -amt : 0;
+  const fromDaImpact = kind === "da" ? -amt : 0;
+  const toGoldImpact = kind === "gold" ? amt : 0;
+  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.fee : 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>From Client *</Label>
+          <Select value={fromClientId} onValueChange={setFromClientId}>
+            <SelectTrigger><SelectValue placeholder="Sender" /></SelectTrigger>
+            <SelectContent>
+              {fromOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {fromClient && (
+            <p className="text-xs text-muted-foreground">
+              Gold <span className={`tabular-nums ${balClass(Number(fromClient.purity_balance))}`}>{signed(Number(fromClient.purity_balance), fmtG)}</span>
+              {" · "}DA <span className={`tabular-nums ${balClass(Number(fromClient.da_balance))}`}>{signed(Number(fromClient.da_balance), fmtDA)}</span>
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label>To Client *</Label>
+          <Select value={toClientId} onValueChange={setToClientId}>
+            <SelectTrigger><SelectValue placeholder="Receiver" /></SelectTrigger>
+            <SelectContent>
+              {toOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {toClient && (
+            <p className="text-xs text-muted-foreground">
+              Gold <span className={`tabular-nums ${balClass(Number(toClient.purity_balance))}`}>{signed(Number(toClient.purity_balance), fmtG)}</span>
+              {" · "}DA <span className={`tabular-nums ${balClass(Number(toClient.da_balance))}`}>{signed(Number(toClient.da_balance), fmtDA)}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Settlement Kind *</Label>
+          <Select value={kind} onValueChange={(v) => setKind(v as "gold" | "da")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gold">Pure Gold Settlement</SelectItem>
+              <SelectItem value="da">DA Settlement</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>{kind === "gold" ? "Pure Gold Amount (g) *" : "DA Amount *"}</Label>
+          <Input type="number" step="any" min="0" inputMode="decimal" value={amount}
+            onChange={(e) => setAmount(e.target.value)} required />
+        </div>
+      </div>
+
+      {kind === "gold" && (
+        <Card className="p-4 space-y-3 bg-muted/10">
+          <div className="flex items-start gap-3">
+            <Checkbox id="apply-fee" checked={applyFee}
+              onCheckedChange={(v) => setApplyFee(Boolean(v))} className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="apply-fee" className="cursor-pointer font-medium">Apply Refinery Fee</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When checked, charges the receiving client a refining fee based on Weight @ 730.
+              </p>
+            </div>
+          </div>
+          {applyFee && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
+              <div className="space-y-2">
+                <Label>Refinery Fee Price (DA/g)</Label>
+                <Input type="number" step="0.01" min="0" inputMode="decimal" value={feePrice}
+                  onChange={(e) => setFeePrice(e.target.value)} />
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Weight @ 730</span><span className="tabular-nums">{fmtG(preview.w730)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Refinery Fee</span><span className="tabular-nums font-semibold text-ember">{fmtDA(preview.fee)}</span></div>
+                <p className="text-xs text-muted-foreground pt-1">Charged to {toClient?.name ?? "receiving client"}</p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {amt > 0 && fromClient && toClient && (
+        <Card className="p-4 bg-muted/10">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Preview — Resulting Balances</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <p className="font-medium">{fromClient.name} <span className="text-xs text-muted-foreground">(From)</span></p>
+              {fromGoldImpact !== 0 && (
+                <div className="flex justify-between"><span>Gold</span><span className="tabular-nums">{fmtG(Number(fromClient.purity_balance))} → <span className={balClass(Number(fromClient.purity_balance) + fromGoldImpact)}>{fmtG(Number(fromClient.purity_balance) + fromGoldImpact)}</span></span></div>
+              )}
+              {fromDaImpact !== 0 && (
+                <div className="flex justify-between"><span>DA</span><span className="tabular-nums">{fmtDA(Number(fromClient.da_balance))} → <span className={balClass(Number(fromClient.da_balance) + fromDaImpact)}>{fmtDA(Number(fromClient.da_balance) + fromDaImpact)}</span></span></div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium">{toClient.name} <span className="text-xs text-muted-foreground">(To)</span></p>
+              {toGoldImpact !== 0 && (
+                <div className="flex justify-between"><span>Gold</span><span className="tabular-nums">{fmtG(Number(toClient.purity_balance))} → <span className={balClass(Number(toClient.purity_balance) + toGoldImpact)}>{fmtG(Number(toClient.purity_balance) + toGoldImpact)}</span></span></div>
+              )}
+              {toDaImpact !== 0 && (
+                <div className="flex justify-between"><span>DA</span><span className="tabular-nums">{fmtDA(Number(toClient.da_balance))} → <span className={balClass(Number(toClient.da_balance) + toDaImpact)}>{fmtDA(Number(toClient.da_balance) + toDaImpact)}</span></span></div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// =============================================================
 // Receipt dialog
 // =============================================================
 function TransactionReceiptDialog({
