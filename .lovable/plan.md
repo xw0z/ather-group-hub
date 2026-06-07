@@ -1,75 +1,78 @@
-## Settlement Transaction Type
+## Backup Module for Refinery
 
-A new transaction kind that transfers gold or DA between two existing clients of the same refinery, without touching the refinery's own stock. Each settlement creates two linked transaction records (one per client) so it shows up in both clients' account statements and the global transaction list.
+Add a new admin-only "Backup" tab to the Refinery system that lets admins export, download, restore, and schedule backups of all refinery data.
 
-### 1. Database (migration)
+---
 
-Extend `refinery_transactions`:
-- Add `transaction_type` enum value `settlement` (or store as text — confirm current column type, add CHECK if needed).
-- New nullable columns:
-  - `settlement_kind text` — `'gold' | 'da'`
-  - `settlement_role text` — `'from' | 'to'` (which side of the pair this row represents)
-  - `counterparty_client_id uuid` — the other client
-  - `settlement_group_id uuid` — shared ID linking the two rows
-  - `settlement_apply_fee boolean default false`
-  - `settlement_amount numeric` — pure gold grams or DA amount being transferred
+### A. Database (1 migration)
 
-Add Postgres function `refinery_create_settlement(_refinery_id, _from_client, _to_client, _kind, _amount, _apply_fee, _fee_price, _date, _notes)`:
-- Validates both clients belong to the refinery and are different.
-- For gold + fee: computes `weight_730 = amount * 1000 / 730`, `fee = weight_730 * fee_price`. Charges fee to receiving client (DA balance −fee).
-- Inserts two `refinery_transactions` rows sharing one `settlement_group_id`:
-  - From row: `direction='delivery'`, `transaction_type='settlement'`, deducts gold/DA from sender.
-  - To row: `direction='receiving'`, adds gold/DA (and deducts fee in DA) to receiver.
-- Both rows go straight to `settled` status via direct balance updates (does not touch `refinery_stock` — this is an inter-client transfer, refinery stock is unchanged).
-- Writes balance snapshots into existing `previous_*` / `new_*` columns.
-- Returns the pair.
+**New table: `refinery_backups`** — stores backup metadata + payload.
+- `id`, `refinery_id`, `file_name`, `file_size_bytes`, `created_by`, `created_by_email`, `created_at`
+- `kind` enum: `manual` | `scheduled` | `safety` (auto pre-restore)
+- `payload` jsonb — full snapshot (clients, transactions, stock, movements, gold bars, price log, notes, position snapshots, profile/settings)
+- `schema_version` int (for forward compatibility)
+- RLS: only platform admins can `SELECT/INSERT/DELETE` (uses existing `is_platform_admin`)
 
-Reverse/delete: extend `refinery_reverse_transaction` to handle the settlement type by also reversing the paired row, or add a dedicated `refinery_reverse_settlement(group_id)`.
+**New table: `refinery_backup_settings`** — one row per refinery.
+- `refinery_id` (PK), `daily_enabled` bool, `daily_time` time, `keep_last` int default 30, `updated_by`, `updated_at`
+- RLS: platform admin only
 
-### 2. Server functions (`src/lib/refineries.functions.ts`)
+**New table: `refinery_audit_log`** — append-only audit trail for backup/restore ops.
+- `id`, `refinery_id`, `user_id`, `user_email`, `action` (`backup_created` | `backup_downloaded` | `backup_deleted` | `restore_started` | `restore_completed` | `restore_failed` | `settings_updated`), `file_name`, `details` jsonb, `created_at`
+- Immutable trigger blocks UPDATE/DELETE
+- RLS: platform admin SELECT, server-only INSERT
 
-- Add `RefineryTxType = "da" | "gold" | "settlement"` and new fields to `RefineryTransaction`.
-- New server fn `createSettlement({ refinery_id, from_client_id, to_client_id, kind, amount, apply_fee, fee_price, transaction_date, notes })` → calls RPC, returns both rows.
-- New server fn `getSettlement(group_id)` → returns the pair (used by receipt dialog).
-- Update `listTransactions` to also surface counterparty name (join twice or fetch via second query) so the table can show "A → B".
-- Update `deleteTransaction` / cancel to delete both rows when one side of a settlement is removed.
+**Restore RPC (`refinery_restore_backup`)** — SECURITY DEFINER plpgsql function that, in a single transaction:
+1. Verifies caller is platform admin and the backup belongs to the target refinery
+2. Deletes existing rows for the refinery from: stock_movements, transaction_gold_bars, transactions, client_notes, position_snapshots, price_log, clients, stock
+3. Re-inserts from the backup payload preserving IDs
+4. Raises on any error → full rollback
 
-### 3. UI — transaction form (`src/routes/desk.refineries.tsx`)
+---
 
-In the existing Add Transaction dialog, add `Settlement` as a third type alongside `Gold` / `DA`. When selected:
-- Show `From Client` + `To Client` selects (both required, must differ).
-- Settlement Kind: `Pure Gold` / `DA` radio.
-- Amount input (grams or DA).
-- For Gold kind only: `☑ Apply Refinery Fee` checkbox; when checked show fee price input (defaulted from receiver's `refining_fee_price`) and a live preview of `Weight @ 730` and `Total Fee`.
-- Live preview panel showing the resulting balance impact for both clients.
-- Submit calls `createSettlement`.
+### B. Server functions (`src/lib/refineries.functions.ts`)
 
-Transaction list: render settlement rows with a `SETTLEMENT` badge and `from → to` label. Hide direction column meaning for settlements (it is implicit).
+All gated with `requireSupabaseAuth` + admin check via `is_platform_admin`:
+- `createBackup({ refineryId, kind })` — snapshots all refinery data into the payload, inserts row, prunes to `keep_last`, audits
+- `listBackups({ refineryId })` — metadata only (omit payload for list)
+- `getBackupPayload({ backupId })` — returns full payload for download; audits `backup_downloaded`
+- `deleteBackup({ backupId })` — audits + deletes
+- `restoreBackup({ backupId, confirmText })` — requires `confirmText === "RESTORE"`, creates safety backup first, calls RPC, audits start/complete/fail
+- `restoreFromFile({ refineryId, payload, confirmText })` — same as above but for uploaded file; validates schema + refinery match
+- `getBackupSettings({ refineryId })` / `updateBackupSettings({ refineryId, ... })`
+- `listAuditLog({ refineryId, limit })`
 
-### 4. Receipt (`src/components/refineries/SettlementReceipt.tsx`)
+### C. Scheduled daily backup
 
-New A4 white receipt component mirroring `TransactionReceipt.tsx` style:
-- Header: ATHER GROUP / refinery name / "Settlement Receipt" / settlement number.
-- Parties block: `From Client` and `To Client` side-by-side.
-- Settlement details table: Pure Gold Amount, Weight @ 730, Fee Price, Total Refinery Fee, Fee Charged To.
-- Balance Movement table with rows for both clients (gold + DA), using existing signed color helpers.
-- Notes, signatures, footer — identical styling.
+- New public route `src/routes/api/public/hooks/refinery-daily-backup.ts` — iterates refineries with `daily_enabled = true` whose `daily_time` matches the current hour, runs `createBackup({ kind: 'scheduled' })` for each
+- Auth via `apikey` header (Supabase anon key)
+- `pg_cron` schedule hourly via `supabase--insert`
 
-Wire into the receipt dialog: when `tx.transaction_type === 'settlement'`, render `SettlementReceiptReport` instead of `TransactionReceiptReport`. Reuse the existing PDF/PNG/WhatsApp share pipeline in `desk.refineries.tsx` unchanged (it takes any React node and rasterizes it).
+### D. UI (`src/routes/desk.refineries.tsx`)
 
-### 5. Audit log
+- Add `"backup"` to the tab list, gated by `assignment.role === 'admin'` (or `is_platform_admin`)
+- New `BackupTab` component with 4 sections:
+  - **A. Create Backup** — big "Create Backup" button, shows last-created summary
+  - **B. Restore Backup** — file upload + "Restore from History" actions, modal with red warning + `RESTORE` confirmation input
+  - **C. Backup History** — table (Date / Created By / File Name / Size / Actions: Download · Restore · Delete)
+  - **D. Scheduled Backup Settings** — toggle, time picker, keep-last number, save button
+  - **Audit Log** panel beneath history showing recent backup-related actions
+- Download: serializes the payload client-side to a Blob → triggers download with filename `ather-refinery-{refinery_id_short}-backup-YYYY-MM-DD-HH-mm.json`
+- Dark ATHER Desk theme; destructive actions use `destructive`/red tokens
 
-The existing `created_by` capture on each row already records who and when. No extra audit table needed — both linked rows carry `created_by` and `created_at`.
+---
 
-### Out of scope (not requested)
+### Technical details
 
-- No changes to refinery stock movements (this is a client-to-client transfer, refinery inventory unchanged).
-- No edits to the existing Gold / DA transaction types.
-- No new permissions — uses existing `assertAccess` refinery check.
+- Backup format: JSON (single file) with shape `{ schema_version: 1, refinery: {...}, created_at, clients: [...], transactions: [...], gold_bars: [...], stock: {...}, stock_movements: [...], notes: [...], price_log: [...], position_snapshots: [...], settings: {...} }`
+- Safety backup created automatically before any restore (kind = `safety`)
+- Pruning: after each create, delete oldest backups beyond `keep_last` (excluding `safety` kind which is always kept)
+- File-size: computed from `Buffer.byteLength(JSON.stringify(payload))` server-side, stored in `file_size_bytes`
+- All admin checks use existing `public.is_platform_admin(auth.uid())`
+- Audit log includes IP via `getRequestHeader('x-forwarded-for')` and user-agent
 
-### Files touched
+### Out of scope
 
-- New migration under `supabase/migrations/`
-- `src/lib/refineries.functions.ts`
-- `src/routes/desk.refineries.tsx` (form + list + receipt dialog dispatch)
-- New `src/components/refineries/SettlementReceipt.tsx`
+- Storing payloads in object storage (kept in JSONB for atomicity; can migrate later if size grows)
+- Restoring across refineries (blocked by RPC check)
+- Partial/selective restore
