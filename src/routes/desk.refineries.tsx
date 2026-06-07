@@ -490,7 +490,6 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <th className="p-3 text-right">Purity</th>
                 <th className="p-3 text-right">DA</th>
                 <th className="p-3 text-right">Fee/g</th>
-                <th className="p-3">Status</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
