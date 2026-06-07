@@ -22,6 +22,7 @@ import { Route as PurityIndexRouteImport } from './routes/purity/index'
 import { Route as DeskIndexRouteImport } from './routes/desk.index'
 import { Route as SwapDashboardRouteImport } from './routes/swap/dashboard'
 import { Route as PurityDashboardRouteImport } from './routes/purity/dashboard'
+import { Route as DeskRefineryDashboardRouteImport } from './routes/desk.refinery-dashboard'
 import { Route as DeskRefineriesRouteImport } from './routes/desk.refineries'
 import { Route as DeskLoginRouteImport } from './routes/desk.login'
 import { Route as DeskAppIndexRouteImport } from './routes/desk.app.index'
@@ -105,6 +106,11 @@ const SwapDashboardRoute = SwapDashboardRouteImport.update({
 const PurityDashboardRoute = PurityDashboardRouteImport.update({
   id: '/purity/dashboard',
   path: '/purity/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskRefineryDashboardRoute = DeskRefineryDashboardRouteImport.update({
+  id: '/desk/refinery-dashboard',
+  path: '/desk/refinery-dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeskRefineriesRoute = DeskRefineriesRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
   '/desk/refineries': typeof DeskRefineriesRouteWithChildren
+  '/desk/refinery-dashboard': typeof DeskRefineryDashboardRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
   '/desk/refineries': typeof DeskRefineriesRouteWithChildren
+  '/desk/refinery-dashboard': typeof DeskRefineryDashboardRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk': typeof DeskIndexRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/unauthorized': typeof UnauthorizedRoute
   '/desk/login': typeof DeskLoginRoute
   '/desk/refineries': typeof DeskRefineriesRouteWithChildren
+  '/desk/refinery-dashboard': typeof DeskRefineryDashboardRoute
   '/purity/dashboard': typeof PurityDashboardRoute
   '/swap/dashboard': typeof SwapDashboardRoute
   '/desk/': typeof DeskIndexRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/desk/login'
     | '/desk/refineries'
+    | '/desk/refinery-dashboard'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk/'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/desk/login'
     | '/desk/refineries'
+    | '/desk/refinery-dashboard'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/desk/login'
     | '/desk/refineries'
+    | '/desk/refinery-dashboard'
     | '/purity/dashboard'
     | '/swap/dashboard'
     | '/desk/'
@@ -426,6 +438,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   DeskLoginRoute: typeof DeskLoginRoute
   DeskRefineriesRoute: typeof DeskRefineriesRouteWithChildren
+  DeskRefineryDashboardRoute: typeof DeskRefineryDashboardRoute
   PurityDashboardRoute: typeof PurityDashboardRoute
   SwapDashboardRoute: typeof SwapDashboardRoute
   DeskIndexRoute: typeof DeskIndexRoute
@@ -539,6 +552,13 @@ declare module '@tanstack/react-router' {
       path: '/purity/dashboard'
       fullPath: '/purity/dashboard'
       preLoaderRoute: typeof PurityDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk/refinery-dashboard': {
+      id: '/desk/refinery-dashboard'
+      path: '/desk/refinery-dashboard'
+      fullPath: '/desk/refinery-dashboard'
+      preLoaderRoute: typeof DeskRefineryDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desk/refineries': {
@@ -702,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   DeskLoginRoute: DeskLoginRoute,
   DeskRefineriesRoute: DeskRefineriesRouteWithChildren,
+  DeskRefineryDashboardRoute: DeskRefineryDashboardRoute,
   PurityDashboardRoute: PurityDashboardRoute,
   SwapDashboardRoute: SwapDashboardRoute,
   DeskIndexRoute: DeskIndexRoute,
