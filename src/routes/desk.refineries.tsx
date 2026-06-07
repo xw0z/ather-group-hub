@@ -821,7 +821,11 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 const tone: "negative" | "positive" | "neutral" =
                   g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
                 return (
-                <tr key={c.id} className="border-b border-border last:border-0">
+                <tr
+                  key={c.id}
+                  className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+                >
                   <td className="p-3 font-medium">
                     <span className="inline-flex items-center gap-2">
                       <StatusDot tone={tone} />
@@ -832,8 +836,8 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
-                  
-                  <td className="p-3 text-right">
+
+                  <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="inline-flex gap-1">
                       {canStatement && (
                         <Button
