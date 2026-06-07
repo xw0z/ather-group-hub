@@ -287,10 +287,18 @@ export const getTransaction = createServerFn({ method: "POST" })
       .from("refinery_transaction_gold_bars")
       .select("*").eq("transaction_id", data.id).order("created_at");
     const { client, ...rest } = tx as typeof tx & { client?: { name: string; phone: string | null } };
+    let created_by_name: string | null = null;
+    const createdBy = (rest as { created_by?: string | null }).created_by;
+    if (createdBy) {
+      const { data: prof } = await supabaseAdmin
+        .from("swap_profiles").select("username").eq("id", createdBy).maybeSingle();
+      created_by_name = (prof as { username?: string } | null)?.username ?? null;
+    }
     return {
       ...rest,
       client_name: client?.name ?? "",
       client_phone: client?.phone ?? null,
+      created_by_name,
       bars: (bars ?? []) as RefineryGoldBar[],
     } as RefineryTransaction;
   });
