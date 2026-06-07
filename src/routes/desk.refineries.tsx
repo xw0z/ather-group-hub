@@ -46,6 +46,8 @@ export const Route = createFileRoute("/desk/refineries")({
   validateSearch: (s: Record<string, unknown>) => ({
     r: typeof s.r === "string" ? s.r : undefined,
     tab: typeof s.tab === "string" ? (s.tab as Tab) : ("dashboard" as Tab),
+    action: s.action === "new" || s.action === "edit" ? (s.action as "new" | "edit") : undefined,
+    txId: typeof s.txId === "string" ? s.txId : undefined,
   }),
   component: RefineriesPage,
 });
