@@ -711,13 +711,22 @@ function TransactionsTab({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
                 </div>
-                <p className="text-sm font-medium truncate mt-1">{t.client_name}</p>
+                <p className="text-sm font-medium truncate mt-1">
+                  {t.client_name}
+                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {t.transaction_date} · <span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span>
+                  {t.transaction_date} · {t.transaction_type === "settlement" ? <span className="uppercase">SETTLEMENT</span> : <><span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span></>}
                 </p>
                 <div className="mt-2 text-sm tabular-nums">
                   {t.transaction_type === "gold" ? (
                     <>Gross {fmtG(Number(t.total_gross_weight))} · Pure {fmtG(Number(t.total_pure_weight))}</>
+                  ) : t.transaction_type === "settlement" ? (
+                    t.settlement_kind === "gold"
+                      ? <>Gold {fmtG(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
+                      : <>DA {fmtDA(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
                   ) : (
                     <>DA {fmtDA(Number(t.da_amount))}</>
                   )}
