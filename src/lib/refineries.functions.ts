@@ -750,3 +750,289 @@ export const listRefineryStaff = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+// =========================================================
+// Account Statement
+// =========================================================
+export type StatementRowType =
+  | "gold_received"
+  | "gold_delivered"
+  | "refining_fee"
+  | "da_received"
+  | "da_paid"
+  | "adjustment"
+  | "reversal";
+
+export type StatementRow = {
+  date: string;
+  created_at: string;
+  reference: string;
+  type: StatementRowType;
+  description: string;
+  client_name: string | null;
+  gold_debit: number;
+  gold_credit: number;
+  da_debit: number;
+  da_credit: number;
+  running_gold: number;
+  running_da: number;
+};
+
+export type AccountStatement = {
+  refinery: { id: string; name: string };
+  range: { from: string; to: string };
+  statement_number: string;
+  generated_at: string;
+  generated_by: string;
+  opening_gold: number;
+  opening_da: number;
+  closing_gold: number;
+  closing_da: number;
+  rows: StatementRow[];
+  summary: {
+    total_gold_received: number;
+    total_gold_delivered: number;
+    total_da_received: number;
+    total_da_paid: number;
+    total_refining_fees: number;
+    transaction_count: number;
+  };
+};
+
+const dateStrR = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
+export const getAccountStatement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refineryId: z.string().uuid(),
+      from: dateStrR,
+      to: dateStrR,
+    }).parse(d),
+  )
+  .handler(async ({ data, context }): Promise<AccountStatement> => {
+    await assertAccess(context.userId, data.refineryId);
+
+    const { data: ref, error: rErr } = await supabaseAdmin
+      .from("refineries").select("id, name").eq("id", data.refineryId).single();
+    if (rErr) throw new Error(rErr.message);
+
+    const fromTs = `${data.from}T00:00:00.000Z`;
+    const toTs = `${data.to}T23:59:59.999Z`;
+
+    // Opening balances: latest movement strictly before window start
+    const { data: priorRows } = await supabaseAdmin
+      .from("refinery_stock_movements")
+      .select("gold_stock_after, da_stock_after, created_at")
+      .eq("refinery_id", data.refineryId)
+      .lt("created_at", fromTs)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    let openingGold = 0;
+    let openingDa = 0;
+    if (priorRows && priorRows.length > 0) {
+      openingGold = Number(priorRows[0].gold_stock_after);
+      openingDa = Number(priorRows[0].da_stock_after);
+    }
+
+    // Movements in window
+    const { data: movs, error: mErr } = await supabaseAdmin
+      .from("refinery_stock_movements")
+      .select("id, created_at, movement_type, gold_change, da_change, gold_stock_before, gold_stock_after, da_stock_before, da_stock_after, notes, client_id, transaction_id")
+      .eq("refinery_id", data.refineryId)
+      .gte("created_at", fromTs)
+      .lte("created_at", toTs)
+      .order("created_at", { ascending: true });
+    if (mErr) throw new Error(mErr.message);
+
+    const txIds = Array.from(new Set((movs ?? []).map((m) => m.transaction_id).filter((x): x is string => !!x)));
+    const clientIds = Array.from(new Set((movs ?? []).map((m) => m.client_id).filter((x): x is string => !!x)));
+
+    const [{ data: txs }, { data: clients }] = await Promise.all([
+      txIds.length
+        ? supabaseAdmin
+            .from("refinery_transactions")
+            .select("id, transaction_number, transaction_date, total_refining_fee, total_pure_weight, da_amount, transaction_type, direction")
+            .in("id", txIds)
+        : Promise.resolve({ data: [] as Array<{
+            id: string; transaction_number: string; transaction_date: string;
+            total_refining_fee: number; total_pure_weight: number; da_amount: number;
+            transaction_type: "da" | "gold"; direction: "receiving" | "delivery";
+          }> }),
+      clientIds.length
+        ? supabaseAdmin.from("refinery_clients").select("id, name").in("id", clientIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    ]);
+    const txMap = new Map((txs ?? []).map((t) => [t.id, t]));
+    const cliMap = new Map((clients ?? []).map((c) => [c.id, c.name as string]));
+
+    const rows: StatementRow[] = [];
+    let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
+    const txCounted = new Set<string>();
+
+    for (const m of movs ?? []) {
+      const tx = m.transaction_id ? txMap.get(m.transaction_id) : null;
+      const clientName = m.client_id ? (cliMap.get(m.client_id) ?? null) : null;
+      const dateStr = tx?.transaction_date ?? String(m.created_at).slice(0, 10);
+      const reference = tx?.transaction_number ?? `MOV-${String(m.id).slice(0, 8).toUpperCase()}`;
+      const gold = Number(m.gold_change);
+      const da = Number(m.da_change);
+      const ga = Number(m.gold_stock_after);
+      const dasa = Number(m.da_stock_after);
+
+      let rowType: StatementRowType = "adjustment";
+      let description = "Balance Adjustment";
+      switch (m.movement_type) {
+        case "receiving_gold":
+          rowType = "gold_received";
+          description = `Gold Received${clientName ? ` from ${clientName}` : ""}`;
+          totalGoldRecv += Math.max(gold, 0);
+          if (tx) { totalFees += Number(tx.total_refining_fee || 0); txCounted.add(tx.id); }
+          break;
+        case "delivery_gold":
+          rowType = "gold_delivered";
+          description = `Gold Delivered${clientName ? ` to ${clientName}` : ""}`;
+          totalGoldDeliv += Math.max(-gold, 0);
+          if (tx) txCounted.add(tx.id);
+          break;
+        case "receiving_da":
+          rowType = "da_received";
+          description = `DA Payment Received${clientName ? ` from ${clientName}` : ""}`;
+          totalDaRecv += Math.max(da, 0);
+          if (tx) txCounted.add(tx.id);
+          break;
+        case "delivery_da":
+          rowType = "da_paid";
+          description = `DA Payment Paid${clientName ? ` to ${clientName}` : ""}`;
+          totalDaPaid += Math.max(-da, 0);
+          if (tx) txCounted.add(tx.id);
+          break;
+        case "adjustment":
+          rowType = "adjustment";
+          description = m.notes ? `Adjustment — ${m.notes}` : "Balance Adjustment";
+          break;
+        case "reversal":
+          rowType = "reversal";
+          description = m.notes ? `Reversal — ${m.notes}` : "Reversal";
+          break;
+      }
+
+      rows.push({
+        date: dateStr,
+        created_at: String(m.created_at),
+        reference,
+        type: rowType,
+        description,
+        client_name: clientName,
+        gold_debit: gold < 0 ? -gold : 0,
+        gold_credit: gold > 0 ? gold : 0,
+        da_debit: da < 0 ? -da : 0,
+        da_credit: da > 0 ? da : 0,
+        running_gold: ga,
+        running_da: dasa,
+      });
+
+      // For receiving_gold, also emit a derived "Refining Fee" line (client side; no stock movement)
+      if (m.movement_type === "receiving_gold" && tx && Number(tx.total_refining_fee) > 0) {
+        rows.push({
+          date: dateStr,
+          created_at: String(m.created_at),
+          reference,
+          type: "refining_fee",
+          description: `Refining Fee${clientName ? ` — ${clientName}` : ""}`,
+          client_name: clientName,
+          gold_debit: 0,
+          gold_credit: 0,
+          da_debit: 0,
+          da_credit: 0,
+          running_gold: ga,
+          running_da: dasa,
+        });
+      }
+    }
+
+    const closingGold = rows.length > 0 ? rows[rows.length - 1].running_gold : openingGold;
+    const closingDa = rows.length > 0 ? rows[rows.length - 1].running_da : openingDa;
+
+    // Generator
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles").select("username, display_name").eq("id", context.userId).maybeSingle();
+    let genName = prof?.display_name ?? prof?.username ?? null;
+    if (!genName) {
+      const { data: ru } = await supabaseAdmin
+        .from("refinery_users").select("display_name").eq("user_id", context.userId).maybeSingle();
+      genName = ru?.display_name ?? "User";
+    }
+
+    const stmtNum = `STMT-${data.from.replace(/-/g, "")}-${data.to.replace(/-/g, "")}-${Date.now().toString(36).slice(-5).toUpperCase()}`;
+
+    return {
+      refinery: { id: ref.id, name: ref.name },
+      range: { from: data.from, to: data.to },
+      statement_number: stmtNum,
+      generated_at: new Date().toISOString(),
+      generated_by: genName,
+      opening_gold: openingGold,
+      opening_da: openingDa,
+      closing_gold: closingGold,
+      closing_da: closingDa,
+      rows,
+      summary: {
+        total_gold_received: totalGoldRecv,
+        total_gold_delivered: totalGoldDeliv,
+        total_da_received: totalDaRecv,
+        total_da_paid: totalDaPaid,
+        total_refining_fees: totalFees,
+        transaction_count: txCounted.size,
+      },
+    };
+  });
+
+export const logRefineryReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      refinery_id: z.string().uuid(),
+      date_from: dateStrR,
+      date_to: dateStrR,
+      statement_number: z.string().max(120).nullable().optional(),
+      format: z.enum(["PNG", "PDF", "PREVIEW"]),
+      channel: z.enum(["download", "whatsapp", "preview", "copy"]).default("download"),
+      details: z.record(z.string(), z.unknown()).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refinery_id);
+    const { data: prof } = await supabaseAdmin
+      .from("swap_profiles").select("username, display_name").eq("id", context.userId).maybeSingle();
+    const username = prof?.display_name ?? prof?.username ?? null;
+    const { error } = await supabaseAdmin.from("refinery_report_history").insert({
+      refinery_id: data.refinery_id,
+      report_type: "account_statement",
+      date_from: data.date_from,
+      date_to: data.date_to,
+      statement_number: data.statement_number ?? null,
+      format: data.format,
+      channel: data.channel,
+      generated_by: context.userId,
+      generated_by_username: username,
+      details: (data.details ?? null) as never,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listRefineryReportHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_report_history")
+      .select("id, date_from, date_to, statement_number, format, channel, generated_by_username, created_at")
+      .eq("refinery_id", data.refineryId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
