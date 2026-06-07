@@ -45,18 +45,20 @@ import { TransactionReceiptReport } from "@/components/refineries/TransactionRec
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useLang } from "@/lib/purity-i18n";
 
 
-type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile";
-const TABS: { id: Tab; label: string; adminOnly?: boolean }[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "clients", label: "Clients" },
-  { id: "transactions", label: "Transactions" },
-  { id: "buysell", label: "Buy / Sell" },
-  { id: "stock", label: "Stock" },
-  { id: "netposition", label: "Net Position" },
-  { id: "backup", label: "Backup", adminOnly: true },
-  { id: "profile", label: "Profile" },
+type Tab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "backup" | "profile" | "translations";
+const TAB_DEFS: { id: Tab; key: string; adminOnly?: boolean }[] = [
+  { id: "dashboard", key: "ref.tab.dashboard" },
+  { id: "clients", key: "ref.tab.clients" },
+  { id: "transactions", key: "ref.tab.transactions" },
+  { id: "buysell", key: "ref.tab.buysell" },
+  { id: "stock", key: "ref.tab.stock" },
+  { id: "netposition", key: "ref.tab.netposition" },
+  { id: "backup", key: "ref.tab.backup", adminOnly: true },
+  { id: "profile", key: "ref.tab.profile" },
+  { id: "translations", key: "ref.tab.translations", adminOnly: true },
 ];
 
 
