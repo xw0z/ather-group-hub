@@ -1021,13 +1021,13 @@ function TransactionFormPage({
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create transaction"}</Button>
-          </DialogFooter>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : isEdit ? "Save changes" : "Create transaction"}</Button>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Card>
+    </div>
   );
 }
 
