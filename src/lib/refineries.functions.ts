@@ -554,7 +554,17 @@ export type SettlementPair = {
   kind: "gold" | "da";
   amount: number;
   apply_fee: boolean;
+  /** Legacy: kept for back-compat. Equals to_fee_price. */
   fee_price: number;
+  from_fee_price: number;
+  to_fee_price: number;
+  /** From-client credit (DA). */
+  from_fee_credit: number;
+  /** To-client debit (DA). */
+  to_fee_debit: number;
+  /** Net refinery fee profit = to_fee_debit - from_fee_credit. */
+  net_fee_profit: number;
+  /** Legacy fields kept for back-compat; net_fee_profit is the new source of truth. */
   total_fee: number;
   weight_730: number;
   notes: string | null;
@@ -573,6 +583,7 @@ export type SettlementPair = {
     previous_da: number; new_da: number;
   };
 };
+
 
 export const getSettlement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
