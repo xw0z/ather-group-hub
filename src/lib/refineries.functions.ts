@@ -1220,6 +1220,7 @@ export type RefineryDashboardOverview = {
   stock: {
     pure_gold_stock: number;
     da_stock: number;
+    silver_stock: number;
     total_bars: number;
     average_purity: number;
   };
