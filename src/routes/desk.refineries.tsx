@@ -21,18 +21,21 @@ import {
   listRefineries, getMyRefineryAssignment,
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
+  createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
   type Refinery, type RefineryClient, type RefineryTransaction,
   type RefineryAssignment, type RefineryDirection, type RefineryTxType,
-  type AccountStatement,
+  type AccountStatement, type SettlementPair,
 } from "@/lib/refineries.functions";
 import { createRoot } from "react-dom/client";
 import jsPDF from "jspdf";
 import { AccountStatementReport } from "@/components/refineries/AccountStatement";
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
+import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 type Tab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
@@ -424,11 +427,16 @@ function RecentTxTable({ rows }: { rows: Array<RefineryTransaction & { client_na
             <tr key={t.id} className="border-b border-border last:border-0">
               <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
               <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
-              <td className="p-3">{t.client_name}</td>
-              <td className="p-3 capitalize">{t.direction}</td>
+              <td className="p-3">
+                {t.client_name}
+                {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                  <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                )}
+              </td>
+              <td className="p-3 capitalize">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
               <td className="p-3 uppercase">{t.transaction_type}</td>
-              <td className="p-3 text-right tabular-nums">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-              <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
+              <td className="p-3 text-right tabular-nums">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
+              <td className="p-3 text-right tabular-nums">{t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da") ? fmtDA(Number(t.da_amount)) : (Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—")}</td>
             </tr>
           ))}
         </tbody>
@@ -703,13 +711,22 @@ function TransactionsTab({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
                 </div>
-                <p className="text-sm font-medium truncate mt-1">{t.client_name}</p>
+                <p className="text-sm font-medium truncate mt-1">
+                  {t.client_name}
+                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {t.transaction_date} · <span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span>
+                  {t.transaction_date} · {t.transaction_type === "settlement" ? <span className="uppercase">SETTLEMENT</span> : <><span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span></>}
                 </p>
                 <div className="mt-2 text-sm tabular-nums">
                   {t.transaction_type === "gold" ? (
                     <>Gross {fmtG(Number(t.total_gross_weight))} · Pure {fmtG(Number(t.total_pure_weight))}</>
+                  ) : t.transaction_type === "settlement" ? (
+                    t.settlement_kind === "gold"
+                      ? <>Gold {fmtG(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
+                      : <>DA {fmtDA(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
                   ) : (
                     <>DA {fmtDA(Number(t.da_amount))}</>
                   )}
@@ -721,7 +738,7 @@ function TransactionsTab({
               <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(t.id)}>
                 <FileText className="h-3.5 w-3.5 mr-1" /> Receipt
               </Button>
-              {!readOnly && t.status !== "cancelled" && (
+              {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
                 <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", t.id)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
@@ -764,18 +781,27 @@ function TransactionsTab({
                 <tr key={t.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
-                  <td className="p-3 whitespace-nowrap">{t.client_name}</td>
-                  <td className="p-3 capitalize whitespace-nowrap">{t.direction}</td>
-                  <td className="p-3 uppercase whitespace-nowrap">{t.transaction_type}</td>
+                  <td className="p-3 whitespace-nowrap">
+                    {t.client_name}
+                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                    )}
+                  </td>
+                  <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
+                  <td className="p-3 uppercase whitespace-nowrap">
+                    {t.transaction_type === "settlement"
+                      ? <span className="text-ember font-semibold">SETTLEMENT</span>
+                      : t.transaction_type}
+                  </td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "da" ? fmtDA(Number(t.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.settlement_amount ?? t.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")) ? fmtDA(Number(t.settlement_amount ?? t.da_amount)) : "—"}</td>
                   <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
                   
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && t.status !== "cancelled" && (
+                      {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
                         <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
                       {canDelete && (
@@ -819,6 +845,14 @@ function TransactionFormPage({
   const [bars, setBars] = useState<Bar[]>([{ item_number: "1", item_type: "bar", gross_weight: "", purity: "" }]);
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEdit);
+
+  // Settlement-only state
+  const [fromClientId, setFromClientId] = useState<string>("");
+  const [toClientId, setToClientId] = useState<string>("");
+  const [settlementKind, setSettlementKind] = useState<"gold" | "da">("gold");
+  const [settlementAmount, setSettlementAmount] = useState<string>("");
+  const [applyFee, setApplyFee] = useState<boolean>(false);
+  const [settlementFeePrice, setSettlementFeePrice] = useState<string>("");
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
@@ -868,14 +902,59 @@ function TransactionFormPage({
     return { gross, pure, avg, w730, fee: w730 * feeP };
   }, [bars, feePrice]);
 
+  // Settlement live preview
+  const fromClient = clients.find((c) => c.id === fromClientId);
+  const toClient = clients.find((c) => c.id === toClientId);
+  useEffect(() => {
+    if (type === "settlement" && settlementKind === "gold" && applyFee && toClient && !settlementFeePrice) {
+      setSettlementFeePrice(String(toClient.refining_fee_price));
+    }
+  }, [type, settlementKind, applyFee, toClient, settlementFeePrice]);
+
+  const settlementPreview = useMemo(() => {
+    const amt = Number(settlementAmount) || 0;
+    const fp = Number(settlementFeePrice) || 0;
+    const w730 = settlementKind === "gold" && applyFee && amt > 0 ? (amt * 1000) / 730 : 0;
+    const fee = w730 * fp;
+    return { amt, fp, w730, fee };
+  }, [settlementAmount, settlementFeePrice, settlementKind, applyFee]);
+
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!clientId) { toast.error("Select a client"); return; }
     setSaving(true);
     try {
+      // ----- Settlement branch -----
+      if (type === "settlement") {
+        if (isEdit) { setSaving(false); toast.error("Settlements cannot be edited; delete and recreate."); return; }
+        if (!fromClientId || !toClientId) { setSaving(false); toast.error("Select both clients"); return; }
+        if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
+        const amt = Number(settlementAmount);
+        if (!(amt > 0)) { setSaving(false); toast.error("Amount must be greater than 0"); return; }
+        const fp = Number(settlementFeePrice) || 0;
+        if (settlementKind === "gold" && applyFee && !(fp >= 0)) {
+          setSaving(false); toast.error("Fee price must be ≥ 0"); return;
+        }
+        await createSettlement({ data: {
+          refinery_id: refinery.id,
+          from_client_id: fromClientId,
+          to_client_id: toClientId,
+          kind: settlementKind,
+          amount: amt,
+          apply_fee: settlementKind === "gold" ? applyFee : false,
+          fee_price: settlementKind === "gold" && applyFee ? fp : 0,
+          transaction_date: date,
+          notes: notes || null,
+        }});
+        toast.success("Settlement created");
+        onSaved();
+        return;
+      }
+
+      // ----- Existing Gold / DA branch -----
+      if (!clientId) { toast.error("Select a client"); setSaving(false); return; }
       type TxPayload = {
         refinery_id: string; client_id: string;
         direction: RefineryDirection; transaction_type: RefineryTxType;
@@ -943,52 +1022,77 @@ function TransactionFormPage({
       <Card className="p-4 sm:p-6">
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-            <div className="space-y-2">
-              <Label>Direction</Label>
-              <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="receiving">Receiving</SelectItem>
-                  <SelectItem value="delivery">Delivery</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {type !== "settlement" ? (
+              <div className="space-y-2">
+                <Label>Direction</Label>
+                <Select value={direction} onValueChange={(v) => setDirection(v as RefineryDirection)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receiving">Receiving</SelectItem>
+                    <SelectItem value="delivery">Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as RefineryTxType)}>
+              <Select value={type} onValueChange={(v) => setType(v as RefineryTxType)} disabled={isEdit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gold">Gold</SelectItem>
                   <SelectItem value="da">DA</SelectItem>
+                  <SelectItem value="settlement">Settlement (Client → Client)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Client *</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-          </div>
-
-          {client && (
-            <Card className="p-3 bg-muted/20">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Purity balance: <span className={`tabular-nums ${balClass(Number(client.purity_balance))}`}>{signed(Number(client.purity_balance), fmtG)}</span></div>
-                <div>DA balance: <span className={`tabular-nums ${balClass(Number(client.da_balance))}`}>{signed(Number(client.da_balance), fmtDA)}</span></div>
+          {type !== "settlement" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Client *</Label>
+                  <Select value={clientId} onValueChange={setClientId}>
+                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                    <SelectContent>
+                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
               </div>
-            </Card>
+
+              {client && (
+                <Card className="p-3 bg-muted/20">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>Purity balance: <span className={`tabular-nums ${balClass(Number(client.purity_balance))}`}>{signed(Number(client.purity_balance), fmtG)}</span></div>
+                    <div>DA balance: <span className={`tabular-nums ${balClass(Number(client.da_balance))}`}>{signed(Number(client.da_balance), fmtDA)}</span></div>
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+
+          {type === "settlement" && (
+            <SettlementFields
+              clients={clients}
+              fromClientId={fromClientId} setFromClientId={setFromClientId}
+              toClientId={toClientId} setToClientId={setToClientId}
+              fromClient={fromClient} toClient={toClient}
+              kind={settlementKind} setKind={setSettlementKind}
+              amount={settlementAmount} setAmount={setSettlementAmount}
+              applyFee={applyFee} setApplyFee={setApplyFee}
+              feePrice={settlementFeePrice} setFeePrice={setSettlementFeePrice}
+              preview={settlementPreview}
+            />
           )}
 
           {type === "da" && (
@@ -1169,20 +1273,176 @@ function TransactionFormPage({
 }
 
 // =============================================================
+// Settlement form fields
+// =============================================================
+function SettlementFields({
+  clients, fromClientId, setFromClientId, toClientId, setToClientId,
+  fromClient, toClient, kind, setKind, amount, setAmount,
+  applyFee, setApplyFee, feePrice, setFeePrice, preview,
+}: {
+  clients: RefineryClient[];
+  fromClientId: string; setFromClientId: (s: string) => void;
+  toClientId: string; setToClientId: (s: string) => void;
+  fromClient?: RefineryClient; toClient?: RefineryClient;
+  kind: "gold" | "da"; setKind: (k: "gold" | "da") => void;
+  amount: string; setAmount: (s: string) => void;
+  applyFee: boolean; setApplyFee: (b: boolean) => void;
+  feePrice: string; setFeePrice: (s: string) => void;
+  preview: { amt: number; fp: number; w730: number; fee: number };
+}) {
+  const fromOptions = clients.filter((c) => c.id !== toClientId);
+  const toOptions = clients.filter((c) => c.id !== fromClientId);
+
+  const amt = preview.amt;
+  const fromGoldImpact = kind === "gold" ? -amt : 0;
+  const fromDaImpact = kind === "da" ? -amt : 0;
+  const toGoldImpact = kind === "gold" ? amt : 0;
+  const toDaImpact = (kind === "da" ? amt : 0) - (kind === "gold" && applyFee ? preview.fee : 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>From Client *</Label>
+          <Select value={fromClientId} onValueChange={setFromClientId}>
+            <SelectTrigger><SelectValue placeholder="Sender" /></SelectTrigger>
+            <SelectContent>
+              {fromOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {fromClient && (
+            <p className="text-xs text-muted-foreground">
+              Gold <span className={`tabular-nums ${balClass(Number(fromClient.purity_balance))}`}>{signed(Number(fromClient.purity_balance), fmtG)}</span>
+              {" · "}DA <span className={`tabular-nums ${balClass(Number(fromClient.da_balance))}`}>{signed(Number(fromClient.da_balance), fmtDA)}</span>
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label>To Client *</Label>
+          <Select value={toClientId} onValueChange={setToClientId}>
+            <SelectTrigger><SelectValue placeholder="Receiver" /></SelectTrigger>
+            <SelectContent>
+              {toOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {toClient && (
+            <p className="text-xs text-muted-foreground">
+              Gold <span className={`tabular-nums ${balClass(Number(toClient.purity_balance))}`}>{signed(Number(toClient.purity_balance), fmtG)}</span>
+              {" · "}DA <span className={`tabular-nums ${balClass(Number(toClient.da_balance))}`}>{signed(Number(toClient.da_balance), fmtDA)}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Settlement Kind *</Label>
+          <Select value={kind} onValueChange={(v) => setKind(v as "gold" | "da")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gold">Pure Gold Settlement</SelectItem>
+              <SelectItem value="da">DA Settlement</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>{kind === "gold" ? "Pure Gold Amount (g) *" : "DA Amount *"}</Label>
+          <Input type="number" step="any" min="0" inputMode="decimal" value={amount}
+            onChange={(e) => setAmount(e.target.value)} required />
+        </div>
+      </div>
+
+      {kind === "gold" && (
+        <Card className="p-4 space-y-3 bg-muted/10">
+          <div className="flex items-start gap-3">
+            <Checkbox id="apply-fee" checked={applyFee}
+              onCheckedChange={(v) => setApplyFee(Boolean(v))} className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="apply-fee" className="cursor-pointer font-medium">Apply Refinery Fee</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When checked, charges the receiving client a refining fee based on Weight @ 730.
+              </p>
+            </div>
+          </div>
+          {applyFee && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border/40">
+              <div className="space-y-2">
+                <Label>Refinery Fee Price (DA/g)</Label>
+                <Input type="number" step="0.01" min="0" inputMode="decimal" value={feePrice}
+                  onChange={(e) => setFeePrice(e.target.value)} />
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Weight @ 730</span><span className="tabular-nums">{fmtG(preview.w730)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Refinery Fee</span><span className="tabular-nums font-semibold text-ember">{fmtDA(preview.fee)}</span></div>
+                <p className="text-xs text-muted-foreground pt-1">Charged to {toClient?.name ?? "receiving client"}</p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {amt > 0 && fromClient && toClient && (
+        <Card className="p-4 bg-muted/10">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Preview — Resulting Balances</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <p className="font-medium">{fromClient.name} <span className="text-xs text-muted-foreground">(From)</span></p>
+              {fromGoldImpact !== 0 && (
+                <div className="flex justify-between"><span>Gold</span><span className="tabular-nums">{fmtG(Number(fromClient.purity_balance))} → <span className={balClass(Number(fromClient.purity_balance) + fromGoldImpact)}>{fmtG(Number(fromClient.purity_balance) + fromGoldImpact)}</span></span></div>
+              )}
+              {fromDaImpact !== 0 && (
+                <div className="flex justify-between"><span>DA</span><span className="tabular-nums">{fmtDA(Number(fromClient.da_balance))} → <span className={balClass(Number(fromClient.da_balance) + fromDaImpact)}>{fmtDA(Number(fromClient.da_balance) + fromDaImpact)}</span></span></div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium">{toClient.name} <span className="text-xs text-muted-foreground">(To)</span></p>
+              {toGoldImpact !== 0 && (
+                <div className="flex justify-between"><span>Gold</span><span className="tabular-nums">{fmtG(Number(toClient.purity_balance))} → <span className={balClass(Number(toClient.purity_balance) + toGoldImpact)}>{fmtG(Number(toClient.purity_balance) + toGoldImpact)}</span></span></div>
+              )}
+              {toDaImpact !== 0 && (
+                <div className="flex justify-between"><span>DA</span><span className="tabular-nums">{fmtDA(Number(toClient.da_balance))} → <span className={balClass(Number(toClient.da_balance) + toDaImpact)}>{fmtDA(Number(toClient.da_balance) + toDaImpact)}</span></span></div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// =============================================================
 // Receipt dialog
 // =============================================================
 function TransactionReceiptDialog({
   refinery, txId, onClose,
 }: { refinery: Refinery; txId: string; onClose: () => void }) {
   const [tx, setTx] = useState<RefineryTransaction | null>(null);
+  const [settlement, setSettlement] = useState<SettlementPair | null>(null);
   const [busy, setBusy] = useState<null | "pdf" | "png" | "share">(null);
 
   useEffect(() => {
-    getTransaction({ data: { id: txId } }).then((t) => setTx(t as RefineryTransaction)).catch(() => {});
+    let cancelled = false;
+    getTransaction({ data: { id: txId } })
+      .then(async (t) => {
+        if (cancelled) return;
+        const tt = t as RefineryTransaction;
+        setTx(tt);
+        if (tt.transaction_type === "settlement" && tt.settlement_group_id) {
+          try {
+            const pair = await getSettlement({ data: { group_id: tt.settlement_group_id } });
+            if (!cancelled) setSettlement(pair);
+          } catch { /* ignore */ }
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [txId]);
+
+  const isSettlement = tx?.transaction_type === "settlement" && Boolean(settlement);
 
   const renderReceiptCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     if (!tx) return null;
+    if (tx.transaction_type === "settlement" && !settlement) return null;
     const host = document.createElement("div");
     host.style.position = "fixed";
     host.style.left = "-99999px";
@@ -1193,7 +1453,11 @@ function TransactionReceiptDialog({
     const root = createRoot(host);
     try {
       await new Promise<void>((resolve) => {
-        root.render(<TransactionReceiptReport tx={tx} refineryName={refinery.name} />);
+        root.render(
+          isSettlement && settlement
+            ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
+            : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />
+        );
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
       const target = host.firstElementChild as HTMLElement | null;
@@ -1205,7 +1469,7 @@ function TransactionReceiptDialog({
       root.unmount();
       host.remove();
     }
-  }, [tx, refinery.name]);
+  }, [tx, refinery.name, settlement, isSettlement]);
 
   const createReceiptPdfBlob = useCallback(async (): Promise<Blob> => {
     const canvas = await renderReceiptCanvas();
@@ -1303,12 +1567,14 @@ function TransactionReceiptDialog({
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1.5rem)] sm:w-full">
-        <DialogHeader><DialogTitle>Transaction Receipt</DialogTitle></DialogHeader>
-        {!tx ? <p className="text-muted-foreground text-sm">Loading…</p> : (
+        <DialogHeader><DialogTitle>{tx?.transaction_type === "settlement" ? "Settlement Receipt" : "Transaction Receipt"}</DialogTitle></DialogHeader>
+        {!tx || (tx.transaction_type === "settlement" && !settlement) ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
             <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
               <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
-                <TransactionReceiptReport tx={tx} refineryName={refinery.name} />
+                {isSettlement && settlement
+                  ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
+                  : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />}
               </div>
             </div>
             <DialogFooter className="gap-2 flex-col sm:flex-row">
