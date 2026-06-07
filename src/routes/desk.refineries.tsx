@@ -254,7 +254,7 @@ function TopBar({
 // Shell with tabs
 // =============================================================
 function RefineryShell({
-  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut,
+  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut, embedded,
 }: {
   refinery: Refinery;
   assignment: RefineryAssignment;
@@ -265,55 +265,77 @@ function RefineryShell({
   onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
   onBack?: () => void;
   onSignOut: () => void;
+  embedded?: boolean;
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
+
+  const tabsBar = (
+    <nav className="border-b border-border bg-card/20">
+      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
+        {embedded && onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+          </Button>
+        )}
+        <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onTab(t.id)}
+              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+                tab === t.id
+                  ? "border-ember text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+
+  const body = (
+    <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-6 sm:py-8`}>
+      {showTxForm ? (
+        <TransactionFormPage
+          refinery={refinery}
+          editingId={action === "edit" ? txId ?? null : null}
+          onClose={() => onAction(undefined, undefined)}
+          onSaved={() => onAction(undefined, undefined)}
+        />
+      ) : (
+        <>
+          {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
+          {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
+          {tab === "transactions" && (
+            <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
+          )}
+          {tab === "stock" && <StockTab refinery={refinery} />}
+          {tab === "profile" && <ProfileTab />}
+        </>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <div className="mb-4">
+          <h1 className="font-display text-2xl">{refinery.name}</h1>
+        </div>
+        {tabsBar}
+        {body}
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
-      <nav className="border-b border-border bg-card/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 overflow-x-auto">
-          <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onTab(t.id)}
-                className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                  tab === t.id
-                    ? "border-ember text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-
-        </div>
-      </nav>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
-        {showTxForm ? (
-          <TransactionFormPage
-            refinery={refinery}
-            editingId={action === "edit" ? txId ?? null : null}
-            onClose={() => onAction(undefined, undefined)}
-            onSaved={() => onAction(undefined, undefined)}
-          />
-        ) : (
-          <>
-            {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
-            {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
-            {tab === "transactions" && (
-              <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
-            )}
-            {tab === "stock" && <StockTab refinery={refinery} />}
-            {tab === "profile" && <ProfileTab />}
-          </>
-        )}
-      </div>
-
-
+      {tabsBar}
+      {body}
     </main>
   );
 }
