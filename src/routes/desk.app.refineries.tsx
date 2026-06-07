@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SwapDashboard } from "./swap/dashboard";
 
-type RefTab = "dashboard" | "clients" | "transactions" | "stock" | "profile";
+type RefTab = "dashboard" | "clients" | "transactions" | "buysell" | "stock" | "netposition" | "profile";
 
 export const Route = createFileRoute("/desk/app/refineries")({
   head: () => ({
