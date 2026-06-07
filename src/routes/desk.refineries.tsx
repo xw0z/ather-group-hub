@@ -1052,16 +1052,16 @@ function ClientDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>{editing ? "Purity balance (g)" : "Initial purity balance (g)"}</Label>
-              <Input type="number" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>{editing ? "DA balance" : "Initial DA balance"}</Label>
-              <Input type="number" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Refining fee price (DA/g)</Label>
-            <Input type="number" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
+            <Input type="number" inputMode="decimal" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -1540,7 +1540,7 @@ function TransactionFormPage({
           {type === "da" && (
             <div className="space-y-2">
               <Label>DA amount *</Label>
-              <Input type="number" step="any" min="0" value={daAmount} onChange={(e) => setDaAmount(e.target.value)} required />
+              <Input type="number" inputMode="decimal" step="any" min="0" value={daAmount} onChange={(e) => setDaAmount(e.target.value)} required />
             </div>
           )}
 
@@ -2839,7 +2839,7 @@ function NewStockAdjustmentDialog({
           </div>
           <div className="space-y-2">
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
-            <Input type="number" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+            <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
               Current: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
             </p>
@@ -4098,15 +4098,15 @@ function BuySellDialog({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>Weight (g)</Label>
-              <Input type="number" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
             </div>
             <div>
               <Label>Purity (‰)</Label>
-              <Input type="number" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div>
               <Label>Price / g (DA)</Label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <Input type="number" inputMode="decimal" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
           </div>
           <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between">
@@ -4906,7 +4906,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
             <div>
               <Label className="text-xs uppercase">Keep Last N Backups</Label>
               <Input
-                type="number" min={1} max={500}
+                type="number" inputMode="decimal" min={1} max={500}
                 value={settings.keep_last}
                 onChange={(e) => setSettings({ ...settings, keep_last: Math.max(1, Math.min(500, Number(e.target.value) || 30)) })}
                 className="mt-2"
