@@ -133,7 +133,12 @@ function RefineriesPage() {
       refinery={activeRefinery}
       assignment={assignment!}
       tab={search.tab}
+      action={search.action}
+      txId={search.txId}
       onTab={(t) => navigate({ to: "/desk/refineries", search: { r: activeRefinery.id, tab: t } })}
+      onAction={(action, txId) =>
+        navigate({ to: "/desk/refineries", search: { r: activeRefinery.id, tab: "transactions", action, txId } })
+      }
       onBack={
         assignment?.isAdmin
           ? () => navigate({ to: "/desk/refineries", search: { r: undefined, tab: "dashboard" } })
