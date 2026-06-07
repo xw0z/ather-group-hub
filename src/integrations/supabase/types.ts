@@ -271,6 +271,62 @@ export type Database = {
           },
         ]
       }
+      refinery_position_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_username: string | null
+          da_cash_balance: number
+          gold_price: number | null
+          id: string
+          net_gold_position: number
+          pure_gold_stock: number
+          refinery_id: string
+          silver_price: number | null
+          silver_stock: number
+          snapshot_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_username?: string | null
+          da_cash_balance?: number
+          gold_price?: number | null
+          id?: string
+          net_gold_position?: number
+          pure_gold_stock?: number
+          refinery_id: string
+          silver_price?: number | null
+          silver_stock?: number
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_username?: string | null
+          da_cash_balance?: number
+          gold_price?: number | null
+          id?: string
+          net_gold_position?: number
+          pure_gold_stock?: number
+          refinery_id?: string
+          silver_price?: number | null
+          silver_stock?: number
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_position_snapshots_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refinery_price_log: {
         Row: {
           created_at: string
