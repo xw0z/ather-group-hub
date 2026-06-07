@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
@@ -169,37 +169,51 @@ function RefineriesPage() {
 // Refinery picker (admin only)
 // =============================================================
 function RefineryPicker({
-  refineries, isAdmin, onSignOut,
-}: { refineries: Refinery[]; isAdmin: boolean; onSignOut: () => void }) {
+  refineries, isAdmin, onSignOut, embedded, onPick,
+}: {
+  refineries: Refinery[];
+  isAdmin: boolean;
+  onSignOut: () => void;
+  embedded?: boolean;
+  onPick?: (refineryId: string) => void;
+}) {
   const navigate = useNavigate();
+  const pick = (id: string) => {
+    if (onPick) onPick(id);
+    else navigate({ to: "/desk/refineries", search: { r: id, tab: "dashboard" } });
+  };
+  const grid = (
+    <div className={embedded ? "" : "max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12"}>
+      <h1 className="font-display text-3xl mb-2">Refineries</h1>
+      <p className="text-sm text-muted-foreground mb-8">
+        Choose a refinery to manage its clients, transactions, and stock.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {refineries.map((r) => (
+          <Card
+            key={r.id}
+            className="p-6 cursor-pointer hover:border-ember/60 transition-colors"
+            onClick={() => pick(r.id)}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
+                <Scale className="h-5 w-5 text-ember" />
+              </div>
+              <div>
+                <p className="font-display text-lg tracking-wide">{r.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+  if (embedded) return grid;
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title="REFINERIES" subtitle={isAdmin ? "Select a refinery" : ""} onSignOut={onSignOut} />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <h1 className="font-display text-3xl mb-2">Refineries</h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Choose a refinery to manage its clients, transactions, and stock.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {refineries.map((r) => (
-            <Card
-              key={r.id}
-              className="p-6 cursor-pointer hover:border-ember/60 transition-colors"
-              onClick={() => navigate({ to: "/desk/refineries", search: { r: r.id, tab: "dashboard" } })}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
-                  <Scale className="h-5 w-5 text-ember" />
-                </div>
-                <div>
-                  <p className="font-display text-lg tracking-wide">{r.name}</p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">Open dashboard, clients, transactions, and stock.</p>
-            </Card>
-          ))}
-        </div>
-      </div>
+      {grid}
     </main>
   );
 }
@@ -240,7 +254,7 @@ function TopBar({
 // Shell with tabs
 // =============================================================
 function RefineryShell({
-  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut,
+  refinery, assignment, tab, action, txId, onTab, onAction, onBack, onSignOut, embedded,
 }: {
   refinery: Refinery;
   assignment: RefineryAssignment;
@@ -251,55 +265,77 @@ function RefineryShell({
   onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
   onBack?: () => void;
   onSignOut: () => void;
+  embedded?: boolean;
 }) {
   const showTxForm = tab === "transactions" && (action === "new" || action === "edit");
+
+  const tabsBar = (
+    <nav className="border-b border-border bg-card/20">
+      <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 flex items-center gap-1 overflow-x-auto`}>
+        {embedded && onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-1 mr-1">
+            <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+          </Button>
+        )}
+        <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onTab(t.id)}
+              className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+                tab === t.id
+                  ? "border-ember text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+
+  const body = (
+    <div className={`${embedded ? "" : "max-w-7xl mx-auto"} px-3 sm:px-6 py-6 sm:py-8`}>
+      {showTxForm ? (
+        <TransactionFormPage
+          refinery={refinery}
+          editingId={action === "edit" ? txId ?? null : null}
+          onClose={() => onAction(undefined, undefined)}
+          onSaved={() => onAction(undefined, undefined)}
+        />
+      ) : (
+        <>
+          {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
+          {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
+          {tab === "transactions" && (
+            <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
+          )}
+          {tab === "stock" && <StockTab refinery={refinery} />}
+          {tab === "profile" && <ProfileTab />}
+        </>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <div className="mb-4">
+          <h1 className="font-display text-2xl">{refinery.name}</h1>
+        </div>
+        {tabsBar}
+        {body}
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
-      <nav className="border-b border-border bg-card/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 overflow-x-auto">
-          <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onTab(t.id)}
-                className={`px-3 sm:px-4 py-3 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-                  tab === t.id
-                    ? "border-ember text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-
-        </div>
-      </nav>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
-        {showTxForm ? (
-          <TransactionFormPage
-            refinery={refinery}
-            editingId={action === "edit" ? txId ?? null : null}
-            onClose={() => onAction(undefined, undefined)}
-            onSaved={() => onAction(undefined, undefined)}
-          />
-        ) : (
-          <>
-            {tab === "dashboard" && <DashboardTab refinery={refinery} onTab={onTab} />}
-            {tab === "clients" && <ClientsTab refinery={refinery} assignment={assignment} />}
-            {tab === "transactions" && (
-              <TransactionsTab refinery={refinery} assignment={assignment} onAction={onAction} />
-            )}
-            {tab === "stock" && <StockTab refinery={refinery} />}
-            {tab === "profile" && <ProfileTab />}
-          </>
-        )}
-      </div>
-
-
+      {tabsBar}
+      {body}
     </main>
   );
 }
@@ -2362,5 +2398,88 @@ function StatTile({ label, value, good, bad, highlight }: { label: string; value
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div className={`text-sm font-semibold tabular-nums mt-0.5 ${color}`}>{value}</div>
     </div>
+  );
+}
+
+// =============================================================
+// Embedded variant (rendered inside ATHER Desk sidebar layout)
+// =============================================================
+export function RefineriesEmbedded() {
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as {
+    r?: string;
+    rtab?: Tab;
+    action?: "new" | "edit";
+    txId?: string;
+  };
+  const rtab: Tab = (search.rtab as Tab) ?? "dashboard";
+  const [assignment, setAssignment] = useState<RefineryAssignment | null>(null);
+  const [refineries, setRefineries] = useState<Refinery[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [a, refs] = await Promise.all([getMyRefineryAssignment(), listRefineries()]);
+        setAssignment(a);
+        setRefineries(refs);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load refineries");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const activeRefinery = useMemo(
+    () => refineries.find((r) => r.id === search.r) ?? null,
+    [refineries, search.r],
+  );
+
+  const navTo = (next: {
+    r?: string;
+    rtab?: Tab;
+    action?: "new" | "edit";
+    txId?: string;
+  }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    navigate({ to: "/desk/app/refineries" as any, search: next as any });
+  };
+
+  if (loading) {
+    return (
+      <p className="text-sm text-muted-foreground tracking-[0.25em] py-10 text-center">
+        LOADING…
+      </p>
+    );
+  }
+
+  if (!search.r || !activeRefinery) {
+    return (
+      <RefineryPicker
+        refineries={refineries}
+        isAdmin={Boolean(assignment?.isAdmin)}
+        onSignOut={() => {}}
+        embedded
+        onPick={(id) => navTo({ r: id, rtab: "dashboard" })}
+      />
+    );
+  }
+
+  return (
+    <RefineryShell
+      refinery={activeRefinery}
+      assignment={assignment!}
+      tab={rtab}
+      action={search.action}
+      txId={search.txId}
+      onTab={(t) => navTo({ r: activeRefinery.id, rtab: t })}
+      onAction={(action, txId) =>
+        navTo({ r: activeRefinery.id, rtab: "transactions", action, txId })
+      }
+      onBack={assignment?.isAdmin ? () => navTo({}) : undefined}
+      onSignOut={() => {}}
+      embedded
+    />
   );
 }

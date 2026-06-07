@@ -64,6 +64,7 @@ import { BackupButton } from "@/components/BackupButton";
 import { RestoreButton } from "@/components/RestoreButton";
 import { PurityDashboard } from "@/routes/purity/dashboard";
 import { getMyRefineryAssignment, type RefineryAssignment } from "@/lib/refineries.functions";
+import { RefineriesEmbedded } from "@/routes/desk.refineries";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
@@ -99,7 +100,7 @@ export const TAB_TO_DESK_PATH: Record<Tab, string> = {
   users: "/desk/app/users",
   settings: "/desk/app/settings",
   profile: "/desk/app/profile",
-  refineries: "/desk/refineries",
+  refineries: "/desk/app/refineries",
 };
 
 // Legacy /swap/dashboard?tab=... → redirect to the new /desk/app/* URL.
@@ -500,8 +501,9 @@ export function SwapDashboard({
           replace: false,
         });
       } else {
+        // Admin: keep inside ATHER Desk shell with sidebar visible.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        navigate({ to: "/desk/refineries" as any, replace: false });
+        navigate({ to: "/desk/app/refineries" as any, replace: false });
       }
       return;
     }
@@ -745,7 +747,11 @@ export function SwapDashboard({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl px-4 py-5 space-y-5 flex-1">
+        <main
+          className={`mx-auto w-full ${
+            effectiveTab === "refineries" ? "max-w-7xl px-3 sm:px-6 py-5" : "max-w-3xl px-4 py-5 space-y-5"
+          } flex-1`}
+        >
           {!tabAllowed ? (
             <AccessDenied />
           ) : (
@@ -789,6 +795,7 @@ export function SwapDashboard({
               )}
               {effectiveTab === "settings" && can(perms, "settings", "view") && <SettingsTab />}
               {effectiveTab === "profile" && <ProfileTab username={username} />}
+              {effectiveTab === "refineries" && <RefineriesEmbedded />}
             </>
           )}
         </main>
