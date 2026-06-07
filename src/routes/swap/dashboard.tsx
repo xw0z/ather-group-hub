@@ -82,6 +82,7 @@ const TAB_VALUES = [
   "users",
   "settings",
   "profile",
+  "refineries",
 ] as const;
 type Tab = (typeof TAB_VALUES)[number];
 
@@ -98,6 +99,7 @@ export const TAB_TO_DESK_PATH: Record<Tab, string> = {
   users: "/desk/app/users",
   settings: "/desk/app/settings",
   profile: "/desk/app/profile",
+  refineries: "/desk/refineries",
 };
 
 // Legacy /swap/dashboard?tab=... → redirect to the new /desk/app/* URL.
