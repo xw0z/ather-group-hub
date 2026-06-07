@@ -320,6 +320,7 @@ function RefineryDashboardPage() {
               <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-2">Summary</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <Kpi icon={<Coins className="w-4 h-4" />} label="Pure Gold Stock" value={fmtG(data.stock.pure_gold_stock)} accent="amber" />
+                <Kpi icon={<Coins className="w-4 h-4" />} label="Silver Stock" value={fmtG(data.stock.silver_stock)} />
                 <Kpi icon={<Banknote className="w-4 h-4" />} label="Total Gold Value" value={fmtDA(goldValue)} accent="amber" />
                 <Kpi icon={<Scale className="w-4 h-4" />} label="Client Gold (net)" value={fmtG(data.totals.totalClientGoldBalance)} valueClass={balCls(data.totals.totalClientGoldBalance)} />
                 <Kpi icon={<Wallet className="w-4 h-4" />} label="Client DA (net)" value={fmtDA(data.totals.totalClientDaBalance)} valueClass={balCls(data.totals.totalClientDaBalance)} />
