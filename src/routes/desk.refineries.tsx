@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
-  listClients, createClient, updateClient, adjustClientBalances,
+  listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   getStock, listStockMovements, getDashboard, adjustStock,
   getMyRefineryProfile, updateMyRefineryProfile,
@@ -438,6 +438,16 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
+  const canDelete = assignment.isAdmin || assignment.role === "manager";
+
+  const handleDelete = async (c: RefineryClient) => {
+    if (!confirm(`Delete client "${c.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteClient({ data: { id: c.id } });
+      toast.success("Client deleted");
+      load();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -491,11 +501,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <td className="p-3 text-right tabular-nums">{fmtDA(Number(c.refining_fee_price))}</td>
                   <td className="p-3"><StatusBadge status={c.status} /></td>
                   <td className="p-3 text-right">
-                    {!readOnly && (
-                      <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    <div className="inline-flex gap-1">
+                      {!readOnly && (
+                        <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
