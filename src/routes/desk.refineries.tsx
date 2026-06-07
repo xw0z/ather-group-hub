@@ -2038,13 +2038,37 @@ function TransactionReceiptDialog({
         <DialogHeader><DialogTitle>{tx?.transaction_type === "settlement" ? "Settlement Receipt" : "Transaction Receipt"}</DialogTitle></DialogHeader>
         {!tx || (tx.transaction_type === "settlement" && !settlement) ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm" style={{ display: "flex", justifyContent: "center" }}>
-              <div style={{ transform: "scale(0.78)", transformOrigin: "top center", width: 794 }}>
+            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+              <div
+                className="mx-auto origin-top-left sm:origin-top"
+                style={{
+                  width: 794,
+                  transform: "scale(var(--receipt-scale, 0.78))",
+                  transformOrigin: "top left",
+                  height: `calc(var(--receipt-h, 1123px) * var(--receipt-scale, 0.78))`,
+                }}
+                ref={(el) => {
+                  if (!el) return;
+                  const parent = el.parentElement;
+                  if (!parent) return;
+                  const apply = () => {
+                    const w = parent.clientWidth;
+                    const s = Math.min(1, Math.max(0.35, w / 794));
+                    el.style.setProperty("--receipt-scale", String(s));
+                    el.style.setProperty("--receipt-h", `${el.firstElementChild ? (el.firstElementChild as HTMLElement).offsetHeight : 1123}px`);
+                  };
+                  apply();
+                  const ro = new ResizeObserver(apply);
+                  ro.observe(parent);
+                  (el as unknown as { __ro?: ResizeObserver }).__ro = ro;
+                }}
+              >
                 {isSettlement && settlement
                   ? <SettlementReceiptReport settlement={settlement} refineryName={refinery.name} />
                   : <TransactionReceiptReport tx={tx} refineryName={refinery.name} />}
               </div>
             </div>
+
             <DialogFooter className="gap-2 flex-col sm:flex-row">
               <Button variant="outline" onClick={downloadPdf} disabled={busy !== null} className="w-full sm:w-auto">
                 {busy === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />} Download PDF
