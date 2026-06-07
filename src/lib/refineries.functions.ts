@@ -1838,25 +1838,28 @@ export type RefineryAuditLogRow = {
   user_email: string | null;
   action: string;
   file_name: string | null;
-  details: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  details: any;
   ip: string | null;
   user_agent: string | null;
   created_at: string;
 };
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type RefineryBackupPayload = {
   schema_version: number;
   created_at: string;
   refinery: { id: string; name: string; status: string };
-  stock: Record<string, unknown> | null;
-  clients: Record<string, unknown>[];
-  transactions: Record<string, unknown>[];
-  gold_bars: Record<string, unknown>[];
-  stock_movements: Record<string, unknown>[];
-  client_notes: Record<string, unknown>[];
-  price_log: Record<string, unknown>[];
-  position_snapshots: Record<string, unknown>[];
-  settings: Record<string, unknown> | null;
+  stock: any;
+  clients: any[];
+  transactions: any[];
+  gold_bars: any[];
+  stock_movements: any[];
+  client_notes: any[];
+  price_log: any[];
+  position_snapshots: any[];
+  settings: any;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 async function getActorContext(uid: string) {
   const { data: prof } = await supabaseAdmin
