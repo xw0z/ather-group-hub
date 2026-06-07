@@ -956,13 +956,14 @@ export const getAccountStatement = createServerFn({ method: "POST" })
 
     // Generator
     const { data: prof } = await supabaseAdmin
-      .from("swap_profiles").select("username, display_name").eq("id", context.userId).maybeSingle();
-    let genName = prof?.display_name ?? prof?.username ?? null;
+      .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
+    let genName: string | null = prof?.username ?? null;
     if (!genName) {
       const { data: ru } = await supabaseAdmin
         .from("refinery_users").select("display_name").eq("user_id", context.userId).maybeSingle();
       genName = ru?.display_name ?? "User";
     }
+
 
     const stmtNum = `STMT-${data.from.replace(/-/g, "")}-${data.to.replace(/-/g, "")}-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 
