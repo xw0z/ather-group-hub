@@ -1030,13 +1030,25 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     // Transactions in window (settled)
     const { data: txs, error: tErr } = await supabaseAdmin
       .from("refinery_transactions")
-      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance")
+      .select("id, transaction_number, transaction_date, settled_at, direction, transaction_type, total_pure_weight, total_gross_weight, average_purity, fee_price, total_refining_fee, da_amount, previous_purity_balance, new_purity_balance, previous_da_balance, new_da_balance, settlement_kind, settlement_role, settlement_amount, settlement_apply_fee, counterparty_client_id")
       .eq("client_id", data.clientId)
       .eq("status", "settled")
+      .neq("transaction_type", "stock_adjustment")
       .gte("settled_at", fromTs)
       .lte("settled_at", toTs)
       .order("settled_at", { ascending: true });
     if (tErr) throw new Error(tErr.message);
+
+    // Resolve counterparty names for settlements (single batch)
+    const counterIds = Array.from(new Set((txs ?? [])
+      .map((t: any) => t.counterparty_client_id)
+      .filter((x: any): x is string => !!x)));
+    const counterMap = new Map<string, string>();
+    if (counterIds.length > 0) {
+      const { data: others } = await supabaseAdmin
+        .from("refinery_clients").select("id, name").in("id", counterIds);
+      for (const o of others ?? []) counterMap.set(o.id, o.name);
+    }
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
@@ -1047,7 +1059,44 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       const runGold = Number(tx.new_purity_balance ?? 0);
       const runDa = Number(tx.new_da_balance ?? 0);
 
-      if (tx.transaction_type === "gold" && tx.direction === "receiving") {
+      if (tx.transaction_type === "settlement") {
+        const kind = (tx as any).settlement_kind as "gold" | "da" | null;
+        const role = (tx as any).settlement_role as "from" | "to" | null;
+        const amount = Number((tx as any).settlement_amount) || 0;
+        const fee = Number(tx.total_refining_fee) || 0;
+        const counterName = (tx as any).counterparty_client_id
+          ? counterMap.get((tx as any).counterparty_client_id) ?? "Other client"
+          : "Other client";
+        const isFrom = role === "from";
+        const descPrefix = isFrom ? `Settlement → ${counterName}` : `Settlement ← ${counterName}`;
+
+        let goldDebit = 0, goldCredit = 0, daDebit = 0, daCredit = 0;
+        if (kind === "gold") {
+          if (isFrom) { goldDebit = amount; totalGoldDeliv += amount; }
+          else { goldCredit = amount; totalGoldRecv += amount; }
+        } else if (kind === "da") {
+          if (isFrom) { daDebit = amount; totalDaPaid += amount; }
+          else { daCredit = amount; totalDaRecv += amount; }
+        }
+
+        rows.push({
+          date: dateStr, created_at: String(tx.settled_at),
+          reference: refn, type: "settlement",
+          description: descPrefix,
+          client_name: cli.name,
+          gold_debit: goldDebit, gold_credit: goldCredit,
+          da_debit: daDebit, da_credit: daCredit,
+          running_gold: runGold, running_da: runDa,
+          original_weight: kind === "gold" ? amount : undefined,
+          fee_price: fee > 0 ? Number(tx.fee_price) || 0 : undefined,
+          fee_total: fee > 0 ? fee : undefined,
+          weight_at_730: kind === "gold" && fee > 0 ? (amount * 1000) / 730 : undefined,
+        });
+
+        if (fee > 0 && !isFrom) {
+          totalFees += fee;
+        }
+      } else if (tx.transaction_type === "gold" && tx.direction === "receiving") {
         const gold = Number(tx.total_pure_weight) || 0;
         totalGoldRecv += gold;
         rows.push({
