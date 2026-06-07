@@ -1209,9 +1209,12 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     const counterMap = new Map<string, string>();
     if (counterIds.length > 0) {
       const { data: others } = await supabaseAdmin
-        .from("refinery_clients").select("id, name").in("id", counterIds);
-      for (const o of others ?? []) counterMap.set(o.id, o.name);
+        .from("refinery_clients").select("id, name, code").in("id", counterIds);
+      for (const o of others ?? []) counterMap.set(o.id, (o as { code?: string | null }).code ?? o.name);
     }
+
+    // For privacy, statements identify clients by code, not by name.
+    const cliLabel = (cli as { code?: string | null }).code ?? cli.name;
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
