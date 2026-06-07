@@ -608,11 +608,15 @@ function ClientDialog({
 // =============================================================
 // Transactions tab
 // =============================================================
-function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignment: RefineryAssignment }) {
+function TransactionsTab({
+  refinery, assignment, onAction,
+}: {
+  refinery: Refinery;
+  assignment: RefineryAssignment;
+  onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
+}) {
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openNew, setOpenNew] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
@@ -639,13 +643,61 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
           <p className="text-sm text-muted-foreground">{rows.length} transaction(s)</p>
         </div>
         {!readOnly && (
-          <Button onClick={() => setOpenNew(true)} className="w-full sm:w-auto">
+          <Button onClick={() => onAction("new", undefined)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-1" /> New transaction
           </Button>
         )}
       </div>
 
-      <Card>
+      {/* Mobile: card list */}
+      <div className="space-y-2 md:hidden">
+        {loading && <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>}
+        {!loading && rows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">No transactions yet</p>
+        )}
+        {rows.map((t) => (
+          <Card key={t.id} className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs">{t.transaction_number}</span>
+                  <StatusBadge status={t.status} />
+                </div>
+                <p className="text-sm font-medium truncate mt-1">{t.client_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t.transaction_date} · <span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span>
+                </p>
+                <div className="mt-2 text-sm tabular-nums">
+                  {t.transaction_type === "gold" ? (
+                    <>Gross {fmtG(Number(t.total_gross_weight))} · Pure {fmtG(Number(t.total_pure_weight))}</>
+                  ) : (
+                    <>DA {fmtDA(Number(t.da_amount))}</>
+                  )}
+                  {Number(t.total_refining_fee) > 0 && <> · Fee {fmtDA(Number(t.total_refining_fee))}</>}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-1 mt-3 pt-3 border-t border-border/60">
+              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(t.id)}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> Receipt
+              </Button>
+              {!readOnly && t.status !== "cancelled" && (
+                <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", t.id)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                </Button>
+              )}
+              {canDelete && t.status !== "cancelled" && (
+                <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(t.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                </Button>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <Card className="hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
@@ -684,7 +736,7 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
                       {!readOnly && t.status !== "cancelled" && (
-                        <Button size="sm" variant="ghost" onClick={() => setEditingId(t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
                       {canDelete && t.status !== "cancelled" && (
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
@@ -700,22 +752,6 @@ function TransactionsTab({ refinery, assignment }: { refinery: Refinery; assignm
         </div>
       </Card>
 
-      {openNew && (
-        <TransactionDialog
-          refinery={refinery}
-          editingId={null}
-          onClose={() => setOpenNew(false)}
-          onSaved={() => { setOpenNew(false); load(); }}
-        />
-      )}
-      {editingId && (
-        <TransactionDialog
-          refinery={refinery}
-          editingId={editingId}
-          onClose={() => setEditingId(null)}
-          onSaved={() => { setEditingId(null); load(); }}
-        />
-      )}
       {viewing && (
         <TransactionReceiptDialog refinery={refinery} txId={viewing} onClose={() => setViewing(null)} />
       )}
