@@ -221,6 +221,135 @@ export type Database = {
         }
         Relationships: []
       }
+      refinery_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          file_name: string | null
+          id: string
+          ip: string | null
+          refinery_id: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          ip?: string | null
+          refinery_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          ip?: string | null
+          refinery_id?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_audit_log_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_backup_settings: {
+        Row: {
+          daily_enabled: boolean
+          daily_time: string
+          keep_last: number
+          refinery_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          daily_enabled?: boolean
+          daily_time?: string
+          keep_last?: number
+          refinery_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          daily_enabled?: boolean
+          daily_time?: string
+          keep_last?: number
+          refinery_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_backup_settings_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: true
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refinery_backups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          file_name: string
+          file_size_bytes: number
+          id: string
+          kind: string
+          payload: Json
+          refinery_id: string
+          schema_version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          file_name: string
+          file_size_bytes?: number
+          id?: string
+          kind?: string
+          payload: Json
+          refinery_id: string
+          schema_version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          kind?: string
+          payload?: Json
+          refinery_id?: string
+          schema_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refinery_backups_refinery_id_fkey"
+            columns: ["refinery_id"]
+            isOneToOne: false
+            referencedRelation: "refineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refinery_client_notes: {
         Row: {
           author_id: string | null
@@ -1458,6 +1587,10 @@ export type Database = {
       }
       refinery_delete_stock_adjustment: {
         Args: { _tx_id: string }
+        Returns: undefined
+      }
+      refinery_restore_from_payload: {
+        Args: { _payload: Json; _refinery_id: string }
         Returns: undefined
       }
       refinery_reverse_transaction: {

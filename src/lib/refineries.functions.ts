@@ -1807,3 +1807,448 @@ export const deleteClientNote = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// =========================================================
+// Backup module
+// =========================================================
+export type RefineryBackupKind = "manual" | "scheduled" | "safety";
+export type RefineryBackupMeta = {
+  id: string;
+  refinery_id: string;
+  file_name: string;
+  file_size_bytes: number;
+  kind: RefineryBackupKind;
+  schema_version: number;
+  created_by: string | null;
+  created_by_email: string | null;
+  created_at: string;
+};
+export type RefineryBackupSettings = {
+  refinery_id: string;
+  daily_enabled: boolean;
+  daily_time: string;
+  keep_last: number;
+  updated_at: string;
+  updated_by: string | null;
+};
+export type RefineryAuditLogRow = {
+  id: string;
+  refinery_id: string | null;
+  user_id: string | null;
+  user_email: string | null;
+  action: string;
+  file_name: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  details: any;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: string;
+};
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type RefineryBackupPayload = {
+  schema_version: number;
+  created_at: string;
+  refinery: { id: string; name: string; status: string };
+  stock: any;
+  clients: any[];
+  transactions: any[];
+  gold_bars: any[];
+  stock_movements: any[];
+  client_notes: any[];
+  price_log: any[];
+  position_snapshots: any[];
+  settings: any;
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+async function getActorContext(uid: string) {
+  const { data: prof } = await supabaseAdmin
+    .from("swap_profiles").select("username, email").eq("id", uid).maybeSingle();
+  const email = (prof?.email as string | undefined) ?? (prof?.username as string | undefined) ?? null;
+  return { email };
+}
+
+async function writeAudit(opts: {
+  refineryId: string | null;
+  userId: string | null;
+  userEmail: string | null;
+  action: string;
+  fileName?: string | null;
+  details?: unknown;
+}) {
+  let ip: string | null = null;
+  let ua: string | null = null;
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    ip = (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() || null;
+    ua = getRequestHeader("user-agent") ?? null;
+  } catch { /* outside request scope (e.g. cron) */ }
+  await supabaseAdmin.from("refinery_audit_log").insert({
+    refinery_id: opts.refineryId,
+    user_id: opts.userId,
+    user_email: opts.userEmail,
+    action: opts.action,
+    file_name: opts.fileName ?? null,
+    details: (opts.details ?? null) as never,
+    ip, user_agent: ua,
+  });
+}
+
+function backupFileName(refineryId: string, ts: Date, ext: "json" | "zip" = "json"): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ymd = `${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}-${pad(ts.getHours())}-${pad(ts.getMinutes())}`;
+  const shortId = refineryId.slice(0, 4);
+  return `ather-refinery-${shortId}-backup-${ymd}.${ext}`;
+}
+
+async function snapshotRefinery(refineryId: string): Promise<RefineryBackupPayload> {
+  const [refRes, stockRes, clientsRes, txRes, barsRes, mvRes, notesRes, plogRes, snapsRes, settingsRes] = await Promise.all([
+    supabaseAdmin.from("refineries").select("*").eq("id", refineryId).single(),
+    supabaseAdmin.from("refinery_stock").select("*").eq("refinery_id", refineryId).maybeSingle(),
+    supabaseAdmin.from("refinery_clients").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_transactions").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_transaction_gold_bars").select("*, refinery_transactions!inner(refinery_id)").eq("refinery_transactions.refinery_id", refineryId),
+    supabaseAdmin.from("refinery_stock_movements").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_client_notes").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_price_log").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_position_snapshots").select("*").eq("refinery_id", refineryId),
+    supabaseAdmin.from("refinery_backup_settings").select("*").eq("refinery_id", refineryId).maybeSingle(),
+  ]);
+  if (refRes.error) throw new Error(refRes.error.message);
+  const bars = (barsRes.data ?? []).map((r: Record<string, unknown>) => {
+    const copy = { ...r };
+    delete (copy as Record<string, unknown>).refinery_transactions;
+    return copy;
+  });
+  return {
+    schema_version: 1,
+    created_at: new Date().toISOString(),
+    refinery: refRes.data as { id: string; name: string; status: string },
+    stock: (stockRes.data ?? null) as Record<string, unknown> | null,
+    clients: (clientsRes.data ?? []) as Record<string, unknown>[],
+    transactions: (txRes.data ?? []) as Record<string, unknown>[],
+    gold_bars: bars,
+    stock_movements: (mvRes.data ?? []) as Record<string, unknown>[],
+    client_notes: (notesRes.data ?? []) as Record<string, unknown>[],
+    price_log: (plogRes.data ?? []) as Record<string, unknown>[],
+    position_snapshots: (snapsRes.data ?? []) as Record<string, unknown>[],
+    settings: (settingsRes.data ?? null) as Record<string, unknown> | null,
+  };
+}
+
+async function pruneBackups(refineryId: string) {
+  const { data: settings } = await supabaseAdmin
+    .from("refinery_backup_settings").select("keep_last").eq("refinery_id", refineryId).maybeSingle();
+  const keep = Math.max(1, Math.min(500, (settings?.keep_last as number) ?? 30));
+  const { data: rows } = await supabaseAdmin
+    .from("refinery_backups")
+    .select("id, kind, created_at")
+    .eq("refinery_id", refineryId)
+    .neq("kind", "safety")
+    .order("created_at", { ascending: false });
+  const ids = (rows ?? []).slice(keep).map((r) => (r as { id: string }).id);
+  if (ids.length) {
+    await supabaseAdmin.from("refinery_backups").delete().in("id", ids);
+  }
+}
+
+async function createBackupInternal(opts: {
+  refineryId: string;
+  kind: RefineryBackupKind;
+  userId: string | null;
+  userEmail: string | null;
+}): Promise<RefineryBackupMeta> {
+  const payload = await snapshotRefinery(opts.refineryId);
+  const sizeBytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
+  const fileName = backupFileName(opts.refineryId, new Date());
+  const { data, error } = await supabaseAdmin
+    .from("refinery_backups")
+    .insert({
+      refinery_id: opts.refineryId,
+      file_name: fileName,
+      file_size_bytes: sizeBytes,
+      kind: opts.kind,
+      schema_version: payload.schema_version,
+      payload: payload as never,
+      created_by: opts.userId,
+      created_by_email: opts.userEmail,
+    })
+    .select("id, refinery_id, file_name, file_size_bytes, kind, schema_version, created_by, created_by_email, created_at")
+    .single();
+  if (error) throw new Error(error.message);
+  await pruneBackups(opts.refineryId);
+  await writeAudit({
+    refineryId: opts.refineryId,
+    userId: opts.userId,
+    userEmail: opts.userEmail,
+    action: "backup_created",
+    fileName,
+    details: { kind: opts.kind, size: sizeBytes },
+  });
+  return data as RefineryBackupMeta;
+}
+
+export const createBackup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { email } = await getActorContext(context.userId);
+    return createBackupInternal({
+      refineryId: data.refineryId,
+      kind: "manual",
+      userId: context.userId,
+      userEmail: email,
+    });
+  });
+
+export const listBackups = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<RefineryBackupMeta[]> => {
+    await assertAdmin(context.userId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_backups")
+      .select("id, refinery_id, file_name, file_size_bytes, kind, schema_version, created_by, created_by_email, created_at")
+      .eq("refinery_id", data.refineryId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as RefineryBackupMeta[];
+  });
+
+export const getBackupPayload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ backupId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { email } = await getActorContext(context.userId);
+    const { data: row, error } = await supabaseAdmin
+      .from("refinery_backups")
+      .select("id, refinery_id, file_name, payload")
+      .eq("id", data.backupId)
+      .single();
+    if (error) throw new Error(error.message);
+    await writeAudit({
+      refineryId: row.refinery_id as string,
+      userId: context.userId,
+      userEmail: email,
+      action: "backup_downloaded",
+      fileName: row.file_name as string,
+    });
+    return {
+      id: row.id as string,
+      refinery_id: row.refinery_id as string,
+      file_name: row.file_name as string,
+      payload: row.payload as RefineryBackupPayload,
+    };
+  });
+
+export const deleteBackup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ backupId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { email } = await getActorContext(context.userId);
+    const { data: row, error: fErr } = await supabaseAdmin
+      .from("refinery_backups").select("refinery_id, file_name").eq("id", data.backupId).single();
+    if (fErr) throw new Error(fErr.message);
+    const { error } = await supabaseAdmin.from("refinery_backups").delete().eq("id", data.backupId);
+    if (error) throw new Error(error.message);
+    await writeAudit({
+      refineryId: row.refinery_id as string,
+      userId: context.userId,
+      userEmail: email,
+      action: "backup_deleted",
+      fileName: row.file_name as string,
+    });
+    return { ok: true };
+  });
+
+async function performRestore(opts: {
+  refineryId: string;
+  payload: RefineryBackupPayload;
+  userId: string;
+  userEmail: string | null;
+  sourceFileName: string;
+}) {
+  if (!opts.payload || opts.payload.schema_version !== 1) {
+    throw new Error("Invalid or unsupported backup file.");
+  }
+  if (opts.payload.refinery?.id !== opts.refineryId) {
+    throw new Error("Backup does not belong to this refinery.");
+  }
+  // Safety backup BEFORE restore
+  const safety = await createBackupInternal({
+    refineryId: opts.refineryId,
+    kind: "safety",
+    userId: opts.userId,
+    userEmail: opts.userEmail,
+  });
+  await writeAudit({
+    refineryId: opts.refineryId,
+    userId: opts.userId,
+    userEmail: opts.userEmail,
+    action: "restore_started",
+    fileName: opts.sourceFileName,
+    details: { safety_backup_id: safety.id },
+  });
+  // Call atomic RPC
+  const { error } = await supabaseAdmin.rpc("refinery_restore_from_payload", {
+    _refinery_id: opts.refineryId,
+    _payload: opts.payload as never,
+  });
+  if (error) {
+    await writeAudit({
+      refineryId: opts.refineryId,
+      userId: opts.userId,
+      userEmail: opts.userEmail,
+      action: "restore_failed",
+      fileName: opts.sourceFileName,
+      details: { error: error.message, safety_backup_id: safety.id },
+    });
+    throw new Error(`Restore failed (no changes applied): ${error.message}`);
+  }
+  await writeAudit({
+    refineryId: opts.refineryId,
+    userId: opts.userId,
+    userEmail: opts.userEmail,
+    action: "restore_completed",
+    fileName: opts.sourceFileName,
+    details: { safety_backup_id: safety.id },
+  });
+  return { ok: true, safetyBackupId: safety.id };
+}
+
+export const restoreBackupFromHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    backupId: z.string().uuid(),
+    confirmText: z.string(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.confirmText !== "RESTORE") throw new Error('Type "RESTORE" to confirm.');
+    const { email } = await getActorContext(context.userId);
+    const { data: row, error } = await supabaseAdmin
+      .from("refinery_backups").select("refinery_id, file_name, payload").eq("id", data.backupId).single();
+    if (error) throw new Error(error.message);
+    return performRestore({
+      refineryId: row.refinery_id as string,
+      payload: row.payload as RefineryBackupPayload,
+      userId: context.userId,
+      userEmail: email,
+      sourceFileName: row.file_name as string,
+    });
+  });
+
+export const restoreBackupFromFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    refineryId: z.string().uuid(),
+    payload: z.unknown(),
+    sourceFileName: z.string().max(300),
+    confirmText: z.string(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.confirmText !== "RESTORE") throw new Error('Type "RESTORE" to confirm.');
+    const { email } = await getActorContext(context.userId);
+    return performRestore({
+      refineryId: data.refineryId,
+      payload: data.payload as RefineryBackupPayload,
+      userId: context.userId,
+      userEmail: email,
+      sourceFileName: data.sourceFileName,
+    });
+  });
+
+export const getBackupSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<RefineryBackupSettings> => {
+    await assertAdmin(context.userId);
+    const { data: row } = await supabaseAdmin
+      .from("refinery_backup_settings").select("*").eq("refinery_id", data.refineryId).maybeSingle();
+    if (row) return row as RefineryBackupSettings;
+    return {
+      refinery_id: data.refineryId,
+      daily_enabled: false,
+      daily_time: "02:00",
+      keep_last: 30,
+      updated_at: new Date().toISOString(),
+      updated_by: null,
+    };
+  });
+
+export const updateBackupSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    refineryId: z.string().uuid(),
+    daily_enabled: z.boolean(),
+    daily_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+    keep_last: z.number().int().min(1).max(500),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { email } = await getActorContext(context.userId);
+    const time = data.daily_time.length === 5 ? `${data.daily_time}:00` : data.daily_time;
+    const { error } = await supabaseAdmin.from("refinery_backup_settings").upsert({
+      refinery_id: data.refineryId,
+      daily_enabled: data.daily_enabled,
+      daily_time: time,
+      keep_last: data.keep_last,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    await writeAudit({
+      refineryId: data.refineryId,
+      userId: context.userId,
+      userEmail: email,
+      action: "settings_updated",
+      details: { daily_enabled: data.daily_enabled, daily_time: time, keep_last: data.keep_last },
+    });
+    return { ok: true };
+  });
+
+export const listAuditLog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    refineryId: z.string().uuid(),
+    limit: z.number().int().min(1).max(500).default(100),
+  }).parse(d))
+  .handler(async ({ data, context }): Promise<RefineryAuditLogRow[]> => {
+    await assertAdmin(context.userId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_audit_log")
+      .select("*")
+      .eq("refinery_id", data.refineryId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as RefineryAuditLogRow[];
+  });
+
+// Internal helper for cron — not exposed as serverFn
+export async function runScheduledBackups(now: Date = new Date()) {
+  const hh = String(now.getHours()).padStart(2, "0");
+  const { data: rows } = await supabaseAdmin
+    .from("refinery_backup_settings")
+    .select("refinery_id, daily_enabled, daily_time")
+    .eq("daily_enabled", true);
+  const due = (rows ?? []).filter((r) => {
+    const t = (r as { daily_time: string }).daily_time ?? "";
+    return t.slice(0, 2) === hh;
+  });
+  const results: { refinery_id: string; ok: boolean; error?: string }[] = [];
+  for (const r of due) {
+    const rid = (r as { refinery_id: string }).refinery_id;
+    try {
+      await createBackupInternal({ refineryId: rid, kind: "scheduled", userId: null, userEmail: "system@cron" });
+      results.push({ refinery_id: rid, ok: true });
+    } catch (e) {
+      results.push({ refinery_id: rid, ok: false, error: e instanceof Error ? e.message : "unknown" });
+    }
+  }
+  return { processed: due.length, results };
+}
