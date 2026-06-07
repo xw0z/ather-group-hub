@@ -100,6 +100,7 @@ function RootComponent() {
         </main>
         {!hideChrome && <SiteFooter />}
         {!hideChrome && <WhatsAppButton />}
+        <Toaster position="top-right" richColors closeButton />
       </LanguageProvider>
     </QueryClientProvider>
   );
