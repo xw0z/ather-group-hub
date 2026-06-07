@@ -1184,27 +1184,32 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [stock, setStock] = useState<Stock | null>(null);
   const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    (async () => {
-      try {
-        const [s, m] = await Promise.all([
-          getStock({ data: { refineryId: refinery.id } }),
-          listStockMovements({ data: { refineryId: refinery.id } }),
-        ]);
-        setStock(s as Stock);
-        setMoves(m as Movement[]);
-      } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
-      finally { setLoading(false); }
-    })();
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const load = useCallback(async () => {
+    try {
+      const [s, m] = await Promise.all([
+        getStock({ data: { refineryId: refinery.id } }),
+        listStockMovements({ data: { refineryId: refinery.id } }),
+      ]);
+      setStock(s as Stock);
+      setMoves(m as Movement[]);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setLoading(false); }
   }, [refinery.id]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl">Stock</h1>
-        <p className="text-sm text-muted-foreground">{refinery.name}</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl">Stock</h1>
+          <p className="text-sm text-muted-foreground">{refinery.name}</p>
+        </div>
+        <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
+          <Pencil className="h-4 w-4 mr-2" /> Adjust stock
+        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatCard icon={<Coins className="h-4 w-4 text-ember" />} label="Pure Gold Stock" value={fmtG(Number(stock.pure_gold_stock))} />
