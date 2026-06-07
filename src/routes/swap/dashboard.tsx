@@ -589,7 +589,7 @@ export function SwapDashboard({
     navigate({ to: "/desk/login", replace: true });
   };
 
-  if (!ready) {
+  if (!ready || permsLoading) {
     return (
       <main className="min-h-screen bg-background text-foreground grid place-items-center">
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
@@ -597,6 +597,7 @@ export function SwapDashboard({
       </main>
     );
   }
+
 
   // Refinery-only users must never see ATHER Desk modules.
   if (!isAdmin && refineryAssignment?.refineryId) {
