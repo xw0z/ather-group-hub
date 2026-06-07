@@ -902,7 +902,6 @@ function TransactionDialog({
                       <thead className="bg-muted/20 border-b border-border">
                         <tr className="text-xs uppercase tracking-wider text-muted-foreground text-left">
                           <th className="p-2">#</th>
-                          <th className="p-2">Type</th>
                           <th className="p-2 text-right">Gross (g)</th>
                           <th className="p-2 text-right">Purity</th>
                           <th className="p-2 text-right">Pure (g)</th>
@@ -917,19 +916,6 @@ function TransactionDialog({
                           return (
                             <tr key={i} className="border-b border-border last:border-0">
                               <td className="p-1.5"><Input className="h-8 w-16" value={b.item_number} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, item_number: e.target.value } : x))} /></td>
-                              <td className="p-1.5">
-                                <Select
-                                  value={b.item_type}
-                                  onValueChange={(v) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, item_type: v as "bar" | "scrap" } : x))}
-                                  disabled={direction === "delivery"}
-                                >
-                                  <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="bar">Bar</SelectItem>
-                                    {direction === "receiving" && <SelectItem value="scrap">Scrap</SelectItem>}
-                                  </SelectContent>
-                                </Select>
-                              </td>
                               <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" value={b.gross_weight} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, gross_weight: e.target.value } : x))} /></td>
                               <td className="p-1.5"><Input className="h-8 text-right tabular-nums" type="number" step="any" max="1000" value={b.purity} onChange={(e) => setBars((bs) => bs.map((x, j) => j === i ? { ...x, purity: e.target.value } : x))} /></td>
                               <td className="p-1.5 text-right tabular-nums text-muted-foreground">{fmtG(pure)}</td>
@@ -1057,13 +1043,12 @@ function TransactionReceiptDialog({
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Gold bars</p>
                   <table className="w-full text-sm">
                     <thead className="text-xs text-muted-foreground">
-                      <tr className="text-left"><th className="py-1">#</th><th>Type</th><th className="text-right">Gross</th><th className="text-right">Purity</th><th className="text-right">Pure</th></tr>
+                      <tr className="text-left"><th className="py-1">#</th><th className="text-right">Gross</th><th className="text-right">Purity</th><th className="text-right">Pure</th></tr>
                     </thead>
                     <tbody>
                       {tx.bars.map((b, i) => (
                         <tr key={i} className="border-t border-border/50">
                           <td className="py-1">{b.item_number ?? i + 1}</td>
-                          <td className="capitalize">{b.item_type}</td>
                           <td className="text-right tabular-nums">{fmtG(Number(b.gross_weight))}</td>
                           <td className="text-right tabular-nums">{fmtPurity(Number(b.purity))}</td>
                           <td className="text-right tabular-nums">{fmtG(Number(b.pure_weight))}</td>
