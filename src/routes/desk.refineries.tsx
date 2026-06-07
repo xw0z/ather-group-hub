@@ -242,13 +242,14 @@ function RefineryPicker({
 function TopBar({
   title, subtitle, onSignOut, onBack,
 }: { title: string; subtitle?: string; onSignOut: () => void; onBack?: () => void }) {
+  const { t: tr } = useLang();
   return (
     <header className="border-b border-border bg-card/40">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           {onBack && (
             <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Refineries
+              <ArrowLeft className="h-4 w-4 mr-1" /> {tr("ref.pageTitle")}
             </Button>
           )}
           <div className="h-9 w-9 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center shrink-0">
@@ -261,7 +262,7 @@ function TopBar({
 
         </div>
         <Button variant="ghost" size="sm" onClick={onSignOut}>
-          <LogOut className="h-4 w-4 mr-1" /> Sign out
+          <LogOut className="h-4 w-4 mr-1" /> {tr("ref.signOut")}
         </Button>
       </div>
     </header>
