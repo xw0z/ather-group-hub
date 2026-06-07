@@ -1263,31 +1263,38 @@ function TransactionReceiptDialog({
     if (!tx) return;
     setBusy(channel === "whatsapp" ? "share" : "png");
     try {
+      if (channel === "whatsapp") {
+        const { signedUrl, fileName } = await uploadReceiptPdfAndGetSignedUrl();
+        const msg = encodeURIComponent(
+          `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
+          `Receipt: ${fileName}\n` +
+          `Transaction: ${tx.transaction_number}\n` +
+          `${signedUrl}`
+        );
+        const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
+        const whatsappUrl = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+        const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        if (!opened) throw new Error("WhatsApp popup was blocked");
+        toast.success("WhatsApp share link opened");
+        return;
+      }
+
       const canvas = await renderReceiptCanvas();
       if (!canvas) throw new Error("Render failed");
       const blob: Blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG failed"))), "image/png"),
       );
       const url = URL.createObjectURL(blob);
-      if (channel === "download") {
-        const a = document.createElement("a");
-        a.href = url; a.download = `receipt-${tx.transaction_number}.png`; a.click();
-        toast.success("Image downloaded");
-      } else {
-        const msg = encodeURIComponent(
-          `Hello ${tx.client_name ?? ""}, here is your refinery transaction receipt.\n` +
-          `Transaction: ${tx.transaction_number}\n` +
-          `Direction: ${tx.direction === "receiving" ? "Receiving Gold" : "Delivery Gold"}\n` +
-          (tx.transaction_type === "gold" ? `Total pure gold: ${fmtG(Number(tx.total_pure_weight))}\n` : "") +
-          (tx.transaction_type === "da" ? `DA amount: ${fmtDA(Number(tx.da_amount))}\n` : "") +
-          (Number(tx.total_refining_fee) > 0 ? `Weight @ 730: ${fmtG((Number(tx.total_pure_weight) * 1000) / 730)}\nRefining fee: ${fmtDA(Number(tx.total_refining_fee))}\n` : "")
-        );
-        const phone = (tx.client_phone ?? "").replace(/[^\d]/g, "");
-        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-      }
+      const a = document.createElement("a");
+      a.href = url; a.download = receiptFileName(tx.transaction_number, "png"); a.click();
+      toast.success("Image downloaded");
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(
+        channel === "whatsapp"
+          ? "Unable to share receipt. Please download the file and send it manually."
+          : e instanceof Error ? e.message : "Export failed",
+      );
     } finally { setBusy(null); }
   };
 
