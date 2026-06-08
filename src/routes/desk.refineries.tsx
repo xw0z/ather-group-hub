@@ -5119,7 +5119,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       // Trigger upstream pages to refresh by reloading window
       setTimeout(() => window.location.reload(), 500);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Restore failed");
+      toast.error(e instanceof Error ? e.message : t("refbk.toast.restoreFail"));
     } finally {
       setRestoring(false);
     }
