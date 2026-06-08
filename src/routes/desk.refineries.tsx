@@ -4503,6 +4503,7 @@ type ClientStmtRow = StatementRow;
 function ClientDetailsPage({
   refinery, assignment, clientId,
 }: { refinery: Refinery; assignment: RefineryAssignment; clientId: string }) {
+  const { t } = useLang();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const inDeskApp = pathname.startsWith("/desk/app/refineries");
