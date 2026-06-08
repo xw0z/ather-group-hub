@@ -94,7 +94,7 @@ export function AccountStatementReport({ data }: { data: AccountStatement }) {
     <div
       data-statement-root
       style={{
-        fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
         color: INK,
         background: PAPER,
       }}
