@@ -785,7 +785,7 @@ export type Database = {
           buysell_settlement: string | null
           buysell_total: number | null
           buysell_weight: number | null
-          client_id: string
+          client_id: string | null
           counterparty_client_id: string | null
           created_at: string
           created_by: string | null
@@ -832,7 +832,7 @@ export type Database = {
           buysell_settlement?: string | null
           buysell_total?: number | null
           buysell_weight?: number | null
-          client_id: string
+          client_id?: string | null
           counterparty_client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -879,7 +879,7 @@ export type Database = {
           buysell_settlement?: string | null
           buysell_total?: number | null
           buysell_weight?: number | null
-          client_id?: string
+          client_id?: string | null
           counterparty_client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1763,7 +1763,7 @@ export type Database = {
           buysell_settlement: string | null
           buysell_total: number | null
           buysell_weight: number | null
-          client_id: string
+          client_id: string | null
           counterparty_client_id: string | null
           created_at: string
           created_by: string | null
@@ -1819,7 +1819,7 @@ export type Database = {
           buysell_settlement: string | null
           buysell_total: number | null
           buysell_weight: number | null
-          client_id: string
+          client_id: string | null
           counterparty_client_id: string | null
           created_at: string
           created_by: string | null
