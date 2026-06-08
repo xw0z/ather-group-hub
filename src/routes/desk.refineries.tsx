@@ -3332,30 +3332,30 @@ function ProfileTab() {
   };
 
   const signOutAll = async () => {
-    if (!confirm("Sign out of all other devices? You will stay signed in here.")) return;
+    if (!confirm(t("prof.sess.confirmAll"))) return;
     setSigningOutAll(true);
     try {
       await signOutEverywhere();
-      toast.success("Signed out of all devices");
+      toast.success(t("prof.toast.langUpdated") === "تم تحديث اللغة" ? "تم تسجيل الخروج من جميع الأجهزة" : t("prof.toast.langUpdated") === "Langue mise à jour" ? "Déconnecté de tous les appareils" : "Signed out of all devices");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally { setSigningOutAll(false); }
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">{t("prof.loading")}</p>;
 
   const subTabs: Array<{ id: ProfileSubTab; label: string; icon: typeof UserIcon }> = [
-    { id: "general", label: "General", icon: UserIcon },
-    { id: "security", label: "Security", icon: ShieldCheck },
-    { id: "preferences", label: "Preferences", icon: SettingsIcon },
-    { id: "sessions", label: "Sessions", icon: Monitor },
+    { id: "general", label: t("prof.tab.general"), icon: UserIcon },
+    { id: "security", label: t("prof.tab.security"), icon: ShieldCheck },
+    { id: "preferences", label: t("prof.tab.preferences"), icon: SettingsIcon },
+    { id: "sessions", label: t("prof.tab.sessions"), icon: Monitor },
   ];
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="font-display text-2xl">Profile</h1>
-        <p className="text-sm text-muted-foreground">Manage your account, security and preferences</p>
+        <h1 className="font-display text-2xl">{t("prof.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("prof.subtitle")}</p>
       </div>
 
       <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto border-b border-border">
