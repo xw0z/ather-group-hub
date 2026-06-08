@@ -483,13 +483,14 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
     alerts.push({ tone: "warn", text: "Net Position prices not set — DA/Silver conversion unavailable.", onClick: () => onTab("netposition") });
   }
 
-  // ---- Negative clients with exposure (sorted highest negative first) ----
+  // ---- Negative clients with exposure (signed: Gold + DA/GoldPrice) ----
+  // Positive DA reduces a negative gold exposure (and vice versa).
   const negRows = data.negativeClients.map((c) => {
     const g = Number(c.purity_balance);
     const d = Number(c.da_balance);
-    const exposureGold = (g < 0 ? -g : 0) + (canCompute && d < 0 ? -d / goldPrice : 0);
+    const exposureGold = g + (canCompute ? d / goldPrice : 0);
     return { ...c, exposureGold };
-  }).sort((a, b) => b.exposureGold - a.exposureGold);
+  }).sort((a, b) => a.exposureGold - b.exposureGold);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -601,8 +602,8 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                       <td className="p-3 font-medium">{c.name}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
-                      <td className="p-3 text-right tabular-nums text-destructive">
-                        {canCompute ? `−${fmtG(c.exposureGold)}` : "—"}
+                      <td className={`p-3 text-right tabular-nums ${balClass(c.exposureGold)}`} title="Exposure = Gold Balance + (DA Balance ÷ Gold Price/g)">
+                        {canCompute ? signed(c.exposureGold, fmtG) : "—"}
                       </td>
                       <td className="p-3 text-muted-foreground">{c.last_activity ?? "—"}</td>
                     </tr>
@@ -637,7 +638,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                     </div>
                     <div>
                       <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Exposure</p>
-                      <p className="text-destructive">{canCompute ? `−${fmtG(c.exposureGold)}` : "—"}</p>
+                      <p className={balClass(c.exposureGold)}>{canCompute ? signed(c.exposureGold, fmtG) : "—"}</p>
                     </div>
                   </div>
                 </div>
