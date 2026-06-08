@@ -2140,6 +2140,8 @@ const ar: Dict = {
   "refnp.toast.silverGte0": "يجب أن يكون سعر الفضة ≥ 0",
   "refnp.toast.pricesSaved": "تم حفظ الأسعار",
   "refnp.toast.snapshot": "تم حفظ اللقطة",
+  "refd.equity.pureGoldEq": "مكافئ الذهب الخالص",
+  "refd.equity.setPrices": "حدّد الأسعار في صافي المركز",
 };
 
 const fr: Dict = {
