@@ -12,29 +12,21 @@ export const Route = createFileRoute("/api/public/hooks/swap-daily-fees")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Accept either:
-        //   (a) Authorization: Bearer <CRON_SECRET>  or  x-cron-secret: <CRON_SECRET>
-        //   (b) apikey: <SUPABASE_PUBLISHABLE_KEY>   (documented pg_cron pattern)
+        // Authenticate via CRON_SECRET only.
+        // Accept Authorization: Bearer <CRON_SECRET>  or  x-cron-secret: <CRON_SECRET>
         const cronSecret = process.env.CRON_SECRET;
-        const publishable =
-          process.env.SUPABASE_PUBLISHABLE_KEY ??
-          process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-          "";
         const authz = request.headers.get("authorization") ?? "";
         const bearer = authz.toLowerCase().startsWith("bearer ")
           ? authz.slice(7).trim()
           : "";
         const headerSecret = request.headers.get("x-cron-secret") ?? "";
-        const apikey = request.headers.get("apikey") ?? "";
 
         const cronOk =
           !!cronSecret &&
           ((bearer && timingSafeEqualStr(bearer, cronSecret)) ||
             (headerSecret && timingSafeEqualStr(headerSecret, cronSecret)));
-        const apikeyOk =
-          !!publishable && !!apikey && timingSafeEqualStr(apikey, publishable);
 
-        if (!cronOk && !apikeyOk) {
+        if (!cronOk) {
           return new Response(
             JSON.stringify({ ok: false, error: "Unauthorized" }),
             { status: 401, headers: { "Content-Type": "application/json" } },

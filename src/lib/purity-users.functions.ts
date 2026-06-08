@@ -8,11 +8,12 @@ const ADMIN_USERNAME = "admin";
 async function assertAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("purity_profiles")
-    .select("username")
+    .select("is_admin")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data || data.username?.toLowerCase() !== ADMIN_USERNAME) {
+  const isAdmin = (data as { is_admin?: boolean } | null)?.is_admin === true;
+  if (!isAdmin) {
     throw new Error("Only the admin can manage users.");
   }
 }
@@ -68,10 +69,11 @@ export const deletePurityUser = createServerFn({ method: "POST" })
 
     const { data: target } = await supabaseAdmin
       .from("purity_profiles")
-      .select("username")
+      .select("is_admin, username")
       .eq("id", data.id)
       .maybeSingle();
-    if (target?.username?.toLowerCase() === ADMIN_USERNAME) {
+    const targetRow = target as { is_admin?: boolean; username?: string } | null;
+    if (targetRow?.is_admin || targetRow?.username?.toLowerCase() === ADMIN_USERNAME) {
       throw new Error("The admin account cannot be deleted.");
     }
 
@@ -106,12 +108,13 @@ export const getCurrentPurityUser = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("purity_profiles")
-      .select("id, username, email")
+      .select("id, username, email, is_admin")
       .eq("id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    const username = data?.username ?? null;
-    const isAdmin = username?.toLowerCase() === ADMIN_USERNAME;
+    const row = data as { username?: string; email?: string | null; is_admin?: boolean } | null;
+    const username = row?.username ?? null;
+    const isAdmin = row?.is_admin === true;
     // Swap admins/managers can also backup/restore Purity.
     const { data: swap } = await supabaseAdmin
       .from("swap_profiles")
@@ -122,7 +125,7 @@ export const getCurrentPurityUser = createServerFn({ method: "GET" })
     return {
       id: context.userId,
       username,
-      email: data?.email ?? null,
+      email: row?.email ?? null,
       isAdmin,
       canBackup: Boolean(isAdmin || s?.is_admin || s?.is_manager),
     };
