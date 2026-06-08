@@ -931,7 +931,7 @@ export const getDashboard = createServerFn({ method: "POST" })
         .or("purity_balance.lt.0,da_balance.lt.0")
         .order("name").limit(100),
       supabaseAdmin.from("refinery_transactions")
-        .select("*, client:refinery_clients(name)")
+        .select("*, client:refinery_clients(name, code)")
         .eq("refinery_id", data.refineryId)
         .order("created_at", { ascending: false }).limit(10),
       supabaseAdmin.from("refinery_price_log")
