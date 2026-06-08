@@ -1316,14 +1316,17 @@ function TransactionsTab({
   }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
 
+  const parseWeight = (s: string): number => {
+    const cleaned = s.replace(/[^0-9.\-]/g, "");
+    return parseFloat(cleaned);
+  };
   const filteredRows = useMemo(() => {
-    const target = parseFloat(searchValue);
+    const target = parseWeight(searchValue);
     if (!Number.isFinite(target)) return rows;
-    const tol = Math.max(0, parseFloat(tolerance) || 0);
+    const tol = Math.max(0, parseWeight(tolerance) || 0);
     const lo = target - tol;
     const hi = target + tol;
     return rows.filter((tx) => {
-      if (tx.transaction_type !== "gold") return false;
       const w = searchField === "gross"
         ? Number(tx.total_gross_weight)
         : Number(tx.total_pure_weight);
@@ -1331,7 +1334,7 @@ function TransactionsTab({
     });
   }, [rows, searchField, searchValue, tolerance]);
 
-  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseFloat(searchValue));
+  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseWeight(searchValue));
 
 
   const handleDelete = async (id: string) => {
@@ -1374,10 +1377,9 @@ function TransactionsTab({
           <div className="flex-1 min-w-0">
             <label className="text-xs text-muted-foreground">Weight (g)</label>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              placeholder="e.g. 1100"
+              placeholder="e.g. 1,100.00 g"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
             />
@@ -1385,10 +1387,9 @@ function TransactionsTab({
           <div className="w-full sm:w-32">
             <label className="text-xs text-muted-foreground">Tolerance ±g</label>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
+              placeholder="±1"
               value={tolerance}
               onChange={(e) => setTolerance(e.target.value)}
             />
