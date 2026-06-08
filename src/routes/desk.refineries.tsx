@@ -948,8 +948,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Code</th>
-                <th className="p-3">Client Name</th>
+                <th className="p-3">Client</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3 text-right">Pure Gold</th>
                 <th className="p-3 text-right">Dinar</th>
@@ -958,9 +957,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
