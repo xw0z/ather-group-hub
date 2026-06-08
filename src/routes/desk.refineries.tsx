@@ -2618,24 +2618,24 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl">Net Position</h1>
-        <p className="text-sm text-muted-foreground">{refinery.name} · refinery equity expressed in Pure Gold (real-time)</p>
+        <h1 className="font-display text-2xl">{t("refnp.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("refnp.subtitle", { name: refinery.name })}</p>
       </div>
 
       {/* HERO: Inventory Pure Gold Stock (actual inventory only) */}
       <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">Inventory Pure Gold Stock</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">{t("refnp.hero.inventory")}</p>
             <p className="font-display text-3xl sm:text-4xl md:text-5xl tabular-nums text-amber-500 mt-1 break-all">
               {fmtG(stock.pure_gold_stock)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Actual pure gold currently held by the refinery. Excludes receivables, payables, DA, and silver.
+              {t("refnp.hero.inventory.desc")}
             </p>
           </div>
           <Badge variant="secondary" className="text-sm px-3 py-1 bg-amber-500/15 text-amber-500 border-amber-500/30">
-            Inventory
+            {t("refnp.badge.inventory")}
           </Badge>
         </div>
       </Card>
@@ -2647,18 +2647,18 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
           <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">Net Physical Pure Gold Position</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">{t("refnp.hero.physical")}</p>
                 <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums mt-1 break-all ${signClass(netPhysical)}`}>
                   {signed(netPhysical, fmtG)}
                 </p>
                 <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
-                  <p>Inventory: <span className="tabular-nums text-foreground">{fmtG(stock.pure_gold_stock)}</span></p>
-                  <p>Client Receivables: <span className="tabular-nums text-emerald-500">+ {fmtG(clientsOweGold)}</span></p>
-                  <p>Client Payables: <span className="tabular-nums text-red-500">− {fmtG(refineryOwesGold)}</span></p>
+                  <p>{t("refnp.hero.physical.inventory")}: <span className="tabular-nums text-foreground">{fmtG(stock.pure_gold_stock)}</span></p>
+                  <p>{t("refnp.hero.physical.recv")}: <span className="tabular-nums text-emerald-500">+ {fmtG(clientsOweGold)}</span></p>
+                  <p>{t("refnp.hero.physical.pay")}: <span className="tabular-nums text-red-500">− {fmtG(refineryOwesGold)}</span></p>
                 </div>
               </div>
               <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusBadgeCls(netPhysical)}`}>
-                Real Gold Position
+                {t("refnp.badge.realgold")}
               </Badge>
             </div>
           </Card>
@@ -2669,21 +2669,21 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Refinery Equity</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t("refnp.equity.label")}</p>
               <TooltipProvider delayDuration={150}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="How is equity calculated?">
+                    <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" aria-label={t("refnp.equity.tip.aria")}>
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
-                    <p className="font-semibold mb-1">Refinery Equity (Pure Gold)</p>
-                    <p>= Net Physical Pure Gold Position</p>
-                    <p>+ Silver Gold Equivalent</p>
-                    <p>+ Clients Owe Refinery DA (gold equivalent)</p>
-                    <p>− Refinery Owes Clients DA (gold equivalent)</p>
-                    <p className="mt-2 text-muted-foreground">Silver is converted using the saved Silver &amp; Gold prices. DA cash held in stock is shown in Other Holdings.</p>
+                    <p className="font-semibold mb-1">{t("refnp.equity.tip.title")}</p>
+                    <p>{t("refnp.equity.tip.l1")}</p>
+                    <p>{t("refnp.equity.tip.l2")}</p>
+                    <p>{t("refnp.equity.tip.l3")}</p>
+                    <p>{t("refnp.equity.tip.l4")}</p>
+                    <p className="mt-2 text-muted-foreground">{t("refnp.equity.tip.foot")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -2692,16 +2692,16 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               {signed(refineryEquity, fmtG)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Net Gold Position + Silver (gold eq) + DA Receivables − DA Payables
+              {t("refnp.equity.short")}
             </p>
 
           </div>
           <div className="flex flex-col gap-2 items-start md:items-end">
             <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusBadgeCls(refineryEquity)}`}>
-              {refineryEquity > 0.0001 ? "Positive Equity" : refineryEquity < -0.0001 ? "Negative Equity" : "Neutral"}
+              {refineryEquity > 0.0001 ? t("refnp.badge.positive") : refineryEquity < -0.0001 ? t("refnp.badge.negative") : t("refnp.badge.neutral")}
             </Badge>
             <Button size="sm" variant="outline" onClick={onSaveSnapshot} disabled={savingSnap}>
-              {savingSnap && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Today's Snapshot
+              {savingSnap && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t("refnp.save.snapshot")}
             </Button>
           </div>
         </div>
@@ -2710,42 +2710,42 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       {/* Refinery Equity Breakdown */}
       <Card className="p-4 border-amber-500/20">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-          <Scale className="h-4 w-4 text-amber-500" /> Position Calculation Breakdown
+          <Scale className="h-4 w-4 text-amber-500" /> {t("refnp.breakdown.title")}
         </h3>
         <div className="space-y-2 text-sm">
-          <NPRow label="Inventory Pure Gold Stock" value={`+ ${fmtG(stock.pure_gold_stock)}`} cls="text-amber-500" />
-          <NPRow label="Clients Owe Refinery Gold" value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
-          <NPRow label="Refinery Owes Clients Gold" value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
+          <NPRow label={t("refnp.bd.inventory")} value={`+ ${fmtG(stock.pure_gold_stock)}`} cls="text-amber-500" />
+          <NPRow label={t("refnp.bd.cogr")} value={`+ ${fmtG(clientsOweGold)}`} cls="text-emerald-500" />
+          <NPRow label={t("refnp.bd.rocg")} value={`− ${fmtG(refineryOwesGold)}`} cls="text-red-500" />
           <div className="flex items-center justify-between pt-2 border-t border-amber-500/30">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-amber-400 font-semibold">Net Physical Pure Gold Position</span>
+            <span className="text-[11px] uppercase tracking-[0.16em] text-amber-400 font-semibold">{t("refnp.bd.netPhysical")}</span>
             <span className={`font-display text-lg tabular-nums ${signClass(netPhysicalGold)}`}>= {fmtG(netPhysicalGold)}</span>
           </div>
           <NPRow
-            label="Silver Gold Equivalent"
-            value={canCompute ? `+ ${fmtG(silverEq)}` : "— set gold price"}
+            label={t("refnp.bd.silverEq")}
+            value={canCompute ? `+ ${fmtG(silverEq)}` : t("refnp.bd.setPrice")}
             cls={canCompute ? "text-slate-300" : "text-muted-foreground"}
           />
           <NPRow
-            label="Clients Owe Refinery DA (gold eq)"
-            value={canCompute ? `+ ${fmtG(clientsOweDaEq)}` : "— set gold price"}
+            label={t("refnp.bd.cogrDa")}
+            value={canCompute ? `+ ${fmtG(clientsOweDaEq)}` : t("refnp.bd.setPrice")}
             cls={canCompute ? "text-emerald-500" : "text-muted-foreground"}
           />
           <NPRow
-            label="Refinery Owes Clients DA (gold eq)"
-            value={canCompute ? `− ${fmtG(refineryOwesDaEq)}` : "— set gold price"}
+            label={t("refnp.bd.rocgDa")}
+            value={canCompute ? `− ${fmtG(refineryOwesDaEq)}` : t("refnp.bd.setPrice")}
             cls={canCompute ? "text-red-500" : "text-muted-foreground"}
           />
           <div className="flex items-center justify-between pt-2 border-t-2 border-amber-500/40">
-            <span className="text-xs uppercase tracking-[0.18em] text-amber-500 font-semibold">Final Refinery Equity</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-amber-500 font-semibold">{t("refnp.bd.final")}</span>
             <span className={`font-display text-2xl tabular-nums ${signClass(refineryEquity)}`}>= {signed(refineryEquity, fmtG)}</span>
           </div>
           <div className="pt-2 mt-2 border-t border-dashed border-border text-[11px] text-muted-foreground">
-            <p className="uppercase tracking-wider mb-1">Formula Check</p>
+            <p className="uppercase tracking-wider mb-1">{t("refnp.bd.formula")}</p>
             <p className="font-mono break-all">
               {fmtG(netPhysicalGold)} + {fmtG(silverEq)} + {fmtG(clientsOweDaEq)} − {fmtG(refineryOwesDaEq)} = <span className={signClass(refineryEquity)}>{fmtG(refineryEquity)}</span>
             </p>
             {!canCompute && (
-              <p className="mt-1 text-amber-600">Silver and DA gold-equivalent are excluded until a Gold Price is saved below.</p>
+              <p className="mt-1 text-amber-600">{t("refnp.bd.formulaWarn")}</p>
             )}
           </div>
         </div>
@@ -2754,45 +2754,45 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
       {/* Price inputs */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> Price Inputs <span className="text-xs font-normal text-muted-foreground">(for DA / silver display only)</span></h3>
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Wallet className="h-4 w-4 text-ember" /> {t("refnp.price.title")} <span className="text-xs font-normal text-muted-foreground">{t("refnp.price.subtitle")}</span></h3>
         <div className="flex flex-wrap items-end gap-3 sm:gap-4">
           <div className="w-full sm:w-auto">
-            <Label className="text-xs">Gold Price (DA / g)</Label>
+            <Label className="text-xs">{t("refnp.price.gold")}</Label>
             <Input type="number" inputMode="decimal" value={draftGold} onChange={(e) => setDraftGold(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
           <div className="w-full sm:w-auto">
-            <Label className="text-xs">Silver Price (DA / g)</Label>
+            <Label className="text-xs">{t("refnp.price.silver")}</Label>
             <Input type="number" inputMode="decimal" value={draftSilver} onChange={(e) => setDraftSilver(e.target.value)} className="w-full sm:w-[180px]" />
           </div>
           <Button onClick={onSavePrices} disabled={saving} className="w-full sm:w-auto">
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Prices
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t("refnp.price.save")}
           </Button>
 
           {savedBy.at && (
             <p className="text-xs text-muted-foreground">
-              Last saved by <span className="font-medium">{savedBy.name ?? "—"}</span> on {new Date(savedBy.at).toLocaleString()}
+              {t("refnp.price.lastBy", { name: savedBy.name ?? "—", when: new Date(savedBy.at).toLocaleString() })}
             </p>
           )}
         </div>
         {!canCompute && (
-          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> Save a Gold Price greater than 0 to convert silver and DA into pure gold equivalent below.</p>
+          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> {t("refnp.price.warn")}</p>
         )}
       </Card>
 
       {/* Refinery Holdings */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3">Other Holdings <span className="text-xs font-normal text-muted-foreground">(not included in Pure Gold Equity unless converted)</span></h3>
+        <h3 className="font-semibold text-sm mb-3">{t("refnp.holdings.title")} <span className="text-xs font-normal text-muted-foreground">{t("refnp.holdings.subtitle")}</span></h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
-            <p className="text-xs uppercase tracking-wider text-amber-500/80">Pure Gold</p>
+            <p className="text-xs uppercase tracking-wider text-amber-500/80">{t("refnp.holdings.gold")}</p>
             <p className="font-display text-2xl tabular-nums text-amber-500 mt-1">{fmtG(stock.pure_gold_stock)} g</p>
           </div>
           <div className="rounded-md border border-slate-400/30 bg-slate-400/5 p-4">
-            <p className="text-xs uppercase tracking-wider text-slate-300">Silver</p>
+            <p className="text-xs uppercase tracking-wider text-slate-300">{t("refnp.holdings.silver")}</p>
             <p className="font-display text-2xl tabular-nums text-slate-200 mt-1">{fmtG(stock.silver_stock)} g</p>
           </div>
           <div className="rounded-md border border-border bg-muted/10 p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">DA Cash</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">{t("refnp.holdings.da")}</p>
             <p className="font-display text-2xl tabular-nums mt-1">{fmtDA(stock.da_stock)} DA</p>
           </div>
         </div>
@@ -2802,31 +2802,31 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-4 border-emerald-500/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 text-emerald-500">
-            <TrendingUp className="h-4 w-4" /> Assets
+            <TrendingUp className="h-4 w-4" /> {t("refnp.assets.title")}
           </h3>
           <div className="space-y-2 text-sm">
-            <NPRow label="Pure Gold Stock" value={fmtG(stock.pure_gold_stock)} cls="text-amber-500" />
-            <NPRow label="Silver Equivalent" value={fmtG(silverEq)} cls="text-slate-300" />
-            <NPRow label="DA Cash Equivalent" value={fmtG(daCashEq)} />
-            <NPRow label="Clients Owe Refinery Gold" value={fmtG(clientsOweGold)} cls={signClass(clientsOweGold)} />
-            <NPRow label="Clients Owe Refinery DA (g eq.)" value={fmtG(clientsOweDaEq)} cls={signClass(clientsOweDaEq)} />
+            <NPRow label={t("refnp.assets.gold")} value={fmtG(stock.pure_gold_stock)} cls="text-amber-500" />
+            <NPRow label={t("refnp.assets.silverEq")} value={fmtG(silverEq)} cls="text-slate-300" />
+            <NPRow label={t("refnp.assets.daEq")} value={fmtG(daCashEq)} />
+            <NPRow label={t("refnp.assets.cogr")} value={fmtG(clientsOweGold)} cls={signClass(clientsOweGold)} />
+            <NPRow label={t("refnp.assets.cogrDa")} value={fmtG(clientsOweDaEq)} cls={signClass(clientsOweDaEq)} />
           </div>
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Total Assets</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refnp.assets.total")}</span>
             <span className="font-display text-lg tabular-nums text-emerald-500">{fmtG(totalAssets)}</span>
           </div>
         </Card>
 
         <Card className="p-4 border-red-500/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 text-red-500">
-            <AlertTriangle className="h-4 w-4" /> Liabilities
+            <AlertTriangle className="h-4 w-4" /> {t("refnp.liab.title")}
           </h3>
           <div className="space-y-2 text-sm">
-            <NPRow label="Refinery Owes Clients Gold" value={fmtG(refineryOwesGold)} cls={refineryOwesGold > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
-            <NPRow label="Refinery Owes Clients DA (g eq.)" value={fmtG(refineryOwesDaEq)} cls={refineryOwesDaEq > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
+            <NPRow label={t("refnp.liab.rocg")} value={fmtG(refineryOwesGold)} cls={refineryOwesGold > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
+            <NPRow label={t("refnp.liab.rocgDa")} value={fmtG(refineryOwesDaEq)} cls={refineryOwesDaEq > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
           </div>
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Total Liabilities</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refnp.liab.total")}</span>
             <span className="font-display text-lg tabular-nums text-red-500">{fmtG(totalLiabilities)}</span>
           </div>
         </Card>
@@ -2834,38 +2834,38 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
       {/* Client Exposure Summary */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3">Client Exposure Summary</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("refnp.expo.title")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <NPRow label="Clients Owe Refinery Gold" value={fmtG(clientsOweGold)} cls={signClass(clientsOweGold)} />
-          <NPRow label="Refinery Owes Clients Gold" value={fmtG(refineryOwesGold)} cls={refineryOwesGold > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
-          <NPRow label="Net Client Gold Position" value={signed(netClientGold, fmtG)} cls={signClass(netClientGold)} />
+          <NPRow label={t("refnp.bd.cogr")} value={fmtG(clientsOweGold)} cls={signClass(clientsOweGold)} />
+          <NPRow label={t("refnp.bd.rocg")} value={fmtG(refineryOwesGold)} cls={refineryOwesGold > 0.0001 ? "text-red-500" : "text-muted-foreground"} />
+          <NPRow label={t("refnp.expo.netGold")} value={signed(netClientGold, fmtG)} cls={signClass(netClientGold)} />
           <div />
-          <NPRow label="Clients Owe Refinery DA" value={fmtDA(clientsOweDa)} muted />
-          <NPRow label="Refinery Owes Clients DA" value={fmtDA(refineryOwesDa)} muted />
-          <NPRow label="Net Client DA Position" value={signed(netClientDa, fmtDA)} cls={signClass(netClientDa)} />
-          <NPRow label="Net Client DA (Pure Gold Equivalent)" value={signed(netClientDaEq, fmtG)} cls={signClass(netClientDaEq)} />
+          <NPRow label={t("refnp.expo.cogrDa")} value={fmtDA(clientsOweDa)} muted />
+          <NPRow label={t("refnp.expo.rocgDa")} value={fmtDA(refineryOwesDa)} muted />
+          <NPRow label={t("refnp.expo.netDa")} value={signed(netClientDa, fmtDA)} cls={signClass(netClientDa)} />
+          <NPRow label={t("refnp.expo.netDaEq")} value={signed(netClientDaEq, fmtG)} cls={signClass(netClientDaEq)} />
         </div>
       </Card>
 
       {/* Client positions detail */}
       <Card>
         <div className="px-4 py-3 border-b border-border">
-          <h3 className="font-semibold text-sm">Client Positions <span className="text-xs text-muted-foreground font-normal">· per-client breakdown</span></h3>
+          <h3 className="font-semibold text-sm">{t("refnp.pos.title")} <span className="text-xs text-muted-foreground font-normal">{t("refnp.pos.subtitle")}</span></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Client</th>
-                <th className="p-3 text-right">Owes Refinery Gold</th>
-                <th className="p-3 text-right">Owed by Refinery Gold</th>
-                <th className="p-3 text-right">Owes Refinery DA</th>
-                <th className="p-3 text-right">Owed by Refinery DA</th>
+                <th className="p-3">{t("refnp.pos.col.client")}</th>
+                <th className="p-3 text-right">{t("refnp.pos.col.cogrGold")}</th>
+                <th className="p-3 text-right">{t("refnp.pos.col.rocgGold")}</th>
+                <th className="p-3 text-right">{t("refnp.pos.col.cogrDa")}</th>
+                <th className="p-3 text-right">{t("refnp.pos.col.rocgDa")}</th>
               </tr>
             </thead>
             <tbody>
               {clientRows.length === 0 && (
-                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No clients</td></tr>
+                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">{t("refnp.pos.empty")}</td></tr>
               )}
               {clientRows.map((r) => (
                 <tr key={r.id} className="border-b border-border last:border-0">
@@ -2880,7 +2880,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
             {clientRows.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/10 font-semibold">
-                  <td className="p-3">Total</td>
+                  <td className="p-3">{t("refnp.pos.total")}</td>
                   <td className="p-3 text-right tabular-nums text-emerald-500">{fmtG(clientsOweGold)}</td>
                   <td className="p-3 text-right tabular-nums text-red-500">{fmtG(refineryOwesGold)}</td>
                   <td className="p-3 text-right tabular-nums text-emerald-500">{fmtDA(clientsOweDa)}</td>
@@ -2894,43 +2894,43 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
 
       {/* Calculation Breakdown */}
       <Card className="p-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-ember" /> Position Calculation Breakdown</h3>
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-ember" /> {t("refnp.bd2.title")}</h3>
         <div className="font-mono text-sm space-y-1.5">
-          <BreakdownLine label="Pure Gold Stock" value={stock.pure_gold_stock} cls="text-amber-500" />
-          <BreakdownLine label="Silver Equivalent" value={silverEq} cls="text-slate-300" />
-          <BreakdownLine label="DA Cash Equivalent" value={daCashEq} />
-          <BreakdownLine label="Clients Owe Refinery Gold" value={clientsOweGold} />
-          <BreakdownLine label="Clients Owe Refinery DA (g eq.)" value={clientsOweDaEq} />
-          <BreakdownLine label="Refinery Owes Clients Gold" value={-refineryOwesGold} />
-          <BreakdownLine label="Refinery Owes Clients DA (g eq.)" value={-refineryOwesDaEq} />
+          <BreakdownLine label={t("refnp.assets.gold")} value={stock.pure_gold_stock} cls="text-amber-500" />
+          <BreakdownLine label={t("refnp.assets.silverEq")} value={silverEq} cls="text-slate-300" />
+          <BreakdownLine label={t("refnp.assets.daEq")} value={daCashEq} />
+          <BreakdownLine label={t("refnp.bd.cogr")} value={clientsOweGold} />
+          <BreakdownLine label={t("refnp.assets.cogrDa")} value={clientsOweDaEq} />
+          <BreakdownLine label={t("refnp.bd.rocg")} value={-refineryOwesGold} />
+          <BreakdownLine label={t("refnp.liab.rocgDa")} value={-refineryOwesDaEq} />
           <div className="border-t border-border my-2" />
-          <BreakdownLine label="REFINERY EQUITY" value={refineryEquity} cls={`font-bold ${signClass(refineryEquity)}`} />
+          <BreakdownLine label={t("refnp.bd2.equity")} value={refineryEquity} cls={`font-bold ${signClass(refineryEquity)}`} />
         </div>
       </Card>
 
       {/* Position History */}
       <Card>
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h3 className="font-semibold text-sm">Position History <span className="text-xs text-muted-foreground font-normal">· daily snapshots</span></h3>
+          <h3 className="font-semibold text-sm">{t("refnp.hist.title")} <span className="text-xs text-muted-foreground font-normal">{t("refnp.hist.subtitle")}</span></h3>
           <Button size="sm" variant="outline" onClick={onSaveSnapshot} disabled={savingSnap || !canCompute}>
-            {savingSnap && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Today's Snapshot
+            {savingSnap && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t("refnp.save.snapshot")}
           </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Date</th>
-                <th className="p-3 text-right">Pure Gold Stock</th>
-                <th className="p-3 text-right">Silver Stock</th>
-                <th className="p-3 text-right">DA Cash</th>
-                <th className="p-3 text-right">Refinery Equity</th>
-                <th className="p-3">Saved By</th>
+                <th className="p-3">{t("refnp.hist.col.date")}</th>
+                <th className="p-3 text-right">{t("refnp.hist.col.gold")}</th>
+                <th className="p-3 text-right">{t("refnp.hist.col.silver")}</th>
+                <th className="p-3 text-right">{t("refnp.hist.col.da")}</th>
+                <th className="p-3 text-right">{t("refnp.hist.col.equity")}</th>
+                <th className="p-3">{t("refnp.hist.col.by")}</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No snapshots yet. Save today's snapshot to start tracking.</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t("refnp.hist.empty")}</td></tr>
               )}
               {history.map((s) => (
                 <tr key={s.id} className="border-b border-border last:border-0">
@@ -2949,6 +2949,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
     </div>
   );
 }
+
 
 function NPRow({ label, value, cls, muted }: { label: string; value: string; cls?: string; muted?: boolean }) {
   return (
