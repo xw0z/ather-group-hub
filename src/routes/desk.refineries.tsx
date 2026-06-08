@@ -3216,7 +3216,7 @@ type SwapPrefs = Awaited<ReturnType<typeof getUserPreferences>>;
 type LoginRow = Awaited<ReturnType<typeof getLoginHistory>>[number];
 
 function ProfileTab() {
-  const { lang, setLang } = useLang();
+  const { lang, setLang, t } = useLang();
   const [sub, setSub] = useState<ProfileSubTab>("general");
   const [loading, setLoading] = useState(true);
 
