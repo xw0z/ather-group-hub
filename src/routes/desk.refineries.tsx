@@ -1301,6 +1301,9 @@ function TransactionsTab({
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState<"gross" | "pure">("gross");
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [tolerance, setTolerance] = useState<string>("1");
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
 
@@ -1311,6 +1314,24 @@ function TransactionsTab({
     finally { setLoading(false); }
   }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
+
+  const filteredRows = useMemo(() => {
+    const target = parseFloat(searchValue);
+    if (!Number.isFinite(target)) return rows;
+    const tol = Math.max(0, parseFloat(tolerance) || 0);
+    const lo = target - tol;
+    const hi = target + tol;
+    return rows.filter((tx) => {
+      if (tx.transaction_type !== "gold") return false;
+      const w = searchField === "gross"
+        ? Number(tx.total_gross_weight)
+        : Number(tx.total_pure_weight);
+      return Number.isFinite(w) && w >= lo && w <= hi;
+    });
+  }, [rows, searchField, searchValue, tolerance]);
+
+  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseFloat(searchValue));
+
 
   const handleDelete = async (id: string) => {
     if (!confirm(t("reft.confirm.delete"))) return;
