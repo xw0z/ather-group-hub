@@ -5180,7 +5180,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
           keep_last: settings.keep_last,
         },
       });
-      toast.success("Scheduled backup settings saved");
+      toast.success(t("refbk.toast.settingsSaved"));
       await reload();
     } catch (e2) {
       toast.error(e2 instanceof Error ? e2.message : "Failed to save settings");
