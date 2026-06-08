@@ -600,7 +600,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                   return (
                     <tr key={c.id} className="border-b border-border last:border-0">
                       <td className="p-3"><StatusDot tone="negative" /></td>
-                      <td className="p-3 font-medium">{c.name}</td>
+                      <td className="p-3 font-medium"><ClientLabel code={(c as { code?: string | null }).code} name={c.name} /></td>
                       <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(c.exposureGold)}`} title="Exposure = Gold Balance + (DA Balance ÷ Gold Price/g)">
