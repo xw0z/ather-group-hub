@@ -926,7 +926,7 @@ export const getDashboard = createServerFn({ method: "POST" })
         .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_metal, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
         .eq("refinery_id", data.refineryId).gte("created_at", todayIso),
       supabaseAdmin.from("refinery_clients")
-        .select("id, name, purity_balance, da_balance")
+        .select("id, name, code, purity_balance, da_balance")
         .eq("refinery_id", data.refineryId)
         .or("purity_balance.lt.0,da_balance.lt.0")
         .order("name").limit(100),
