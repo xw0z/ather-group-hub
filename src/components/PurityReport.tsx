@@ -148,7 +148,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         border: "6px solid #C79A19",
         borderRadius: 36,
         boxSizing: "border-box",
-        fontFamily: "Inter, system-ui, sans-serif",
+        fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
         position: "relative",
       }}
     >
@@ -165,10 +165,10 @@ export function PurityReport({ data }: { data: PurityReportData }) {
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifySelf: "center" }}>
             <img src={atherLogoAsset.url} alt="Ather" style={{ width: 172, height: "auto", display: "block" }} />
-            <div style={{ marginTop: 18, fontFamily: "'Montserrat', sans-serif", fontSize: 22, fontWeight: 600, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
+            <div style={{ marginTop: 18, fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", fontSize: 22, fontWeight: 600, color: "#9a7b1f", letterSpacing: 1, lineHeight: 1.25, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
               GOLD &amp; PRECIOUS METALS
             </div>
-            <div style={{ marginTop: 10, fontFamily: "'Montserrat', sans-serif", fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
+            <div style={{ marginTop: 10, fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", fontSize: 16, letterSpacing: 2, color: "#9a7b1f", fontWeight: 600, whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase" }}>
               TRUST • INTEGRITY • EXCELLENCE
             </div>
           </div>
@@ -176,7 +176,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           <div style={{ textAlign: "center" }}>
             <h1
               style={{
-                fontFamily: "'Montserrat', sans-serif",
+                fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif",
                 fontSize: 119,
                 letterSpacing: 6,
                 color: "#B88A18",
@@ -213,12 +213,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
       {/* TOP INFO — Client Code (left) + Report Date/Time/ID (right, near flag) */}
       <section style={{ marginTop: 130, display: "grid", gridTemplateColumns: "1fr auto", gap: 80, alignItems: "start" }}>
         <div>
-          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "'Montserrat', sans-serif", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 42, color: "#9a7b1f", fontWeight: 600, letterSpacing: 2, fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", textTransform: "uppercase" }}>
             CLIENT CODE
           </div>
           <div
             style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
+              fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
               fontSize: 204,
               lineHeight: 0.95,
               marginTop: 18,
@@ -264,7 +264,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           borderRadius: 24,
           overflow: "hidden",
           fontSize: 38,
-          fontFamily: "Inter, system-ui, sans-serif",
+          fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
           boxShadow: "0 18px 60px rgba(0,0,0,0.08)",
           border: "2px solid #eadfbd",
         }}
@@ -292,7 +292,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
                   verticalAlign: "middle",
                   padding: "0 12px",
                   borderBottom: "3px solid #9a7b1f",
-                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
                 }}
               >
                 {h}
@@ -359,12 +359,12 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           />
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 38, fontWeight: 600, color: "#555", letterSpacing: 4, textTransform: "uppercase" }}>
+          <div style={{ fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", fontSize: 38, fontWeight: 600, color: "#555", letterSpacing: 4, textTransform: "uppercase" }}>
             AMOUNT TO COMPENSATE
           </div>
           <div
             style={{
-              fontFamily: "'Inter', system-ui, sans-serif",
+              fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
               fontSize: 254,
               color: "#B88A18",
               lineHeight: 1,
@@ -378,7 +378,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
             <span style={{ fontSize: 90, marginLeft: 18, color: "#B88A18" }}>g</span>
           </div>
 
-          <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic", fontWeight: 500 }}>
+          <div style={{ fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif", fontSize: 46, color: "#7a5f15", marginTop: 10, fontStyle: "italic", fontWeight: 500 }}>
             of Pure Gold
           </div>
         </div>
@@ -480,7 +480,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
           Generated by <strong style={{ color: "#9a7b1f" }}>Ather Gold &amp; Precious Metals</strong>
         </div>
         <div style={{ textAlign: "center" }}>
-          Verification ID: <strong style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 700, color: "#1c2431" }}>{data.reportId}</strong>
+          Verification ID: <strong style={{ fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif", fontWeight: 700, color: "#1c2431" }}>{data.reportId}</strong>
         </div>
         <div style={{ textAlign: "right" }}>Dubai, United Arab Emirates</div>
       </footer>
@@ -519,10 +519,10 @@ function MetaRow({
         {icon}
       </div>
       <div>
-        <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
+        <div style={{ fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", fontSize: 28, color: "#9a7b1f", fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</div>
         <div
           style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
+            fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
             fontSize: 40,
             color: "#1c2431",
             fontWeight: 600,
@@ -579,7 +579,7 @@ const cellStyle: React.CSSProperties = {
   textAlign: "center",
   verticalAlign: "middle",
   borderBottom: "1px solid #E9E2D0",
-  fontFamily: "'Inter', system-ui, sans-serif",
+  fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
   fontSize: 38,
   fontWeight: 600,
   color: "#1c2431",
@@ -658,13 +658,13 @@ function SummaryCard({
       >
         {icon}
       </div>
-      <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 34, fontWeight: 600, color: "#555", letterSpacing: 2, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontFamily: "'Urbanist', 'Epilogue', system-ui, sans-serif", fontSize: 34, fontWeight: 600, color: "#555", letterSpacing: 2, textTransform: "uppercase" }}>{label}</div>
       <strong
         style={{
           fontSize: 126,
           fontWeight: 700,
           color: variant === "red" ? "#d33c2d" : variant === "green" ? "#0e8f55" : "#1c2431",
-          fontFamily: "'Inter', system-ui, sans-serif",
+          fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
           letterSpacing: 0,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
