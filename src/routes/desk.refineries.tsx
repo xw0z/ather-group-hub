@@ -1033,12 +1033,11 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <StatusDot tone={tone} />
-                      <span className="font-mono text-[11px] font-semibold tracking-wider">{c.code ?? "—"}</span>
+                      <span className="text-sm truncate min-w-0"><ClientLabel code={c.code} name={c.name} /></span>
                     </div>
-                    <p className="font-medium text-sm truncate mt-0.5">{c.name}</p>
-                    {c.phone && <p className="text-[11px] text-muted-foreground truncate">{c.phone}</p>}
+                    {c.phone && <p className="text-[11px] text-muted-foreground truncate mt-0.5 pl-4">{c.phone}</p>}
                   </div>
                   <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {canStatement && (
