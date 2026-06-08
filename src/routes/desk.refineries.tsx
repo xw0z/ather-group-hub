@@ -419,22 +419,23 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   const [data, setData] = useState<Dash | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const d = await getDashboard({ data: { refineryId: refinery.id } });
       setData(d as Dash);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to load"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refd.toast.loadFail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
 
   useEffect(() => { load(); }, [load]);
 
   const goToClients = (filter?: "owing-gold" | "owing-da") =>
     navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", filter } });
 
-  if (loading || !data) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading || !data) return <p className="text-muted-foreground text-sm">{t("app.loading")}</p>;
 
   // ---- Equity calculation (Pure Gold Equivalent) ----
   // Equity = Pure Gold Stock + Clients Owe Gold + Clients Owe DA (gold eq)
@@ -461,12 +462,12 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   if (data.clientsOweDa > daCash && daCash >= 0) {
     alerts.push({
       tone: "danger",
-      text: `Client DA exposure (${fmtDA(data.clientsOweDa)}) exceeds refinery DA stock (${fmtDA(daCash)}).`,
+      text: t("refd.alert.daExposure", { exposure: fmtDA(data.clientsOweDa), stock: fmtDA(daCash) }),
       onClick: () => goToClients("owing-da"),
     });
   }
   if (goldStock < 100) {
-    alerts.push({ tone: "warn", text: `Refinery gold stock below threshold (${fmtG(goldStock)}).`, onClick: () => onTab("stock") });
+    alerts.push({ tone: "warn", text: t("refd.alert.lowGold", { stock: fmtG(goldStock) }), onClick: () => onTab("stock") });
   }
   // Biggest gold-owing client alert
   const biggestGold = [...data.negativeClients]
@@ -476,12 +477,12 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
   if (biggestGold && biggestGold.owed >= 500) {
     alerts.push({
       tone: "danger",
-      text: `${biggestGold.name} owes ${fmtG(biggestGold.owed)}.`,
+      text: t("refd.alert.clientOwes", { name: biggestGold.name, amount: fmtG(biggestGold.owed) }),
       onClick: () => goToClients("owing-gold"),
     });
   }
   if (goldPrice <= 0) {
-    alerts.push({ tone: "warn", text: "Net Position prices not set — DA/Silver conversion unavailable.", onClick: () => onTab("netposition") });
+    alerts.push({ tone: "warn", text: t("refd.alert.noPrices"), onClick: () => onTab("netposition") });
   }
 
   // ---- Negative clients with exposure (signed: Gold + DA/GoldPrice) ----
@@ -497,21 +498,21 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
     <div className="space-y-6 sm:space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-xl sm:text-2xl">Dashboard</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">{refinery.name} overview</p>
+          <h1 className="font-display text-xl sm:text-2xl">{t("refd.title")}</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t("refd.subtitle", { name: refinery.name })}</p>
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Button size="sm" className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onTab("buysell")}>
-            <Plus className="h-4 w-4 mr-1" /> Buy Gold
+            <Plus className="h-4 w-4 mr-1" /> {t("refd.btn.buyGold")}
           </Button>
           <Button size="sm" className="h-9 bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => onTab("buysell")}>
-            <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+            <TrendingDown className="h-4 w-4 mr-1" /> {t("refd.btn.sellGold")}
           </Button>
           <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("stock")}>
-            <Plus className="h-4 w-4 mr-1" /> Stock Adj
+            <Plus className="h-4 w-4 mr-1" /> {t("refd.btn.stockAdj")}
           </Button>
           <Button size="sm" variant="outline" className="h-9" onClick={() => onTab("clients")}>
-            <Plus className="h-4 w-4 mr-1" /> Add Client
+            <Plus className="h-4 w-4 mr-1" /> {t("refd.btn.addClient")}
           </Button>
         </div>
       </header>
@@ -519,23 +520,23 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
       {/* Top row: physical metrics + equity hero */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
-        <StatCard icon={<Coins className="h-4 w-4 text-amber-500" />} label="Pure Gold Stock" value={fmtG(goldStock)} valueClass="text-amber-500" />
-        <StatCard icon={<Coins className="h-4 w-4 text-slate-400" />} label="Silver Stock" value={fmtG(silverStock)} valueClass="text-slate-300" />
-        <StatCard icon={<Wallet className="h-4 w-4" />} label="DA Cash Stock" value={fmtDA(daCash)} />
+        <StatCard icon={<Coins className="h-4 w-4 text-amber-500" />} label={t("refd.stat.pureGold")} value={fmtG(goldStock)} valueClass="text-amber-500" />
+        <StatCard icon={<Coins className="h-4 w-4 text-slate-400" />} label={t("refd.stat.silver")} value={fmtG(silverStock)} valueClass="text-slate-300" />
+        <StatCard icon={<Wallet className="h-4 w-4" />} label={t("refd.stat.daCash")} value={fmtDA(daCash)} />
         <EquityCard equity={refineryEquity} canCompute={canCompute} onClick={() => onTab("netposition")} />
       </div>
 
       {/* Second row: clients, exposure, today summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
-        <StatCard label="Total Clients" value={String(data.totalClients)} onClick={() => onTab("clients")} />
+        <StatCard label={t("refd.stat.totalClients")} value={String(data.totalClients)} onClick={() => onTab("clients")} />
         <StatCard
-          label="Clients Owing Gold"
+          label={t("refd.stat.owingGold")}
           value={String(data.negativePurity)}
           tone={data.negativePurity > 0 ? "warn" : undefined}
           onClick={() => goToClients("owing-gold")}
         />
         <StatCard
-          label="Clients Owing DA"
+          label={t("refd.stat.owingDa")}
           value={String(data.negativeDa)}
           tone={data.negativeDa > 0 ? "warn" : undefined}
           onClick={() => goToClients("owing-da")}
@@ -544,11 +545,12 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
       </div>
 
 
+
       {/* Alerts */}
       {alerts.length > 0 && (
         <section>
           <h2 className="font-display text-lg flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4 text-amber-500" /> Alerts
+            <AlertTriangle className="h-4 w-4 text-amber-500" /> {t("refd.alerts")}
           </h2>
           <div className="space-y-2">
             {alerts.map((a, i) => (
@@ -573,26 +575,26 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" /> Clients with negative balances
+            <AlertTriangle className="h-4 w-4 text-amber-500" /> {t("refd.neg.title")}
           </h2>
-          <Button size="sm" variant="ghost" onClick={() => onTab("clients")}>View all</Button>
+          <Button size="sm" variant="ghost" onClick={() => onTab("clients")}>{t("refd.viewAll")}</Button>
         </div>
         <Card>
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]">
               <thead className="border-b border-border bg-muted/20">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                  <th className="p-3 w-8">Status</th>
-                  <th className="p-3">Client</th>
-                  <th className="p-3 text-right">Gold Balance</th>
-                  <th className="p-3 text-right">DA Balance</th>
-                  <th className="p-3 text-right">Exposure</th>
-                  <th className="p-3">Last Activity</th>
+                  <th className="p-3 w-8">{t("refd.col.status")}</th>
+                  <th className="p-3">{t("refd.col.client")}</th>
+                  <th className="p-3 text-right">{t("refd.col.goldBalance")}</th>
+                  <th className="p-3 text-right">{t("refd.col.daBalance")}</th>
+                  <th className="p-3 text-right">{t("refd.col.exposure")}</th>
+                  <th className="p-3">{t("refd.col.lastActivity")}</th>
                 </tr>
               </thead>
               <tbody>
                 {negRows.length === 0 && (
-                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No negative balances</td></tr>
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t("refd.empty.neg")}</td></tr>
                 )}
                 {negRows.map((c) => {
                   const g = Number(c.purity_balance);
@@ -616,7 +618,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
           {/* Mobile cards */}
           <div className="md:hidden divide-y divide-border">
             {negRows.length === 0 && (
-              <p className="p-6 text-center text-sm text-muted-foreground">No negative balances</p>
+              <p className="p-6 text-center text-sm text-muted-foreground">{t("refd.empty.neg")}</p>
             )}
             {negRows.map((c) => {
               const g = Number(c.purity_balance);
@@ -630,15 +632,15 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
                     <div>
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Gold</p>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refd.lbl.gold")}</p>
                       <p className={balClass(g)}>{signed(g, fmtG)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">DA</p>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refd.lbl.da")}</p>
                       <p className={balClass(d)}>{signed(d, fmtDA)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Exposure</p>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refd.lbl.exposure")}</p>
                       <p className={balClass(c.exposureGold)}>{canCompute ? signed(c.exposureGold, fmtG) : "—"}</p>
                     </div>
                   </div>
@@ -652,8 +654,8 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg">Recent transactions</h2>
-          <Button size="sm" variant="ghost" onClick={() => onTab("transactions")}>View all</Button>
+          <h2 className="font-display text-lg">{t("refd.recent")}</h2>
+          <Button size="sm" variant="ghost" onClick={() => onTab("transactions")}>{t("refd.viewAll")}</Button>
         </div>
         <Card>
           <RecentTxTable rows={data.recent} onOpen={() => onTab("transactions")} />
@@ -876,6 +878,7 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
 // Clients tab
 // =============================================================
 function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: RefineryAssignment }) {
+  const { t } = useLang();
   const [clients, setClients] = useState<RefineryClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -891,12 +894,12 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const canStatement = assignment.isAdmin || assignment.role === "manager";
 
   const handleDelete = async (c: RefineryClient) => {
-    if (!confirm(`Delete client "${c.name}"? This cannot be undone.`)) return;
+    if (!confirm(t("refc.confirm.delete", { name: c.name }))) return;
     try {
       await deleteClient({ data: { id: c.id } });
-      toast.success("Client deleted");
+      toast.success(t("refc.toast.deleted"));
       load();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refc.toast.deleteFail")); }
   };
 
   const load = useCallback(async () => {
@@ -904,9 +907,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     try {
       const r = await listClients({ data: { refineryId: refinery.id } });
       setClients(r);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed to load"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refc.toast.loadFail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
 
   const filtered = clients.filter((c) => {
@@ -914,7 +917,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     if (filter === "owing-da") return Number(c.da_balance) < 0;
     return true;
   });
-  const filterLabel = filter === "owing-gold" ? "Clients owing gold" : filter === "owing-da" ? "Clients owing DA" : null;
+  const filterLabel = filter === "owing-gold" ? t("refc.filter.owingGold") : filter === "owing-da" ? t("refc.filter.owingDa") : null;
 
   const clearFilter = () =>
     navigate({
@@ -934,22 +937,22 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Clients</h1>
+          <h1 className="font-display text-2xl">{t("refc.title")}</h1>
           <p className="text-sm text-muted-foreground">
             {filterLabel
-              ? `${filtered.length} of ${clients.length} client(s) · filtered: ${filterLabel}`
-              : `${clients.length} client(s) in ${refinery.name}`}
+              ? t("refc.subtitle.filtered", { n: filtered.length, m: clients.length, filter: filterLabel })
+              : t("refc.subtitle.all", { n: clients.length, name: refinery.name })}
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           {filter && (
             <Button variant="outline" size="sm" onClick={clearFilter}>
-              <X className="h-4 w-4 mr-1" /> Clear filter
+              <X className="h-4 w-4 mr-1" /> {t("refc.btn.clearFilter")}
             </Button>
           )}
           {!readOnly && (
             <Button onClick={() => { setEditing(null); setOpen(true); }} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-1" /> New client
+              <Plus className="h-4 w-4 mr-1" /> {t("refc.btn.new")}
             </Button>
           )}
         </div>
@@ -961,18 +964,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Client</th>
-                <th className="p-3">Phone</th>
-                <th className="p-3 text-right">Pure Gold</th>
-                <th className="p-3 text-right">Dinar</th>
-                <th className="p-3 text-right">Fee/g</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3">{t("refc.col.client")}</th>
+                <th className="p-3">{t("refc.col.phone")}</th>
+                <th className="p-3 text-right">{t("refc.col.pureGold")}</th>
+                <th className="p-3 text-right">{t("refc.col.dinar")}</th>
+                <th className="p-3 text-right">{t("refc.col.feeG")}</th>
+                <th className="p-3 text-right">{t("refc.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? t("refc.empty.none") : t("refc.empty.filter")}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
@@ -1004,18 +1007,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                           variant="ghost"
                           className="text-ember hover:bg-ember/10"
                           onClick={() => setStmtClient(c)}
-                          title="Account Statement"
+                          title={t("refc.title.statement")}
                         >
                           <FileText className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {!readOnly && (
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }} title={t("reft.btn.edit")}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {canDelete && (
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(c)} title={t("reft.btn.delete")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -1029,9 +1032,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
         </div>
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
-          {loading && <p className="p-6 text-center text-sm text-muted-foreground">Loading…</p>}
+          {loading && <p className="p-6 text-center text-sm text-muted-foreground">{t("app.loading")}</p>}
           {!loading && filtered.length === 0 && (
-            <p className="p-6 text-center text-sm text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</p>
+            <p className="p-6 text-center text-sm text-muted-foreground">{clients.length === 0 ? t("refc.empty.none") : t("refc.empty.filter")}</p>
           )}
           {filtered.map((c) => {
             const g = Number(c.purity_balance);
@@ -1054,17 +1057,17 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   </div>
                   <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {canStatement && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-ember" onClick={() => setStmtClient(c)} title="Account Statement">
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-ember" onClick={() => setStmtClient(c)} title={t("refc.title.statement")}>
                         <FileText className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     {!readOnly && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setOpen(true); }} title="Edit">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setOpen(true); }} title={t("reft.btn.edit")}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     {canDelete && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c)} title="Delete">
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c)} title={t("reft.btn.delete")}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -1072,15 +1075,15 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
                   <div>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Pure Gold</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refc.col.pureGold")}</p>
                     <p className={balClass(g)}>{signed(g, fmtG)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Dinar</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refc.col.dinar")}</p>
                     <p className={balClass(d)}>{signed(d, fmtDA)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Fee/g</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("refc.col.feeG")}</p>
                     <p>{fmtDA(Number(c.refining_fee_price))}</p>
                   </div>
                 </div>
@@ -1089,6 +1092,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           })}
         </div>
       </Card>
+
 
 
       {open && (
@@ -1114,6 +1118,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
 function ClientDialog({
   refineryId, editing, onClose, onSaved,
 }: { refineryId: string; editing: RefineryClient | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useLang();
   const [name, setName] = useState(editing?.name ?? "");
   const [code, setCode] = useState(editing?.code ?? "");
   const [phone, setPhone] = useState(editing?.phone ?? "");
@@ -1148,7 +1153,7 @@ function ClientDialog({
     setCodeWarn(null);
     if (!v) return;
     if (!codeFormatOk(v)) {
-      setCodeError("Format must be 2 capital letters + 4 digits (e.g. AM4821).");
+      setCodeError(t("cdlg.toast.codeFmt"));
       return;
     }
     setCode(v);
@@ -1157,20 +1162,20 @@ function ClientDialog({
         data: { code: v, excludeClientId: editing?.id ?? null },
       });
       if (r.duplicate) {
-        setCodeError(`This code is already used${r.duplicateOf ? ` by ${r.duplicateOf}` : ""}.`);
+        setCodeError(t("cdlg.toast.codeUsed") + (r.duplicateOf ? ` (${r.duplicateOf})` : ""));
       } else if (r.prefixCollision) {
         const sample = r.prefixOthers.slice(0, 2).map((o) => `${o.code} (${o.name})`).join(", ");
-        setCodeWarn(`Prefix “${v.slice(0, 2)}” is also used by: ${sample}${r.prefixOthers.length > 2 ? "…" : ""}.`);
+        setCodeWarn(t("cdlg.toast.prefixUsed", { prefix: v.slice(0, 2), who: sample + (r.prefixOthers.length > 2 ? "…" : "") }));
       }
     } catch { /* silent */ }
   };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!name.trim()) { toast.error(t("cdlg.toast.nameReq")); return; }
     const trimmedCode = code.trim().toUpperCase();
     if (trimmedCode && !codeFormatOk(trimmedCode)) {
-      toast.error("Code must be 2 capital letters + 4 digits (e.g. AM4821).");
+      toast.error(t("cdlg.toast.codeFmt"));
       return;
     }
     if (codeError) { toast.error(codeError); return; }
@@ -1188,7 +1193,7 @@ function ClientDialog({
         if (newPurity !== Number(editing.purity_balance) || newDa !== Number(editing.da_balance)) {
           await adjustClientBalances({ data: { id: editing.id, purity_balance: newPurity, da_balance: newDa } });
         }
-        toast.success("Client updated");
+        toast.success(t("cdlg.toast.updated"));
       } else {
         await createClient({ data: {
           refinery_id: refineryId, name: name.trim(),
@@ -1197,69 +1202,70 @@ function ClientDialog({
           purity_balance: Number(purity) || 0, da_balance: Number(da) || 0,
           refining_fee_price: Number(fee) || 0, notes: notes || null, status,
         }});
-        toast.success("Client created");
+        toast.success(t("cdlg.toast.created"));
       }
       onSaved();
-    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+    } catch (err) { toast.error(err instanceof Error ? err.message : t("cdlg.toast.fail")); }
     finally { setSaving(false); }
   };
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] sm:w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{editing ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing ? t("cdlg.editTitle") : t("cdlg.newTitle")}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Name *</Label>
+            <Label>{t("cdlg.name")}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={onNameBlur} required />
           </div>
           <div className="space-y-2">
-            <Label>Client Code</Label>
+            <Label>{t("cdlg.code")}</Label>
             <Input
               value={code}
               onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(null); setCodeWarn(null); }}
               onBlur={onCodeBlur}
-              placeholder="Auto-generated (e.g. AM4821)"
+              placeholder={t("cdlg.codePh")}
               maxLength={6}
               className="font-mono tracking-wider"
             />
             {codeError && <p className="text-xs text-destructive">{codeError}</p>}
             {!codeError && codeWarn && <p className="text-xs text-amber-500">{codeWarn}</p>}
             {!codeError && !codeWarn && (
-              <p className="text-xs text-muted-foreground">2 capital letters + 4 digits. Leave blank to auto-generate from the client name.</p>
+              <p className="text-xs text-muted-foreground">{t("cdlg.codeHint")}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label>Phone</Label>
+            <Label>{t("cdlg.phone")}</Label>
             <Input value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} placeholder="+213…" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>{editing ? "Purity balance (g)" : "Initial purity balance (g)"}</Label>
+              <Label>{editing ? t("cdlg.purity") : t("cdlg.purityInit")}</Label>
               <Input type="number" inputMode="decimal" step="any" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>{editing ? "DA balance" : "Initial DA balance"}</Label>
+              <Label>{editing ? t("cdlg.da") : t("cdlg.daInit")}</Label>
               <Input type="number" inputMode="decimal" step="any" value={da} onChange={(e) => setDa(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Refining fee price (DA/g)</Label>
+            <Label>{t("cdlg.feePrice")}</Label>
             <Input type="number" inputMode="decimal" step="any" value={fee} onChange={(e) => setFee(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>{t("cdlg.notes")}</Label>
             <Textarea value={notes ?? ""} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !!codeError}>{saving ? "Saving…" : "Save"}</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t("app.cancel")}</Button>
+            <Button type="submit" disabled={saving || !!codeError}>{saving ? t("app.saving") : t("app.save")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 // =============================================================
 // Transactions tab
@@ -1271,6 +1277,7 @@ function TransactionsTab({
   assignment: RefineryAssignment;
   onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
 }) {
+  const { t } = useLang();
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<string | null>(null);
@@ -1280,79 +1287,79 @@ function TransactionsTab({
   const load = useCallback(async () => {
     setLoading(true);
     try { setRows(await listTransactions({ data: { refineryId: refinery.id } })); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : t("reft.toast.loadFail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this transaction? Balances and stock will be reversed.")) return;
-    try { await deleteTransaction({ data: { id } }); toast.success("Transaction deleted"); load(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+    if (!confirm(t("reft.confirm.delete"))) return;
+    try { await deleteTransaction({ data: { id } }); toast.success(t("reft.toast.deleted")); load(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : t("reft.toast.deleteFail")); }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Transactions</h1>
-          <p className="text-sm text-muted-foreground">{rows.length} transaction(s)</p>
+          <h1 className="font-display text-2xl">{t("reft.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("reft.subtitle", { n: rows.length })}</p>
         </div>
         {!readOnly && (
           <Button onClick={() => onAction("new", undefined)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-1" /> New transaction
+            <Plus className="h-4 w-4 mr-1" /> {t("reft.btn.new")}
           </Button>
         )}
       </div>
 
       {/* Mobile: card list */}
       <div className="space-y-2 md:hidden">
-        {loading && <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>}
+        {loading && <p className="text-sm text-muted-foreground text-center py-6">{t("app.loading")}</p>}
         {!loading && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">No transactions yet</p>
+          <p className="text-sm text-muted-foreground text-center py-6">{t("reft.empty")}</p>
         )}
-        {rows.map((t) => (
-          <Card key={t.id} className="p-3">
+        {rows.map((tx) => (
+          <Card key={tx.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs">{t.transaction_number}</span>
+                  <span className="font-mono text-xs">{tx.transaction_number}</span>
                 </div>
                 <p className="text-sm truncate mt-1">
-                  <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                  <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                  {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
+                    <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {t.transaction_date} · {t.transaction_type === "settlement" ? <span className="uppercase">SETTLEMENT</span> : <><span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span></>}
+                  {tx.transaction_date} · {tx.transaction_type === "settlement" ? <span className="uppercase">{t("reft.badge.settlement")}</span> : <><span className="capitalize">{tx.direction}</span> · <span className="uppercase">{tx.transaction_type}</span></>}
                 </p>
                 <div className="mt-2 text-sm tabular-nums">
-                  {t.transaction_type === "gold" ? (
-                    <>Gross {fmtG(Number(t.total_gross_weight))} · Pure {fmtG(Number(t.total_pure_weight))}</>
-                  ) : t.transaction_type === "settlement" ? (
-                    t.settlement_kind === "gold"
-                      ? <>Gold {fmtG(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
-                      : <>DA {fmtDA(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
+                  {tx.transaction_type === "gold" ? (
+                    <>{t("reft.col.gross")} {fmtG(Number(tx.total_gross_weight))} · {t("reft.col.pure")} {fmtG(Number(tx.total_pure_weight))}</>
+                  ) : tx.transaction_type === "settlement" ? (
+                    tx.settlement_kind === "gold"
+                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
+                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
                   ) : (
-                    <>DA {fmtDA(Number(t.da_amount))}</>
+                    <>{t("refd.lbl.da")} {fmtDA(Number(tx.da_amount))}</>
                   )}
-                  {Number(t.total_refining_fee) > 0 && <> · Fee {fmtDA(Number(t.total_refining_fee))}</>}
+                  {Number(tx.total_refining_fee) > 0 && <> · {t("reft.col.fee")} {fmtDA(Number(tx.total_refining_fee))}</>}
                 </div>
               </div>
             </div>
             <div className="flex gap-1 mt-3 pt-3 border-t border-border/60">
-              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(t.id)}>
-                <FileText className="h-3.5 w-3.5 mr-1" /> Receipt
+              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(tx.id)}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.receipt")}
               </Button>
-              {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
-                <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", t.id)}>
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", tx.id)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.edit")}
                 </Button>
               )}
               {canDelete && (
-                <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(t.id)}>
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(tx.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.delete")}
                 </Button>
               )}
             </div>
@@ -1366,53 +1373,53 @@ function TransactionsTab({
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3 whitespace-nowrap">Date</th>
-                <th className="p-3 whitespace-nowrap">#</th>
-                <th className="p-3 whitespace-nowrap">Client</th>
-                <th className="p-3 whitespace-nowrap">Dir</th>
-                <th className="p-3 whitespace-nowrap">Type</th>
-                <th className="p-3 text-right whitespace-nowrap">Gross</th>
-                <th className="p-3 text-right whitespace-nowrap">Pure</th>
-                <th className="p-3 text-right whitespace-nowrap">DA</th>
-                <th className="p-3 text-right whitespace-nowrap">Fee</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.date")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.num")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.client")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.dir")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.type")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.gross")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.pure")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.da")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.fee")}</th>
                 
-                <th className="p-3 text-right whitespace-nowrap">Actions</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("reft.empty")}</td></tr>
               )}
-              {rows.map((t) => (
-                <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
+              {rows.map((tx) => (
+                <tr key={tx.id} className="border-b border-border last:border-0">
+                  <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{tx.transaction_number}</td>
                   <td className="p-3 whitespace-nowrap">
-                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                    {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
+                      <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
                     )}
                   </td>
-                  <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
+                  <td className="p-3 capitalize whitespace-nowrap">{tx.transaction_type === "settlement" ? "—" : tx.direction}</td>
                   <td className="p-3 uppercase whitespace-nowrap">
-                    {t.transaction_type === "settlement"
-                      ? <span className="text-ember font-semibold">SETTLEMENT</span>
-                      : t.transaction_type}
+                    {tx.transaction_type === "settlement"
+                      ? <span className="text-ember font-semibold">{t("reft.badge.settlement")}</span>
+                      : tx.transaction_type}
                   </td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.settlement_amount ?? t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")) ? fmtDA(Number(t.settlement_amount ?? t.da_amount)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{tx.transaction_type === "gold" ? fmtG(Number(tx.total_gross_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(tx.transaction_type === "gold" || (tx.transaction_type === "settlement" && tx.settlement_kind === "gold")) ? fmtG(Number(tx.settlement_amount ?? tx.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(tx.transaction_type === "da" || (tx.transaction_type === "settlement" && tx.settlement_kind === "da")) ? fmtDA(Number(tx.settlement_amount ?? tx.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(tx.total_refining_fee) > 0 ? fmtDA(Number(tx.total_refining_fee)) : "—"}</td>
                   
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
-                        <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => setViewing(tx.id)} title={t("reft.btn.receipt")}><FileText className="h-3.5 w-3.5" /></Button>
+                      {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                        <Button size="sm" variant="ghost" onClick={() => onAction("edit", tx.id)} title={t("reft.btn.edit")}><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
                       {canDelete && (
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(tx.id)} title={t("reft.btn.delete")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -2275,6 +2282,7 @@ function TransactionReceiptDialog({
 // Stock tab
 // =============================================================
 function StockTab({ refinery }: { refinery: Refinery }) {
+  const { t } = useLang();
   type Stock = { pure_gold_stock: number; da_stock: number; silver_stock: number };
   type AdjTx = {
     id: string;
@@ -2327,40 +2335,42 @@ function StockTab({ refinery }: { refinery: Refinery }) {
         nameMap = Object.fromEntries((profs ?? []).map((p) => [p.id, p.username]));
       }
       setAdjustments(adjList.map((a) => ({ ...a, created_by_name: a.created_by ? (nameMap[a.created_by] ?? null) : null })));
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refs.toast.fail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading || !stock) return <p className="text-muted-foreground text-sm">{t("app.loading")}</p>;
 
   const visibleAdjustments = adjustments.filter((a) => metalFilter === "all" || a.adjustment_metal === metalFilter);
+  const filterLabel = (k: "all" | "gold" | "silver" | "da") =>
+    k === "all" ? t("refs.filter.all") : k === "gold" ? t("refs.filter.gold") : k === "silver" ? t("refs.filter.silver") : t("refs.filter.da");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Stock</h1>
-          <p className="text-sm text-muted-foreground">{refinery.name} · physical inventory currently available</p>
+          <h1 className="font-display text-2xl">{t("refs.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("refs.subtitle", { name: refinery.name })}</p>
         </div>
         <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" /> New Stock Adjustment
+          <Plus className="h-4 w-4 mr-2" /> {t("refs.btn.new")}
         </Button>
       </div>
 
       {/* Physical stock cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
         <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> {t("refs.card.gold")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.pure_gold_stock)}</p>
         </Card>
         <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> {t("refs.card.silver")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.silver_stock)}</p>
         </Card>
         <Card className="p-4 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> {t("refs.card.da")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtDA(stock.da_stock)}</p>
         </Card>
       </div>
@@ -2368,10 +2378,10 @@ function StockTab({ refinery }: { refinery: Refinery }) {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Filter:</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refs.filter")}</span>
         {(["all", "gold", "silver", "da"] as const).map((k) => (
           <Button key={k} size="sm" variant={metalFilter === k ? "default" : "outline"} onClick={() => setMetalFilter(k)}>
-            {k === "all" ? "All Metals" : k === "da" ? "DA" : k[0].toUpperCase() + k.slice(1)}
+            {filterLabel(k)}
           </Button>
         ))}
       </div>
@@ -2379,27 +2389,27 @@ function StockTab({ refinery }: { refinery: Refinery }) {
       {/* Adjustment history */}
       <Card>
         <div className="px-4 py-3 border-b border-border">
-          <h3 className="font-semibold text-sm">Stock Adjustments & Movement History</h3>
+          <h3 className="font-semibold text-sm">{t("refs.history")}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Date</th>
-                <th className="p-3">Tx #</th>
-                <th className="p-3">Metal</th>
-                <th className="p-3">Kind</th>
-                <th className="p-3 text-right">Delta</th>
-                <th className="p-3 text-right">Before</th>
-                <th className="p-3 text-right">After</th>
-                <th className="p-3">By</th>
-                <th className="p-3">Notes</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3">{t("refs.col.date")}</th>
+                <th className="p-3">{t("refs.col.tx")}</th>
+                <th className="p-3">{t("refs.col.metal")}</th>
+                <th className="p-3">{t("refs.col.kind")}</th>
+                <th className="p-3 text-right">{t("refs.col.delta")}</th>
+                <th className="p-3 text-right">{t("refs.col.before")}</th>
+                <th className="p-3 text-right">{t("refs.col.after")}</th>
+                <th className="p-3">{t("refs.col.by")}</th>
+                <th className="p-3">{t("refs.col.notes")}</th>
+                <th className="p-3 text-right">{t("refs.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {visibleAdjustments.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No stock adjustments</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("refs.empty")}</td></tr>
               )}
               {visibleAdjustments.map((a) => {
                 const metal = a.adjustment_metal ?? "gold";
@@ -2421,20 +2431,20 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                     <td className="p-3 text-right">
                       <div className="inline-flex items-center justify-end gap-1">
                         <Button
-                          variant="ghost" size="icon" title="Edit"
+                          variant="ghost" size="icon" title={t("reft.btn.edit")}
                           onClick={() => setEditingAdj(a)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
-                          variant="ghost" size="icon" title="Delete"
+                          variant="ghost" size="icon" title={t("reft.btn.delete")}
                           onClick={async () => {
-                            if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
+                            if (!confirm(t("refs.confirm.delete"))) return;
                             try {
                               await deleteTransaction({ data: { id: a.id } });
-                              toast.success("Adjustment deleted");
+                              toast.success(t("refs.toast.deleted"));
                               load();
-                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                            } catch (err) { toast.error(err instanceof Error ? err.message : t("refs.toast.fail")); }
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -2448,6 +2458,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           </table>
         </div>
       </Card>
+
 
       {adjustOpen && (
         <NewStockAdjustmentDialog
