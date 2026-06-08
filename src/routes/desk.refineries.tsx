@@ -24,7 +24,8 @@ import {
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   suggestClientCode, checkClientCode,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
-  createSettlement, getSettlement,
+  createSettlement, editSettlement, getSettlement, displayTxNumber,
+
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   createStockAdjustment, editStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
   createBuySell, type BuySellKind, type BuySellSettlement, type BuySellMetal,
