@@ -1819,12 +1819,12 @@ function TransactionFormPage({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Client *</Label>
-                  <Select value={clientId} onValueChange={setClientId}>
-                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                    <SelectContent>
-                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ClientCombobox
+                    clients={clients}
+                    value={clientId}
+                    onChange={setClientId}
+                    placeholder="Select client"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Date</Label>
