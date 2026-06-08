@@ -5098,7 +5098,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     if (!confirm(`Delete backup "${b.file_name}"? This cannot be undone.`)) return;
     try {
       await deleteBackup({ data: { backupId: b.id } });
-      toast.success("Backup deleted");
+      toast.success(t("refbk.toast.deleted"));
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
