@@ -1308,10 +1308,10 @@ function TransactionsTab({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
                 </div>
-                <p className="text-sm font-medium truncate mt-1">
-                  {t.client_name}
+                <p className="text-sm truncate mt-1">
+                  <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                   {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
