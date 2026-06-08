@@ -355,21 +355,35 @@ export const listTransactions = createServerFn({ method: "POST" })
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => {
-      const { client, counterparty, ...rest } = r as typeof r & {
-        client?: { name: string; code: string | null; phone: string | null };
-        counterparty?: { name: string; code: string | null } | null;
-      };
-      return {
-        ...rest,
-        client_name: client?.name ?? "",
-        client_code: client?.code ?? null,
-        client_phone: client?.phone ?? null,
-        counterparty_client_name: counterparty?.name ?? null,
-        counterparty_client_code: counterparty?.code ?? null,
-      } as RefineryTransaction;
-    });
+    return (rows ?? [])
+      // Settlements live as two DB rows (one per client). Hide the "to" side so the
+      // list shows ONE row per settlement; the "from" row carries the counterparty fields.
+      .filter((r) => {
+        const role = (r as { settlement_role?: string | null }).settlement_role;
+        return role !== "to";
+      })
+      .map((r) => {
+        const { client, counterparty, ...rest } = r as typeof r & {
+          client?: { name: string; code: string | null; phone: string | null };
+          counterparty?: { name: string; code: string | null } | null;
+        };
+        return {
+          ...rest,
+          client_name: client?.name ?? "",
+          client_code: client?.code ?? null,
+          client_phone: client?.phone ?? null,
+          counterparty_client_name: counterparty?.name ?? null,
+          counterparty_client_code: counterparty?.code ?? null,
+        } as RefineryTransaction;
+      });
   });
+
+/** Strip the legacy -A/-B suffix from a settlement transaction number. Safe for any row. */
+export function displayTxNumber(tx: { transaction_number: string; transaction_type?: string | null }): string {
+  if (tx.transaction_type === "settlement") return tx.transaction_number.replace(/-[AB]$/, "");
+  return tx.transaction_number;
+}
+
 
 export const getTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
