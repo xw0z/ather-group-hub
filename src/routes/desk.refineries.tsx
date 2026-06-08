@@ -638,7 +638,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                     </div>
                     <div>
                       <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Exposure</p>
-                      <p className="text-destructive">{canCompute ? `−${fmtG(c.exposureGold)}` : "—"}</p>
+                      <p className={balClass(c.exposureGold)}>{canCompute ? signed(c.exposureGold, fmtG) : "—"}</p>
                     </div>
                   </div>
                 </div>
