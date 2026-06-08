@@ -1277,6 +1277,7 @@ function TransactionsTab({
   assignment: RefineryAssignment;
   onAction: (action: "new" | "edit" | undefined, txId: string | undefined) => void;
 }) {
+  const { t } = useLang();
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<string | null>(null);
@@ -1286,79 +1287,79 @@ function TransactionsTab({
   const load = useCallback(async () => {
     setLoading(true);
     try { setRows(await listTransactions({ data: { refineryId: refinery.id } })); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : t("reft.toast.loadFail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this transaction? Balances and stock will be reversed.")) return;
-    try { await deleteTransaction({ data: { id } }); toast.success("Transaction deleted"); load(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Delete failed"); }
+    if (!confirm(t("reft.confirm.delete"))) return;
+    try { await deleteTransaction({ data: { id } }); toast.success(t("reft.toast.deleted")); load(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : t("reft.toast.deleteFail")); }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Transactions</h1>
-          <p className="text-sm text-muted-foreground">{rows.length} transaction(s)</p>
+          <h1 className="font-display text-2xl">{t("reft.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("reft.subtitle", { n: rows.length })}</p>
         </div>
         {!readOnly && (
           <Button onClick={() => onAction("new", undefined)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-1" /> New transaction
+            <Plus className="h-4 w-4 mr-1" /> {t("reft.btn.new")}
           </Button>
         )}
       </div>
 
       {/* Mobile: card list */}
       <div className="space-y-2 md:hidden">
-        {loading && <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>}
+        {loading && <p className="text-sm text-muted-foreground text-center py-6">{t("app.loading")}</p>}
         {!loading && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">No transactions yet</p>
+          <p className="text-sm text-muted-foreground text-center py-6">{t("reft.empty")}</p>
         )}
-        {rows.map((t) => (
-          <Card key={t.id} className="p-3">
+        {rows.map((tx) => (
+          <Card key={tx.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs">{t.transaction_number}</span>
+                  <span className="font-mono text-xs">{tx.transaction_number}</span>
                 </div>
                 <p className="text-sm truncate mt-1">
-                  <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                  {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                  <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                  {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
+                    <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {t.transaction_date} · {t.transaction_type === "settlement" ? <span className="uppercase">SETTLEMENT</span> : <><span className="capitalize">{t.direction}</span> · <span className="uppercase">{t.transaction_type}</span></>}
+                  {tx.transaction_date} · {tx.transaction_type === "settlement" ? <span className="uppercase">{t("reft.badge.settlement")}</span> : <><span className="capitalize">{tx.direction}</span> · <span className="uppercase">{tx.transaction_type}</span></>}
                 </p>
                 <div className="mt-2 text-sm tabular-nums">
-                  {t.transaction_type === "gold" ? (
-                    <>Gross {fmtG(Number(t.total_gross_weight))} · Pure {fmtG(Number(t.total_pure_weight))}</>
-                  ) : t.transaction_type === "settlement" ? (
-                    t.settlement_kind === "gold"
-                      ? <>Gold {fmtG(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
-                      : <>DA {fmtDA(Number(t.settlement_amount ?? 0))}{t.settlement_role === "from" ? " sent" : " received"}</>
+                  {tx.transaction_type === "gold" ? (
+                    <>{t("reft.col.gross")} {fmtG(Number(tx.total_gross_weight))} · {t("reft.col.pure")} {fmtG(Number(tx.total_pure_weight))}</>
+                  ) : tx.transaction_type === "settlement" ? (
+                    tx.settlement_kind === "gold"
+                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
+                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
                   ) : (
-                    <>DA {fmtDA(Number(t.da_amount))}</>
+                    <>{t("refd.lbl.da")} {fmtDA(Number(tx.da_amount))}</>
                   )}
-                  {Number(t.total_refining_fee) > 0 && <> · Fee {fmtDA(Number(t.total_refining_fee))}</>}
+                  {Number(tx.total_refining_fee) > 0 && <> · {t("reft.col.fee")} {fmtDA(Number(tx.total_refining_fee))}</>}
                 </div>
               </div>
             </div>
             <div className="flex gap-1 mt-3 pt-3 border-t border-border/60">
-              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(t.id)}>
-                <FileText className="h-3.5 w-3.5 mr-1" /> Receipt
+              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(tx.id)}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.receipt")}
               </Button>
-              {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
-                <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", t.id)}>
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", tx.id)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.edit")}
                 </Button>
               )}
               {canDelete && (
-                <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(t.id)}>
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                <Button size="sm" variant="ghost" className="flex-1 text-destructive" onClick={() => handleDelete(tx.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.delete")}
                 </Button>
               )}
             </div>
@@ -1372,53 +1373,53 @@ function TransactionsTab({
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3 whitespace-nowrap">Date</th>
-                <th className="p-3 whitespace-nowrap">#</th>
-                <th className="p-3 whitespace-nowrap">Client</th>
-                <th className="p-3 whitespace-nowrap">Dir</th>
-                <th className="p-3 whitespace-nowrap">Type</th>
-                <th className="p-3 text-right whitespace-nowrap">Gross</th>
-                <th className="p-3 text-right whitespace-nowrap">Pure</th>
-                <th className="p-3 text-right whitespace-nowrap">DA</th>
-                <th className="p-3 text-right whitespace-nowrap">Fee</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.date")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.num")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.client")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.dir")}</th>
+                <th className="p-3 whitespace-nowrap">{t("reft.col.type")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.gross")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.pure")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.da")}</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.fee")}</th>
                 
-                <th className="p-3 text-right whitespace-nowrap">Actions</th>
+                <th className="p-3 text-right whitespace-nowrap">{t("reft.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No transactions yet</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("reft.empty")}</td></tr>
               )}
-              {rows.map((t) => (
-                <tr key={t.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
+              {rows.map((tx) => (
+                <tr key={tx.id} className="border-b border-border last:border-0">
+                  <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{tx.transaction_number}</td>
                   <td className="p-3 whitespace-nowrap">
-                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                    {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
+                      <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
                     )}
                   </td>
-                  <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
+                  <td className="p-3 capitalize whitespace-nowrap">{tx.transaction_type === "settlement" ? "—" : tx.direction}</td>
                   <td className="p-3 uppercase whitespace-nowrap">
-                    {t.transaction_type === "settlement"
-                      ? <span className="text-ember font-semibold">SETTLEMENT</span>
-                      : t.transaction_type}
+                    {tx.transaction_type === "settlement"
+                      ? <span className="text-ember font-semibold">{t("reft.badge.settlement")}</span>
+                      : tx.transaction_type}
                   </td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{t.transaction_type === "gold" ? fmtG(Number(t.total_gross_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "gold" || (t.transaction_type === "settlement" && t.settlement_kind === "gold")) ? fmtG(Number(t.settlement_amount ?? t.total_pure_weight)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(t.transaction_type === "da" || (t.transaction_type === "settlement" && t.settlement_kind === "da")) ? fmtDA(Number(t.settlement_amount ?? t.da_amount)) : "—"}</td>
-                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(t.total_refining_fee) > 0 ? fmtDA(Number(t.total_refining_fee)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{tx.transaction_type === "gold" ? fmtG(Number(tx.total_gross_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(tx.transaction_type === "gold" || (tx.transaction_type === "settlement" && tx.settlement_kind === "gold")) ? fmtG(Number(tx.settlement_amount ?? tx.total_pure_weight)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{(tx.transaction_type === "da" || (tx.transaction_type === "settlement" && tx.settlement_kind === "da")) ? fmtDA(Number(tx.settlement_amount ?? tx.da_amount)) : "—"}</td>
+                  <td className="p-3 text-right tabular-nums whitespace-nowrap">{Number(tx.total_refining_fee) > 0 ? fmtDA(Number(tx.total_refining_fee)) : "—"}</td>
                   
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)} title="View receipt"><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && t.status !== "cancelled" && t.transaction_type !== "settlement" && (
-                        <Button size="sm" variant="ghost" onClick={() => onAction("edit", t.id)} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => setViewing(tx.id)} title={t("reft.btn.receipt")}><FileText className="h-3.5 w-3.5" /></Button>
+                      {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                        <Button size="sm" variant="ghost" onClick={() => onAction("edit", tx.id)} title={t("reft.btn.edit")}><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
                       {canDelete && (
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(t.id)} title="Delete">
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(tx.id)} title={t("reft.btn.delete")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
