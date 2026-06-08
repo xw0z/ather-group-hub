@@ -2282,6 +2282,7 @@ function TransactionReceiptDialog({
 // Stock tab
 // =============================================================
 function StockTab({ refinery }: { refinery: Refinery }) {
+  const { t } = useLang();
   type Stock = { pure_gold_stock: number; da_stock: number; silver_stock: number };
   type AdjTx = {
     id: string;
@@ -2334,40 +2335,42 @@ function StockTab({ refinery }: { refinery: Refinery }) {
         nameMap = Object.fromEntries((profs ?? []).map((p) => [p.id, p.username]));
       }
       setAdjustments(adjList.map((a) => ({ ...a, created_by_name: a.created_by ? (nameMap[a.created_by] ?? null) : null })));
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refs.toast.fail")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading || !stock) return <p className="text-muted-foreground text-sm">{t("app.loading")}</p>;
 
   const visibleAdjustments = adjustments.filter((a) => metalFilter === "all" || a.adjustment_metal === metalFilter);
+  const filterLabel = (k: "all" | "gold" | "silver" | "da") =>
+    k === "all" ? t("refs.filter.all") : k === "gold" ? t("refs.filter.gold") : k === "silver" ? t("refs.filter.silver") : t("refs.filter.da");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Stock</h1>
-          <p className="text-sm text-muted-foreground">{refinery.name} · physical inventory currently available</p>
+          <h1 className="font-display text-2xl">{t("refs.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("refs.subtitle", { name: refinery.name })}</p>
         </div>
         <Button onClick={() => setAdjustOpen(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" /> New Stock Adjustment
+          <Plus className="h-4 w-4 mr-2" /> {t("refs.btn.new")}
         </Button>
       </div>
 
       {/* Physical stock cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
         <Card className="p-4 ring-1 ring-amber-500/20 bg-amber-500/5 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> Pure Gold Stock</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-ember" /> {t("refs.card.gold")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.pure_gold_stock)}</p>
         </Card>
         <Card className="p-4 ring-1 ring-slate-400/30 bg-slate-100/30 dark:bg-slate-800/30 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> Silver Stock</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Coins className="h-4 w-4 text-slate-500" /> {t("refs.card.silver")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtG(stock.silver_stock)}</p>
         </Card>
         <Card className="p-4 h-full">
-          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> DA Cash Balance</h3>
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><Wallet className="h-4 w-4 text-ember" /> {t("refs.card.da")}</h3>
           <p className="text-xl sm:text-2xl font-display tabular-nums break-words">{fmtDA(stock.da_stock)}</p>
         </Card>
       </div>
@@ -2375,10 +2378,10 @@ function StockTab({ refinery }: { refinery: Refinery }) {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Filter:</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refs.filter")}</span>
         {(["all", "gold", "silver", "da"] as const).map((k) => (
           <Button key={k} size="sm" variant={metalFilter === k ? "default" : "outline"} onClick={() => setMetalFilter(k)}>
-            {k === "all" ? "All Metals" : k === "da" ? "DA" : k[0].toUpperCase() + k.slice(1)}
+            {filterLabel(k)}
           </Button>
         ))}
       </div>
@@ -2386,27 +2389,27 @@ function StockTab({ refinery }: { refinery: Refinery }) {
       {/* Adjustment history */}
       <Card>
         <div className="px-4 py-3 border-b border-border">
-          <h3 className="font-semibold text-sm">Stock Adjustments & Movement History</h3>
+          <h3 className="font-semibold text-sm">{t("refs.history")}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Date</th>
-                <th className="p-3">Tx #</th>
-                <th className="p-3">Metal</th>
-                <th className="p-3">Kind</th>
-                <th className="p-3 text-right">Delta</th>
-                <th className="p-3 text-right">Before</th>
-                <th className="p-3 text-right">After</th>
-                <th className="p-3">By</th>
-                <th className="p-3">Notes</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3">{t("refs.col.date")}</th>
+                <th className="p-3">{t("refs.col.tx")}</th>
+                <th className="p-3">{t("refs.col.metal")}</th>
+                <th className="p-3">{t("refs.col.kind")}</th>
+                <th className="p-3 text-right">{t("refs.col.delta")}</th>
+                <th className="p-3 text-right">{t("refs.col.before")}</th>
+                <th className="p-3 text-right">{t("refs.col.after")}</th>
+                <th className="p-3">{t("refs.col.by")}</th>
+                <th className="p-3">{t("refs.col.notes")}</th>
+                <th className="p-3 text-right">{t("refs.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {visibleAdjustments.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">No stock adjustments</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("refs.empty")}</td></tr>
               )}
               {visibleAdjustments.map((a) => {
                 const metal = a.adjustment_metal ?? "gold";
@@ -2428,20 +2431,20 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                     <td className="p-3 text-right">
                       <div className="inline-flex items-center justify-end gap-1">
                         <Button
-                          variant="ghost" size="icon" title="Edit"
+                          variant="ghost" size="icon" title={t("reft.btn.edit")}
                           onClick={() => setEditingAdj(a)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
-                          variant="ghost" size="icon" title="Delete"
+                          variant="ghost" size="icon" title={t("reft.btn.delete")}
                           onClick={async () => {
-                            if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
+                            if (!confirm(t("refs.confirm.delete"))) return;
                             try {
                               await deleteTransaction({ data: { id: a.id } });
-                              toast.success("Adjustment deleted");
+                              toast.success(t("refs.toast.deleted"));
                               load();
-                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                            } catch (err) { toast.error(err instanceof Error ? err.message : t("refs.toast.fail")); }
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -2455,6 +2458,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           </table>
         </div>
       </Card>
+
 
       {adjustOpen && (
         <NewStockAdjustmentDialog
