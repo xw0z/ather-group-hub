@@ -59,7 +59,7 @@ export function SettlementReceiptReport({
         minHeight: 1123,
         background: PAPER,
         color: INK,
-        fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
         padding: "44px 52px",
         boxSizing: "border-box",
         fontSize: 12,
