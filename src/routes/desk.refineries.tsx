@@ -3943,7 +3943,7 @@ function AccountStatementDialog({
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display tracking-wide">
-            Account Statement — <span className="font-mono">{client.code ?? client.name}</span>
+            Account Statement — <span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal">({client.name})</span>
           </DialogTitle>
           <p className="text-xs text-muted-foreground">{refinery.name}{client.phone ? ` · ${client.phone}` : ""}</p>
         </DialogHeader>
