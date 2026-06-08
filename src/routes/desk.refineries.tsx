@@ -1612,7 +1612,6 @@ function TransactionFormPage({
     try {
       // ----- Settlement branch -----
       if (type === "settlement") {
-        if (isEdit) { setSaving(false); toast.error("Settlements cannot be edited; delete and recreate."); return; }
         if (!fromClientId || !toClientId) { setSaving(false); toast.error("Select both clients"); return; }
         if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
         const amt = Number(settlementAmount);
@@ -1622,7 +1621,7 @@ function TransactionFormPage({
         if (settlementKind === "gold" && applyFee && (!(fromFp >= 0) || !(toFp >= 0))) {
           setSaving(false); toast.error("Fee prices must be ≥ 0"); return;
         }
-        await createSettlement({ data: {
+        const payload = {
           refinery_id: refinery.id,
           from_client_id: fromClientId,
           to_client_id: toClientId,
@@ -1633,11 +1632,18 @@ function TransactionFormPage({
           to_fee_price: settlementKind === "gold" && applyFee ? toFp : 0,
           transaction_date: date,
           notes: notes || null,
-        }});
-        toast.success("Settlement created");
+        };
+        if (isEdit && settlementGroupId) {
+          await editSettlement({ data: { ...payload, group_id: settlementGroupId } });
+          toast.success("Settlement updated");
+        } else {
+          await createSettlement({ data: payload });
+          toast.success("Settlement created");
+        }
         onSaved();
         return;
       }
+
 
 
       // ----- Existing Gold / DA branch -----
