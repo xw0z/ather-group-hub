@@ -3424,12 +3424,12 @@ function ProfileTab() {
         <div className="space-y-6">
           <Card className="p-4 sm:p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-semibold">Change password</h3>
-              <p className="text-xs text-muted-foreground">Your current password is required to set a new one.</p>
+              <h3 className="text-sm font-semibold">{t("prof.sec.changePwd")}</h3>
+              <p className="text-xs text-muted-foreground">{t("prof.sec.pwdHint")}</p>
             </div>
             <form onSubmit={changePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs">Current password</Label>
+                <Label className="text-xs">{t("prof.sec.current")}</Label>
                 <div className="relative">
                   <Input
                     type={showCurrent ? "text" : "password"}
@@ -3439,13 +3439,13 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowCurrent((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showCurrent ? "Hide password" : "Show password"}>
+                    aria-label={showCurrent ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">New password</Label>
+                <Label className="text-xs">{t("prof.sec.new")}</Label>
                 <div className="relative">
                   <Input
                     type={showNew ? "text" : "password"}
@@ -3455,7 +3455,7 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowNew((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showNew ? "Hide password" : "Show password"}>
+                    aria-label={showNew ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -3464,12 +3464,12 @@ function ProfileTab() {
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                       <div className={`h-full ${strength.color} transition-all`} style={{ width: `${(strength.score / 5) * 100}%` }} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground">Strength: {strength.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("prof.sec.strength")}: {strength.label}</p>
                   </div>
                 )}
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Confirm new password</Label>
+                <Label className="text-xs">{t("prof.sec.confirm")}</Label>
                 <div className="relative">
                   <Input
                     type={showConfirm ? "text" : "password"}
@@ -3479,31 +3479,31 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowConfirm((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showConfirm ? "Hide password" : "Show password"}>
+                    aria-label={showConfirm ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {pwd2 && !pwdMatch && <p className="text-[11px] text-destructive">Passwords do not match.</p>}
+                {pwd2 && !pwdMatch && <p className="text-[11px] text-destructive">{t("prof.sec.mismatch")}</p>}
               </div>
               <Button type="submit" disabled={savingPwd || !currentPwd || !pwd || !pwdMatch}>
-                {savingPwd ? "Saving…" : "Change password"}
+                {savingPwd ? t("prof.btn.saving") : t("prof.sec.btnChange")}
               </Button>
             </form>
           </Card>
 
           <Card className="p-4 sm:p-6">
-            <h3 className="text-sm font-semibold mb-4">Account activity</h3>
+            <h3 className="text-sm font-semibold mb-4">{t("prof.sec.activity")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.lastLogin")}</p>
                 <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Password Last Changed</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.pwdChanged")}</p>
                 <p className="font-medium">{fmtDateTime(p?.passwordChangedAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.accountCreated")}</p>
                 <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
               </div>
             </div>
