@@ -1387,10 +1387,9 @@ function TransactionsTab({
           <div className="w-full sm:w-32">
             <label className="text-xs text-muted-foreground">Tolerance ±g</label>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
+              placeholder="±1"
               value={tolerance}
               onChange={(e) => setTolerance(e.target.value)}
             />
