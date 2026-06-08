@@ -632,6 +632,34 @@ export const createSettlement = createServerFn({ method: "POST" })
     return { group_id: (groupId ?? "") as string };
   });
 
+const settlementEdit = settlementCreate.extend({ group_id: z.string().uuid() });
+
+export const editSettlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => settlementEdit.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refinery_id);
+    if (data.from_client_id === data.to_client_id) {
+      throw new Error("From and To clients must be different");
+    }
+    const { error } = await supabaseAdmin.rpc("refinery_edit_settlement", {
+      _group_id: data.group_id,
+      _from_client: data.from_client_id,
+      _to_client: data.to_client_id,
+      _kind: data.kind,
+      _amount: data.amount,
+      _apply_fee: data.apply_fee,
+      _from_fee_price: data.from_fee_price,
+      _to_fee_price: data.to_fee_price,
+      _date: data.transaction_date,
+      _notes: data.notes ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return { group_id: data.group_id };
+  });
+
+
+
 
 export type SettlementPair = {
   group_id: string;
