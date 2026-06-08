@@ -170,7 +170,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
   const shareNode = async (
     node: HTMLDivElement,
     fileNameSuffix: string,
-    titleSuffix: string,
+    _titleSuffix: string,
   ) => {
     const dataUrl = await withTimeout(
       toPng(node, { pixelRatio: 3, cacheBust: true, backgroundColor: BG }),
