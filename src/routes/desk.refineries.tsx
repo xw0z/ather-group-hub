@@ -4349,6 +4349,7 @@ function BuySellDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useLang();
   const [clientId, setClientId] = useState<string>("");
   const [metal, setMetal] = useState<BuySellMetal>("gold");
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -4363,13 +4364,13 @@ function BuySellDialog({
   const w = Number(weight) || 0;
   const p = Number(price) || 0;
   const total = Math.round(w * p);
-  const metalLabel = metal === "gold" ? "Gold" : "Silver";
+  const metalLabel = metal === "gold" ? t("refbs.f.gold") : t("refbs.f.silver");
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!clientId) { toast.error("Select a client"); return; }
-    if (w <= 0) { toast.error("Weight must be greater than 0"); return; }
-    if (p < 0) { toast.error("Price per gram must be >= 0"); return; }
+    if (!clientId) { toast.error(t("refbs.toast.client")); return; }
+    if (w <= 0) { toast.error(t("refbs.toast.weight")); return; }
+    if (p < 0) { toast.error(t("refbs.toast.price")); return; }
     setSaving(true);
     try {
       await createBuySell({ data: {
@@ -4384,10 +4385,13 @@ function BuySellDialog({
         date,
         notes: notes || null,
       }});
-      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} of ${metalLabel} for ${fmtDA(total)}`);
+      const msg = kind === "buy"
+        ? t("refbs.toast.bought", { w: `${fmtG(w)} ${metalLabel}`, amt: fmtDA(total) })
+        : t("refbs.toast.sold", { w: `${fmtG(w)} ${metalLabel}`, amt: fmtDA(total) });
+      toast.success(msg);
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save");
+      toast.error(e instanceof Error ? e.message : t("refbs.toast.fail"));
     } finally {
       setSaving(false);
     }
@@ -4399,17 +4403,17 @@ function BuySellDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {kind === "buy" ? (
-              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy {metalLabel}</span>
+              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> {t("refbs.dlg.buy", { metal: metalLabel })}</span>
             ) : (
-              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell {metalLabel}</span>
+              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> {t("refbs.dlg.sell", { metal: metalLabel })}</span>
             )}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <Label>Client</Label>
+            <Label>{t("refbs.f.client")}</Label>
             <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("refbs.f.clientPh")} /></SelectTrigger>
               <SelectContent>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -4418,62 +4422,62 @@ function BuySellDialog({
             </Select>
           </div>
           <div>
-            <Label>Metal Type</Label>
+            <Label>{t("refbs.f.metal")}</Label>
             <Select value={metal} onValueChange={(v) => setMetal(v as BuySellMetal)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="gold">Gold</SelectItem>
-                <SelectItem value="silver">Silver</SelectItem>
+                <SelectItem value="gold">{t("refbs.f.gold")}</SelectItem>
+                <SelectItem value="silver">{t("refbs.f.silver")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Date</Label>
+              <Label>{t("refbs.f.date")}</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
-              <Label>Settlement</Label>
+              <Label>{t("refbs.f.settle")}</Label>
               <Select value={settlement} onValueChange={(v) => setSettlement(v as BuySellSettlement)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="settlement">Settlement (affects DA balance)</SelectItem>
-                  <SelectItem value="cash">Cash (no balance change)</SelectItem>
+                  <SelectItem value="settlement">{t("refbs.f.opSettle")}</SelectItem>
+                  <SelectItem value="cash">{t("refbs.f.opCash")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Weight (g)</Label>
+              <Label>{t("refbs.f.weight")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
             </div>
             <div>
-              <Label>Purity (‰)</Label>
+              <Label>{t("refbs.f.purity")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div>
-              <Label>Price / g (DA)</Label>
+              <Label>{t("refbs.f.price")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
           </div>
           <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Total amount</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refbs.f.totalAmt")}</span>
             <span className={`tabular-nums font-semibold ${kind === "buy" ? "text-emerald-500" : "text-destructive"}`}>{fmtDA(total)}</span>
           </div>
           <div>
-            <Label>Notes</Label>
+            <Label>{t("refbs.f.notes")}</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>{t("app.cancel")}</Button>
             <Button
               type="submit"
               disabled={saving}
               className={kind === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              {kind === "buy" ? `Record Buy` : `Record Sell`}
+              {kind === "buy" ? t("refbs.btn.recordBuy") : t("refbs.btn.recordSell")}
             </Button>
           </DialogFooter>
         </form>
@@ -4481,6 +4485,7 @@ function BuySellDialog({
     </Dialog>
   );
 }
+
 
 // =============================================================
 // Client Details Page (360° view)
