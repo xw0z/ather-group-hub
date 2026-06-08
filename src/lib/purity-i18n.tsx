@@ -3194,6 +3194,8 @@ const fr: Dict = {
   "refnp.toast.silverGte0": "Le prix de l'argent doit être ≥ 0",
   "refnp.toast.pricesSaved": "Prix enregistrés",
   "refnp.toast.snapshot": "Instantané enregistré",
+  "refd.equity.pureGoldEq": "Équivalent or pur",
+  "refd.equity.setPrices": "Définir les prix dans Position Nette",
 };
 
 const dicts: Record<Lang, Dict> = { en, ar, fr };
