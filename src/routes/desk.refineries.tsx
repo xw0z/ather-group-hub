@@ -5053,7 +5053,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     try {
       meta = await createBackup({ data: { refineryId: refinery.id } });
       console.log("[backup] create ok", { id: meta.id, file: meta.file_name, size: meta.file_size_bytes });
-      toast.success(`Backup created: ${meta.file_name}`);
+      toast.success(`${t("refbk.toast.saved")} ${meta.file_name}`);
     } catch (e) {
       console.error("[backup] create failed:", e);
       toast.error(e instanceof Error ? e.message : "Failed to create backup");
