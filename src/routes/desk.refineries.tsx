@@ -4198,6 +4198,7 @@ export function RefineriesEmbedded() {
 // Buy / Sell Gold (DA-priced)
 // =============================================================
 function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: RefineryAssignment }) {
+  const { t } = useLang();
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [clients, setClients] = useState<RefineryClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4210,7 +4211,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
         listTransactions({ data: { refineryId: refinery.id } }),
         listClients({ data: { refineryId: refinery.id } }),
       ]);
-      setRows(tx.filter((t) => t.transaction_type === "buysell"));
+      setRows(tx.filter((tr) => tr.transaction_type === "buysell"));
       setClients(cl);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
@@ -4235,34 +4236,32 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Buy / Sell Metals</h1>
-          <p className="text-sm text-muted-foreground">
-            Record physical gold and silver purchases and sales paid in DA.
-          </p>
+          <h1 className="font-display text-2xl">{t("refbs.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("refbs.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => setOpenKind("buy")}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <Plus className="h-4 w-4 mr-1" /> Buy
+            <Plus className="h-4 w-4 mr-1" /> {t("refbs.btn.buy")}
           </Button>
           <Button
             onClick={() => setOpenKind("sell")}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            <TrendingDown className="h-4 w-4 mr-1" /> Sell
+            <TrendingDown className="h-4 w-4 mr-1" /> {t("refbs.btn.sell")}
           </Button>
         </div>
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label="Today · Gold bought" value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
-        <StatCard label="Today · Gold sold" value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
-        <StatCard label="Today · Silver bought" value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
-        <StatCard label="Today · Silver sold" value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
-        <StatCard label="Today · Buy total (DA)" value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
-        <StatCard label="Today · Sell total (DA)" value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
+        <StatCard label={t("refbs.stat.goldBought")} value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
+        <StatCard label={t("refbs.stat.goldSold")} value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
+        <StatCard label={t("refbs.stat.silverBought")} value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label={t("refbs.stat.silverSold")} value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label={t("refbs.stat.buyTotal")} value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
+        <StatCard label={t("refbs.stat.sellTotal")} value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
       </div>
 
       <Card>
@@ -4270,23 +4269,23 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3">Date</th>
-                <th className="p-3">Tx #</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Metal</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Weight</th>
-                <th className="p-3 text-right">Price / g</th>
-                <th className="p-3 text-right">Total DA</th>
-                <th className="p-3">Settlement</th>
+                <th className="p-3">{t("refbs.col.date")}</th>
+                <th className="p-3">{t("refbs.col.tx")}</th>
+                <th className="p-3">{t("refbs.col.client")}</th>
+                <th className="p-3">{t("refbs.col.metal")}</th>
+                <th className="p-3">{t("refbs.col.type")}</th>
+                <th className="p-3 text-right">{t("refbs.col.weight")}</th>
+                <th className="p-3 text-right">{t("refbs.col.price")}</th>
+                <th className="p-3 text-right">{t("refbs.col.total")}</th>
+                <th className="p-3">{t("refbs.col.settlement")}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{t("refbs.empty")}</td></tr>
               )}
               {rows.map((r) => {
                 const buy = r.buysell_kind === "buy";
@@ -4301,12 +4300,12 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                       <Badge className={isGold
                         ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
                         : "bg-muted text-muted-foreground border-border"}>
-                        {isGold ? "GOLD" : "SILVER"}
+                        {isGold ? t("refbs.metal.gold") : t("refbs.metal.silver")}
                       </Badge>
                     </td>
                     <td className="p-3">
                       <Badge className={buy ? "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" : "bg-destructive/15 text-destructive border-destructive/30"}>
-                        {buy ? "BUY" : "SELL"}
+                        {buy ? t("refbs.type.buy") : t("refbs.type.sell")}
                       </Badge>
                     </td>
                     <td className="p-3 text-right tabular-nums">{fmtG(Number(r.buysell_weight ?? 0))}</td>
@@ -4314,7 +4313,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                     <td className="p-3 text-right tabular-nums font-semibold">{fmtDA(Number(r.buysell_total ?? 0))}</td>
                     <td className="p-3">
                       <span className="text-xs uppercase tracking-wider">
-                        {r.buysell_settlement === "cash" ? "Cash" : "Settlement"}
+                        {r.buysell_settlement === "cash" ? t("refbs.cash") : t("refbs.settle")}
                       </span>
                     </td>
                   </tr>
@@ -4339,6 +4338,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   );
 }
 
+
 function BuySellDialog({
   refinery, clients, kind, isAdmin, onClose, onSaved,
 }: {
@@ -4349,6 +4349,7 @@ function BuySellDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useLang();
   const [clientId, setClientId] = useState<string>("");
   const [metal, setMetal] = useState<BuySellMetal>("gold");
   const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -4363,13 +4364,13 @@ function BuySellDialog({
   const w = Number(weight) || 0;
   const p = Number(price) || 0;
   const total = Math.round(w * p);
-  const metalLabel = metal === "gold" ? "Gold" : "Silver";
+  const metalLabel = metal === "gold" ? t("refbs.f.gold") : t("refbs.f.silver");
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!clientId) { toast.error("Select a client"); return; }
-    if (w <= 0) { toast.error("Weight must be greater than 0"); return; }
-    if (p < 0) { toast.error("Price per gram must be >= 0"); return; }
+    if (!clientId) { toast.error(t("refbs.toast.client")); return; }
+    if (w <= 0) { toast.error(t("refbs.toast.weight")); return; }
+    if (p < 0) { toast.error(t("refbs.toast.price")); return; }
     setSaving(true);
     try {
       await createBuySell({ data: {
@@ -4384,10 +4385,13 @@ function BuySellDialog({
         date,
         notes: notes || null,
       }});
-      toast.success(`${kind === "buy" ? "Bought" : "Sold"} ${fmtG(w)} of ${metalLabel} for ${fmtDA(total)}`);
+      const msg = kind === "buy"
+        ? t("refbs.toast.bought", { w: `${fmtG(w)} ${metalLabel}`, amt: fmtDA(total) })
+        : t("refbs.toast.sold", { w: `${fmtG(w)} ${metalLabel}`, amt: fmtDA(total) });
+      toast.success(msg);
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save");
+      toast.error(e instanceof Error ? e.message : t("refbs.toast.fail"));
     } finally {
       setSaving(false);
     }
@@ -4399,17 +4403,17 @@ function BuySellDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {kind === "buy" ? (
-              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> Buy {metalLabel}</span>
+              <span className="inline-flex items-center gap-2 text-emerald-500"><Plus className="h-4 w-4" /> {t("refbs.dlg.buy", { metal: metalLabel })}</span>
             ) : (
-              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> Sell {metalLabel}</span>
+              <span className="inline-flex items-center gap-2 text-destructive"><TrendingDown className="h-4 w-4" /> {t("refbs.dlg.sell", { metal: metalLabel })}</span>
             )}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <Label>Client</Label>
+            <Label>{t("refbs.f.client")}</Label>
             <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("refbs.f.clientPh")} /></SelectTrigger>
               <SelectContent>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -4418,62 +4422,62 @@ function BuySellDialog({
             </Select>
           </div>
           <div>
-            <Label>Metal Type</Label>
+            <Label>{t("refbs.f.metal")}</Label>
             <Select value={metal} onValueChange={(v) => setMetal(v as BuySellMetal)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="gold">Gold</SelectItem>
-                <SelectItem value="silver">Silver</SelectItem>
+                <SelectItem value="gold">{t("refbs.f.gold")}</SelectItem>
+                <SelectItem value="silver">{t("refbs.f.silver")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Date</Label>
+              <Label>{t("refbs.f.date")}</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
-              <Label>Settlement</Label>
+              <Label>{t("refbs.f.settle")}</Label>
               <Select value={settlement} onValueChange={(v) => setSettlement(v as BuySellSettlement)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="settlement">Settlement (affects DA balance)</SelectItem>
-                  <SelectItem value="cash">Cash (no balance change)</SelectItem>
+                  <SelectItem value="settlement">{t("refbs.f.opSettle")}</SelectItem>
+                  <SelectItem value="cash">{t("refbs.f.opCash")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Weight (g)</Label>
+              <Label>{t("refbs.f.weight")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} />
             </div>
             <div>
-              <Label>Purity (‰)</Label>
+              <Label>{t("refbs.f.purity")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" max="1000" value={purity} onChange={(e) => setPurity(e.target.value)} />
             </div>
             <div>
-              <Label>Price / g (DA)</Label>
+              <Label>{t("refbs.f.price")}</Label>
               <Input type="number" inputMode="decimal" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
           </div>
           <div className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Total amount</span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("refbs.f.totalAmt")}</span>
             <span className={`tabular-nums font-semibold ${kind === "buy" ? "text-emerald-500" : "text-destructive"}`}>{fmtDA(total)}</span>
           </div>
           <div>
-            <Label>Notes</Label>
+            <Label>{t("refbs.f.notes")}</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>{t("app.cancel")}</Button>
             <Button
               type="submit"
               disabled={saving}
               className={kind === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              {kind === "buy" ? `Record Buy` : `Record Sell`}
+              {kind === "buy" ? t("refbs.btn.recordBuy") : t("refbs.btn.recordSell")}
             </Button>
           </DialogFooter>
         </form>
@@ -4481,6 +4485,7 @@ function BuySellDialog({
     </Dialog>
   );
 }
+
 
 // =============================================================
 // Client Details Page (360° view)
@@ -4498,6 +4503,7 @@ type ClientStmtRow = StatementRow;
 function ClientDetailsPage({
   refinery, assignment, clientId,
 }: { refinery: Refinery; assignment: RefineryAssignment; clientId: string }) {
+  const { t } = useLang();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const inDeskApp = pathname.startsWith("/desk/app/refineries");
@@ -4560,19 +4566,19 @@ function ClientDetailsPage({
       setNewNote("");
       const ns = await listClientNotes({ data: { refineryId: refinery.id, clientId } });
       setNotes(ns);
-      toast.success("Note added");
+      toast.success(t("refcd.notes.added"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to add note");
+      toast.error(e instanceof Error ? e.message : t("refcd.notes.addFail"));
     } finally { setSavingNote(false); }
   };
 
   const removeNote = async (id: string) => {
-    if (!confirm("Delete this note?")) return;
+    if (!confirm(t("refcd.notes.confirm"))) return;
     try {
       await deleteClientNote({ data: { id } });
       setNotes((prev) => prev.filter((n) => n.id !== id));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(e instanceof Error ? e.message : t("refcd.notes.delFail"));
     }
   };
 
@@ -4616,9 +4622,9 @@ function ClientDetailsPage({
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={backToClients}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t("refcd.back")}
         </Button>
-        <p className="text-sm text-muted-foreground tracking-[0.25em]">LOADING CLIENT…</p>
+        <p className="text-sm text-muted-foreground tracking-[0.25em]">{t("refcd.loading")}</p>
       </div>
     );
   }
@@ -4627,9 +4633,23 @@ function ClientDetailsPage({
   const d = Number(client.da_balance);
   const tone: "negative" | "positive" | "neutral" =
     g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
-  const statusLabel = tone === "negative" ? "Negative" : tone === "positive" ? "Positive" : "Neutral";
+  const statusLabel = tone === "negative" ? t("refcd.status.negative") : tone === "positive" ? t("refcd.status.positive") : t("refcd.status.neutral");
   const statusCls =
     tone === "negative" ? "text-destructive" : tone === "positive" ? "text-emerald-500" : "text-muted-foreground";
+
+  // Build per-locale labels for filter options + tab buttons
+  const typeLabel = (typ: string): string => {
+    switch (typ) {
+      case "gold_received": return t("refcd.txt.goldRecv");
+      case "gold_delivered": return t("refcd.txt.goldDel");
+      case "da_received": return t("refcd.txt.daRecv");
+      case "da_paid": return t("refcd.txt.daPaid");
+      case "refining_fee": return t("refcd.txt.fee");
+      case "settlement": return t("refcd.txt.settle");
+      case "adjustment": return t("refcd.txt.adj");
+      default: return typ.replace(/_/g, " ");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -4637,17 +4657,17 @@ function ClientDetailsPage({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
           <button onClick={() => goToRefineryTab("dashboard")} className="hover:text-foreground transition-colors">
-            Refineries
+            {t("refcd.crumb.refineries")}
           </button>
           <span>›</span>
           <span>{refinery.name}</span>
           <span>›</span>
-          <button onClick={backToClients} className="hover:text-foreground transition-colors">Clients</button>
+          <button onClick={backToClients} className="hover:text-foreground transition-colors">{t("refcd.crumb.clients")}</button>
           <span>›</span>
           <span className="text-foreground font-medium"><ClientLabel code={client.code} name={client.name} /></span>
         </div>
         <Button variant="outline" size="sm" onClick={backToClients}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t("refcd.back")}
         </Button>
       </div>
 
@@ -4658,7 +4678,7 @@ function ClientDetailsPage({
             <StatusDot tone={tone} />
             <h1 className="font-display text-3xl tracking-tight"><span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal text-muted-foreground">({client.name})</span></h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">Client Overview</p>
+          <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">{t("refcd.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
@@ -4668,7 +4688,7 @@ function ClientDetailsPage({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => goToRefineryTab("buysell")}
               >
-                <Plus className="h-4 w-4 mr-1" /> Buy Gold
+                <Plus className="h-4 w-4 mr-1" /> {t("refcd.btn.buy")}
               </Button>
               <Button
                 size="sm"
@@ -4676,16 +4696,16 @@ function ClientDetailsPage({
                 className="border-destructive/40 text-destructive hover:bg-destructive/10"
                 onClick={() => goToRefineryTab("buysell")}
               >
-                <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+                <TrendingDown className="h-4 w-4 mr-1" /> {t("refcd.btn.sell")}
               </Button>
             </>
           )}
           <Button size="sm" variant="outline" onClick={() => setStmtOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" /> Generate Statement
+            <FileText className="h-4 w-4 mr-1" /> {t("refcd.btn.statement")}
           </Button>
           {!readOnly && (
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-1" /> Edit Client
+              <Pencil className="h-4 w-4 mr-1" /> {t("refcd.btn.edit")}
             </Button>
           )}
         </div>
@@ -4693,30 +4713,30 @@ function ClientDetailsPage({
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard label="Current Gold" value={signed(g, fmtG)} cls={balClass(g)} />
-        <SummaryCard label="Current DA" value={signed(d, fmtDA)} cls={balClass(d)} />
-        <SummaryCard label="Refining Fee" value={`${fmtDA(Number(client.refining_fee_price))}/g`} />
-        <SummaryCard label="Status" value={statusLabel} cls={statusCls} />
-        <SummaryCard label="Phone" value={client.phone ?? "—"} muted />
-        <SummaryCard label="Refinery" value={refinery.name} muted />
+        <SummaryCard label={t("refcd.sum.gold")} value={signed(g, fmtG)} cls={balClass(g)} />
+        <SummaryCard label={t("refcd.sum.da")} value={signed(d, fmtDA)} cls={balClass(d)} />
+        <SummaryCard label={t("refcd.sum.fee")} value={`${fmtDA(Number(client.refining_fee_price))}/g`} />
+        <SummaryCard label={t("refcd.sum.status")} value={statusLabel} cls={statusCls} />
+        <SummaryCard label={t("refcd.sum.phone")} value={client.phone ?? "—"} muted />
+        <SummaryCard label={t("refcd.sum.refinery")} value={refinery.name} muted />
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border flex gap-1 overflow-x-auto">
         {([
-          { id: "transactions", label: `Transactions (${allRows.length})` },
-          { id: "statement", label: "Account Statement" },
-          { id: "timeline", label: "Balance Timeline" },
-          { id: "notes", label: `Notes (${notes.length})` },
-        ] as const).map((t) => (
+          { id: "transactions", label: t("refcd.tab.tx", { n: allRows.length }) },
+          { id: "statement", label: t("refcd.tab.statement") },
+          { id: "timeline", label: t("refcd.tab.timeline") },
+          { id: "notes", label: t("refcd.tab.notes", { n: notes.length }) },
+        ] as const).map((tab) => (
           <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === t.id ? "border-ember text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              activeTab === tab.id ? "border-ember text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t.label}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -4726,32 +4746,32 @@ function ClientDetailsPage({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">From</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.from")}</Label>
               <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-44" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">To</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.to")}</Label>
               <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-44" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Type</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.type")}</Label>
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="gold_received">Gold Received</SelectItem>
-                  <SelectItem value="gold_delivered">Gold Delivered</SelectItem>
-                  <SelectItem value="da_received">DA Received</SelectItem>
-                  <SelectItem value="da_paid">DA Paid</SelectItem>
-                  <SelectItem value="refining_fee">Refining Fee</SelectItem>
-                  <SelectItem value="settlement">Settlement</SelectItem>
-                  <SelectItem value="adjustment">Adjustment</SelectItem>
+                  <SelectItem value="all">{t("refcd.txt.allTypes")}</SelectItem>
+                  <SelectItem value="gold_received">{t("refcd.txt.goldRecv")}</SelectItem>
+                  <SelectItem value="gold_delivered">{t("refcd.txt.goldDel")}</SelectItem>
+                  <SelectItem value="da_received">{t("refcd.txt.daRecv")}</SelectItem>
+                  <SelectItem value="da_paid">{t("refcd.txt.daPaid")}</SelectItem>
+                  <SelectItem value="refining_fee">{t("refcd.txt.fee")}</SelectItem>
+                  <SelectItem value="settlement">{t("refcd.txt.settle")}</SelectItem>
+                  <SelectItem value="adjustment">{t("refcd.txt.adj")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {(filterFrom || filterTo || filterType !== "all") && (
               <Button size="sm" variant="ghost" onClick={() => { setFilterFrom(""); setFilterTo(""); setFilterType("all"); }}>
-                <X className="h-4 w-4 mr-1" /> Reset
+                <X className="h-4 w-4 mr-1" /> {t("refcd.btn.reset")}
               </Button>
             )}
           </div>
@@ -4761,26 +4781,26 @@ function ClientDetailsPage({
               <table className="w-full text-sm min-w-[900px]">
                 <thead className="border-b border-border bg-muted/20">
                   <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3 text-center">Dir</th>
-                    <th className="p-3 text-right">Gold (g)</th>
-                    <th className="p-3 text-right">DA</th>
-                    <th className="p-3">Description</th>
-                    <th className="p-3 text-right">Run. Gold</th>
-                    <th className="p-3 text-right">Run. DA</th>
+                    <th className="p-3">{t("refcd.col.date")}</th>
+                    <th className="p-3">{t("refcd.col.type")}</th>
+                    <th className="p-3 text-center">{t("refcd.col.dir")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.gold")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.da")}</th>
+                    <th className="p-3">{t("refcd.col.desc")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.runGold")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.runDa")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedRows.length === 0 && (
-                    <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+                    <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">{t("refcd.empty.tx")}</td></tr>
                   )}
                   {pagedRows.map((r, i) => {
                     const goldNet = r.gold_credit - r.gold_debit;
                     const daNet = r.da_credit - r.da_debit;
                     const isIn = goldNet > 0 || daNet > 0;
                     const isOut = goldNet < 0 || daNet < 0;
-                    const dirLabel = r.type === "refining_fee" ? "FEE" : isIn ? "IN" : isOut ? "OUT" : "—";
+                    const dirLabel = r.type === "refining_fee" ? t("refcd.badge.fee") : isIn ? t("refcd.badge.in") : isOut ? t("refcd.badge.out") : "—";
                     const dirCls =
                       r.type === "refining_fee" ? "bg-ember/15 text-ember border-ember/40"
                       : isIn ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
@@ -4789,7 +4809,7 @@ function ClientDetailsPage({
                     return (
                       <tr key={i} className="border-b border-border last:border-0">
                         <td className="p-3 whitespace-nowrap">{r.date}</td>
-                        <td className="p-3">{r.type.replace(/_/g, " ")}</td>
+                        <td className="p-3">{typeLabel(r.type)}</td>
                         <td className="p-3 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${dirCls}`}>{dirLabel}</span>
                         </td>
@@ -4813,24 +4833,25 @@ function ClientDetailsPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Page {page} of {totalPages} · {filteredRows.length} transactions
+                {t("refcd.page", { p: page, n: totalPages, k: filteredRows.length })}
               </span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("refcd.btn.prev")}</Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>{t("refcd.btn.next")}</Button>
               </div>
             </div>
           )}
         </div>
       )}
 
+
       {activeTab === "statement" && (
         <Card className="p-4 sm:p-6 text-center space-y-3">
           <FileText className="h-8 w-8 mx-auto text-ember" />
-          <h3 className="font-display text-lg">Generate Account Statement</h3>
-          <p className="text-sm text-muted-foreground">Select a date range, preview, and download as PDF.</p>
+          <h3 className="font-display text-lg">{t("refcd.statement.title")}</h3>
+          <p className="text-sm text-muted-foreground">{t("refcd.statement.desc")}</p>
           <Button onClick={() => setStmtOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" /> Open Statement Generator
+            <FileText className="h-4 w-4 mr-1" /> {t("refcd.statement.open")}
           </Button>
         </Card>
       )}
@@ -4841,14 +4862,14 @@ function ClientDetailsPage({
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/20">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="p-3">Date</th>
-                  <th className="p-3 text-right">Gold Balance</th>
-                  <th className="p-3 text-right">DA Balance</th>
+                  <th className="p-3">{t("refcd.col.date")}</th>
+                  <th className="p-3 text-right">{t("refcd.tl.gold")}</th>
+                  <th className="p-3 text-right">{t("refcd.tl.da")}</th>
                 </tr>
               </thead>
               <tbody>
                 {timeline.length === 0 && (
-                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No history yet</td></tr>
+                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">{t("refcd.empty.history")}</td></tr>
                 )}
                 {timeline.map(([date, b]) => (
                   <tr key={date} className="border-b border-border last:border-0">
@@ -4867,29 +4888,29 @@ function ClientDetailsPage({
         <div className="space-y-4">
           {!readOnly && (
             <Card className="p-4 space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Add internal note</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.notes.label")}</Label>
               <Textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Internal note (not visible to client)…"
+                placeholder={t("refcd.notes.ph")}
                 rows={3}
               />
               <div className="flex justify-end">
                 <Button size="sm" onClick={submitNote} disabled={savingNote || !newNote.trim()}>
-                  {savingNote ? "Saving…" : "Add note"}
+                  {savingNote ? t("app.saving") : t("refcd.notes.add")}
                 </Button>
               </div>
             </Card>
           )}
           {notes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No notes yet</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("refcd.notes.empty")}</p>
           ) : (
             <div className="space-y-2">
               {notes.map((n) => (
                 <Card key={n.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{n.author_name || "Unknown"}</span>
+                      <span className="font-medium text-foreground">{n.author_name || "—"}</span>
                       {" · "}
                       {new Date(n.created_at).toLocaleString()}
                     </div>
@@ -4953,6 +4974,7 @@ const KIND_BADGE: Record<string, string> = {
 };
 
 function BackupTab({ refinery }: { refinery: Refinery }) {
+  const { t } = useLang();
   const [backups, setBackups] = useState<RefineryBackupMeta[]>([]);
   const [audit, setAudit] = useState<RefineryAuditLogRow[]>([]);
   const [settings, setSettings] = useState<RefineryBackupSettings | null>(null);
@@ -5031,7 +5053,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     try {
       meta = await createBackup({ data: { refineryId: refinery.id } });
       console.log("[backup] create ok", { id: meta.id, file: meta.file_name, size: meta.file_size_bytes });
-      toast.success(`Backup created: ${meta.file_name}`);
+      toast.success(`${t("refbk.toast.saved")} ${meta.file_name}`);
     } catch (e) {
       console.error("[backup] create failed:", e);
       toast.error(e instanceof Error ? e.message : "Failed to create backup");
@@ -5076,7 +5098,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     if (!confirm(`Delete backup "${b.file_name}"? This cannot be undone.`)) return;
     try {
       await deleteBackup({ data: { backupId: b.id } });
-      toast.success("Backup deleted");
+      toast.success(t("refbk.toast.deleted"));
       await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
@@ -5090,14 +5112,14 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       await restoreBackupFromHistory({
         data: { backupId: restoreFromBackup.id, confirmText },
       });
-      toast.success("Backup restored. Refreshing data…");
+      toast.success(t("refbk.toast.restored"));
       setRestoreFromBackup(null);
       setConfirmText("");
       await reload();
       // Trigger upstream pages to refresh by reloading window
       setTimeout(() => window.location.reload(), 500);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Restore failed");
+      toast.error(e instanceof Error ? e.message : t("refbk.toast.restoreFail"));
     } finally {
       setRestoring(false);
     }
@@ -5133,13 +5155,13 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
           confirmText: uploadConfirmText,
         },
       });
-      toast.success("Backup restored. Refreshing data…");
+      toast.success(t("refbk.toast.restored"));
       setUploadedPayload(null);
       setUploadConfirmText("");
       await reload();
       setTimeout(() => window.location.reload(), 500);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Restore failed");
+      toast.error(e instanceof Error ? e.message : t("refbk.toast.restoreFail"));
     } finally {
       setRestoring(false);
     }
@@ -5158,7 +5180,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
           keep_last: settings.keep_last,
         },
       });
-      toast.success("Scheduled backup settings saved");
+      toast.success(t("refbk.toast.settingsSaved"));
       await reload();
     } catch (e2) {
       toast.error(e2 instanceof Error ? e2.message : "Failed to save settings");
@@ -5172,29 +5194,27 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl">Backup &amp; Restore</h2>
-        <p className="text-sm text-muted-foreground">
-          Admin-only. Backups include all refinery data — clients, transactions, stock, prices, and audit history.
-        </p>
+        <h2 className="font-display text-2xl">{t("refbk.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("refbk.subtitle")}</p>
       </div>
 
       {/* A. Create Backup */}
       <Card className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="font-display text-lg">A. Create Backup</h3>
-            <p className="text-sm text-muted-foreground">Snapshot the entire refinery into a downloadable JSON file.</p>
+            <h3 className="font-display text-lg">{t("refbk.a.title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("refbk.a.desc")}</p>
             {latest && (
               <p className="text-xs text-muted-foreground mt-2">
-                Last backup: <span className="text-foreground">{latest.file_name}</span> ·
+                {t("refbk.a.last", { when: latest.file_name })} ·
                 {" "}{fmtAuditWhen(latest.created_at)} · {fmtBytes(latest.file_size_bytes)}
-                {latest.created_by_email ? ` · by ${latest.created_by_email}` : ""}
+                {latest.created_by_email ? ` · ${latest.created_by_email}` : ""}
               </p>
             )}
           </div>
           <Button onClick={handleCreate} disabled={creating} className="gap-2">
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {creating ? "Creating…" : "Create Backup"}
+            {creating ? t("refbk.a.creating") : t("refbk.a.create")}
           </Button>
         </div>
       </Card>
@@ -5202,11 +5222,9 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       {/* B. Restore Backup (from file) */}
       <Card className="p-4 sm:p-6 border-destructive/30">
         <h3 className="font-display text-lg flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" /> B. Restore Backup
+          <AlertTriangle className="h-5 w-5 text-destructive" /> {t("refbk.b.title")}
         </h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Upload a previously downloaded backup file (.json) to restore this refinery.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{t("refbk.b.desc")}</p>
         <div className="mt-4 flex items-center gap-3">
           <input
             type="file"
@@ -5223,26 +5241,26 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* C. Backup History */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">C. Backup History</h3>
-        <p className="text-sm text-muted-foreground">All saved backups for this refinery. Safety backups are created automatically before any restore.</p>
+        <h3 className="font-display text-lg">{t("refbk.c.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.c.desc")}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left py-2 px-2">Date</th>
-                <th className="text-left py-2 px-2">Kind</th>
-                <th className="text-left py-2 px-2">File Name</th>
-                <th className="text-left py-2 px-2">Created By</th>
-                <th className="text-right py-2 px-2">Size</th>
-                <th className="text-right py-2 px-2">Actions</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.date")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.kind")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.file")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.by")}</th>
+                <th className="text-right py-2 px-2">{t("refbk.col.size")}</th>
+                <th className="text-right py-2 px-2">{t("refbk.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>
               )}
               {!loading && backups.length === 0 && (
-                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No backups yet.</td></tr>
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">{t("refbk.empty")}</td></tr>
               )}
               {backups.map((b) => (
                 <tr key={b.id} className="border-b border-border/50 hover:bg-card/40">
@@ -5257,13 +5275,13 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
                   <td className="py-2 px-2 text-right">{fmtBytes(b.file_size_bytes)}</td>
                   <td className="py-2 px-2 text-right">
                     <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => handleDownload(b)} title="Download">
+                      <Button size="sm" variant="ghost" onClick={() => handleDownload(b)} title={t("refbk.a.create")}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setRestoreFromBackup(b); setConfirmText(""); }} title="Restore" className="text-amber-400 hover:text-amber-300">
+                      <Button size="sm" variant="ghost" onClick={() => { setRestoreFromBackup(b); setConfirmText(""); }} title={t("refbk.dlg.restoreNow")} className="text-amber-400 hover:text-amber-300">
                         <HistoryIcon className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(b)} title="Delete" className="text-destructive hover:text-destructive">
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(b)} title={t("app.delete")} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -5277,12 +5295,12 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* D. Scheduled Backup Settings */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">D. Scheduled Backup Settings</h3>
-        <p className="text-sm text-muted-foreground">Automatically create a backup every day at the chosen time.</p>
+        <h3 className="font-display text-lg">{t("refbk.d.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.d.desc")}</p>
         {settings && (
           <form onSubmit={handleSaveSettings} className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div>
-              <Label className="text-xs uppercase">Enable Daily Backup</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.enable")}</Label>
               <div className="mt-2 flex items-center gap-2">
                 <Checkbox
                   id="daily-enabled"
@@ -5290,12 +5308,12 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
                   onCheckedChange={(v) => setSettings({ ...settings, daily_enabled: Boolean(v) })}
                 />
                 <label htmlFor="daily-enabled" className="text-sm">
-                  {settings.daily_enabled ? "Enabled" : "Disabled"}
+                  {settings.daily_enabled ? t("refbk.d.enabled") : t("refbk.d.disabled")}
                 </label>
               </div>
             </div>
             <div>
-              <Label className="text-xs uppercase">Backup Time (24h)</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.time")}</Label>
               <Input
                 type="time"
                 value={settings.daily_time.slice(0, 5)}
@@ -5304,7 +5322,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               />
             </div>
             <div>
-              <Label className="text-xs uppercase">Keep Last N Backups</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.keep")}</Label>
               <Input
                 type="number" inputMode="decimal" min={1} max={500}
                 value={settings.keep_last}
@@ -5315,7 +5333,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
             <div className="sm:col-span-3">
               <Button type="submit" disabled={savingSettings} className="gap-2">
                 {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Save Settings
+                {t("refbk.d.save")}
               </Button>
             </div>
           </form>
@@ -5324,22 +5342,22 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* Audit Log */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">Audit Log</h3>
-        <p className="text-sm text-muted-foreground">Recent backup and restore actions for this refinery.</p>
+        <h3 className="font-display text-lg">{t("refbk.audit.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.audit.desc")}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left py-2 px-2">When</th>
-                <th className="text-left py-2 px-2">User</th>
-                <th className="text-left py-2 px-2">Action</th>
-                <th className="text-left py-2 px-2">File</th>
-                <th className="text-left py-2 px-2">IP</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.when")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.user")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.action")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.file")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.ip")}</th>
               </tr>
             </thead>
             <tbody>
               {audit.length === 0 && (
-                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No audit entries yet.</td></tr>
+                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">{t("refbk.audit.empty")}</td></tr>
               )}
               {audit.map((row) => (
                 <tr key={row.id} className="border-b border-border/50">
@@ -5362,29 +5380,27 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" /> Restore Backup
+              <AlertTriangle className="h-5 w-5" /> {t("refbk.dlg.title")}
             </DialogTitle>
           </DialogHeader>
           {restoreFromBackup && (
             <div className="space-y-4">
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                Restoring this backup will <strong>overwrite current refinery data</strong>.
-                This action cannot be undone unless you create a new backup first. A safety backup of the
-                current state will be automatically created before the restore.
+                {t("refbk.dlg.warn")}
               </div>
               <div className="text-sm space-y-1">
-                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{restoreFromBackup.file_name}</span></div>
-                <div><span className="text-muted-foreground">Created:</span> {fmtAuditWhen(restoreFromBackup.created_at)}</div>
-                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(restoreFromBackup.file_size_bytes)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.file")}</span> <span className="font-mono">{restoreFromBackup.file_name}</span></div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.created")}</span> {fmtAuditWhen(restoreFromBackup.created_at)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.size")}</span> {fmtBytes(restoreFromBackup.file_size_bytes)}</div>
               </div>
               <div>
-                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Label className="text-xs uppercase">{t("refbk.dlg.typeConfirm")}</Label>
                 <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setRestoreFromBackup(null); setConfirmText(""); }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setRestoreFromBackup(null); setConfirmText(""); }}>{t("app.cancel")}</Button>
             <Button
               variant="destructive"
               disabled={confirmText !== "RESTORE" || restoring}
@@ -5392,7 +5408,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               className="gap-2"
             >
               {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Restore Now
+              {t("refbk.dlg.restoreNow")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5403,27 +5419,26 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" /> Restore From File
+              <AlertTriangle className="h-5 w-5" /> {t("refbk.dlg.titleFile")}
             </DialogTitle>
           </DialogHeader>
           {uploadedPayload && (
             <div className="space-y-4">
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                Restoring this file will <strong>overwrite current refinery data</strong>.
-                A safety backup will be created automatically beforehand.
+                {t("refbk.dlg.warn")}
               </div>
               <div className="text-sm space-y-1">
-                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{uploadedPayload.fileName}</span></div>
-                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(uploadedPayload.sizeBytes)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.file")}</span> <span className="font-mono">{uploadedPayload.fileName}</span></div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.size")}</span> {fmtBytes(uploadedPayload.sizeBytes)}</div>
               </div>
               <div>
-                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Label className="text-xs uppercase">{t("refbk.dlg.typeConfirm")}</Label>
                 <Input value={uploadConfirmText} onChange={(e) => setUploadConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setUploadedPayload(null); setUploadConfirmText(""); }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setUploadedPayload(null); setUploadConfirmText(""); }}>{t("app.cancel")}</Button>
             <Button
               variant="destructive"
               disabled={uploadConfirmText !== "RESTORE" || restoring}
@@ -5431,7 +5446,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               className="gap-2"
             >
               {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Restore Now
+              {t("refbk.dlg.restoreNow")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5439,6 +5454,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     </div>
   );
 }
+
 
 
 // =============================================================
