@@ -1888,11 +1888,31 @@ function TransactionFormPage({
           {type === "gold" && (
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between mb-2">
+                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <Label>Gold bars</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={addBar}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Add gold bar
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="500"
+                      step="1"
+                      inputMode="numeric"
+                      value={genCount}
+                      onChange={(e) => setGenCount(e.target.value)}
+                      placeholder="Qty"
+                      className="h-8 w-20"
+                      aria-label="Number of bars"
+                    />
+                    <Button type="button" size="sm" variant="secondary" onClick={generateBars}>
+                      Generate bars
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={deleteEmptyBars}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete empty
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={addBar}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add gold bar
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Desktop table */}
