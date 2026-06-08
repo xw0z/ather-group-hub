@@ -1223,8 +1223,9 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       for (const o of others ?? []) counterMap.set(o.id, (o as { code?: string | null }).code ?? o.name);
     }
 
-    // For privacy, statements identify clients by code, not by name.
-    const cliLabel = (cli as { code?: string | null }).code ?? cli.name;
+    // Client label format: `CODE (Name)` — code first, name in parentheses.
+    const cliCode = (cli as { code?: string | null }).code ?? null;
+    const cliLabel = cliCode ? `${cliCode} (${cli.name})` : cli.name;
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
