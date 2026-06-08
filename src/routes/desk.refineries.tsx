@@ -1463,7 +1463,7 @@ function TransactionFormPage({
     if (!editingId) return;
     getTransaction({ data: { id: editingId } }).then((t) => {
       const tx = t as RefineryTransaction;
-      setClientId(tx.client_id);
+      setClientId(tx.client_id ?? "");
       setDirection(tx.direction);
       setType(tx.transaction_type);
       setDate(tx.transaction_date);
