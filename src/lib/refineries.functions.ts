@@ -1220,7 +1220,10 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     if (counterIds.length > 0) {
       const { data: others } = await supabaseAdmin
         .from("refinery_clients").select("id, name, code").in("id", counterIds);
-      for (const o of others ?? []) counterMap.set(o.id, (o as { code?: string | null }).code ?? o.name);
+      for (const o of others ?? []) {
+        const oc = (o as { code?: string | null }).code ?? null;
+        counterMap.set(o.id, oc ? `${oc} (${o.name})` : o.name);
+      }
     }
 
     // Client label format: `CODE (Name)` — code first, name in parentheses.
