@@ -4546,14 +4546,12 @@ function BuySellDialog({
         <form onSubmit={submit} className="space-y-4">
           <div>
             <Label>{t("refbs.f.client")}</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder={t("refbs.f.clientPh")} /></SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientCombobox
+              clients={clients}
+              value={clientId}
+              onChange={setClientId}
+              placeholder={t("refbs.f.clientPh")}
+            />
           </div>
           <div>
             <Label>{t("refbs.f.metal")}</Label>
