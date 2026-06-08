@@ -862,11 +862,22 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="text-sm truncate"><ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} /></p>
-                  <p className="text-[11px] text-muted-foreground font-mono">{t.transaction_number} · {t.transaction_date}</p>
+                  <p className="text-sm truncate">
+                    {t.transaction_type === "settlement" && t.counterparty_client_name ? (
+                      <>
+                        <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} />
+                      </>
+                    ) : (
+                      <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-mono">{displayTxNumber(t)} · {t.transaction_date}</p>
                 </div>
                 <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
               </div>
+
               <div className="flex items-center justify-between gap-3 text-xs tabular-nums mt-2">
                 <span className="text-muted-foreground">Gold <span className="text-foreground">{goldVal}</span></span>
                 <span className="text-muted-foreground">DA <span className="text-foreground">{daVal}</span></span>
