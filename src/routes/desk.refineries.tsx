@@ -3216,7 +3216,7 @@ type SwapPrefs = Awaited<ReturnType<typeof getUserPreferences>>;
 type LoginRow = Awaited<ReturnType<typeof getLoginHistory>>[number];
 
 function ProfileTab() {
-  const { lang, setLang } = useLang();
+  const { lang, setLang, t } = useLang();
   const [sub, setSub] = useState<ProfileSubTab>("general");
   const [loading, setLoading] = useState(true);
 
@@ -3332,30 +3332,30 @@ function ProfileTab() {
   };
 
   const signOutAll = async () => {
-    if (!confirm("Sign out of all other devices? You will stay signed in here.")) return;
+    if (!confirm(t("prof.sess.confirmAll"))) return;
     setSigningOutAll(true);
     try {
       await signOutEverywhere();
-      toast.success("Signed out of all devices");
+      toast.success(t("prof.toast.langUpdated") === "تم تحديث اللغة" ? "تم تسجيل الخروج من جميع الأجهزة" : t("prof.toast.langUpdated") === "Langue mise à jour" ? "Déconnecté de tous les appareils" : "Signed out of all devices");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally { setSigningOutAll(false); }
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading) return <p className="text-muted-foreground text-sm">{t("prof.loading")}</p>;
 
   const subTabs: Array<{ id: ProfileSubTab; label: string; icon: typeof UserIcon }> = [
-    { id: "general", label: "General", icon: UserIcon },
-    { id: "security", label: "Security", icon: ShieldCheck },
-    { id: "preferences", label: "Preferences", icon: SettingsIcon },
-    { id: "sessions", label: "Sessions", icon: Monitor },
+    { id: "general", label: t("prof.tab.general"), icon: UserIcon },
+    { id: "security", label: t("prof.tab.security"), icon: ShieldCheck },
+    { id: "preferences", label: t("prof.tab.preferences"), icon: SettingsIcon },
+    { id: "sessions", label: t("prof.tab.sessions"), icon: Monitor },
   ];
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="font-display text-2xl">Profile</h1>
-        <p className="text-sm text-muted-foreground">Manage your account, security and preferences</p>
+        <h1 className="font-display text-2xl">{t("prof.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("prof.subtitle")}</p>
       </div>
 
       <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto border-b border-border">
@@ -3383,38 +3383,38 @@ function ProfileTab() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.username")}</p>
               <p className="font-medium">{p?.username ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.role")}</p>
               <p className="font-medium capitalize">{p?.isAdmin ? "admin" : (p?.role ?? "—")}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Refinery</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.assignedRefinery")}</p>
               <p className="font-medium">{p?.refineryName ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.accountCreated")}</p>
               <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
             </div>
           </div>
 
           <form onSubmit={saveGeneral} className="space-y-4 border-t border-border pt-6">
             <div className="space-y-2">
-              <Label>Display Name</Label>
+              <Label>{t("prof.field.displayName")}</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={120} />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{t("prof.field.email")}</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
+              <Label>{t("prof.field.phone")}</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={32} placeholder="+213 …" />
             </div>
             <Button type="submit" disabled={savingGeneral}>
-              {savingGeneral ? "Saving…" : "Save changes"}
+              {savingGeneral ? t("prof.btn.saving") : t("prof.btn.saveChanges")}
             </Button>
           </form>
         </Card>
@@ -3424,12 +3424,12 @@ function ProfileTab() {
         <div className="space-y-6">
           <Card className="p-4 sm:p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-semibold">Change password</h3>
-              <p className="text-xs text-muted-foreground">Your current password is required to set a new one.</p>
+              <h3 className="text-sm font-semibold">{t("prof.sec.changePwd")}</h3>
+              <p className="text-xs text-muted-foreground">{t("prof.sec.pwdHint")}</p>
             </div>
             <form onSubmit={changePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs">Current password</Label>
+                <Label className="text-xs">{t("prof.sec.current")}</Label>
                 <div className="relative">
                   <Input
                     type={showCurrent ? "text" : "password"}
@@ -3439,13 +3439,13 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowCurrent((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showCurrent ? "Hide password" : "Show password"}>
+                    aria-label={showCurrent ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">New password</Label>
+                <Label className="text-xs">{t("prof.sec.new")}</Label>
                 <div className="relative">
                   <Input
                     type={showNew ? "text" : "password"}
@@ -3455,7 +3455,7 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowNew((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showNew ? "Hide password" : "Show password"}>
+                    aria-label={showNew ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -3464,12 +3464,12 @@ function ProfileTab() {
                     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                       <div className={`h-full ${strength.color} transition-all`} style={{ width: `${(strength.score / 5) * 100}%` }} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground">Strength: {strength.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("prof.sec.strength")}: {strength.label}</p>
                   </div>
                 )}
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Confirm new password</Label>
+                <Label className="text-xs">{t("prof.sec.confirm")}</Label>
                 <div className="relative">
                   <Input
                     type={showConfirm ? "text" : "password"}
@@ -3479,31 +3479,31 @@ function ProfileTab() {
                   />
                   <button type="button" onClick={() => setShowConfirm((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showConfirm ? "Hide password" : "Show password"}>
+                    aria-label={showConfirm ? t("prof.sec.hide") : t("prof.sec.show")}>
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {pwd2 && !pwdMatch && <p className="text-[11px] text-destructive">Passwords do not match.</p>}
+                {pwd2 && !pwdMatch && <p className="text-[11px] text-destructive">{t("prof.sec.mismatch")}</p>}
               </div>
               <Button type="submit" disabled={savingPwd || !currentPwd || !pwd || !pwdMatch}>
-                {savingPwd ? "Saving…" : "Change password"}
+                {savingPwd ? t("prof.btn.saving") : t("prof.sec.btnChange")}
               </Button>
             </form>
           </Card>
 
           <Card className="p-4 sm:p-6">
-            <h3 className="text-sm font-semibold mb-4">Account activity</h3>
+            <h3 className="text-sm font-semibold mb-4">{t("prof.sec.activity")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.lastLogin")}</p>
                 <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Password Last Changed</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.pwdChanged")}</p>
                 <p className="font-medium">{fmtDateTime(p?.passwordChangedAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.accountCreated")}</p>
                 <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
               </div>
             </div>
@@ -3516,14 +3516,14 @@ function ProfileTab() {
           <Card className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Language</h3>
+              <h3 className="text-sm font-semibold">{t("prof.pref.language")}</h3>
             </div>
-            <p className="text-xs text-muted-foreground">Choose the interface language. Arabic switches the app to right-to-left.</p>
+            <p className="text-xs text-muted-foreground">{t("prof.pref.languageDesc")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {([
-                { id: "en" as Lang, label: "English", sub: "Default" },
-                { id: "fr" as Lang, label: "Français", sub: "French" },
-                { id: "ar" as Lang, label: "العربية", sub: "Arabic (RTL)" },
+                { id: "en" as Lang, label: "English", sub: t("prof.pref.subEn") },
+                { id: "fr" as Lang, label: "Français", sub: t("prof.pref.subFr") },
+                { id: "ar" as Lang, label: "العربية", sub: t("prof.pref.subAr") },
               ]).map((opt) => {
                 const active = lang === opt.id;
                 return (
@@ -3544,7 +3544,7 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Date format</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.dateFormat")}</h3>
             <Select value={prefs.date_format} onValueChange={(v) => savePref({ ...prefs, date_format: v as SwapPrefs["date_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -3556,7 +3556,7 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Number format</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.numberFormat")}</h3>
             <Select value={prefs.number_format} onValueChange={(v) => savePref({ ...prefs, number_format: v as SwapPrefs["number_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -3567,12 +3567,12 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Theme</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.theme")}</h3>
             <div className="grid grid-cols-3 gap-2 max-w-md">
               {([
-                { id: "light" as const, label: "Light", icon: Sun },
-                { id: "dark" as const, label: "Dark", icon: Moon },
-                { id: "system" as const, label: "System", icon: Monitor },
+                { id: "light" as const, label: t("prof.pref.themeLight"), icon: Sun },
+                { id: "dark" as const, label: t("prof.pref.themeDark"), icon: Moon },
+                { id: "system" as const, label: t("prof.pref.themeSystem"), icon: Monitor },
               ]).map((opt) => {
                 const Icon = opt.icon;
                 const active = prefs.theme === opt.id;
@@ -3590,7 +3590,7 @@ function ProfileTab() {
                 );
               })}
             </div>
-            {savingPrefs && <p className="text-[11px] text-muted-foreground">Saving…</p>}
+            {savingPrefs && <p className="text-[11px] text-muted-foreground">{t("prof.pref.savingPrefs")}</p>}
           </Card>
         </div>
       )}
@@ -3598,14 +3598,14 @@ function ProfileTab() {
       {sub === "sessions" && (
         <div className="space-y-6">
           <Card className="p-4 sm:p-6 space-y-3">
-            <h3 className="text-sm font-semibold">Current session</h3>
+            <h3 className="text-sm font-semibold">{t("prof.sess.current")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Signed in as</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sess.signedInAs")}</p>
                 <p className="font-medium">{p?.email ?? p?.authEmail ?? "—"}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.lastLogin")}</p>
                 <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
               </div>
             </div>
@@ -3613,23 +3613,23 @@ function ProfileTab() {
 
           <Card className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Recent logins</h3>
+              <h3 className="text-sm font-semibold">{t("prof.sess.recent")}</h3>
               <Button variant="outline" size="sm" onClick={signOutAll} disabled={signingOutAll}>
-                <LogOut className="h-4 w-4 mr-1" /> {signingOutAll ? "Signing out…" : "Logout All Devices"}
+                <LogOut className="h-4 w-4 mr-1" /> {signingOutAll ? t("prof.sess.signingOut") : t("prof.sess.logoutAll")}
               </Button>
             </div>
             {history.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent login history.</p>
+              <p className="text-sm text-muted-foreground">{t("prof.sess.none")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                      <th className="p-2">When</th>
-                      <th className="p-2">Device</th>
-                      <th className="p-2">Browser</th>
-                      <th className="p-2">IP</th>
-                      <th className="p-2">Status</th>
+                      <th className="p-2">{t("prof.sess.col.when")}</th>
+                      <th className="p-2">{t("prof.sess.col.device")}</th>
+                      <th className="p-2">{t("prof.sess.col.browser")}</th>
+                      <th className="p-2">{t("prof.sess.col.ip")}</th>
+                      <th className="p-2">{t("prof.sess.col.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
