@@ -602,8 +602,8 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                       <td className="p-3 font-medium">{c.name}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
-                      <td className="p-3 text-right tabular-nums text-destructive">
-                        {canCompute ? `−${fmtG(c.exposureGold)}` : "—"}
+                      <td className={`p-3 text-right tabular-nums ${balClass(c.exposureGold)}`} title="Exposure = Gold Balance + (DA Balance ÷ Gold Price/g)">
+                        {canCompute ? signed(c.exposureGold, fmtG) : "—"}
                       </td>
                       <td className="p-3 text-muted-foreground">{c.last_activity ?? "—"}</td>
                     </tr>
