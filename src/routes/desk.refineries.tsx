@@ -2605,11 +2605,11 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
           silverPrice: silverPrice || null,
         },
       });
-      toast.success("Snapshot saved");
+      toast.success(t("refnp.toast.snapshot"));
       const snaps = await listPositionSnapshots({ data: { refineryId: refinery.id, limit: 60 } });
       setHistory(snaps);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
+      toast.error(e instanceof Error ? e.message : t("refnp.toast.failed"));
     } finally {
       setSavingSnap(false);
     }
