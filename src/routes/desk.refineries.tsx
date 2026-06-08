@@ -822,13 +822,19 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
                   className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
                 >
                   <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
+                  <td className="p-3 font-mono text-xs">{displayTxNumber(t)}</td>
                   <td className="p-3">
-                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                    {t.transaction_type === "settlement" && t.counterparty_client_name ? (
+                      <span>
+                        <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} />
+                      </span>
+                    ) : (
+                      <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     )}
                   </td>
+
                   <td className="p-3">
                     <Badge className={badge.cls}>{badge.label}</Badge>
                   </td>
