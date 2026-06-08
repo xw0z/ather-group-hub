@@ -1503,6 +1503,8 @@ function TransactionFormPage({
   // User-edit tracking so we only auto-fill once per client selection
   const [fromFeeEdited, setFromFeeEdited] = useState(false);
   const [toFeeEdited, setToFeeEdited] = useState(false);
+  // For editing settlements we keep the original group id (one shared id for the pair).
+  const [settlementGroupId, setSettlementGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
@@ -1512,25 +1514,47 @@ function TransactionFormPage({
 
   useEffect(() => {
     if (!editingId) return;
-    getTransaction({ data: { id: editingId } }).then((t) => {
+    getTransaction({ data: { id: editingId } }).then(async (t) => {
       const tx = t as RefineryTransaction;
-      setClientId(tx.client_id ?? "");
       setDirection(tx.direction);
       setType(tx.transaction_type);
       setDate(tx.transaction_date);
       setNotes(tx.notes ?? "");
       setDaAmount(String(tx.da_amount ?? ""));
       setFeePrice(String(tx.fee_price ?? ""));
-      const existingBars = (tx.bars ?? []).map((b, i) => ({
-        item_number: b.item_number ?? String(i + 1),
-        item_type: b.item_type,
-        gross_weight: String(b.gross_weight),
-        purity: String(b.purity),
-      }));
-      if (existingBars.length > 0) setBars(existingBars);
+
+      if (tx.transaction_type === "settlement" && tx.settlement_group_id) {
+        // Settlement: load the pair to recover from/to correctly regardless of which row was clicked.
+        try {
+          const pair = await getSettlement({ data: { group_id: tx.settlement_group_id } });
+          setSettlementGroupId(tx.settlement_group_id);
+          setFromClientId(pair.from.client_id);
+          setToClientId(pair.to.client_id);
+          setSettlementKind(pair.kind);
+          setSettlementAmount(String(pair.amount));
+          setApplyFee(Boolean(pair.apply_fee));
+          setFromFeePrice(String(pair.from_fee_price ?? 0));
+          setToFeePrice(String(pair.to_fee_price ?? 0));
+          // Mark as user-edited so the auto-fill effects don't clobber on client load.
+          setFromFeeEdited(true);
+          setToFeeEdited(true);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Load failed");
+        }
+      } else {
+        setClientId(tx.client_id ?? "");
+        const existingBars = (tx.bars ?? []).map((b, i) => ({
+          item_number: b.item_number ?? String(i + 1),
+          item_type: b.item_type,
+          gross_weight: String(b.gross_weight),
+          purity: String(b.purity),
+        }));
+        if (existingBars.length > 0) setBars(existingBars);
+      }
       setLoadingExisting(false);
     }).catch((err) => { toast.error(err instanceof Error ? err.message : "Load failed"); setLoadingExisting(false); });
   }, [editingId]);
+
 
 
   const client = clients.find((c) => c.id === clientId);
