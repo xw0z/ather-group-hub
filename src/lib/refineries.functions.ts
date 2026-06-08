@@ -1047,9 +1047,19 @@ export const getDashboard = createServerFn({ method: "POST" })
         last_activity: lastActivity[c.id] ?? null,
       })),
       recent: (recentR.data ?? []).map((r) => {
-        const { client, ...rest } = r as typeof r & { client?: { name: string; code: string | null } };
-        return { ...rest, client_name: client?.name ?? "", client_code: client?.code ?? null };
+        const { client, counterparty, ...rest } = r as typeof r & {
+          client?: { name: string; code: string | null };
+          counterparty?: { name: string; code: string | null } | null;
+        };
+        return {
+          ...rest,
+          client_name: client?.name ?? "",
+          client_code: client?.code ?? null,
+          counterparty_client_name: counterparty?.name ?? null,
+          counterparty_client_code: counterparty?.code ?? null,
+        };
       }),
+
     };
   });
 
