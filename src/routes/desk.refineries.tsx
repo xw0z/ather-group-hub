@@ -4612,7 +4612,7 @@ function ClientDetailsPage({
           <span>›</span>
           <button onClick={backToClients} className="hover:text-foreground transition-colors">Clients</button>
           <span>›</span>
-          <span className="text-foreground font-medium">{client.name}</span>
+          <span className="text-foreground font-medium"><ClientLabel code={client.code} name={client.name} /></span>
         </div>
         <Button variant="outline" size="sm" onClick={backToClients}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
