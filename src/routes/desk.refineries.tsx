@@ -46,6 +46,7 @@ import jsPDF from "jspdf";
 import { AccountStatementReport } from "@/components/refineries/AccountStatement";
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
+import { ClientLabel, clientLabelText } from "@/components/refineries/ClientLabel";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLang, type Lang } from "@/lib/purity-i18n";
