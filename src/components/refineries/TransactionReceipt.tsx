@@ -123,7 +123,7 @@ export function TransactionReceiptReport({
         border: `1px solid ${LINE}`, borderRadius: 6, overflow: "hidden",
         display: "grid", gridTemplateColumns: "1fr 1fr",
       }}>
-        <InfoCell label="Client" value={tx.client_code ?? "—"} strong />
+        <InfoCell label="Client" value={tx.client_code ? `${tx.client_code} (${tx.client_name ?? ""})` : (tx.client_name ?? "—")} strong />
         <InfoCell label="Refinery" value={refineryName} />
         <InfoCell label="Direction" value={tx.direction === "receiving" ? "Receiving Gold" : "Delivery Gold"} />
         <InfoCell label="Transaction Type" value={tx.transaction_type.toUpperCase()} />
