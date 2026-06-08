@@ -5155,7 +5155,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
           confirmText: uploadConfirmText,
         },
       });
-      toast.success("Backup restored. Refreshing data…");
+      toast.success(t("refbk.toast.restored"));
       setUploadedPayload(null);
       setUploadConfirmText("");
       await reload();
