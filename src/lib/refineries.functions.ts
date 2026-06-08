@@ -1673,7 +1673,7 @@ export const createStockAdjustment = createServerFn({ method: "POST" })
     return { ok: true, transactionId: txId as string };
   });
 
-export const updateStockAdjustment = createServerFn({ method: "POST" })
+export const editStockAdjustment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
