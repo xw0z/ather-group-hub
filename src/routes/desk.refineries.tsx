@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
@@ -881,9 +881,11 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const [stmtClient, setStmtClient] = useState<RefineryClient | null>(null);
-  const search = Route.useSearch();
+  const search = useSearch({ strict: false }) as { filter?: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const filter = search.filter;
+  const inDeskApp = pathname.startsWith("/desk/app/refineries");
+  const filter = search.filter === "owing-gold" || search.filter === "owing-da" ? search.filter : undefined;
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
   const canStatement = assignment.isAdmin || assignment.role === "manager";
@@ -915,7 +917,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const filterLabel = filter === "owing-gold" ? "Clients owing gold" : filter === "owing-da" ? "Clients owing DA" : null;
 
   const clearFilter = () =>
-    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp ? { r: refinery.id, rtab: "clients" } : { r: refinery.id, tab: "clients" }) as never,
+    });
+
+  const openClient = (id: string) =>
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp
+        ? { r: refinery.id, rtab: "clients", clientId: id }
+        : { r: refinery.id, tab: "clients", clientId: id }) as never,
+    });
 
   return (
     <div className="space-y-6">
@@ -970,7 +983,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <tr
                   key={c.id}
                   className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+                  onClick={() => openClient(c.id)}
                 >
                   <td className="p-3 max-w-[320px]">
                     <span className="flex items-center gap-2 min-w-0">
@@ -1029,7 +1042,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               <div
                 key={c.id}
                 className="p-3 active:bg-muted/30 cursor-pointer"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+                onClick={() => openClient(c.id)}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
@@ -4094,6 +4107,7 @@ export function RefineriesEmbedded() {
     rtab?: Tab;
     action?: "new" | "edit";
     txId?: string;
+    clientId?: string;
   };
   const rtab: Tab = (search.rtab as Tab) ?? "dashboard";
   const [assignment, setAssignment] = useState<RefineryAssignment | null>(null);
@@ -4124,6 +4138,7 @@ export function RefineriesEmbedded() {
     rtab?: Tab;
     action?: "new" | "edit";
     txId?: string;
+    clientId?: string;
   }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     navigate({ to: "/desk/app/refineries" as any, search: next as any });
@@ -4156,6 +4171,7 @@ export function RefineriesEmbedded() {
       tab={rtab}
       action={search.action}
       txId={search.txId}
+      clientId={search.clientId}
       onTab={(t) => navTo({ r: activeRefinery.id, rtab: t })}
       onAction={(action, txId) =>
         navTo({ r: activeRefinery.id, rtab: "transactions", action, txId })
@@ -4472,6 +4488,8 @@ function ClientDetailsPage({
   refinery, assignment, clientId,
 }: { refinery: Refinery; assignment: RefineryAssignment; clientId: string }) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const inDeskApp = pathname.startsWith("/desk/app/refineries");
   const [client, setClient] = useState<RefineryClient | null>(null);
   const [statement, setStatement] = useState<AccountStatement | null>(null);
   const [notes, setNotes] = useState<RefineryClientNote[]>([]);
@@ -4514,8 +4532,13 @@ function ClientDetailsPage({
   }, [refinery.id, clientId]);
   useEffect(() => { load(); }, [load]);
 
-  const backToClients = () =>
-    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+  const goToRefineryTab = (tab: Tab) =>
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp ? { r: refinery.id, rtab: tab } : { r: refinery.id, tab }) as never,
+    });
+
+  const backToClients = () => goToRefineryTab("clients");
 
   const submitNote = async () => {
     const body = newNote.trim();
@@ -4602,7 +4625,7 @@ function ClientDetailsPage({
       {/* Breadcrumb */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-          <button onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "dashboard" } })} className="hover:text-foreground transition-colors">
+          <button onClick={() => goToRefineryTab("dashboard")} className="hover:text-foreground transition-colors">
             Refineries
           </button>
           <span>›</span>
@@ -4632,7 +4655,7 @@ function ClientDetailsPage({
               <Button
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+                onClick={() => goToRefineryTab("buysell")}
               >
                 <Plus className="h-4 w-4 mr-1" /> Buy Gold
               </Button>
@@ -4640,7 +4663,7 @@ function ClientDetailsPage({
                 size="sm"
                 variant="outline"
                 className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+                onClick={() => goToRefineryTab("buysell")}
               >
                 <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
               </Button>
