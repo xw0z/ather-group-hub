@@ -5112,7 +5112,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       await restoreBackupFromHistory({
         data: { backupId: restoreFromBackup.id, confirmText },
       });
-      toast.success("Backup restored. Refreshing data…");
+      toast.success(t("refbk.toast.restored"));
       setRestoreFromBackup(null);
       setConfirmText("");
       await reload();
