@@ -1482,10 +1482,10 @@ function TransactionsTab({
             </thead>
             <tbody>
               {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>}
-              {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("reft.empty")}</td></tr>
+              {!loading && filteredRows.length === 0 && (
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{isSearching ? "No transactions match" : t("reft.empty")}</td></tr>
               )}
-              {rows.map((tx) => (
+              {filteredRows.map((tx) => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{displayTxNumber(tx)}</td>
