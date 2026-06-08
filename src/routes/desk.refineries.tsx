@@ -2208,7 +2208,7 @@ function TransactionReceiptDialog({
 
   const uploadReceiptPdfAndGetSignedUrl = useCallback(async (): Promise<{ signedUrl: string; fileName: string }> => {
     if (!tx) throw new Error("Receipt is not ready");
-    const fileName = receiptFileName(tx.transaction_number, "pdf");
+    const fileName = receiptFileName(displayTxNumber(tx), "pdf");
     const storagePath = `${tx.refinery_id}/${tx.id}/${fileName}`;
     const pdfBlob = await createReceiptPdfBlob();
 
@@ -2236,7 +2236,7 @@ function TransactionReceiptDialog({
       const pdfBlob = await createReceiptPdfBlob();
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
-      a.href = url; a.download = receiptFileName(tx.transaction_number, "pdf"); a.click();
+      a.href = url; a.download = receiptFileName(displayTxNumber(tx), "pdf"); a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded");
     } catch (e) {
@@ -2272,7 +2272,7 @@ function TransactionReceiptDialog({
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = receiptFileName(tx.transaction_number, "png"); a.click();
+      a.href = url; a.download = receiptFileName(displayTxNumber(tx), "png"); a.click();
       toast.success("Image downloaded");
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
