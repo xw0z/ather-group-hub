@@ -1002,8 +1002,8 @@ export const getDashboard = createServerFn({ method: "POST" })
         last_activity: lastActivity[c.id] ?? null,
       })),
       recent: (recentR.data ?? []).map((r) => {
-        const { client, ...rest } = r as typeof r & { client?: { name: string } };
-        return { ...rest, client_name: client?.name ?? "" };
+        const { client, ...rest } = r as typeof r & { client?: { name: string; code: string | null } };
+        return { ...rest, client_name: client?.name ?? "", client_code: client?.code ?? null };
       }),
     };
   });
