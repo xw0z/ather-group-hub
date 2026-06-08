@@ -2447,6 +2447,16 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           onSaved={() => { setAdjustOpen(false); load(); }}
         />
       )}
+      {editingAdj && (
+        <EditStockAdjustmentDialog
+          adjustment={editingAdj}
+          currentGold={stock.pure_gold_stock}
+          currentSilver={stock.silver_stock}
+          currentDa={stock.da_stock}
+          onClose={() => setEditingAdj(null)}
+          onSaved={() => { setEditingAdj(null); load(); }}
+        />
+      )}
     </div>
   );
 }
