@@ -5161,7 +5161,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       await reload();
       setTimeout(() => window.location.reload(), 500);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Restore failed");
+      toast.error(e instanceof Error ? e.message : t("refbk.toast.restoreFail"));
     } finally {
       setRestoring(false);
     }
