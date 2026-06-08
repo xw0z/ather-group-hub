@@ -2086,12 +2086,12 @@ function SettlementFields({
         </div>
         <div className="space-y-2">
           <Label>To Client *</Label>
-          <Select value={toClientId} onValueChange={setToClientId}>
-            <SelectTrigger><SelectValue placeholder="Receiver" /></SelectTrigger>
-            <SelectContent>
-              {toOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <ClientCombobox
+            clients={toOptions}
+            value={toClientId}
+            onChange={setToClientId}
+            placeholder="Receiver"
+          />
           {toClient && (
             <p className="text-xs text-muted-foreground">
               Gold <span className={`tabular-nums ${balClass(Number(toClient.purity_balance))}`}>{signed(Number(toClient.purity_balance), fmtG)}</span>
