@@ -4974,6 +4974,7 @@ const KIND_BADGE: Record<string, string> = {
 };
 
 function BackupTab({ refinery }: { refinery: Refinery }) {
+  const { t } = useLang();
   const [backups, setBackups] = useState<RefineryBackupMeta[]>([]);
   const [audit, setAudit] = useState<RefineryAuditLogRow[]>([]);
   const [settings, setSettings] = useState<RefineryBackupSettings | null>(null);
