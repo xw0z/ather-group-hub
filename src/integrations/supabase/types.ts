@@ -1741,6 +1741,17 @@ export type Database = {
         Args: { _tx_id: string }
         Returns: undefined
       }
+      refinery_edit_stock_adjustment: {
+        Args: {
+          _date: string
+          _delta: number
+          _kind: string
+          _metal: string
+          _notes: string
+          _tx_id: string
+        }
+        Returns: string
+      }
       refinery_generate_client_code: {
         Args: { _name: string }
         Returns: string

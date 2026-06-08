@@ -26,7 +26,7 @@ import {
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
-  createStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
+  createStockAdjustment, editStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
   createBuySell, type BuySellKind, type BuySellSettlement, type BuySellMetal,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
@@ -2285,6 +2285,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [adjustments, setAdjustments] = useState<AdjTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [editingAdj, setEditingAdj] = useState<AdjTx | null>(null);
   const [metalFilter, setMetalFilter] = useState<"all" | "gold" | "silver" | "da">("all");
 
   const load = useCallback(async () => {
@@ -2406,19 +2407,27 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                     <td className="p-3 text-xs text-muted-foreground">{a.created_by_name ?? "—"}</td>
                     <td className="p-3 max-w-[260px] truncate text-muted-foreground" title={a.notes ?? ""}>{a.notes ?? "—"}</td>
                     <td className="p-3 text-right">
-                      <Button
-                        variant="ghost" size="icon" title="Delete"
-                        onClick={async () => {
-                          if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
-                          try {
-                            await deleteTransaction({ data: { id: a.id } });
-                            toast.success("Adjustment deleted");
-                            load();
-                          } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="inline-flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost" size="icon" title="Edit"
+                          onClick={() => setEditingAdj(a)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" title="Delete"
+                          onClick={async () => {
+                            if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
+                            try {
+                              await deleteTransaction({ data: { id: a.id } });
+                              toast.success("Adjustment deleted");
+                              load();
+                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -2436,6 +2445,16 @@ function StockTab({ refinery }: { refinery: Refinery }) {
           currentDa={stock.da_stock}
           onClose={() => setAdjustOpen(false)}
           onSaved={() => { setAdjustOpen(false); load(); }}
+        />
+      )}
+      {editingAdj && (
+        <EditStockAdjustmentDialog
+          adjustment={editingAdj}
+          currentGold={stock.pure_gold_stock}
+          currentSilver={stock.silver_stock}
+          currentDa={stock.da_stock}
+          onClose={() => setEditingAdj(null)}
+          onSaved={() => { setEditingAdj(null); load(); }}
         />
       )}
     </div>
@@ -3035,6 +3054,121 @@ function NewStockAdjustmentDialog({
           <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
             <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Create Adjustment"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditStockAdjustmentDialog({
+  adjustment, currentGold, currentSilver, currentDa, onClose, onSaved,
+}: {
+  adjustment: {
+    id: string;
+    transaction_number: string;
+    transaction_date: string;
+    adjustment_metal: StockAdjustmentMetal | null;
+    adjustment_kind: StockAdjustmentKind | null;
+    adjustment_delta: number | null;
+    notes: string | null;
+  };
+  currentGold: number; currentSilver: number; currentDa: number;
+  onClose: () => void; onSaved: () => void;
+}) {
+  const oldMetal = (adjustment.adjustment_metal ?? "gold") as StockAdjustmentMetal;
+  const oldKind = (adjustment.adjustment_kind ?? "add") as StockAdjustmentKind;
+  const oldDelta = Number(adjustment.adjustment_delta ?? 0);
+
+  const [metal, setMetal] = useState<StockAdjustmentMetal>(oldMetal);
+  const [kind, setKind] = useState<StockAdjustmentKind>(oldKind);
+  const [amount, setAmount] = useState<string>(String(Math.abs(oldDelta)));
+  const [date, setDate] = useState<string>(adjustment.transaction_date);
+  const [notes, setNotes] = useState<string>(adjustment.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  // Reverse the old adjustment from the current stock to know the "base" before applying the new one
+  const baseGold = currentGold - (oldMetal === "gold" ? oldDelta : 0);
+  const baseSilver = currentSilver - (oldMetal === "silver" ? oldDelta : 0);
+  const baseDa = currentDa - (oldMetal === "da" ? oldDelta : 0);
+  const base = metal === "gold" ? baseGold : metal === "silver" ? baseSilver : baseDa;
+  const fmt = metal === "da" ? fmtDA : fmtG;
+  const amt = Number(amount);
+  const signedDelta = (kind === "remove" || kind === "loss") ? -Math.abs(amt) : Math.abs(amt);
+  const projected = base + (Number.isFinite(amt) ? signedDelta : 0);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!Number.isFinite(amt) || amt <= 0) { toast.error("Amount must be greater than 0"); return; }
+    if (projected < 0) { toast.error("Resulting stock would be negative"); return; }
+    if (!notes.trim()) { toast.error("Please provide a reason / note"); return; }
+    if (!confirm("This will update stock balances and net position. Continue?")) return;
+    setSaving(true);
+    try {
+      await editStockAdjustment({ data: {
+        id: adjustment.id, metal, kind, amount: Math.abs(amt),
+        date, notes: notes.trim(),
+      }});
+      toast.success("Stock adjustment updated");
+      onSaved();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] sm:w-full">
+        <DialogHeader>
+          <DialogTitle>Edit Stock Adjustment</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Editing <span className="font-mono">{adjustment.transaction_number}</span>. The old adjustment will be reversed and the new one applied. An audit log entry is recorded.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Metal</Label>
+              <Select value={metal} onValueChange={(v) => setMetal(v as StockAdjustmentMetal)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gold">Gold (g)</SelectItem>
+                  <SelectItem value="silver">Silver (g)</SelectItem>
+                  <SelectItem value="da">DA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Adjustment Kind</Label>
+              <Select value={kind} onValueChange={(v) => setKind(v as StockAdjustmentKind)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">Add Stock</SelectItem>
+                  <SelectItem value="remove">Remove Stock</SelectItem>
+                  <SelectItem value="correction">Correction</SelectItem>
+                  <SelectItem value="loss">Loss</SelectItem>
+                  <SelectItem value="manual">Manual Adjustment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
+            <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+            <p className="text-xs text-muted-foreground">
+              After reversing old: {fmt(base)} → Projected: <span className={balClass(projected - base)}>{fmt(projected)}</span>
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Reason / Notes <span className="text-destructive">*</span></Label>
+            <Textarea required value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </div>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save Changes"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

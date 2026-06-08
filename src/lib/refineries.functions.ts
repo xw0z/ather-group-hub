@@ -1673,6 +1673,43 @@ export const createStockAdjustment = createServerFn({ method: "POST" })
     return { ok: true, transactionId: txId as string };
   });
 
+export const editStockAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      metal: z.enum(["gold", "silver", "da"]),
+      kind: z.enum(["add", "remove", "correction", "loss", "manual"]),
+      amount: z.number().positive(),
+      date: z.string().min(8).max(32),
+      notes: z.string().max(2000).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    // Verify access via the tx's refinery
+    const { data: tx, error: txErr } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("refinery_id, transaction_type")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (txErr) throw new Error(txErr.message);
+    if (!tx) throw new Error("Transaction not found");
+    if (tx.transaction_type !== "stock_adjustment") throw new Error("Not a stock adjustment");
+    await assertAccess(context.userId, tx.refinery_id as string);
+
+    const signed = data.kind === "remove" || data.kind === "loss" ? -data.amount : data.amount;
+    const { error } = await supabaseAdmin.rpc("refinery_edit_stock_adjustment", {
+      _tx_id: data.id,
+      _metal: data.metal,
+      _kind: data.kind,
+      _delta: signed,
+      _date: data.date,
+      _notes: data.notes ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // =========================================================
 // Buy / Sell Gold (DA-priced)
 // =========================================================
