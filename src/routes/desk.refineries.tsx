@@ -3516,14 +3516,14 @@ function ProfileTab() {
           <Card className="p-4 sm:p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Language</h3>
+              <h3 className="text-sm font-semibold">{t("prof.pref.language")}</h3>
             </div>
-            <p className="text-xs text-muted-foreground">Choose the interface language. Arabic switches the app to right-to-left.</p>
+            <p className="text-xs text-muted-foreground">{t("prof.pref.languageDesc")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {([
-                { id: "en" as Lang, label: "English", sub: "Default" },
-                { id: "fr" as Lang, label: "Français", sub: "French" },
-                { id: "ar" as Lang, label: "العربية", sub: "Arabic (RTL)" },
+                { id: "en" as Lang, label: "English", sub: t("prof.pref.subEn") },
+                { id: "fr" as Lang, label: "Français", sub: t("prof.pref.subFr") },
+                { id: "ar" as Lang, label: "العربية", sub: t("prof.pref.subAr") },
               ]).map((opt) => {
                 const active = lang === opt.id;
                 return (
@@ -3544,7 +3544,7 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Date format</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.dateFormat")}</h3>
             <Select value={prefs.date_format} onValueChange={(v) => savePref({ ...prefs, date_format: v as SwapPrefs["date_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -3556,7 +3556,7 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Number format</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.numberFormat")}</h3>
             <Select value={prefs.number_format} onValueChange={(v) => savePref({ ...prefs, number_format: v as SwapPrefs["number_format"] })}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -3567,12 +3567,12 @@ function ProfileTab() {
           </Card>
 
           <Card className="p-4 sm:p-6 space-y-4">
-            <h3 className="text-sm font-semibold">Theme</h3>
+            <h3 className="text-sm font-semibold">{t("prof.pref.theme")}</h3>
             <div className="grid grid-cols-3 gap-2 max-w-md">
               {([
-                { id: "light" as const, label: "Light", icon: Sun },
-                { id: "dark" as const, label: "Dark", icon: Moon },
-                { id: "system" as const, label: "System", icon: Monitor },
+                { id: "light" as const, label: t("prof.pref.themeLight"), icon: Sun },
+                { id: "dark" as const, label: t("prof.pref.themeDark"), icon: Moon },
+                { id: "system" as const, label: t("prof.pref.themeSystem"), icon: Monitor },
               ]).map((opt) => {
                 const Icon = opt.icon;
                 const active = prefs.theme === opt.id;
@@ -3590,7 +3590,7 @@ function ProfileTab() {
                 );
               })}
             </div>
-            {savingPrefs && <p className="text-[11px] text-muted-foreground">Saving…</p>}
+            {savingPrefs && <p className="text-[11px] text-muted-foreground">{t("prof.pref.savingPrefs")}</p>}
           </Card>
         </div>
       )}
@@ -3598,14 +3598,14 @@ function ProfileTab() {
       {sub === "sessions" && (
         <div className="space-y-6">
           <Card className="p-4 sm:p-6 space-y-3">
-            <h3 className="text-sm font-semibold">Current session</h3>
+            <h3 className="text-sm font-semibold">{t("prof.sess.current")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Signed in as</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sess.signedInAs")}</p>
                 <p className="font-medium">{p?.email ?? p?.authEmail ?? "—"}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Last Login</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.sec.lastLogin")}</p>
                 <p className="font-medium">{fmtDateTime(p?.lastSignInAt)}</p>
               </div>
             </div>
@@ -3613,23 +3613,23 @@ function ProfileTab() {
 
           <Card className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Recent logins</h3>
+              <h3 className="text-sm font-semibold">{t("prof.sess.recent")}</h3>
               <Button variant="outline" size="sm" onClick={signOutAll} disabled={signingOutAll}>
-                <LogOut className="h-4 w-4 mr-1" /> {signingOutAll ? "Signing out…" : "Logout All Devices"}
+                <LogOut className="h-4 w-4 mr-1" /> {signingOutAll ? t("prof.sess.signingOut") : t("prof.sess.logoutAll")}
               </Button>
             </div>
             {history.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent login history.</p>
+              <p className="text-sm text-muted-foreground">{t("prof.sess.none")}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b border-border">
-                      <th className="p-2">When</th>
-                      <th className="p-2">Device</th>
-                      <th className="p-2">Browser</th>
-                      <th className="p-2">IP</th>
-                      <th className="p-2">Status</th>
+                      <th className="p-2">{t("prof.sess.col.when")}</th>
+                      <th className="p-2">{t("prof.sess.col.device")}</th>
+                      <th className="p-2">{t("prof.sess.col.browser")}</th>
+                      <th className="p-2">{t("prof.sess.col.ip")}</th>
+                      <th className="p-2">{t("prof.sess.col.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
