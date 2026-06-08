@@ -2534,7 +2534,8 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
     const goldOwedToClient   = storedGold > 0 ? storedGold : 0;      // liability, grams
     const daOwedToRefinery   = storedDa < 0 ? -storedDa : 0;         // asset, DA
     const daOwedToClient     = storedDa > 0 ? storedDa : 0;          // liability, DA
-    return { id: c.id, name: c.name, storedGold, storedDa,
+    return { id: c.id, name: c.name, code: (c as { code?: string | null }).code ?? null,
+             storedGold, storedDa,
              goldOwedToRefinery, goldOwedToClient,
              daOwedToRefinery, daOwedToClient };
   });
