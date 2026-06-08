@@ -1316,14 +1316,17 @@ function TransactionsTab({
   }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
 
+  const parseWeight = (s: string): number => {
+    const cleaned = s.replace(/[^0-9.\-]/g, "");
+    return parseFloat(cleaned);
+  };
   const filteredRows = useMemo(() => {
-    const target = parseFloat(searchValue);
+    const target = parseWeight(searchValue);
     if (!Number.isFinite(target)) return rows;
-    const tol = Math.max(0, parseFloat(tolerance) || 0);
+    const tol = Math.max(0, parseWeight(tolerance) || 0);
     const lo = target - tol;
     const hi = target + tol;
     return rows.filter((tx) => {
-      if (tx.transaction_type !== "gold") return false;
       const w = searchField === "gross"
         ? Number(tx.total_gross_weight)
         : Number(tx.total_pure_weight);
@@ -1331,7 +1334,7 @@ function TransactionsTab({
     });
   }, [rows, searchField, searchValue, tolerance]);
 
-  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseFloat(searchValue));
+  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseWeight(searchValue));
 
 
   const handleDelete = async (id: string) => {
