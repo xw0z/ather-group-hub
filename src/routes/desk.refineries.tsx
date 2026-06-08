@@ -1674,6 +1674,25 @@ function TransactionFormPage({
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
+  const [genCount, setGenCount] = useState<string>("10");
+  const generateBars = () => {
+    const n = Math.floor(Number(genCount));
+    if (!Number.isFinite(n) || n < 1) { toast.error("Enter a valid number of bars"); return; }
+    if (n > 500) { toast.error("Max 500 bars at once"); return; }
+    setBars((bs) => {
+      const start = bs.length;
+      const extra: Bar[] = Array.from({ length: n }, (_, k) => ({
+        item_number: String(start + k + 1), item_type: "bar", gross_weight: "", purity: "",
+      }));
+      return [...bs, ...extra];
+    });
+  };
+  const deleteEmptyBars = () => {
+    setBars((bs) => {
+      const kept = bs.filter((b) => b.gross_weight !== "" || b.purity !== "");
+      return kept.length > 0 ? kept : [{ item_number: "1", item_type: "bar", gross_weight: "", purity: "" }];
+    });
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -1869,11 +1888,31 @@ function TransactionFormPage({
           {type === "gold" && (
             <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between mb-2">
+                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <Label>Gold bars</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={addBar}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Add gold bar
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="500"
+                      step="1"
+                      inputMode="numeric"
+                      value={genCount}
+                      onChange={(e) => setGenCount(e.target.value)}
+                      placeholder="Qty"
+                      className="h-8 w-20"
+                      aria-label="Number of bars"
+                    />
+                    <Button type="button" size="sm" variant="secondary" onClick={generateBars}>
+                      Generate bars
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={deleteEmptyBars}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete empty
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={addBar}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add gold bar
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Desktop table */}
