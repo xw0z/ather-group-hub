@@ -3383,38 +3383,38 @@ function ProfileTab() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Username</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.username")}</p>
               <p className="font-medium">{p?.username ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Role</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.role")}</p>
               <p className="font-medium capitalize">{p?.isAdmin ? "admin" : (p?.role ?? "—")}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Refinery</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.assignedRefinery")}</p>
               <p className="font-medium">{p?.refineryName ?? "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Account Created</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("prof.field.accountCreated")}</p>
               <p className="font-medium">{fmtDateTime(p?.createdAt)}</p>
             </div>
           </div>
 
           <form onSubmit={saveGeneral} className="space-y-4 border-t border-border pt-6">
             <div className="space-y-2">
-              <Label>Display Name</Label>
+              <Label>{t("prof.field.displayName")}</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={120} />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{t("prof.field.email")}</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
+              <Label>{t("prof.field.phone")}</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={32} placeholder="+213 …" />
             </div>
             <Button type="submit" disabled={savingGeneral}>
-              {savingGeneral ? "Saving…" : "Save changes"}
+              {savingGeneral ? t("prof.btn.saving") : t("prof.btn.saveChanges")}
             </Button>
           </form>
         </Card>
