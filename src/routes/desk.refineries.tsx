@@ -2846,7 +2846,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               )}
               {clientRows.map((r) => (
                 <tr key={r.id} className="border-b border-border last:border-0">
-                  <td className="p-3 font-medium">{r.name}</td>
+                  <td className="p-3"><ClientLabel code={r.code} name={r.name} /></td>
                   <td className={`p-3 text-right tabular-nums ${r.goldOwedToRefinery > 0.0001 ? "text-emerald-500" : "text-muted-foreground"}`}>{r.goldOwedToRefinery > 0.0001 ? fmtG(r.goldOwedToRefinery) : "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${r.goldOwedToClient > 0.0001 ? "text-red-500" : "text-muted-foreground"}`}>{r.goldOwedToClient > 0.0001 ? fmtG(r.goldOwedToClient) : "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${r.daOwedToRefinery > 0.01 ? "text-emerald-500" : "text-muted-foreground"}`}>{r.daOwedToRefinery > 0.01 ? fmtDA(r.daOwedToRefinery) : "—"}</td>
