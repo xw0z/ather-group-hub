@@ -19,6 +19,7 @@ export const Route = createFileRoute("/desk/app/refineries")({
         : undefined,
     txId: typeof s.txId === "string" ? s.txId : undefined,
     clientId: typeof s.clientId === "string" ? s.clientId : undefined,
+    filter: s.filter === "owing-gold" || s.filter === "owing-da" ? s.filter : undefined,
   }),
   component: () => <SwapDashboard tab="refineries" />,
 });
