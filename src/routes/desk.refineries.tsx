@@ -1343,12 +1343,17 @@ function TransactionsTab({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs">{tx.transaction_number}</span>
+                  <span className="font-mono text-xs">{displayTxNumber(tx)}</span>
                 </div>
                 <p className="text-sm truncate mt-1">
-                  <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
-                  {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
+                  {tx.transaction_type === "settlement" && tx.counterparty_client_name ? (
+                    <>
+                      <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                      <span className="text-muted-foreground"> → </span>
+                      <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} />
+                    </>
+                  ) : (
+                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -1359,8 +1364,8 @@ function TransactionsTab({
                     <>{t("reft.col.gross")} {fmtG(Number(tx.total_gross_weight))} · {t("reft.col.pure")} {fmtG(Number(tx.total_pure_weight))}</>
                   ) : tx.transaction_type === "settlement" ? (
                     tx.settlement_kind === "gold"
-                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
-                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
+                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))}</>
+                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))}</>
                   ) : (
                     <>{t("refd.lbl.da")} {fmtDA(Number(tx.da_amount))}</>
                   )}
@@ -1372,7 +1377,7 @@ function TransactionsTab({
               <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(tx.id)}>
                 <FileText className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.receipt")}
               </Button>
-              {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+              {!readOnly && tx.status !== "cancelled" && (
                 <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", tx.id)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.edit")}
                 </Button>
@@ -1383,6 +1388,7 @@ function TransactionsTab({
                 </Button>
               )}
             </div>
+
           </Card>
         ))}
       </div>
