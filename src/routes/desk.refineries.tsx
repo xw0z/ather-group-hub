@@ -979,7 +979,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                       <span className="font-semibold">{c.code ?? "—"}</span>
                     </span>
                   </td>
-                  <td className="p-3 font-medium">{c.name}</td>
+                  <td className="p-3"><ClientLabel code={c.code} name={c.name} /></td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
