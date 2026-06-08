@@ -181,7 +181,7 @@ function StatementPage({
         <div>
           <div style={{ fontSize: 9, color: SUB, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>{t("ref.statement.client")}</div>
           <div style={{ fontSize: 22, fontWeight: 900, color: INK, marginTop: 4, letterSpacing: -0.3, fontFamily: MONO }}>
-            {data.client.code ?? "—"}
+            {data.client.code ?? "—"}{data.client.name ? <span style={{ fontFamily: "inherit", fontWeight: 400, fontSize: 16, color: SUB, marginLeft: 8 }}>({data.client.name})</span> : null}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>

@@ -926,12 +926,12 @@ export const getDashboard = createServerFn({ method: "POST" })
         .select("direction, transaction_type, total_pure_weight, da_amount, status, buysell_kind, buysell_metal, buysell_weight, buysell_total, adjustment_metal, adjustment_delta")
         .eq("refinery_id", data.refineryId).gte("created_at", todayIso),
       supabaseAdmin.from("refinery_clients")
-        .select("id, name, purity_balance, da_balance")
+        .select("id, name, code, purity_balance, da_balance")
         .eq("refinery_id", data.refineryId)
         .or("purity_balance.lt.0,da_balance.lt.0")
         .order("name").limit(100),
       supabaseAdmin.from("refinery_transactions")
-        .select("*, client:refinery_clients(name)")
+        .select("*, client:refinery_clients(name, code)")
         .eq("refinery_id", data.refineryId)
         .order("created_at", { ascending: false }).limit(10),
       supabaseAdmin.from("refinery_price_log")
@@ -1002,8 +1002,8 @@ export const getDashboard = createServerFn({ method: "POST" })
         last_activity: lastActivity[c.id] ?? null,
       })),
       recent: (recentR.data ?? []).map((r) => {
-        const { client, ...rest } = r as typeof r & { client?: { name: string } };
-        return { ...rest, client_name: client?.name ?? "" };
+        const { client, ...rest } = r as typeof r & { client?: { name: string; code: string | null } };
+        return { ...rest, client_name: client?.name ?? "", client_code: client?.code ?? null };
       }),
     };
   });
@@ -1220,11 +1220,15 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     if (counterIds.length > 0) {
       const { data: others } = await supabaseAdmin
         .from("refinery_clients").select("id, name, code").in("id", counterIds);
-      for (const o of others ?? []) counterMap.set(o.id, (o as { code?: string | null }).code ?? o.name);
+      for (const o of others ?? []) {
+        const oc = (o as { code?: string | null }).code ?? null;
+        counterMap.set(o.id, oc ? `${oc} (${o.name})` : o.name);
+      }
     }
 
-    // For privacy, statements identify clients by code, not by name.
-    const cliLabel = (cli as { code?: string | null }).code ?? cli.name;
+    // Client label format: `CODE (Name)` — code first, name in parentheses.
+    const cliCode = (cli as { code?: string | null }).code ?? null;
+    const cliLabel = cliCode ? `${cliCode} (${cli.name})` : cli.name;
 
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;

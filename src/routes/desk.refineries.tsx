@@ -46,6 +46,7 @@ import jsPDF from "jspdf";
 import { AccountStatementReport } from "@/components/refineries/AccountStatement";
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
+import { ClientLabel, clientLabelText } from "@/components/refineries/ClientLabel";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLang, type Lang } from "@/lib/purity-i18n";
@@ -599,7 +600,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                   return (
                     <tr key={c.id} className="border-b border-border last:border-0">
                       <td className="p-3"><StatusDot tone="negative" /></td>
-                      <td className="p-3 font-medium">{c.name}</td>
+                      <td className="p-3 font-medium"><ClientLabel code={(c as { code?: string | null }).code} name={c.name} /></td>
                       <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
                       <td className={`p-3 text-right tabular-nums ${balClass(c.exposureGold)}`} title="Exposure = Gold Balance + (DA Balance ÷ Gold Price/g)">
@@ -624,7 +625,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
                 <div key={c.id} className="p-3">
                   <div className="flex items-center gap-2 mb-2 min-w-0">
                     <StatusDot tone="negative" />
-                    <p className="font-medium text-sm truncate flex-1">{c.name}</p>
+                    <p className="text-sm truncate flex-1"><ClientLabel code={(c as { code?: string | null }).code} name={c.name} /></p>
                     <span className="text-[10px] text-muted-foreground shrink-0">{c.last_activity ?? "—"}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[11px] tabular-nums">
@@ -818,9 +819,9 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
                   <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
                   <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
                   <td className="p-3">
-                    {t.client_name}
+                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
                     )}
                   </td>
                   <td className="p-3">
@@ -850,7 +851,7 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">{t.client_name ?? "—"}</p>
+                  <p className="text-sm truncate"><ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} /></p>
                   <p className="text-[11px] text-muted-foreground font-mono">{t.transaction_number} · {t.transaction_date}</p>
                 </div>
                 <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
@@ -978,7 +979,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                       <span className="font-semibold">{c.code ?? "—"}</span>
                     </span>
                   </td>
-                  <td className="p-3 font-medium">{c.name}</td>
+                  <td className="p-3"><ClientLabel code={c.code} name={c.name} /></td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
@@ -1307,10 +1308,10 @@ function TransactionsTab({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs">{t.transaction_number}</span>
                 </div>
-                <p className="text-sm font-medium truncate mt-1">
-                  {t.client_name}
+                <p className="text-sm truncate mt-1">
+                  <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                   {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                    <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -1378,9 +1379,9 @@ function TransactionsTab({
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
                   <td className="p-3 whitespace-nowrap">
-                    {t.client_name}
+                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
                     )}
                   </td>
                   <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
@@ -2533,7 +2534,8 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
     const goldOwedToClient   = storedGold > 0 ? storedGold : 0;      // liability, grams
     const daOwedToRefinery   = storedDa < 0 ? -storedDa : 0;         // asset, DA
     const daOwedToClient     = storedDa > 0 ? storedDa : 0;          // liability, DA
-    return { id: c.id, name: c.name, storedGold, storedDa,
+    return { id: c.id, name: c.name, code: (c as { code?: string | null }).code ?? null,
+             storedGold, storedDa,
              goldOwedToRefinery, goldOwedToClient,
              daOwedToRefinery, daOwedToClient };
   });
@@ -2844,7 +2846,7 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
               )}
               {clientRows.map((r) => (
                 <tr key={r.id} className="border-b border-border last:border-0">
-                  <td className="p-3 font-medium">{r.name}</td>
+                  <td className="p-3"><ClientLabel code={r.code} name={r.name} /></td>
                   <td className={`p-3 text-right tabular-nums ${r.goldOwedToRefinery > 0.0001 ? "text-emerald-500" : "text-muted-foreground"}`}>{r.goldOwedToRefinery > 0.0001 ? fmtG(r.goldOwedToRefinery) : "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${r.goldOwedToClient > 0.0001 ? "text-red-500" : "text-muted-foreground"}`}>{r.goldOwedToClient > 0.0001 ? fmtG(r.goldOwedToClient) : "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${r.daOwedToRefinery > 0.01 ? "text-emerald-500" : "text-muted-foreground"}`}>{r.daOwedToRefinery > 0.01 ? fmtDA(r.daOwedToRefinery) : "—"}</td>
@@ -3902,7 +3904,7 @@ function AccountStatementDialog({
         };
         if (nav.share && nav.canShare?.({ files: [file] })) {
           try {
-            await nav.share({ files: [file], title: filename, text: `${client.code ?? client.name} — ${refinery.name} statement` });
+            await nav.share({ files: [file], title: filename, text: `${clientLabelText(client.code, client.name)} — ${refinery.name} statement` });
             didShare = true;
           } catch (err) {
             const name = (err as { name?: string } | null)?.name;
@@ -3941,7 +3943,7 @@ function AccountStatementDialog({
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display tracking-wide">
-            Account Statement — <span className="font-mono">{client.code ?? client.name}</span>
+            Account Statement — <span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal">({client.name})</span>
           </DialogTitle>
           <p className="text-xs text-muted-foreground">{refinery.name}{client.phone ? ` · ${client.phone}` : ""}</p>
         </DialogHeader>
@@ -4270,7 +4272,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
                     <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
-                    <td className="p-3">{r.client_name ?? "—"}</td>
+                    <td className="p-3"><ClientLabel code={(r as { client_code?: string | null }).client_code} name={r.client_name} /></td>
                     <td className="p-3">
                       <Badge className={isGold
                         ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
@@ -4611,7 +4613,7 @@ function ClientDetailsPage({
           <span>›</span>
           <button onClick={backToClients} className="hover:text-foreground transition-colors">Clients</button>
           <span>›</span>
-          <span className="text-foreground font-medium">{client.name}</span>
+          <span className="text-foreground font-medium"><ClientLabel code={client.code} name={client.name} /></span>
         </div>
         <Button variant="outline" size="sm" onClick={backToClients}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
@@ -4623,7 +4625,7 @@ function ClientDetailsPage({
         <div>
           <div className="flex items-center gap-3">
             <StatusDot tone={tone} />
-            <h1 className="font-display text-3xl tracking-tight">{client.name}</h1>
+            <h1 className="font-display text-3xl tracking-tight"><span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal text-muted-foreground">({client.name})</span></h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">Client Overview</p>
         </div>
