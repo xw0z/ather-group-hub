@@ -4566,19 +4566,19 @@ function ClientDetailsPage({
       setNewNote("");
       const ns = await listClientNotes({ data: { refineryId: refinery.id, clientId } });
       setNotes(ns);
-      toast.success("Note added");
+      toast.success(t("refcd.notes.added"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to add note");
+      toast.error(e instanceof Error ? e.message : t("refcd.notes.addFail"));
     } finally { setSavingNote(false); }
   };
 
   const removeNote = async (id: string) => {
-    if (!confirm("Delete this note?")) return;
+    if (!confirm(t("refcd.notes.confirm"))) return;
     try {
       await deleteClientNote({ data: { id } });
       setNotes((prev) => prev.filter((n) => n.id !== id));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(e instanceof Error ? e.message : t("refcd.notes.delFail"));
     }
   };
 
