@@ -4488,6 +4488,8 @@ function ClientDetailsPage({
   refinery, assignment, clientId,
 }: { refinery: Refinery; assignment: RefineryAssignment; clientId: string }) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const inDeskApp = pathname.startsWith("/desk/app/refineries");
   const [client, setClient] = useState<RefineryClient | null>(null);
   const [statement, setStatement] = useState<AccountStatement | null>(null);
   const [notes, setNotes] = useState<RefineryClientNote[]>([]);
@@ -4530,8 +4532,13 @@ function ClientDetailsPage({
   }, [refinery.id, clientId]);
   useEffect(() => { load(); }, [load]);
 
-  const backToClients = () =>
-    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+  const goToRefineryTab = (tab: Tab) =>
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp ? { r: refinery.id, rtab: tab } : { r: refinery.id, tab }) as never,
+    });
+
+  const backToClients = () => goToRefineryTab("clients");
 
   const submitNote = async () => {
     const body = newNote.trim();
@@ -4618,7 +4625,7 @@ function ClientDetailsPage({
       {/* Breadcrumb */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-          <button onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "dashboard" } })} className="hover:text-foreground transition-colors">
+          <button onClick={() => goToRefineryTab("dashboard")} className="hover:text-foreground transition-colors">
             Refineries
           </button>
           <span>›</span>
@@ -4648,7 +4655,7 @@ function ClientDetailsPage({
               <Button
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+                onClick={() => goToRefineryTab("buysell")}
               >
                 <Plus className="h-4 w-4 mr-1" /> Buy Gold
               </Button>
@@ -4656,7 +4663,7 @@ function ClientDetailsPage({
                 size="sm"
                 variant="outline"
                 className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "buysell" } })}
+                onClick={() => goToRefineryTab("buysell")}
               >
                 <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
               </Button>
