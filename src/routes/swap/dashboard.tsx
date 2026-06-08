@@ -388,11 +388,7 @@ async function shareClientMarginReport(
     };
     if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
       try {
-        await nav.share({
-          files: [file],
-          title: `Margin report — ${client.code}`,
-          text: `Margin report for ${client.code}`,
-        });
+        await nav.share({ files: [file] });
         return;
       } catch {
         // fall through to download
