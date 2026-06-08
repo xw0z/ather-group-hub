@@ -2488,6 +2488,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
 // Net Position tab
 // =============================================================
 function NetPositionTab({ refinery }: { refinery: Refinery }) {
+  const { t } = useLang();
   type Stock = { pure_gold_stock: number; da_stock: number; silver_stock: number };
   const [stock, setStock] = useState<Stock | null>(null);
   const [clients, setClients] = useState<RefineryClient[]>([]);
@@ -2523,26 +2524,27 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
       setDraftSilver(String(price.silverPrice || ""));
       setSavedBy({ name: price.setByUsername, at: price.setAt });
       setHistory(snaps);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refnp.toast.failed")); }
     finally { setLoading(false); }
-  }, [refinery.id]);
+  }, [refinery.id, t]);
 
   useEffect(() => { load(); }, [load]);
 
   async function onSavePrices() {
     const g = Number(draftGold); const s = Number(draftSilver);
-    if (!Number.isFinite(g) || g <= 0) return toast.error("Gold price must be greater than 0");
-    if (!Number.isFinite(s) || s < 0) return toast.error("Silver price must be ≥ 0");
+    if (!Number.isFinite(g) || g <= 0) return toast.error(t("refnp.toast.goldGt0"));
+    if (!Number.isFinite(s) || s < 0) return toast.error(t("refnp.toast.silverGte0"));
     setSaving(true);
     try {
       await saveNetPositionPrice({ data: { refineryId: refinery.id, goldPrice: g, silverPrice: s } });
-      toast.success("Prices saved");
+      toast.success(t("refnp.toast.pricesSaved"));
       await load();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : t("refnp.toast.failed")); }
     finally { setSaving(false); }
   }
 
-  if (loading || !stock) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (loading || !stock) return <p className="text-muted-foreground text-sm">{t("refnp.loading")}</p>;
+
 
   const canCompute = goldPrice > 0; // required for DA → gold equivalent
 
