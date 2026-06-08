@@ -948,8 +948,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           <table className="w-full text-sm min-w-[820px]">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <th className="p-3">Code</th>
-                <th className="p-3">Client Name</th>
+                <th className="p-3">Client</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3 text-right">Pure Gold</th>
                 <th className="p-3 text-right">Dinar</th>
@@ -958,9 +957,9 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {loading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{clients.length === 0 ? "No clients yet" : "No clients match the current filter"}</td></tr>
               )}
               {filtered.map((c) => {
                 const g = Number(c.purity_balance);
@@ -973,13 +972,12 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
                 >
-                  <td className="p-3 font-mono text-xs tracking-wider">
-                    <span className="inline-flex items-center gap-2">
+                  <td className="p-3 max-w-[320px]">
+                    <span className="flex items-center gap-2 min-w-0">
                       <StatusDot tone={tone} />
-                      <span className="font-semibold">{c.code ?? "—"}</span>
+                      <span className="truncate"><ClientLabel code={c.code} name={c.name} /></span>
                     </span>
                   </td>
-                  <td className="p-3"><ClientLabel code={c.code} name={c.name} /></td>
                   <td className="p-3 text-muted-foreground">{c.phone ?? "—"}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(g)}`}>{signed(g, fmtG)}</td>
                   <td className={`p-3 text-right tabular-nums ${balClass(d)}`}>{signed(d, fmtDA)}</td>
@@ -1035,12 +1033,11 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <StatusDot tone={tone} />
-                      <span className="font-mono text-[11px] font-semibold tracking-wider">{c.code ?? "—"}</span>
+                      <span className="text-sm truncate min-w-0"><ClientLabel code={c.code} name={c.name} /></span>
                     </div>
-                    <p className="font-medium text-sm truncate mt-0.5">{c.name}</p>
-                    {c.phone && <p className="text-[11px] text-muted-foreground truncate">{c.phone}</p>}
+                    {c.phone && <p className="text-[11px] text-muted-foreground truncate mt-0.5 pl-4">{c.phone}</p>}
                   </div>
                   <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {canStatement && (
