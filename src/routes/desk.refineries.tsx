@@ -1357,6 +1357,49 @@ function TransactionsTab({
         )}
       </div>
 
+      {/* Search by weight */}
+      <Card className="p-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+          <div className="flex-1 min-w-0">
+            <label className="text-xs text-muted-foreground">Search by</label>
+            <Select value={searchField} onValueChange={(v) => setSearchField(v as "gross" | "pure")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gross">{t("reft.col.gross")}</SelectItem>
+                <SelectItem value="pure">{t("reft.col.pure")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className="text-xs text-muted-foreground">Weight (g)</label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              placeholder="e.g. 1100"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="text-xs text-muted-foreground">Tolerance ±g</label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={tolerance}
+              onChange={(e) => setTolerance(e.target.value)}
+            />
+          </div>
+          {isSearching && (
+            <Button variant="ghost" onClick={() => setSearchValue("")} className="sm:w-auto">
+              Clear
+            </Button>
+          )}
+        </div>
+      </Card>
+
       {/* Mobile: card list */}
       <div className="space-y-2 md:hidden">
         {loading && <p className="text-sm text-muted-foreground text-center py-6">{t("app.loading")}</p>}
