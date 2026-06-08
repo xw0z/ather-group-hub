@@ -4198,6 +4198,7 @@ export function RefineriesEmbedded() {
 // Buy / Sell Gold (DA-priced)
 // =============================================================
 function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: RefineryAssignment }) {
+  const { t } = useLang();
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [clients, setClients] = useState<RefineryClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4210,7 +4211,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
         listTransactions({ data: { refineryId: refinery.id } }),
         listClients({ data: { refineryId: refinery.id } }),
       ]);
-      setRows(tx.filter((t) => t.transaction_type === "buysell"));
+      setRows(tx.filter((tr) => tr.transaction_type === "buysell"));
       setClients(cl);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
@@ -4235,34 +4236,32 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl">Buy / Sell Metals</h1>
-          <p className="text-sm text-muted-foreground">
-            Record physical gold and silver purchases and sales paid in DA.
-          </p>
+          <h1 className="font-display text-2xl">{t("refbs.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("refbs.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => setOpenKind("buy")}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            <Plus className="h-4 w-4 mr-1" /> Buy
+            <Plus className="h-4 w-4 mr-1" /> {t("refbs.btn.buy")}
           </Button>
           <Button
             onClick={() => setOpenKind("sell")}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
-            <TrendingDown className="h-4 w-4 mr-1" /> Sell
+            <TrendingDown className="h-4 w-4 mr-1" /> {t("refbs.btn.sell")}
           </Button>
         </div>
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label="Today · Gold bought" value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
-        <StatCard label="Today · Gold sold" value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
-        <StatCard label="Today · Silver bought" value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
-        <StatCard label="Today · Silver sold" value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
-        <StatCard label="Today · Buy total (DA)" value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
-        <StatCard label="Today · Sell total (DA)" value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
+        <StatCard label={t("refbs.stat.goldBought")} value={fmtG(sumWeight("buy", "gold"))} icon={<TrendingUp className="h-4 w-4 text-amber-500" />} />
+        <StatCard label={t("refbs.stat.goldSold")} value={fmtG(sumWeight("sell", "gold"))} icon={<TrendingDown className="h-4 w-4 text-amber-500" />} />
+        <StatCard label={t("refbs.stat.silverBought")} value={fmtG(sumWeight("buy", "silver"))} icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label={t("refbs.stat.silverSold")} value={fmtG(sumWeight("sell", "silver"))} icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} />
+        <StatCard label={t("refbs.stat.buyTotal")} value={fmtDA(sumTotal("buy"))} icon={<TrendingUp className="h-4 w-4 text-emerald-500" />} />
+        <StatCard label={t("refbs.stat.sellTotal")} value={fmtDA(sumTotal("sell"))} icon={<TrendingDown className="h-4 w-4 text-destructive" />} />
       </div>
 
       <Card>
@@ -4270,23 +4269,23 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
           <table className="w-full text-sm">
             <thead className="border-b border-border bg-muted/20">
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="p-3">Date</th>
-                <th className="p-3">Tx #</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Metal</th>
-                <th className="p-3">Type</th>
-                <th className="p-3 text-right">Weight</th>
-                <th className="p-3 text-right">Price / g</th>
-                <th className="p-3 text-right">Total DA</th>
-                <th className="p-3">Settlement</th>
+                <th className="p-3">{t("refbs.col.date")}</th>
+                <th className="p-3">{t("refbs.col.tx")}</th>
+                <th className="p-3">{t("refbs.col.client")}</th>
+                <th className="p-3">{t("refbs.col.metal")}</th>
+                <th className="p-3">{t("refbs.col.type")}</th>
+                <th className="p-3 text-right">{t("refbs.col.weight")}</th>
+                <th className="p-3 text-right">{t("refbs.col.price")}</th>
+                <th className="p-3 text-right">{t("refbs.col.total")}</th>
+                <th className="p-3">{t("refbs.col.settlement")}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No Buy/Sell transactions yet.</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">{t("refbs.empty")}</td></tr>
               )}
               {rows.map((r) => {
                 const buy = r.buysell_kind === "buy";
@@ -4301,12 +4300,12 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                       <Badge className={isGold
                         ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
                         : "bg-muted text-muted-foreground border-border"}>
-                        {isGold ? "GOLD" : "SILVER"}
+                        {isGold ? t("refbs.metal.gold") : t("refbs.metal.silver")}
                       </Badge>
                     </td>
                     <td className="p-3">
                       <Badge className={buy ? "bg-emerald-600/15 text-emerald-500 border-emerald-600/30" : "bg-destructive/15 text-destructive border-destructive/30"}>
-                        {buy ? "BUY" : "SELL"}
+                        {buy ? t("refbs.type.buy") : t("refbs.type.sell")}
                       </Badge>
                     </td>
                     <td className="p-3 text-right tabular-nums">{fmtG(Number(r.buysell_weight ?? 0))}</td>
@@ -4314,7 +4313,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                     <td className="p-3 text-right tabular-nums font-semibold">{fmtDA(Number(r.buysell_total ?? 0))}</td>
                     <td className="p-3">
                       <span className="text-xs uppercase tracking-wider">
-                        {r.buysell_settlement === "cash" ? "Cash" : "Settlement"}
+                        {r.buysell_settlement === "cash" ? t("refbs.cash") : t("refbs.settle")}
                       </span>
                     </td>
                   </tr>
@@ -4338,6 +4337,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
     </div>
   );
 }
+
 
 function BuySellDialog({
   refinery, clients, kind, isAdmin, onClose, onSaved,
