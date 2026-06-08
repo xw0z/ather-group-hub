@@ -702,6 +702,7 @@ function StatCard({
 }
 
 function EquityCard({ equity, canCompute, onClick }: { equity: number; canCompute: boolean; onClick?: () => void }) {
+  const { t } = useLang();
   const positive = equity > 0.0001;
   const negative = equity < -0.0001;
   const valueCls = positive ? "text-emerald-500" : negative ? "text-destructive" : "text-muted-foreground";
@@ -712,7 +713,7 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
       className={`p-3 sm:p-4 h-full flex flex-col justify-between bg-gradient-to-br from-amber-500/10 via-background to-background ${borderCls} ${onClick ? "cursor-pointer hover:border-ember/60 transition-colors" : ""}`}
     >
       <div className="flex items-center justify-between mb-2 gap-2">
-        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Refinery Equity</p>
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">{t("refnp.equity.label")}</p>
         <Coins className="h-4 w-4 text-amber-500 shrink-0" />
       </div>
       <div>
@@ -720,12 +721,13 @@ function EquityCard({ equity, canCompute, onClick }: { equity: number; canComput
           {canCompute ? signed(equity, fmtG) : "—"}
         </p>
         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1 leading-tight">
-          {canCompute ? "Pure gold equivalent" : "Set prices in Net Position"}
+          {canCompute ? t("refd.equity.pureGoldEq") : t("refd.equity.setPrices")}
         </p>
       </div>
     </Card>
   );
 }
+
 
 
 function TodaysActivityCard({ data }: {
