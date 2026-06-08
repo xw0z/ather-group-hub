@@ -26,7 +26,7 @@ import {
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
   createSettlement, getSettlement,
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
-  createStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
+  createStockAdjustment, editStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
   createBuySell, type BuySellKind, type BuySellSettlement, type BuySellMetal,
   getMyRefineryProfile, updateMyRefineryProfile,
   getAccountStatement, logRefineryReport, listRefineryReportHistory,
