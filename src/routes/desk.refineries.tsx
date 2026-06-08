@@ -4848,10 +4848,10 @@ function ClientDetailsPage({
       {activeTab === "statement" && (
         <Card className="p-4 sm:p-6 text-center space-y-3">
           <FileText className="h-8 w-8 mx-auto text-ember" />
-          <h3 className="font-display text-lg">Generate Account Statement</h3>
-          <p className="text-sm text-muted-foreground">Select a date range, preview, and download as PDF.</p>
+          <h3 className="font-display text-lg">{t("refcd.statement.title")}</h3>
+          <p className="text-sm text-muted-foreground">{t("refcd.statement.desc")}</p>
           <Button onClick={() => setStmtOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" /> Open Statement Generator
+            <FileText className="h-4 w-4 mr-1" /> {t("refcd.statement.open")}
           </Button>
         </Card>
       )}
@@ -4862,14 +4862,14 @@ function ClientDetailsPage({
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/20">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="p-3">Date</th>
-                  <th className="p-3 text-right">Gold Balance</th>
-                  <th className="p-3 text-right">DA Balance</th>
+                  <th className="p-3">{t("refcd.col.date")}</th>
+                  <th className="p-3 text-right">{t("refcd.tl.gold")}</th>
+                  <th className="p-3 text-right">{t("refcd.tl.da")}</th>
                 </tr>
               </thead>
               <tbody>
                 {timeline.length === 0 && (
-                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No history yet</td></tr>
+                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">{t("refcd.empty.history")}</td></tr>
                 )}
                 {timeline.map(([date, b]) => (
                   <tr key={date} className="border-b border-border last:border-0">
@@ -4888,29 +4888,29 @@ function ClientDetailsPage({
         <div className="space-y-4">
           {!readOnly && (
             <Card className="p-4 space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Add internal note</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.notes.label")}</Label>
               <Textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Internal note (not visible to client)…"
+                placeholder={t("refcd.notes.ph")}
                 rows={3}
               />
               <div className="flex justify-end">
                 <Button size="sm" onClick={submitNote} disabled={savingNote || !newNote.trim()}>
-                  {savingNote ? "Saving…" : "Add note"}
+                  {savingNote ? t("app.saving") : t("refcd.notes.add")}
                 </Button>
               </div>
             </Card>
           )}
           {notes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No notes yet</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("refcd.notes.empty")}</p>
           ) : (
             <div className="space-y-2">
               {notes.map((n) => (
                 <Card key={n.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{n.author_name || "Unknown"}</span>
+                      <span className="font-medium text-foreground">{n.author_name || "—"}</span>
                       {" · "}
                       {new Date(n.created_at).toLocaleString()}
                     </div>
