@@ -483,13 +483,14 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
     alerts.push({ tone: "warn", text: "Net Position prices not set — DA/Silver conversion unavailable.", onClick: () => onTab("netposition") });
   }
 
-  // ---- Negative clients with exposure (sorted highest negative first) ----
+  // ---- Negative clients with exposure (signed: Gold + DA/GoldPrice) ----
+  // Positive DA reduces a negative gold exposure (and vice versa).
   const negRows = data.negativeClients.map((c) => {
     const g = Number(c.purity_balance);
     const d = Number(c.da_balance);
-    const exposureGold = (g < 0 ? -g : 0) + (canCompute && d < 0 ? -d / goldPrice : 0);
+    const exposureGold = g + (canCompute ? d / goldPrice : 0);
     return { ...c, exposureGold };
-  }).sort((a, b) => b.exposureGold - a.exposureGold);
+  }).sort((a, b) => a.exposureGold - b.exposureGold);
 
   return (
     <div className="space-y-6 sm:space-y-8">
