@@ -4622,9 +4622,9 @@ function ClientDetailsPage({
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" onClick={backToClients}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t("refcd.back")}
         </Button>
-        <p className="text-sm text-muted-foreground tracking-[0.25em]">LOADING CLIENT…</p>
+        <p className="text-sm text-muted-foreground tracking-[0.25em]">{t("refcd.loading")}</p>
       </div>
     );
   }
@@ -4633,9 +4633,23 @@ function ClientDetailsPage({
   const d = Number(client.da_balance);
   const tone: "negative" | "positive" | "neutral" =
     g < 0 || d < 0 ? "negative" : (g > 0 || d > 0 ? "positive" : "neutral");
-  const statusLabel = tone === "negative" ? "Negative" : tone === "positive" ? "Positive" : "Neutral";
+  const statusLabel = tone === "negative" ? t("refcd.status.negative") : tone === "positive" ? t("refcd.status.positive") : t("refcd.status.neutral");
   const statusCls =
     tone === "negative" ? "text-destructive" : tone === "positive" ? "text-emerald-500" : "text-muted-foreground";
+
+  // Build per-locale labels for filter options + tab buttons
+  const typeLabel = (typ: string): string => {
+    switch (typ) {
+      case "gold_received": return t("refcd.txt.goldRecv");
+      case "gold_delivered": return t("refcd.txt.goldDel");
+      case "da_received": return t("refcd.txt.daRecv");
+      case "da_paid": return t("refcd.txt.daPaid");
+      case "refining_fee": return t("refcd.txt.fee");
+      case "settlement": return t("refcd.txt.settle");
+      case "adjustment": return t("refcd.txt.adj");
+      default: return typ.replace(/_/g, " ");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -4643,17 +4657,17 @@ function ClientDetailsPage({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
           <button onClick={() => goToRefineryTab("dashboard")} className="hover:text-foreground transition-colors">
-            Refineries
+            {t("refcd.crumb.refineries")}
           </button>
           <span>›</span>
           <span>{refinery.name}</span>
           <span>›</span>
-          <button onClick={backToClients} className="hover:text-foreground transition-colors">Clients</button>
+          <button onClick={backToClients} className="hover:text-foreground transition-colors">{t("refcd.crumb.clients")}</button>
           <span>›</span>
           <span className="text-foreground font-medium"><ClientLabel code={client.code} name={client.name} /></span>
         </div>
         <Button variant="outline" size="sm" onClick={backToClients}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Clients
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t("refcd.back")}
         </Button>
       </div>
 
@@ -4664,7 +4678,7 @@ function ClientDetailsPage({
             <StatusDot tone={tone} />
             <h1 className="font-display text-3xl tracking-tight"><span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal text-muted-foreground">({client.name})</span></h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">Client Overview</p>
+          <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">{t("refcd.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
@@ -4674,7 +4688,7 @@ function ClientDetailsPage({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => goToRefineryTab("buysell")}
               >
-                <Plus className="h-4 w-4 mr-1" /> Buy Gold
+                <Plus className="h-4 w-4 mr-1" /> {t("refcd.btn.buy")}
               </Button>
               <Button
                 size="sm"
@@ -4682,16 +4696,16 @@ function ClientDetailsPage({
                 className="border-destructive/40 text-destructive hover:bg-destructive/10"
                 onClick={() => goToRefineryTab("buysell")}
               >
-                <TrendingDown className="h-4 w-4 mr-1" /> Sell Gold
+                <TrendingDown className="h-4 w-4 mr-1" /> {t("refcd.btn.sell")}
               </Button>
             </>
           )}
           <Button size="sm" variant="outline" onClick={() => setStmtOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" /> Generate Statement
+            <FileText className="h-4 w-4 mr-1" /> {t("refcd.btn.statement")}
           </Button>
           {!readOnly && (
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-1" /> Edit Client
+              <Pencil className="h-4 w-4 mr-1" /> {t("refcd.btn.edit")}
             </Button>
           )}
         </div>
@@ -4699,30 +4713,30 @@ function ClientDetailsPage({
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard label="Current Gold" value={signed(g, fmtG)} cls={balClass(g)} />
-        <SummaryCard label="Current DA" value={signed(d, fmtDA)} cls={balClass(d)} />
-        <SummaryCard label="Refining Fee" value={`${fmtDA(Number(client.refining_fee_price))}/g`} />
-        <SummaryCard label="Status" value={statusLabel} cls={statusCls} />
-        <SummaryCard label="Phone" value={client.phone ?? "—"} muted />
-        <SummaryCard label="Refinery" value={refinery.name} muted />
+        <SummaryCard label={t("refcd.sum.gold")} value={signed(g, fmtG)} cls={balClass(g)} />
+        <SummaryCard label={t("refcd.sum.da")} value={signed(d, fmtDA)} cls={balClass(d)} />
+        <SummaryCard label={t("refcd.sum.fee")} value={`${fmtDA(Number(client.refining_fee_price))}/g`} />
+        <SummaryCard label={t("refcd.sum.status")} value={statusLabel} cls={statusCls} />
+        <SummaryCard label={t("refcd.sum.phone")} value={client.phone ?? "—"} muted />
+        <SummaryCard label={t("refcd.sum.refinery")} value={refinery.name} muted />
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border flex gap-1 overflow-x-auto">
         {([
-          { id: "transactions", label: `Transactions (${allRows.length})` },
-          { id: "statement", label: "Account Statement" },
-          { id: "timeline", label: "Balance Timeline" },
-          { id: "notes", label: `Notes (${notes.length})` },
-        ] as const).map((t) => (
+          { id: "transactions", label: t("refcd.tab.tx", { n: allRows.length }) },
+          { id: "statement", label: t("refcd.tab.statement") },
+          { id: "timeline", label: t("refcd.tab.timeline") },
+          { id: "notes", label: t("refcd.tab.notes", { n: notes.length }) },
+        ] as const).map((tab) => (
           <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === t.id ? "border-ember text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              activeTab === tab.id ? "border-ember text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t.label}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -4732,32 +4746,32 @@ function ClientDetailsPage({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">From</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.from")}</Label>
               <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-44" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">To</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.to")}</Label>
               <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-44" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Type</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("refcd.f.type")}</Label>
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="gold_received">Gold Received</SelectItem>
-                  <SelectItem value="gold_delivered">Gold Delivered</SelectItem>
-                  <SelectItem value="da_received">DA Received</SelectItem>
-                  <SelectItem value="da_paid">DA Paid</SelectItem>
-                  <SelectItem value="refining_fee">Refining Fee</SelectItem>
-                  <SelectItem value="settlement">Settlement</SelectItem>
-                  <SelectItem value="adjustment">Adjustment</SelectItem>
+                  <SelectItem value="all">{t("refcd.txt.allTypes")}</SelectItem>
+                  <SelectItem value="gold_received">{t("refcd.txt.goldRecv")}</SelectItem>
+                  <SelectItem value="gold_delivered">{t("refcd.txt.goldDel")}</SelectItem>
+                  <SelectItem value="da_received">{t("refcd.txt.daRecv")}</SelectItem>
+                  <SelectItem value="da_paid">{t("refcd.txt.daPaid")}</SelectItem>
+                  <SelectItem value="refining_fee">{t("refcd.txt.fee")}</SelectItem>
+                  <SelectItem value="settlement">{t("refcd.txt.settle")}</SelectItem>
+                  <SelectItem value="adjustment">{t("refcd.txt.adj")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {(filterFrom || filterTo || filterType !== "all") && (
               <Button size="sm" variant="ghost" onClick={() => { setFilterFrom(""); setFilterTo(""); setFilterType("all"); }}>
-                <X className="h-4 w-4 mr-1" /> Reset
+                <X className="h-4 w-4 mr-1" /> {t("refcd.btn.reset")}
               </Button>
             )}
           </div>
@@ -4767,26 +4781,26 @@ function ClientDetailsPage({
               <table className="w-full text-sm min-w-[900px]">
                 <thead className="border-b border-border bg-muted/20">
                   <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3 text-center">Dir</th>
-                    <th className="p-3 text-right">Gold (g)</th>
-                    <th className="p-3 text-right">DA</th>
-                    <th className="p-3">Description</th>
-                    <th className="p-3 text-right">Run. Gold</th>
-                    <th className="p-3 text-right">Run. DA</th>
+                    <th className="p-3">{t("refcd.col.date")}</th>
+                    <th className="p-3">{t("refcd.col.type")}</th>
+                    <th className="p-3 text-center">{t("refcd.col.dir")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.gold")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.da")}</th>
+                    <th className="p-3">{t("refcd.col.desc")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.runGold")}</th>
+                    <th className="p-3 text-right">{t("refcd.col.runDa")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedRows.length === 0 && (
-                    <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No transactions</td></tr>
+                    <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">{t("refcd.empty.tx")}</td></tr>
                   )}
                   {pagedRows.map((r, i) => {
                     const goldNet = r.gold_credit - r.gold_debit;
                     const daNet = r.da_credit - r.da_debit;
                     const isIn = goldNet > 0 || daNet > 0;
                     const isOut = goldNet < 0 || daNet < 0;
-                    const dirLabel = r.type === "refining_fee" ? "FEE" : isIn ? "IN" : isOut ? "OUT" : "—";
+                    const dirLabel = r.type === "refining_fee" ? t("refcd.badge.fee") : isIn ? t("refcd.badge.in") : isOut ? t("refcd.badge.out") : "—";
                     const dirCls =
                       r.type === "refining_fee" ? "bg-ember/15 text-ember border-ember/40"
                       : isIn ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
@@ -4795,7 +4809,7 @@ function ClientDetailsPage({
                     return (
                       <tr key={i} className="border-b border-border last:border-0">
                         <td className="p-3 whitespace-nowrap">{r.date}</td>
-                        <td className="p-3">{r.type.replace(/_/g, " ")}</td>
+                        <td className="p-3">{typeLabel(r.type)}</td>
                         <td className="p-3 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${dirCls}`}>{dirLabel}</span>
                         </td>
@@ -4819,16 +4833,17 @@ function ClientDetailsPage({
           {totalPages > 1 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Page {page} of {totalPages} · {filteredRows.length} transactions
+                {t("refcd.page", { p: page, n: totalPages, k: filteredRows.length })}
               </span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
-                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("refcd.btn.prev")}</Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>{t("refcd.btn.next")}</Button>
               </div>
             </div>
           )}
         </div>
       )}
+
 
       {activeTab === "statement" && (
         <Card className="p-4 sm:p-6 text-center space-y-3">
