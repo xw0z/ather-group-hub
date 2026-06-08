@@ -186,11 +186,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
     };
     if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
       try {
-        await nav.share({
-          files: [file],
-          title: `${summary.company.name} — ATHER Desk`,
-          text: `${summary.company.name} ${titleSuffix}`,
-        });
+        await nav.share({ files: [file] });
         toast.success("Shared");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
