@@ -139,6 +139,7 @@ export function PurityReport({ data }: { data: PurityReportData }) {
   return (
     <div
       data-report-root
+      data-purity-root
       style={{
         width: 2480,
         minHeight: 3508,
