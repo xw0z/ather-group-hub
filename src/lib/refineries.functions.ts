@@ -973,9 +973,12 @@ export const getDashboard = createServerFn({ method: "POST" })
         .or("purity_balance.lt.0,da_balance.lt.0")
         .order("name").limit(100),
       supabaseAdmin.from("refinery_transactions")
-        .select("*, client:refinery_clients(name, code)")
+        .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
         .eq("refinery_id", data.refineryId)
+        // Hide the "to" side of settlements so the recent list shows one row per settlement.
+        .or("settlement_role.is.null,settlement_role.neq.to")
         .order("created_at", { ascending: false }).limit(10),
+
       supabaseAdmin.from("refinery_price_log")
         .select("gold_price, silver_price")
         .eq("refinery_id", data.refineryId)
