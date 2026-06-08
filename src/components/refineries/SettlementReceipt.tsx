@@ -49,7 +49,7 @@ export function SettlementReceiptReport({
   const fromDaDelta = s.from.new_da - s.from.previous_da;
   const toGoldDelta = s.to.new_purity - s.to.previous_purity;
   const toDaDelta = s.to.new_da - s.to.previous_da;
-  const receiptNo = s.from.transaction_number.replace(/-A$/, "");
+  const receiptNo = s.from.transaction_number.replace(/-[AB]$/, "");
 
   return (
     <div
@@ -115,13 +115,13 @@ export function SettlementReceiptReport({
         alignItems: "stretch",
         border: `1px solid ${LINE}`, borderRadius: 6, overflow: "hidden",
       }}>
-        <PartyCell role="From Client" name={(s.from.client_code ? `${s.from.client_code} (${s.from.client_name})` : s.from.client_name)} subRef={s.from.transaction_number} />
+        <PartyCell role="From Client" name={(s.from.client_code ? `${s.from.client_code} (${s.from.client_name})` : s.from.client_name)} subRef={receiptNo} />
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
           background: ORANGE_SOFT, color: ORANGE, fontSize: 22, fontWeight: 800,
           borderLeft: `1px solid ${LINE}`, borderRight: `1px solid ${LINE}`,
         }}>→</div>
-        <PartyCell role="To Client" name={(s.to.client_code ? `${s.to.client_code} (${s.to.client_name})` : s.to.client_name)} subRef={s.to.transaction_number} />
+        <PartyCell role="To Client" name={(s.to.client_code ? `${s.to.client_code} (${s.to.client_name})` : s.to.client_name)} subRef={receiptNo} />
       </div>
 
       {/* ===== SETTLEMENT DETAILS ===== */}

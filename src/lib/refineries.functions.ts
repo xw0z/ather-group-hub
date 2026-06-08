@@ -355,21 +355,35 @@ export const listTransactions = createServerFn({ method: "POST" })
       .eq("refinery_id", data.refineryId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => {
-      const { client, counterparty, ...rest } = r as typeof r & {
-        client?: { name: string; code: string | null; phone: string | null };
-        counterparty?: { name: string; code: string | null } | null;
-      };
-      return {
-        ...rest,
-        client_name: client?.name ?? "",
-        client_code: client?.code ?? null,
-        client_phone: client?.phone ?? null,
-        counterparty_client_name: counterparty?.name ?? null,
-        counterparty_client_code: counterparty?.code ?? null,
-      } as RefineryTransaction;
-    });
+    return (rows ?? [])
+      // Settlements live as two DB rows (one per client). Hide the "to" side so the
+      // list shows ONE row per settlement; the "from" row carries the counterparty fields.
+      .filter((r) => {
+        const role = (r as { settlement_role?: string | null }).settlement_role;
+        return role !== "to";
+      })
+      .map((r) => {
+        const { client, counterparty, ...rest } = r as typeof r & {
+          client?: { name: string; code: string | null; phone: string | null };
+          counterparty?: { name: string; code: string | null } | null;
+        };
+        return {
+          ...rest,
+          client_name: client?.name ?? "",
+          client_code: client?.code ?? null,
+          client_phone: client?.phone ?? null,
+          counterparty_client_name: counterparty?.name ?? null,
+          counterparty_client_code: counterparty?.code ?? null,
+        } as RefineryTransaction;
+      });
   });
+
+/** Strip the legacy -A/-B suffix from a settlement transaction number. Safe for any row. */
+export function displayTxNumber(tx: { transaction_number: string; transaction_type?: string | null }): string {
+  if (tx.transaction_type === "settlement") return tx.transaction_number.replace(/-[AB]$/, "");
+  return tx.transaction_number;
+}
+
 
 export const getTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -617,6 +631,34 @@ export const createSettlement = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { group_id: (groupId ?? "") as string };
   });
+
+const settlementEdit = settlementCreate.extend({ group_id: z.string().uuid() });
+
+export const editSettlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => settlementEdit.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAccess(context.userId, data.refinery_id);
+    if (data.from_client_id === data.to_client_id) {
+      throw new Error("From and To clients must be different");
+    }
+    const { error } = await supabaseAdmin.rpc("refinery_edit_settlement", {
+      _group_id: data.group_id,
+      _from_client: data.from_client_id,
+      _to_client: data.to_client_id,
+      _kind: data.kind,
+      _amount: data.amount,
+      _apply_fee: data.apply_fee,
+      _from_fee_price: data.from_fee_price,
+      _to_fee_price: data.to_fee_price,
+      _date: data.transaction_date,
+      _notes: data.notes ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return { group_id: data.group_id };
+  });
+
+
 
 
 export type SettlementPair = {
@@ -931,9 +973,12 @@ export const getDashboard = createServerFn({ method: "POST" })
         .or("purity_balance.lt.0,da_balance.lt.0")
         .order("name").limit(100),
       supabaseAdmin.from("refinery_transactions")
-        .select("*, client:refinery_clients(name, code)")
+        .select("*, client:refinery_clients!refinery_transactions_client_id_fkey(name, code), counterparty:refinery_clients!refinery_transactions_counterparty_client_id_fkey(name, code)")
         .eq("refinery_id", data.refineryId)
+        // Hide the "to" side of settlements so the recent list shows one row per settlement.
+        .or("settlement_role.is.null,settlement_role.neq.to")
         .order("created_at", { ascending: false }).limit(10),
+
       supabaseAdmin.from("refinery_price_log")
         .select("gold_price, silver_price")
         .eq("refinery_id", data.refineryId)
@@ -1002,9 +1047,19 @@ export const getDashboard = createServerFn({ method: "POST" })
         last_activity: lastActivity[c.id] ?? null,
       })),
       recent: (recentR.data ?? []).map((r) => {
-        const { client, ...rest } = r as typeof r & { client?: { name: string; code: string | null } };
-        return { ...rest, client_name: client?.name ?? "", client_code: client?.code ?? null };
+        const { client, counterparty, ...rest } = r as typeof r & {
+          client?: { name: string; code: string | null };
+          counterparty?: { name: string; code: string | null } | null;
+        };
+        return {
+          ...rest,
+          client_name: client?.name ?? "",
+          client_code: client?.code ?? null,
+          counterparty_client_name: counterparty?.name ?? null,
+          counterparty_client_code: counterparty?.code ?? null,
+        };
       }),
+
     };
   });
 

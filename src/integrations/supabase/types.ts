@@ -1744,6 +1744,21 @@ export type Database = {
         Args: { _tx_id: string }
         Returns: undefined
       }
+      refinery_edit_settlement: {
+        Args: {
+          _amount: number
+          _apply_fee: boolean
+          _date: string
+          _from_client: string
+          _from_fee_price: number
+          _group_id: string
+          _kind: string
+          _notes: string
+          _to_client: string
+          _to_fee_price: number
+        }
+        Returns: string
+      }
       refinery_edit_stock_adjustment: {
         Args: {
           _date: string

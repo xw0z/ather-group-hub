@@ -24,7 +24,8 @@ import {
   listClients, createClient, updateClient, deleteClient, adjustClientBalances,
   suggestClientCode, checkClientCode,
   listTransactions, createTransaction, updateTransaction, deleteTransaction, cancelTransaction, getTransaction,
-  createSettlement, getSettlement,
+  createSettlement, editSettlement, getSettlement, displayTxNumber,
+
   getStock, listStockMovements, getDashboard, adjustStock, updateStockAdjustment, deleteStockAdjustment,
   createStockAdjustment, editStockAdjustment, type StockAdjustmentMetal, type StockAdjustmentKind,
   createBuySell, type BuySellKind, type BuySellSettlement, type BuySellMetal,
@@ -821,13 +822,19 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
                   className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
                 >
                   <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs">{t.transaction_number}</td>
+                  <td className="p-3 font-mono text-xs">{displayTxNumber(t)}</td>
                   <td className="p-3">
-                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
-                    {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
+                    {t.transaction_type === "settlement" && t.counterparty_client_name ? (
+                      <span>
+                        <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} />
+                      </span>
+                    ) : (
+                      <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     )}
                   </td>
+
                   <td className="p-3">
                     <Badge className={badge.cls}>{badge.label}</Badge>
                   </td>
@@ -855,11 +862,22 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="text-sm truncate"><ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} /></p>
-                  <p className="text-[11px] text-muted-foreground font-mono">{t.transaction_number} · {t.transaction_date}</p>
+                  <p className="text-sm truncate">
+                    {t.transaction_type === "settlement" && t.counterparty_client_name ? (
+                      <>
+                        <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} />
+                      </>
+                    ) : (
+                      <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-mono">{displayTxNumber(t)} · {t.transaction_date}</p>
                 </div>
                 <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
               </div>
+
               <div className="flex items-center justify-between gap-3 text-xs tabular-nums mt-2">
                 <span className="text-muted-foreground">Gold <span className="text-foreground">{goldVal}</span></span>
                 <span className="text-muted-foreground">DA <span className="text-foreground">{daVal}</span></span>
@@ -1325,12 +1343,17 @@ function TransactionsTab({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs">{tx.transaction_number}</span>
+                  <span className="font-mono text-xs">{displayTxNumber(tx)}</span>
                 </div>
                 <p className="text-sm truncate mt-1">
-                  <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
-                  {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
-                    <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
+                  {tx.transaction_type === "settlement" && tx.counterparty_client_name ? (
+                    <>
+                      <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                      <span className="text-muted-foreground"> → </span>
+                      <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} />
+                    </>
+                  ) : (
+                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -1341,8 +1364,8 @@ function TransactionsTab({
                     <>{t("reft.col.gross")} {fmtG(Number(tx.total_gross_weight))} · {t("reft.col.pure")} {fmtG(Number(tx.total_pure_weight))}</>
                   ) : tx.transaction_type === "settlement" ? (
                     tx.settlement_kind === "gold"
-                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
-                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))} {tx.settlement_role === "from" ? t("reft.role.sent") : t("reft.role.received")}</>
+                      ? <>{t("refd.lbl.gold")} {fmtG(Number(tx.settlement_amount ?? 0))}</>
+                      : <>{t("refd.lbl.da")} {fmtDA(Number(tx.settlement_amount ?? 0))}</>
                   ) : (
                     <>{t("refd.lbl.da")} {fmtDA(Number(tx.da_amount))}</>
                   )}
@@ -1354,7 +1377,7 @@ function TransactionsTab({
               <Button size="sm" variant="ghost" className="flex-1" onClick={() => setViewing(tx.id)}>
                 <FileText className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.receipt")}
               </Button>
-              {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+              {!readOnly && tx.status !== "cancelled" && (
                 <Button size="sm" variant="ghost" className="flex-1" onClick={() => onAction("edit", tx.id)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> {t("reft.btn.edit")}
                 </Button>
@@ -1365,6 +1388,7 @@ function TransactionsTab({
                 </Button>
               )}
             </div>
+
           </Card>
         ))}
       </div>
@@ -1396,11 +1420,16 @@ function TransactionsTab({
               {rows.map((tx) => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs whitespace-nowrap">{tx.transaction_number}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{displayTxNumber(tx)}</td>
                   <td className="p-3 whitespace-nowrap">
-                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
-                    {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
+                    {tx.transaction_type === "settlement" && tx.counterparty_client_name ? (
+                      <span>
+                        <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} />
+                      </span>
+                    ) : (
+                      <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
                     )}
                   </td>
                   <td className="p-3 capitalize whitespace-nowrap">{tx.transaction_type === "settlement" ? "—" : tx.direction}</td>
@@ -1417,9 +1446,10 @@ function TransactionsTab({
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(tx.id)} title={t("reft.btn.receipt")}><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                      {!readOnly && tx.status !== "cancelled" && (
                         <Button size="sm" variant="ghost" onClick={() => onAction("edit", tx.id)} title={t("reft.btn.edit")}><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
+
                       {canDelete && (
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(tx.id)} title={t("reft.btn.delete")}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1473,6 +1503,8 @@ function TransactionFormPage({
   // User-edit tracking so we only auto-fill once per client selection
   const [fromFeeEdited, setFromFeeEdited] = useState(false);
   const [toFeeEdited, setToFeeEdited] = useState(false);
+  // For editing settlements we keep the original group id (one shared id for the pair).
+  const [settlementGroupId, setSettlementGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     listClients({ data: { refineryId: refinery.id } })
@@ -1482,25 +1514,47 @@ function TransactionFormPage({
 
   useEffect(() => {
     if (!editingId) return;
-    getTransaction({ data: { id: editingId } }).then((t) => {
+    getTransaction({ data: { id: editingId } }).then(async (t) => {
       const tx = t as RefineryTransaction;
-      setClientId(tx.client_id ?? "");
       setDirection(tx.direction);
       setType(tx.transaction_type);
       setDate(tx.transaction_date);
       setNotes(tx.notes ?? "");
       setDaAmount(String(tx.da_amount ?? ""));
       setFeePrice(String(tx.fee_price ?? ""));
-      const existingBars = (tx.bars ?? []).map((b, i) => ({
-        item_number: b.item_number ?? String(i + 1),
-        item_type: b.item_type,
-        gross_weight: String(b.gross_weight),
-        purity: String(b.purity),
-      }));
-      if (existingBars.length > 0) setBars(existingBars);
+
+      if (tx.transaction_type === "settlement" && tx.settlement_group_id) {
+        // Settlement: load the pair to recover from/to correctly regardless of which row was clicked.
+        try {
+          const pair = await getSettlement({ data: { group_id: tx.settlement_group_id } });
+          setSettlementGroupId(tx.settlement_group_id);
+          setFromClientId(pair.from.client_id);
+          setToClientId(pair.to.client_id);
+          setSettlementKind(pair.kind);
+          setSettlementAmount(String(pair.amount));
+          setApplyFee(Boolean(pair.apply_fee));
+          setFromFeePrice(String(pair.from_fee_price ?? 0));
+          setToFeePrice(String(pair.to_fee_price ?? 0));
+          // Mark as user-edited so the auto-fill effects don't clobber on client load.
+          setFromFeeEdited(true);
+          setToFeeEdited(true);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Load failed");
+        }
+      } else {
+        setClientId(tx.client_id ?? "");
+        const existingBars = (tx.bars ?? []).map((b, i) => ({
+          item_number: b.item_number ?? String(i + 1),
+          item_type: b.item_type,
+          gross_weight: String(b.gross_weight),
+          purity: String(b.purity),
+        }));
+        if (existingBars.length > 0) setBars(existingBars);
+      }
       setLoadingExisting(false);
     }).catch((err) => { toast.error(err instanceof Error ? err.message : "Load failed"); setLoadingExisting(false); });
   }, [editingId]);
+
 
 
   const client = clients.find((c) => c.id === clientId);
@@ -1558,7 +1612,6 @@ function TransactionFormPage({
     try {
       // ----- Settlement branch -----
       if (type === "settlement") {
-        if (isEdit) { setSaving(false); toast.error("Settlements cannot be edited; delete and recreate."); return; }
         if (!fromClientId || !toClientId) { setSaving(false); toast.error("Select both clients"); return; }
         if (fromClientId === toClientId) { setSaving(false); toast.error("From and To must be different clients"); return; }
         const amt = Number(settlementAmount);
@@ -1568,7 +1621,7 @@ function TransactionFormPage({
         if (settlementKind === "gold" && applyFee && (!(fromFp >= 0) || !(toFp >= 0))) {
           setSaving(false); toast.error("Fee prices must be ≥ 0"); return;
         }
-        await createSettlement({ data: {
+        const payload = {
           refinery_id: refinery.id,
           from_client_id: fromClientId,
           to_client_id: toClientId,
@@ -1579,11 +1632,18 @@ function TransactionFormPage({
           to_fee_price: settlementKind === "gold" && applyFee ? toFp : 0,
           transaction_date: date,
           notes: notes || null,
-        }});
-        toast.success("Settlement created");
+        };
+        if (isEdit && settlementGroupId) {
+          await editSettlement({ data: { ...payload, group_id: settlementGroupId } });
+          toast.success("Settlement updated");
+        } else {
+          await createSettlement({ data: payload });
+          toast.success("Settlement created");
+        }
         onSaved();
         return;
       }
+
 
 
       // ----- Existing Gold / DA branch -----
@@ -2148,7 +2208,7 @@ function TransactionReceiptDialog({
 
   const uploadReceiptPdfAndGetSignedUrl = useCallback(async (): Promise<{ signedUrl: string; fileName: string }> => {
     if (!tx) throw new Error("Receipt is not ready");
-    const fileName = receiptFileName(tx.transaction_number, "pdf");
+    const fileName = receiptFileName(displayTxNumber(tx), "pdf");
     const storagePath = `${tx.refinery_id}/${tx.id}/${fileName}`;
     const pdfBlob = await createReceiptPdfBlob();
 
@@ -2176,7 +2236,7 @@ function TransactionReceiptDialog({
       const pdfBlob = await createReceiptPdfBlob();
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
-      a.href = url; a.download = receiptFileName(tx.transaction_number, "pdf"); a.click();
+      a.href = url; a.download = receiptFileName(displayTxNumber(tx), "pdf"); a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded");
     } catch (e) {
@@ -2212,7 +2272,7 @@ function TransactionReceiptDialog({
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = receiptFileName(tx.transaction_number, "png"); a.click();
+      a.href = url; a.download = receiptFileName(displayTxNumber(tx), "png"); a.click();
       toast.success("Image downloaded");
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (e) {
