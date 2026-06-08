@@ -2400,14 +2400,15 @@ function TransactionReceiptDialog({
         <DialogHeader><DialogTitle>{tx?.transaction_type === "settlement" ? "Settlement Receipt" : "Transaction Receipt"}</DialogTitle></DialogHeader>
         {!tx || (tx.transaction_type === "settlement" && !settlement) ? <p className="text-muted-foreground text-sm">Loading…</p> : (
           <>
-            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div
-                className="mx-auto origin-top-left sm:origin-top"
+                className="mx-auto"
                 style={{
                   width: 794,
-                  transform: "scale(var(--receipt-scale, 0.78))",
-                  transformOrigin: "top left",
-                  height: `calc(var(--receipt-h, 1123px) * var(--receipt-scale, 0.78))`,
+                  // Use `zoom` instead of `transform: scale` so the browser
+                  // re-rasterizes text at the displayed size (crisp preview)
+                  // instead of bitmap-scaling a 794px snapshot (blurry).
+                  zoom: "var(--receipt-zoom, 0.78)" as unknown as number,
                 }}
                 ref={(el) => {
                   if (!el) return;
@@ -2416,8 +2417,7 @@ function TransactionReceiptDialog({
                   const apply = () => {
                     const w = parent.clientWidth;
                     const s = Math.min(1, Math.max(0.35, w / 794));
-                    el.style.setProperty("--receipt-scale", String(s));
-                    el.style.setProperty("--receipt-h", `${el.firstElementChild ? (el.firstElementChild as HTMLElement).offsetHeight : 1123}px`);
+                    el.style.setProperty("--receipt-zoom", String(s));
                   };
                   apply();
                   const ro = new ResizeObserver(apply);
