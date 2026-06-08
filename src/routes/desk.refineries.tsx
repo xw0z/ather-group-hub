@@ -4271,7 +4271,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
                     <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
-                    <td className="p-3">{r.client_name ?? "—"}</td>
+                    <td className="p-3"><ClientLabel code={(r as { client_code?: string | null }).client_code} name={r.client_name} /></td>
                     <td className="p-3">
                       <Badge className={isGold
                         ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
