@@ -1,67 +1,73 @@
+# Settlement = One Transaction (Plan)
 
-## Scope reality check
+Goal: a settlement looks and behaves like a single transaction (one row, one number, one receipt, editable), while still updating both clients' balances correctly.
 
-The refineries module is ~10,000 lines of UI across 7 large files (desk.refineries.tsx is 4,343 lines alone, swap/dashboard.tsx is 3,888 lines). Hand-translating every visible string into professional FR + AR in a single response is not realistic — it would take many hours of editing and the output would risk introducing bugs across critical financial flows (Buy/Sell, Settlement, Stock).
+## Approach
 
-I will deliver this in **two stages within this turn**:
+Settlements are currently stored as **two** rows (one per client) so each client's account statement can show their side of the deal. Throwing that away would force a risky migration of existing data. Instead:
 
-### Stage 1 — Infrastructure + high-traffic screens (this turn)
+- Keep two backend rows (one per client), but **hide the second one** from the transactions list.
+- **One shared reference number** — drop the `-A` / `-B` suffix. Both rows share `REFINE-202606-0005`.
+- New **Edit Settlement** flow updates both rows atomically and recalculates both clients' balances.
+- Existing settlements keep working — old `-A`/`-B` numbers are normalised for display.
 
-**i18n foundation**
-- Install `react-i18next` + `i18next` + `i18next-browser-languagedetector`
-- Create `src/i18n/` with `index.ts`, `locales/en.json`, `locales/fr.json`, `locales/ar.json`
-- Root provider in `src/routes/__root.tsx` that:
-  - Loads user's preferred language from `swap_user_preferences.locale` after login (fallback to browser → English)
-  - Sets `<html lang>` and `<html dir>` (RTL for Arabic)
-  - English is the default for new users; missing keys fall back to English
+## What changes (user-visible)
 
-**RTL support**
-- `dir="rtl"` toggle on `<html>`
-- Tailwind logical properties already in use; add `rtl:` utility helpers where needed in nav/sidebar/tables
-- Numbers, weights, DA, and client codes stay LTR via `<bdi>` / `dir="ltr"` wrappers in formatters
+1. **Transactions list** shows one row per settlement.
+2. **Client cell**: `AB1234 (Acme) → CD5678 (Beta)`.
+3. **Pure amount** appears once.
+4. **Edit** button is available on settlements, same as gold transactions. The edit dialog lets you change: From client, To client, Pure amount (or DA), Apply-fee toggle + fee prices, Date, Notes.
+5. After editing, both clients' balances are recomputed from scratch on the server (reverse old → apply new) in one transaction.
+6. **Receipt**: one settlement receipt; the number shown is the shared reference (no `-A`/`-B`).
+7. **Reference format**: `REFINE-202606-0005` (no suffix). Old rows display the same — the `-A`/`-B` is stripped at render time.
 
-**Persistence**
-- Add `locale` column to `swap_user_preferences` (default `'en'`, check `('en','fr','ar')`)
-- Server fn `updateUserLocale(locale)` writes to user's preferences row
-- Loaded on app boot; survives logout/login and works across devices
+## Technical details
 
-**Profile UI — Language Preferences section**
-- New radio group under Preferences tab: English / Français / العربية
-- Note: "Changes take effect immediately throughout the application."
-- Saves to backend + updates i18n instance immediately
+### Database (single migration)
 
-**Login page** — fully translated EN/FR/AR + language switcher in top-right (pre-auth, persisted to localStorage so the choice survives login).
+- `refinery_create_settlement`: write the **same canonical number** to both rows (no `-A`/`-B`).
+- New `public.refinery_edit_settlement(_group_id, _from_client, _to_client, _kind, _amount, _apply_fee, _from_fee_price, _to_fee_price, _date, _notes)`:
+  1. Load both existing rows for the group `FOR UPDATE`.
+  2. Reverse their effect on each client's balance using the stored `previous_*` / `new_*` snapshots.
+  3. Delete the two rows (or update them in place if the from/to client did not change).
+  4. Re-run the same logic as `refinery_create_settlement`, reusing the existing `settlement_group_id` and shared transaction number.
+  5. Append a row to `refinery_audit_log` (`action='settlement.edit'`, old/new payload).
+- `refinery_delete_settlement` stays as-is; it already cleans both rows.
 
-**Refineries — fully translated EN/FR/AR**:
-- Refineries list / picker page (`desk.refineries.tsx` shell + nav tabs)
-- Dashboard tab labels, KPI cards
-- Common UI: all buttons (Save, Cancel, Delete, Create, Edit, Confirm, Close, Search, Filter, Export, Import, Loading, No data, etc.)
-- All toast/success/error messages in `refineries.functions.ts` call sites
-- All validation messages
-- All dialog titles + confirmation copy
-- Statement headers ("Account Statement" → "Relevé de Compte" / "كشف الحساب") + column headers in `AccountStatement.tsx`, `TransactionReceipt.tsx`, `SettlementReceipt.tsx`
-- Date formatting via `date-fns` with `fr` / `ar-DZ` locales
-- Number formatting via `Intl.NumberFormat` (DA stays as "DA")
+### Backend (server functions)
 
-**Translation Management page (admin only)**
-- New route `desk.refineries.translations.tsx` (admin gate)
-- Table: key | English | French | Arabic | actions
-- Search box, filter by namespace
-- Inline edit any FR/AR string
-- Export to JSON, Import from JSON
-- Overrides stored in `swap_translation_overrides` table (key, locale, value, updated_by, updated_at)
-- i18n loads base bundle + applies overrides on top at boot
+- `src/lib/refineries.functions.ts`:
+  - Add `editSettlement` (mirrors `createSettlement` + takes `group_id`). Calls the new RPC.
+  - `listTransactions`: append `WHERE settlement_role IS DISTINCT FROM 'to'` so the list returns only the "from" row for each settlement. Per-client statements (`getAccountStatement`) are untouched — they already filter by `client_id` and need both rows.
+  - Add a small display helper `displayTxNumber(tx)` that returns `tx.transaction_number.replace(/-[AB]$/, "")`. Used by the UI and the receipt.
 
-### Stage 2 — Deep translations (follow-up turn)
+### Frontend
 
-Body of the giant tabs inside `desk.refineries.$refineryId.$tab.tsx` (Clients module, Transactions, Buy/Sell, Stock, Net Position, Backup) — every form label, table column, empty state, audit log description. I will work through these one tab per response so each change is reviewable and won't risk breaking the live system.
+- `src/routes/desk.refineries.tsx`
+  - `TransactionsTab` + `RecentTxTable`:
+    - Use `displayTxNumber` in the reference column.
+    - Client cell for settlements: `<ClientLabel code from_code name from_name /> → <ClientLabel code to_code name to_name />` (already partly there via `counterparty_client_name`; we'll wire `counterparty_client_code`).
+    - Remove the `tx.transaction_type !== "settlement"` guard on the Edit button.
+  - `TransactionFormPage`:
+    - Remove the "Settlements cannot be edited" block.
+    - On edit submit for `type === "settlement"`, call `editSettlement({ group_id, ... })` instead of `createSettlement`.
+    - Pre-fill the form from the loaded settlement (use existing `getSettlement` by `settlement_group_id`).
+  - `TransactionReceiptDialog`: use `displayTxNumber` for the displayed reference and the upload filename.
 
-You'll get a working translated app at the end of Stage 1 (nav, login, profile, dashboard, statements, all toasts/dialogs, RTL) plus the admin tool to fix any translation you don't like, and the remaining deep tabs are completed in the next turn.
+- `src/components/refineries/SettlementReceipt.tsx`
+  - Replace the local `receiptNo = transaction_number.replace(/-A$/, "")` with `displayTxNumber` (handles both `-A` and `-B`).
+  - Show the shared number once at the top; remove the per-party "Ref" line (or relabel to `Side: From / To`).
 
-## Technical notes
+### What is intentionally NOT changed
 
-- All FR/AR strings will be professional refinery/financial terminology (e.g. "Pure Gold" → "Or pur" / "الذهب الخالص"; "Refinery Fee" → "Frais de raffinage" / "رسوم التكرير"; "Settlement" → "Règlement" / "تسوية"; "Net Position" → "Position nette" / "صافي المركز"; "Account Statement" → "Relevé de compte" / "كشف الحساب"). "DA" and client codes are never translated.
-- One DB migration: add `locale` to `swap_user_preferences`; create `swap_translation_overrides` table with RLS (admin write, everyone read).
-- No business logic touched.
+- DB schema of `refinery_transactions` — no column drops, no data migration of historical `-A`/`-B` rows. They continue to work and now also display as one row.
+- `getAccountStatement` — still consumes both rows so each client sees their own side. This is correct.
+- Delete flow — already handles both rows via `refinery_delete_settlement`.
 
-Confirm and I'll build Stage 1.
+## Acceptance check (after build)
+
+- Create a new settlement → one row in the list, number `REFINE-YYYYMM-NNNN`, client cell shows `FROM → TO`.
+- Open an old settlement (`-A`/`-B`) → renders as one row with normalised number.
+- Edit a settlement: change amount + swap From/To → both clients' balances reflect only the new values.
+- Delete a settlement → both rows gone, both balances restored.
+- Receipt: one PDF, one number, balances of both parties shown.
