@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ClientCombobox } from "@/components/refineries/ClientCombobox";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listRefineries, getMyRefineryAssignment,
@@ -1818,12 +1819,12 @@ function TransactionFormPage({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Client *</Label>
-                  <Select value={clientId} onValueChange={setClientId}>
-                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                    <SelectContent>
-                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ClientCombobox
+                    clients={clients}
+                    value={clientId}
+                    onChange={setClientId}
+                    placeholder="Select client"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Date</Label>
@@ -2070,12 +2071,12 @@ function SettlementFields({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label>From Client *</Label>
-          <Select value={fromClientId} onValueChange={setFromClientId}>
-            <SelectTrigger><SelectValue placeholder="Sender" /></SelectTrigger>
-            <SelectContent>
-              {fromOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <ClientCombobox
+            clients={fromOptions}
+            value={fromClientId}
+            onChange={setFromClientId}
+            placeholder="Sender"
+          />
           {fromClient && (
             <p className="text-xs text-muted-foreground">
               Gold <span className={`tabular-nums ${balClass(Number(fromClient.purity_balance))}`}>{signed(Number(fromClient.purity_balance), fmtG)}</span>
@@ -2085,12 +2086,12 @@ function SettlementFields({
         </div>
         <div className="space-y-2">
           <Label>To Client *</Label>
-          <Select value={toClientId} onValueChange={setToClientId}>
-            <SelectTrigger><SelectValue placeholder="Receiver" /></SelectTrigger>
-            <SelectContent>
-              {toOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <ClientCombobox
+            clients={toOptions}
+            value={toClientId}
+            onChange={setToClientId}
+            placeholder="Receiver"
+          />
           {toClient && (
             <p className="text-xs text-muted-foreground">
               Gold <span className={`tabular-nums ${balClass(Number(toClient.purity_balance))}`}>{signed(Number(toClient.purity_balance), fmtG)}</span>
@@ -4545,14 +4546,12 @@ function BuySellDialog({
         <form onSubmit={submit} className="space-y-4">
           <div>
             <Label>{t("refbs.f.client")}</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder={t("refbs.f.clientPh")} /></SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientCombobox
+              clients={clients}
+              value={clientId}
+              onChange={setClientId}
+              placeholder={t("refbs.f.clientPh")}
+            />
           </div>
           <div>
             <Label>{t("refbs.f.metal")}</Label>
