@@ -2285,6 +2285,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
   const [adjustments, setAdjustments] = useState<AdjTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [editingAdj, setEditingAdj] = useState<AdjTx | null>(null);
   const [metalFilter, setMetalFilter] = useState<"all" | "gold" | "silver" | "da">("all");
 
   const load = useCallback(async () => {
@@ -2406,19 +2407,27 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                     <td className="p-3 text-xs text-muted-foreground">{a.created_by_name ?? "—"}</td>
                     <td className="p-3 max-w-[260px] truncate text-muted-foreground" title={a.notes ?? ""}>{a.notes ?? "—"}</td>
                     <td className="p-3 text-right">
-                      <Button
-                        variant="ghost" size="icon" title="Delete"
-                        onClick={async () => {
-                          if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
-                          try {
-                            await deleteTransaction({ data: { id: a.id } });
-                            toast.success("Adjustment deleted");
-                            load();
-                          } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="inline-flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost" size="icon" title="Edit"
+                          onClick={() => setEditingAdj(a)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" title="Delete"
+                          onClick={async () => {
+                            if (!confirm("Delete this stock adjustment? Stock will be reversed.")) return;
+                            try {
+                              await deleteTransaction({ data: { id: a.id } });
+                              toast.success("Adjustment deleted");
+                              load();
+                            } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
