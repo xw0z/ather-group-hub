@@ -1086,6 +1086,8 @@ const en: Dict = {
   "refnp.toast.silverGte0": "Silver price must be ≥ 0",
   "refnp.toast.pricesSaved": "Prices saved",
   "refnp.toast.snapshot": "Snapshot saved",
+  "refd.equity.pureGoldEq": "Pure gold equivalent",
+  "refd.equity.setPrices": "Set prices in Net Position",
 };
 
 const ar: Dict = {
