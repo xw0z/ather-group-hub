@@ -1420,11 +1420,16 @@ function TransactionsTab({
               {rows.map((tx) => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
-                  <td className="p-3 font-mono text-xs whitespace-nowrap">{tx.transaction_number}</td>
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{displayTxNumber(tx)}</td>
                   <td className="p-3 whitespace-nowrap">
-                    <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
-                    {tx.transaction_type === "settlement" && tx.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {tx.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} /></span>
+                    {tx.transaction_type === "settlement" && tx.counterparty_client_name ? (
+                      <span>
+                        <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
+                        <span className="text-muted-foreground"> → </span>
+                        <ClientLabel code={(tx as { counterparty_client_code?: string | null }).counterparty_client_code} name={tx.counterparty_client_name} />
+                      </span>
+                    ) : (
+                      <ClientLabel code={(tx as { client_code?: string | null }).client_code} name={tx.client_name} />
                     )}
                   </td>
                   <td className="p-3 capitalize whitespace-nowrap">{tx.transaction_type === "settlement" ? "—" : tx.direction}</td>
@@ -1441,9 +1446,10 @@ function TransactionsTab({
                   <td className="p-3 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setViewing(tx.id)} title={t("reft.btn.receipt")}><FileText className="h-3.5 w-3.5" /></Button>
-                      {!readOnly && tx.status !== "cancelled" && tx.transaction_type !== "settlement" && (
+                      {!readOnly && tx.status !== "cancelled" && (
                         <Button size="sm" variant="ghost" onClick={() => onAction("edit", tx.id)} title={t("reft.btn.edit")}><Pencil className="h-3.5 w-3.5" /></Button>
                       )}
+
                       {canDelete && (
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(tx.id)} title={t("reft.btn.delete")}>
                           <Trash2 className="h-3.5 w-3.5" />
