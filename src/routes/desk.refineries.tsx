@@ -4107,6 +4107,7 @@ export function RefineriesEmbedded() {
     rtab?: Tab;
     action?: "new" | "edit";
     txId?: string;
+    clientId?: string;
   };
   const rtab: Tab = (search.rtab as Tab) ?? "dashboard";
   const [assignment, setAssignment] = useState<RefineryAssignment | null>(null);
@@ -4137,6 +4138,7 @@ export function RefineriesEmbedded() {
     rtab?: Tab;
     action?: "new" | "edit";
     txId?: string;
+    clientId?: string;
   }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     navigate({ to: "/desk/app/refineries" as any, search: next as any });
@@ -4169,6 +4171,7 @@ export function RefineriesEmbedded() {
       tab={rtab}
       action={search.action}
       txId={search.txId}
+      clientId={search.clientId}
       onTab={(t) => navTo({ r: activeRefinery.id, rtab: t })}
       onAction={(action, txId) =>
         navTo({ r: activeRefinery.id, rtab: "transactions", action, txId })
