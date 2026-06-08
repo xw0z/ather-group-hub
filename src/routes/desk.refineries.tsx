@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Scale, LogOut, Plus, Trash2, Share2, FileText, ArrowLeft, Wallet, Coins,
@@ -881,9 +881,11 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RefineryClient | null>(null);
   const [stmtClient, setStmtClient] = useState<RefineryClient | null>(null);
-  const search = Route.useSearch();
+  const search = useSearch({ strict: false }) as { filter?: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const filter = search.filter;
+  const inDeskApp = pathname.startsWith("/desk/app/refineries");
+  const filter = search.filter === "owing-gold" || search.filter === "owing-da" ? search.filter : undefined;
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
   const canStatement = assignment.isAdmin || assignment.role === "manager";
@@ -915,7 +917,18 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
   const filterLabel = filter === "owing-gold" ? "Clients owing gold" : filter === "owing-da" ? "Clients owing DA" : null;
 
   const clearFilter = () =>
-    navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients" } });
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp ? { r: refinery.id, rtab: "clients" } : { r: refinery.id, tab: "clients" }) as never,
+    });
+
+  const openClient = (id: string) =>
+    navigate({
+      to: (inDeskApp ? "/desk/app/refineries" : "/desk/refineries") as never,
+      search: (inDeskApp
+        ? { r: refinery.id, rtab: "clients", clientId: id }
+        : { r: refinery.id, tab: "clients", clientId: id }) as never,
+    });
 
   return (
     <div className="space-y-6">
@@ -970,7 +983,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 <tr
                   key={c.id}
                   className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+                  onClick={() => openClient(c.id)}
                 >
                   <td className="p-3 max-w-[320px]">
                     <span className="flex items-center gap-2 min-w-0">
@@ -1029,7 +1042,7 @@ function ClientsTab({ refinery, assignment }: { refinery: Refinery; assignment: 
               <div
                 key={c.id}
                 className="p-3 active:bg-muted/30 cursor-pointer"
-                onClick={() => navigate({ to: "/desk/refineries", search: { r: refinery.id, tab: "clients", clientId: c.id } })}
+                onClick={() => openClient(c.id)}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
