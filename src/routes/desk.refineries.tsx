@@ -4937,28 +4937,53 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
   } | null>(null);
   const [uploadConfirmText, setUploadConfirmText] = useState("");
 
+  // Per-call loader with one retry — tolerates transient mobile fetch errors
+  // (Safari surfaces network/abort failures with err.message === "Load failed").
+  const TRANSIENT = (msg: string) => /load failed|network|fetch|timeout|abort/i.test(msg);
+  async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!TRANSIENT(msg)) throw e;
+      console.warn(`[backup] ${label} transient failure, retrying once:`, msg);
+      await new Promise((r) => setTimeout(r, 350));
+      return await fn();
+    }
+  }
+
   const reload = useCallback(async () => {
     setLoading(true);
-    try {
-      const [b, a, s] = await Promise.all([
-        listBackups({ data: { refineryId: refinery.id } }),
-        listAuditLog({ data: { refineryId: refinery.id, limit: 100 } }),
-        getBackupSettings({ data: { refineryId: refinery.id } }),
-      ]);
-      setBackups(b);
-      setAudit(a);
-      setSettings(s);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load backup data");
-    } finally {
-      setLoading(false);
+    console.log("[backup] reload start", { refineryId: refinery.id });
+    // Run independently so one transient failure doesn't wipe everything.
+    const [bRes, aRes, sRes] = await Promise.allSettled([
+      withRetry("listBackups", () => listBackups({ data: { refineryId: refinery.id } })),
+      withRetry("listAuditLog", () => listAuditLog({ data: { refineryId: refinery.id, limit: 100 } })),
+      withRetry("getBackupSettings", () => getBackupSettings({ data: { refineryId: refinery.id } })),
+    ]);
+    if (bRes.status === "fulfilled") setBackups(bRes.value);
+    else console.error("[backup] listBackups failed:", bRes.reason);
+    if (aRes.status === "fulfilled") setAudit(aRes.value);
+    else console.error("[backup] listAuditLog failed:", aRes.reason);
+    if (sRes.status === "fulfilled") setSettings(sRes.value);
+    else console.error("[backup] getBackupSettings failed:", sRes.reason);
+    // Only toast if the primary list itself failed; ignore noisy secondary failures.
+    if (bRes.status === "rejected") {
+      const msg = bRes.reason instanceof Error ? bRes.reason.message : "Failed to load backup data";
+      toast.error(TRANSIENT(msg) ? "Couldn't refresh backup list — check your connection." : msg);
     }
+    setLoading(false);
+    console.log("[backup] reload done", {
+      backups: bRes.status, audit: aRes.status, settings: sRes.status,
+    });
   }, [refinery.id]);
 
   useEffect(() => { reload(); }, [reload]);
 
   function downloadJson(name: string, data: unknown) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const json = JSON.stringify(data, null, 2);
+    console.log("[backup] downloadJson", { name, bytes: json.length });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = name; document.body.appendChild(a); a.click();
@@ -4967,31 +4992,51 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
   async function handleCreate() {
     setCreating(true);
+    console.log("[backup] create start", { refineryId: refinery.id });
+    let meta: RefineryBackupMeta | null = null;
     try {
-      const meta = await createBackup({ data: { refineryId: refinery.id } });
+      meta = await createBackup({ data: { refineryId: refinery.id } });
+      console.log("[backup] create ok", { id: meta.id, file: meta.file_name, size: meta.file_size_bytes });
       toast.success(`Backup created: ${meta.file_name}`);
-      // Auto-download the newly created backup
-      try {
-        const full = await getBackupPayload({ data: { backupId: meta.id } });
-        downloadJson(full.file_name, full.payload);
-      } catch { /* download is optional; backup is saved */ }
-      await reload();
     } catch (e) {
+      console.error("[backup] create failed:", e);
       toast.error(e instanceof Error ? e.message : "Failed to create backup");
-    } finally {
       setCreating(false);
+      return;
     }
+    // Auto-download — silent on failure (the backup is already saved & visible in history).
+    try {
+      console.log("[backup] auto-download fetching payload", { id: meta.id });
+      const full = await withRetry("getBackupPayload", () =>
+        getBackupPayload({ data: { backupId: meta!.id } }),
+      );
+      downloadJson(full.file_name, full.payload);
+      console.log("[backup] auto-download triggered");
+    } catch (e) {
+      console.warn("[backup] auto-download skipped:", e);
+      toast.message("Backup saved. Tap Download in the history list to retry the file download.");
+    }
+    // Refresh history sequentially AFTER download so the mobile network isn't competing.
+    try { await reload(); } catch (e) { console.warn("[backup] post-create reload failed:", e); }
+    setCreating(false);
   }
 
   async function handleDownload(b: RefineryBackupMeta) {
+    console.log("[backup] download start", { id: b.id, file: b.file_name });
     try {
-      const full = await getBackupPayload({ data: { backupId: b.id } });
+      const full = await withRetry("getBackupPayload", () =>
+        getBackupPayload({ data: { backupId: b.id } }),
+      );
       downloadJson(full.file_name, full.payload);
-      await reload();
+      console.log("[backup] download ok");
+      try { await reload(); } catch (e) { console.warn("[backup] post-download reload failed:", e); }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Download failed");
+      console.error("[backup] download failed:", e);
+      const msg = e instanceof Error ? e.message : "Download failed";
+      toast.error(TRANSIENT(msg) ? "Download failed — connection dropped. Please try again." : msg);
     }
   }
+
 
   async function handleDelete(b: RefineryBackupMeta) {
     if (!confirm(`Delete backup "${b.file_name}"? This cannot be undone.`)) return;
