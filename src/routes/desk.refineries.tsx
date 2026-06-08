@@ -3904,7 +3904,7 @@ function AccountStatementDialog({
         };
         if (nav.share && nav.canShare?.({ files: [file] })) {
           try {
-            await nav.share({ files: [file], title: filename, text: `${client.code ?? client.name} — ${refinery.name} statement` });
+            await nav.share({ files: [file], title: filename, text: `${clientLabelText(client.code, client.name)} — ${refinery.name} statement` });
             didShare = true;
           } catch (err) {
             const name = (err as { name?: string } | null)?.name;
