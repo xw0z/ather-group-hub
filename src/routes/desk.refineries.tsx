@@ -1403,10 +1403,10 @@ function TransactionsTab({
       {/* Mobile: card list */}
       <div className="space-y-2 md:hidden">
         {loading && <p className="text-sm text-muted-foreground text-center py-6">{t("app.loading")}</p>}
-        {!loading && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">{t("reft.empty")}</p>
+        {!loading && filteredRows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">{isSearching ? "No transactions match" : t("reft.empty")}</p>
         )}
-        {rows.map((tx) => (
+        {filteredRows.map((tx) => (
           <Card key={tx.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
