@@ -1674,6 +1674,25 @@ function TransactionFormPage({
 
   const addBar = () => setBars((bs) => [...bs, { item_number: String(bs.length + 1), item_type: "bar", gross_weight: "", purity: "" }]);
   const rmBar = (i: number) => setBars((bs) => bs.filter((_, idx) => idx !== i));
+  const [genCount, setGenCount] = useState<string>("10");
+  const generateBars = () => {
+    const n = Math.floor(Number(genCount));
+    if (!Number.isFinite(n) || n < 1) { toast.error("Enter a valid number of bars"); return; }
+    if (n > 500) { toast.error("Max 500 bars at once"); return; }
+    setBars((bs) => {
+      const start = bs.length;
+      const extra: Bar[] = Array.from({ length: n }, (_, k) => ({
+        item_number: String(start + k + 1), item_type: "bar", gross_weight: "", purity: "",
+      }));
+      return [...bs, ...extra];
+    });
+  };
+  const deleteEmptyBars = () => {
+    setBars((bs) => {
+      const kept = bs.filter((b) => b.gross_weight !== "" || b.purity !== "");
+      return kept.length > 0 ? kept : [{ item_number: "1", item_type: "bar", gross_weight: "", purity: "" }];
+    });
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
