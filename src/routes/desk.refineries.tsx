@@ -851,7 +851,7 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="font-medium text-sm truncate">{t.client_name ?? "—"}</p>
+                  <p className="text-sm truncate"><ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} /></p>
                   <p className="text-[11px] text-muted-foreground font-mono">{t.transaction_number} · {t.transaction_date}</p>
                 </div>
                 <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
