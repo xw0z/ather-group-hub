@@ -1344,7 +1344,11 @@ function TransactionsTab({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">{t("reft.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("reft.subtitle", { n: rows.length })}</p>
+          <p className="text-sm text-muted-foreground">
+            {isSearching
+              ? `${filteredRows.length} / ${rows.length}`
+              : t("reft.subtitle", { n: rows.length })}
+          </p>
         </div>
         {!readOnly && (
           <Button onClick={() => onAction("new", undefined)} className="w-full sm:w-auto">
