@@ -1379,9 +1379,9 @@ function TransactionsTab({
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{t.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{t.transaction_number}</td>
                   <td className="p-3 whitespace-nowrap">
-                    {t.client_name}
+                    <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     {t.transaction_type === "settlement" && t.counterparty_client_name && (
-                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} {t.counterparty_client_name}</span>
+                      <span className="text-xs text-muted-foreground"> {t.settlement_role === "from" ? "→" : "←"} <ClientLabel code={(t as { counterparty_client_code?: string | null }).counterparty_client_code} name={t.counterparty_client_name} /></span>
                     )}
                   </td>
                   <td className="p-3 capitalize whitespace-nowrap">{t.transaction_type === "settlement" ? "—" : t.direction}</td>
