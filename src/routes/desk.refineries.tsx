@@ -1377,10 +1377,9 @@ function TransactionsTab({
           <div className="flex-1 min-w-0">
             <label className="text-xs text-muted-foreground">Weight (g)</label>
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              placeholder="e.g. 1100"
+              placeholder="e.g. 1,100.00 g"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
             />
