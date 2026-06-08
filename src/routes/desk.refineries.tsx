@@ -1301,6 +1301,9 @@ function TransactionsTab({
   const [rows, setRows] = useState<RefineryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [searchField, setSearchField] = useState<"gross" | "pure">("gross");
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [tolerance, setTolerance] = useState<string>("1");
   const readOnly = assignment.role === "viewer" && !assignment.isAdmin;
   const canDelete = assignment.isAdmin || assignment.role === "manager";
 
@@ -1311,6 +1314,24 @@ function TransactionsTab({
     finally { setLoading(false); }
   }, [refinery.id, t]);
   useEffect(() => { load(); }, [load]);
+
+  const filteredRows = useMemo(() => {
+    const target = parseFloat(searchValue);
+    if (!Number.isFinite(target)) return rows;
+    const tol = Math.max(0, parseFloat(tolerance) || 0);
+    const lo = target - tol;
+    const hi = target + tol;
+    return rows.filter((tx) => {
+      if (tx.transaction_type !== "gold") return false;
+      const w = searchField === "gross"
+        ? Number(tx.total_gross_weight)
+        : Number(tx.total_pure_weight);
+      return Number.isFinite(w) && w >= lo && w <= hi;
+    });
+  }, [rows, searchField, searchValue, tolerance]);
+
+  const isSearching = searchValue.trim() !== "" && Number.isFinite(parseFloat(searchValue));
+
 
   const handleDelete = async (id: string) => {
     if (!confirm(t("reft.confirm.delete"))) return;
@@ -1323,7 +1344,11 @@ function TransactionsTab({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl">{t("reft.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("reft.subtitle", { n: rows.length })}</p>
+          <p className="text-sm text-muted-foreground">
+            {isSearching
+              ? `${filteredRows.length} / ${rows.length}`
+              : t("reft.subtitle", { n: rows.length })}
+          </p>
         </div>
         {!readOnly && (
           <Button onClick={() => onAction("new", undefined)} className="w-full sm:w-auto">
@@ -1332,13 +1357,56 @@ function TransactionsTab({
         )}
       </div>
 
+      {/* Search by weight */}
+      <Card className="p-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+          <div className="flex-1 min-w-0">
+            <label className="text-xs text-muted-foreground">Search by</label>
+            <Select value={searchField} onValueChange={(v) => setSearchField(v as "gross" | "pure")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gross">{t("reft.col.gross")}</SelectItem>
+                <SelectItem value="pure">{t("reft.col.pure")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className="text-xs text-muted-foreground">Weight (g)</label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              placeholder="e.g. 1100"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-32">
+            <label className="text-xs text-muted-foreground">Tolerance ±g</label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={tolerance}
+              onChange={(e) => setTolerance(e.target.value)}
+            />
+          </div>
+          {isSearching && (
+            <Button variant="ghost" onClick={() => setSearchValue("")} className="sm:w-auto">
+              Clear
+            </Button>
+          )}
+        </div>
+      </Card>
+
       {/* Mobile: card list */}
       <div className="space-y-2 md:hidden">
         {loading && <p className="text-sm text-muted-foreground text-center py-6">{t("app.loading")}</p>}
-        {!loading && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">{t("reft.empty")}</p>
+        {!loading && filteredRows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">{isSearching ? "No transactions match" : t("reft.empty")}</p>
         )}
-        {rows.map((tx) => (
+        {filteredRows.map((tx) => (
           <Card key={tx.id} className="p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -1414,10 +1482,10 @@ function TransactionsTab({
             </thead>
             <tbody>
               {loading && <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>}
-              {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{t("reft.empty")}</td></tr>
+              {!loading && filteredRows.length === 0 && (
+                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{isSearching ? "No transactions match" : t("reft.empty")}</td></tr>
               )}
-              {rows.map((tx) => (
+              {filteredRows.map((tx) => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
                   <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{displayTxNumber(tx)}</td>
