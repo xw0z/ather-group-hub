@@ -4624,7 +4624,7 @@ function ClientDetailsPage({
         <div>
           <div className="flex items-center gap-3">
             <StatusDot tone={tone} />
-            <h1 className="font-display text-3xl tracking-tight">{client.name}</h1>
+            <h1 className="font-display text-3xl tracking-tight"><span className="font-mono font-bold">{client.code ?? ""}</span> <span className="font-normal text-muted-foreground">({client.name})</span></h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1 tracking-wide uppercase">Client Overview</p>
         </div>
