@@ -149,6 +149,28 @@
   }
 }
 
+/* ===== Exported documents (receipts, statements, reports, share images, PDFs) =====
+   Force the same typography as the website UI:
+   - Body: Epilogue (var(--font-sans))
+   - Display/headings: Urbanist (var(--font-display))
+   - Numbers: tabular (lining + tnum) for crisp aligned figures
+*/
+[data-receipt-root],
+[data-statement-root],
+[data-purity-root] {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+[data-receipt-root] h1, [data-receipt-root] h2, [data-receipt-root] h3,
+[data-statement-root] h1, [data-statement-root] h2, [data-statement-root] h3,
+[data-purity-root] h1, [data-purity-root] h2, [data-purity-root] h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
 
 @layer utilities {
   .font-display { font-family: var(--font-display); }

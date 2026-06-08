@@ -18,7 +18,8 @@ const PAPER_ALT = "#f7f8fa";
 const HEAD = "#eceef2";
 const RED = "#b3261e";
 const GREEN = "#1f7a4d";
-const MONO = "'Inter', 'Helvetica Neue', Arial, sans-serif";
+const MONO = "'Epilogue', 'Inter', system-ui, sans-serif";
+const DISPLAY = "'Urbanist', 'Epilogue', system-ui, sans-serif";
 
 const num2 = (n: number) =>
   Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -93,7 +94,7 @@ export function AccountStatementReport({ data }: { data: AccountStatement }) {
     <div
       data-statement-root
       style={{
-        fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
         color: INK,
         background: PAPER,
       }}

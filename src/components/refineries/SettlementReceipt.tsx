@@ -35,7 +35,8 @@ const signedColor = (n: number) => (n > 0 ? GREEN : n < 0 ? RED : INK);
 const signedStr = (n: number, fmt: (x: number) => string) =>
   `${n > 0 ? "+" : ""}${fmt(n)}`;
 
-const MONO = "'Inter', 'Helvetica Neue', Arial, sans-serif";
+const MONO = "'Epilogue', 'Inter', system-ui, sans-serif";
+const DISPLAY = "'Urbanist', 'Epilogue', system-ui, sans-serif";
 
 export function SettlementReceiptReport({
   settlement, refineryName,
@@ -58,7 +59,7 @@ export function SettlementReceiptReport({
         minHeight: 1123,
         background: PAPER,
         color: INK,
-        fontFamily: 'Inter, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: "'Epilogue', 'Inter', system-ui, sans-serif",
         padding: "44px 52px",
         boxSizing: "border-box",
         fontSize: 12,
