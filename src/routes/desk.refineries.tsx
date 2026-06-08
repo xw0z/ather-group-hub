@@ -5194,29 +5194,27 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl">Backup &amp; Restore</h2>
-        <p className="text-sm text-muted-foreground">
-          Admin-only. Backups include all refinery data — clients, transactions, stock, prices, and audit history.
-        </p>
+        <h2 className="font-display text-2xl">{t("refbk.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("refbk.subtitle")}</p>
       </div>
 
       {/* A. Create Backup */}
       <Card className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="font-display text-lg">A. Create Backup</h3>
-            <p className="text-sm text-muted-foreground">Snapshot the entire refinery into a downloadable JSON file.</p>
+            <h3 className="font-display text-lg">{t("refbk.a.title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("refbk.a.desc")}</p>
             {latest && (
               <p className="text-xs text-muted-foreground mt-2">
-                Last backup: <span className="text-foreground">{latest.file_name}</span> ·
+                {t("refbk.a.last", { when: latest.file_name })} ·
                 {" "}{fmtAuditWhen(latest.created_at)} · {fmtBytes(latest.file_size_bytes)}
-                {latest.created_by_email ? ` · by ${latest.created_by_email}` : ""}
+                {latest.created_by_email ? ` · ${latest.created_by_email}` : ""}
               </p>
             )}
           </div>
           <Button onClick={handleCreate} disabled={creating} className="gap-2">
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {creating ? "Creating…" : "Create Backup"}
+            {creating ? t("refbk.a.creating") : t("refbk.a.create")}
           </Button>
         </div>
       </Card>
@@ -5224,11 +5222,9 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
       {/* B. Restore Backup (from file) */}
       <Card className="p-4 sm:p-6 border-destructive/30">
         <h3 className="font-display text-lg flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" /> B. Restore Backup
+          <AlertTriangle className="h-5 w-5 text-destructive" /> {t("refbk.b.title")}
         </h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Upload a previously downloaded backup file (.json) to restore this refinery.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{t("refbk.b.desc")}</p>
         <div className="mt-4 flex items-center gap-3">
           <input
             type="file"
@@ -5245,26 +5241,26 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* C. Backup History */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">C. Backup History</h3>
-        <p className="text-sm text-muted-foreground">All saved backups for this refinery. Safety backups are created automatically before any restore.</p>
+        <h3 className="font-display text-lg">{t("refbk.c.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.c.desc")}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left py-2 px-2">Date</th>
-                <th className="text-left py-2 px-2">Kind</th>
-                <th className="text-left py-2 px-2">File Name</th>
-                <th className="text-left py-2 px-2">Created By</th>
-                <th className="text-right py-2 px-2">Size</th>
-                <th className="text-right py-2 px-2">Actions</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.date")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.kind")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.file")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.col.by")}</th>
+                <th className="text-right py-2 px-2">{t("refbk.col.size")}</th>
+                <th className="text-right py-2 px-2">{t("refbk.col.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">{t("app.loading")}</td></tr>
               )}
               {!loading && backups.length === 0 && (
-                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No backups yet.</td></tr>
+                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">{t("refbk.empty")}</td></tr>
               )}
               {backups.map((b) => (
                 <tr key={b.id} className="border-b border-border/50 hover:bg-card/40">
@@ -5279,13 +5275,13 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
                   <td className="py-2 px-2 text-right">{fmtBytes(b.file_size_bytes)}</td>
                   <td className="py-2 px-2 text-right">
                     <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => handleDownload(b)} title="Download">
+                      <Button size="sm" variant="ghost" onClick={() => handleDownload(b)} title={t("refbk.a.create")}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setRestoreFromBackup(b); setConfirmText(""); }} title="Restore" className="text-amber-400 hover:text-amber-300">
+                      <Button size="sm" variant="ghost" onClick={() => { setRestoreFromBackup(b); setConfirmText(""); }} title={t("refbk.dlg.restoreNow")} className="text-amber-400 hover:text-amber-300">
                         <HistoryIcon className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(b)} title="Delete" className="text-destructive hover:text-destructive">
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(b)} title={t("app.delete")} className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -5299,12 +5295,12 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* D. Scheduled Backup Settings */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">D. Scheduled Backup Settings</h3>
-        <p className="text-sm text-muted-foreground">Automatically create a backup every day at the chosen time.</p>
+        <h3 className="font-display text-lg">{t("refbk.d.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.d.desc")}</p>
         {settings && (
           <form onSubmit={handleSaveSettings} className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div>
-              <Label className="text-xs uppercase">Enable Daily Backup</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.enable")}</Label>
               <div className="mt-2 flex items-center gap-2">
                 <Checkbox
                   id="daily-enabled"
@@ -5312,12 +5308,12 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
                   onCheckedChange={(v) => setSettings({ ...settings, daily_enabled: Boolean(v) })}
                 />
                 <label htmlFor="daily-enabled" className="text-sm">
-                  {settings.daily_enabled ? "Enabled" : "Disabled"}
+                  {settings.daily_enabled ? t("refbk.d.enabled") : t("refbk.d.disabled")}
                 </label>
               </div>
             </div>
             <div>
-              <Label className="text-xs uppercase">Backup Time (24h)</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.time")}</Label>
               <Input
                 type="time"
                 value={settings.daily_time.slice(0, 5)}
@@ -5326,7 +5322,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               />
             </div>
             <div>
-              <Label className="text-xs uppercase">Keep Last N Backups</Label>
+              <Label className="text-xs uppercase">{t("refbk.d.keep")}</Label>
               <Input
                 type="number" inputMode="decimal" min={1} max={500}
                 value={settings.keep_last}
@@ -5337,7 +5333,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
             <div className="sm:col-span-3">
               <Button type="submit" disabled={savingSettings} className="gap-2">
                 {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Save Settings
+                {t("refbk.d.save")}
               </Button>
             </div>
           </form>
@@ -5346,22 +5342,22 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
 
       {/* Audit Log */}
       <Card className="p-4 sm:p-6">
-        <h3 className="font-display text-lg">Audit Log</h3>
-        <p className="text-sm text-muted-foreground">Recent backup and restore actions for this refinery.</p>
+        <h3 className="font-display text-lg">{t("refbk.audit.title")}</h3>
+        <p className="text-sm text-muted-foreground">{t("refbk.audit.desc")}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-muted-foreground border-b border-border">
               <tr>
-                <th className="text-left py-2 px-2">When</th>
-                <th className="text-left py-2 px-2">User</th>
-                <th className="text-left py-2 px-2">Action</th>
-                <th className="text-left py-2 px-2">File</th>
-                <th className="text-left py-2 px-2">IP</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.when")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.user")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.action")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.file")}</th>
+                <th className="text-left py-2 px-2">{t("refbk.audit.ip")}</th>
               </tr>
             </thead>
             <tbody>
               {audit.length === 0 && (
-                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No audit entries yet.</td></tr>
+                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">{t("refbk.audit.empty")}</td></tr>
               )}
               {audit.map((row) => (
                 <tr key={row.id} className="border-b border-border/50">
@@ -5384,29 +5380,27 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" /> Restore Backup
+              <AlertTriangle className="h-5 w-5" /> {t("refbk.dlg.title")}
             </DialogTitle>
           </DialogHeader>
           {restoreFromBackup && (
             <div className="space-y-4">
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                Restoring this backup will <strong>overwrite current refinery data</strong>.
-                This action cannot be undone unless you create a new backup first. A safety backup of the
-                current state will be automatically created before the restore.
+                {t("refbk.dlg.warn")}
               </div>
               <div className="text-sm space-y-1">
-                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{restoreFromBackup.file_name}</span></div>
-                <div><span className="text-muted-foreground">Created:</span> {fmtAuditWhen(restoreFromBackup.created_at)}</div>
-                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(restoreFromBackup.file_size_bytes)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.file")}</span> <span className="font-mono">{restoreFromBackup.file_name}</span></div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.created")}</span> {fmtAuditWhen(restoreFromBackup.created_at)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.size")}</span> {fmtBytes(restoreFromBackup.file_size_bytes)}</div>
               </div>
               <div>
-                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Label className="text-xs uppercase">{t("refbk.dlg.typeConfirm")}</Label>
                 <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setRestoreFromBackup(null); setConfirmText(""); }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setRestoreFromBackup(null); setConfirmText(""); }}>{t("app.cancel")}</Button>
             <Button
               variant="destructive"
               disabled={confirmText !== "RESTORE" || restoring}
@@ -5414,7 +5408,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               className="gap-2"
             >
               {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Restore Now
+              {t("refbk.dlg.restoreNow")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5425,27 +5419,26 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" /> Restore From File
+              <AlertTriangle className="h-5 w-5" /> {t("refbk.dlg.titleFile")}
             </DialogTitle>
           </DialogHeader>
           {uploadedPayload && (
             <div className="space-y-4">
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                Restoring this file will <strong>overwrite current refinery data</strong>.
-                A safety backup will be created automatically beforehand.
+                {t("refbk.dlg.warn")}
               </div>
               <div className="text-sm space-y-1">
-                <div><span className="text-muted-foreground">File:</span> <span className="font-mono">{uploadedPayload.fileName}</span></div>
-                <div><span className="text-muted-foreground">Size:</span> {fmtBytes(uploadedPayload.sizeBytes)}</div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.file")}</span> <span className="font-mono">{uploadedPayload.fileName}</span></div>
+                <div><span className="text-muted-foreground">{t("refbk.dlg.size")}</span> {fmtBytes(uploadedPayload.sizeBytes)}</div>
               </div>
               <div>
-                <Label className="text-xs uppercase">Type <span className="font-mono">RESTORE</span> to confirm</Label>
+                <Label className="text-xs uppercase">{t("refbk.dlg.typeConfirm")}</Label>
                 <Input value={uploadConfirmText} onChange={(e) => setUploadConfirmText(e.target.value)} className="mt-2" placeholder="RESTORE" />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setUploadedPayload(null); setUploadConfirmText(""); }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => { setUploadedPayload(null); setUploadConfirmText(""); }}>{t("app.cancel")}</Button>
             <Button
               variant="destructive"
               disabled={uploadConfirmText !== "RESTORE" || restoring}
@@ -5453,7 +5446,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
               className="gap-2"
             >
               {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Restore Now
+              {t("refbk.dlg.restoreNow")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5461,6 +5454,7 @@ function BackupTab({ refinery }: { refinery: Refinery }) {
     </div>
   );
 }
+
 
 
 // =============================================================
