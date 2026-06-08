@@ -48,7 +48,7 @@ export type RefineryGoldBar = {
 export type RefineryTransaction = {
   id: string;
   refinery_id: string;
-  client_id: string;
+  client_id: string | null;
   client_name?: string;
   client_code?: string | null;
   client_phone?: string | null;
@@ -1570,7 +1570,7 @@ export const getRefineryDashboardOverview = createServerFn({ method: "POST" })
     // Last tx date per client
     const lastByClient = new Map<string, string>();
     for (const r of (lastTxR.data ?? [])) {
-      if (!lastByClient.has(r.client_id)) lastByClient.set(r.client_id, r.transaction_date);
+      if (r.client_id && !lastByClient.has(r.client_id)) lastByClient.set(r.client_id, r.transaction_date);
     }
 
     // Range totals
