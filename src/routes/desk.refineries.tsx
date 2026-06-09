@@ -3325,7 +3325,7 @@ function EditStockAdjustmentDialog({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Metal</Label>
+              <Label>Stock Type</Label>
               <Select value={metal} onValueChange={(v) => setMetal(v as StockAdjustmentMetal)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
