@@ -2820,36 +2820,21 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
         <p className="text-sm text-muted-foreground">{t("refnp.subtitle", { name: refinery.name })}</p>
       </div>
 
-      {/* HERO: Inventory Pure Gold Stock (actual inventory only) */}
-      <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/15 via-background to-background border-amber-500/40">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-500/90">{t("refnp.hero.inventory")}</p>
-            <p className="font-display text-3xl sm:text-4xl md:text-5xl tabular-nums text-amber-500 mt-1 break-all">
-              {fmtG(stock.pure_gold_stock)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {t("refnp.hero.inventory.desc")}
-            </p>
-          </div>
-          <Badge variant="secondary" className="text-sm px-3 py-1 bg-amber-500/15 text-amber-500 border-amber-500/30">
-            {t("refnp.badge.inventory")}
-          </Badge>
-        </div>
-      </Card>
-
-      {/* HERO: Net Physical Pure Gold Position */}
+      {/* HERO: Refinery Capital (primary highlighted card — most important figure) */}
       {(() => {
         const netPhysical = stock.pure_gold_stock + clientsOweGold - refineryOwesGold;
         return (
-          <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-400/15 via-background to-background border-amber-400/40">
+          <Card className="p-5 sm:p-7 bg-gradient-to-br from-amber-500/25 via-amber-500/5 to-background border-amber-500/60 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-amber-400/90">{t("refnp.hero.physical")}</p>
-                <p className={`font-display text-3xl sm:text-4xl md:text-5xl tabular-nums mt-1 break-all ${signClass(netPhysical)}`}>
+                <p className="text-xs uppercase tracking-[0.22em] text-amber-500 font-semibold">{t("refnp.hero.physical")}</p>
+                <p className={`font-display text-4xl sm:text-5xl md:text-6xl tabular-nums mt-2 break-all ${signClass(netPhysical)}`}>
                   {signed(netPhysical, fmtG)}
                 </p>
-                <div className="text-xs text-muted-foreground mt-2 space-y-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-xl">
+                  {t("refnp.hero.physical.desc")}
+                </p>
+                <div className="text-xs text-muted-foreground mt-3 space-y-0.5">
                   <p>{t("refnp.hero.physical.inventory")}: <span className="tabular-nums text-foreground">{fmtG(stock.pure_gold_stock)}</span></p>
                   <p>{t("refnp.hero.physical.recv")}: <span className="tabular-nums text-emerald-500">+ {fmtG(clientsOweGold)}</span></p>
                   <p>{t("refnp.hero.physical.pay")}: <span className="tabular-nums text-red-500">− {fmtG(refineryOwesGold)}</span></p>
@@ -2862,6 +2847,25 @@ function NetPositionTab({ refinery }: { refinery: Refinery }) {
           </Card>
         );
       })()}
+
+      {/* Inventory Pure Gold Stock (secondary) */}
+      <Card className="p-4 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-amber-500/90">{t("refnp.hero.inventory")}</p>
+            <p className="font-display text-2xl sm:text-3xl tabular-nums text-amber-500 mt-1 break-all">
+              {fmtG(stock.pure_gold_stock)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {t("refnp.hero.inventory.desc")}
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-xs px-2.5 py-0.5 bg-amber-500/15 text-amber-500 border-amber-500/30">
+            {t("refnp.badge.inventory")}
+          </Badge>
+        </div>
+      </Card>
+
 
       <Card className="p-4 sm:p-6 bg-gradient-to-br from-amber-500/10 via-background to-background border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
