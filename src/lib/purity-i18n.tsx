@@ -1025,7 +1025,7 @@ const en: Dict = {
   "refnp.bd.inventory": "Inventory Pure Gold Stock",
   "refnp.bd.cogr": "Clients Owe Refinery Gold",
   "refnp.bd.rocg": "Refinery Owes Clients Gold",
-  "refnp.bd.netPhysical": "Net Physical Pure Gold Position",
+  "refnp.bd.netPhysical": "Refinery Capital",
   "refnp.bd.silverEq": "Silver Gold Equivalent",
   "refnp.bd.cogrDa": "Clients Owe Refinery DA (gold eq)",
   "refnp.bd.rocgDa": "Refinery Owes Clients DA (gold eq)",
