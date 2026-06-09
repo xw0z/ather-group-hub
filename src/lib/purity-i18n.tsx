@@ -2845,7 +2845,7 @@ const fr: Dict = {
   "refs.toast.fail": "Échec",
   "sad.newTitle": "Nouvelle transaction d'ajustement",
   "sad.editTitle": "Modifier l'ajustement",
-  "sad.metal": "Métal",
+  "sad.metal": "Type de stock",
   "sad.kind": "Type d'ajustement",
   "sad.date": "Date",
   "sad.gold": "Or (g)",
