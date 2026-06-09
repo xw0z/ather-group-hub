@@ -3214,7 +3214,7 @@ function NewStockAdjustmentDialog({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Metal</Label>
+              <Label>Stock Type</Label>
               <Select value={metal} onValueChange={(v) => setMetal(v as StockAdjustmentMetal)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -3242,7 +3242,7 @@ function NewStockAdjustmentDialog({
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
             <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
-              Current: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
+              Current Asset Balance: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
             </p>
           </div>
           <div className="space-y-2">
@@ -3325,7 +3325,7 @@ function EditStockAdjustmentDialog({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Metal</Label>
+              <Label>Stock Type</Label>
               <Select value={metal} onValueChange={(v) => setMetal(v as StockAdjustmentMetal)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -3353,7 +3353,7 @@ function EditStockAdjustmentDialog({
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
             <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
-              After reversing old: {fmt(base)} → Projected: <span className={balClass(projected - base)}>{fmt(projected)}</span>
+              After reversing old: {fmt(base)} → Projected Asset Balance: <span className={balClass(projected - base)}>{fmt(projected)}</span>
             </p>
           </div>
           <div className="space-y-2">
