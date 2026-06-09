@@ -682,7 +682,7 @@ function StatusDot({ tone }: { tone: "positive" | "negative" | "neutral" | "warn
 }
 
 function StatCard({
-  icon, label, value, tone, valueClass, onClick,
+  icon, label, value, tone, valueClass, onClick, compact,
 }: {
   icon?: React.ReactNode;
   label: string;
@@ -690,8 +690,20 @@ function StatCard({
   tone?: "warn";
   valueClass?: string;
   onClick?: () => void;
+  compact?: boolean;
 }) {
   const interactive = onClick ? "cursor-pointer hover:border-ember/40 transition-colors" : "";
+  if (compact) {
+    return (
+      <Card className={`px-3 py-2 sm:px-3.5 sm:py-2.5 h-full flex items-center justify-between gap-2 ${interactive}`} onClick={onClick}>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground leading-tight truncate">{label}</p>
+          <p className={`text-base sm:text-lg font-semibold tabular-nums leading-tight ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
+        </div>
+        {icon && <span className="shrink-0 opacity-80">{icon}</span>}
+      </Card>
+    );
+  }
   return (
     <Card className={`p-3 sm:p-4 h-full flex flex-col justify-between ${interactive}`} onClick={onClick}>
       <div className="flex items-center justify-between mb-2 gap-2">
@@ -702,6 +714,7 @@ function StatCard({
     </Card>
   );
 }
+
 
 function EquityCard({ equity, canCompute, onClick }: { equity: number; canCompute: boolean; onClick?: () => void }) {
   const { t } = useLang();
