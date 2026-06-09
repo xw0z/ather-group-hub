@@ -422,6 +422,7 @@ function CompanyDetail({
 }) {
   const [txs, setTxs] = useState<PremiumTx[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingTx, setEditingTx] = useState<PremiumTx | null>(null);
 
   const reload = async () => {
     if (!summary) return;
@@ -473,9 +474,10 @@ function CompanyDetail({
           <Button variant="outline" onClick={onReport}>
             <FileText className="h-4 w-4 mr-2" /> Statement
           </Button>
-          <NewTransactionDialog
+          <TransactionFormDialog
+            mode="create"
             companyId={summary.company.id}
-            onCreated={() => {
+            onSaved={() => {
               reload();
               onChanged();
             }}
@@ -519,11 +521,33 @@ function CompanyDetail({
         ) : (
           <ul className="divide-y divide-border/60">
             {txs.map((t) => (
-              <TxRow key={t.id} t={t} onDelete={() => handleDeleteTx(t.id)} />
+              <TxRow
+                key={t.id}
+                t={t}
+                onEdit={() => setEditingTx(t)}
+                onDelete={() => handleDeleteTx(t.id)}
+              />
             ))}
           </ul>
         )}
       </div>
+
+      {editingTx && (
+        <TransactionFormDialog
+          mode="edit"
+          companyId={summary.company.id}
+          tx={editingTx}
+          open
+          onOpenChange={(o) => {
+            if (!o) setEditingTx(null);
+          }}
+          onSaved={() => {
+            setEditingTx(null);
+            reload();
+            onChanged();
+          }}
+        />
+      )}
     </section>
   );
 }
