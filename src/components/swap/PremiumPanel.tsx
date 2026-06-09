@@ -70,14 +70,14 @@ const fmtUSD = (n: number) => {
   });
   return n < 0 ? `-$${s}` : `$${s}`;
 };
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const fmtDate = (s: string) => {
+  try {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  } catch { return s; }
+};
 
 const KIND_META: Record<
   PremiumKind,

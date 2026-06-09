@@ -31,7 +31,7 @@ const fmtDate = (s: string) => {
   } catch { return s; }
 };
 const fmtTime = (s: string) => {
-  try { return new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); }
+  try { return new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }); }
   catch { return ""; }
 };
 const signedColor = (n: number) => (n > 0 ? GREEN : n < 0 ? RED : INK);

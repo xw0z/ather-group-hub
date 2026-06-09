@@ -75,6 +75,7 @@ import { getMyRefineryAssignment, type RefineryAssignment } from "@/lib/refineri
 import { RefineriesEmbedded } from "@/routes/desk.refineries";
 import type { AppModule } from "@/lib/permissions";
 import { can } from "@/lib/permissions";
+import { fmtTimestamp } from "@/lib/utils";
 import { useMyPermissions } from "@/hooks/use-my-permissions";
 import { useLang } from "@/lib/purity-i18n";
 
@@ -2921,7 +2922,7 @@ function MarginLogTab() {
                       )}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {new Date(r.created_at).toLocaleString()} · by{" "}
+                      <span className="tabular-nums">{fmtTimestamp(r.created_at)}</span> · by{" "}
                       <span className="text-foreground/80">{r.username}</span>
                     </div>
                   </div>
@@ -3902,7 +3903,7 @@ function LogsTab() {
                   )}
                 </div>
                 <div className="text-[11px] text-muted-foreground whitespace-nowrap">
-                  {new Date(r.created_at).toLocaleString()}
+                  <span className="tabular-nums">{fmtTimestamp(r.created_at)}</span>
                 </div>
               </div>
               {r.details ? (

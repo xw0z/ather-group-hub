@@ -31,6 +31,7 @@ import {
 } from "@/lib/swap-clients.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { useLang } from "@/lib/purity-i18n";
+import { fmtTimestamp } from "@/lib/utils";
 
 /* ------------------------------ Types ------------------------------ */
 
@@ -763,13 +764,7 @@ function EntryCard({ entry, onView }: { entry: AuditEntry; onView: () => void })
               )}
               <div className="text-[11px] text-muted-foreground mt-0.5">
                 By <span className="text-foreground/80">{entry.who}</span> ·{" "}
-                {new Date(entry.when).toLocaleString(undefined, {
-                  month: "short",
-                  day: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                <span className="tabular-nums">{fmtTimestamp(entry.when)}</span>
                 {entry.ipAddress ? ` · ${entry.ipAddress}` : ""}
               </div>
             </div>
@@ -861,7 +856,7 @@ function DetailsModal({ entry, onClose }: { entry: AuditEntry; onClose: () => vo
               )}
               <div className="text-[11px] text-muted-foreground mt-0.5">
                 By <span className="text-foreground/80">{entry.who}</span> ·{" "}
-                {new Date(entry.when).toLocaleString()}
+                <span className="tabular-nums">{fmtTimestamp(entry.when)}</span>
               </div>
             </div>
           </div>
