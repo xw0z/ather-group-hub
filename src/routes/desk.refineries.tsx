@@ -528,16 +528,18 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         <EquityCard equity={refineryEquity} canCompute={canCompute} onClick={() => onTab("netposition")} />
       </div>
 
-      {/* Second row: clients, exposure, today summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
-        <StatCard label={t("refd.stat.totalClients")} value={String(data.totalClients)} onClick={() => onTab("clients")} />
+      {/* Second row: clients, exposure, today summary (compact KPIs) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 items-start">
+        <StatCard compact label={t("refd.stat.totalClients")} value={String(data.totalClients)} onClick={() => onTab("clients")} />
         <StatCard
+          compact
           label={t("refd.stat.owingGold")}
           value={String(data.negativePurity)}
           tone={data.negativePurity > 0 ? "warn" : undefined}
           onClick={() => goToClients("owing-gold")}
         />
         <StatCard
+          compact
           label={t("refd.stat.owingDa")}
           value={String(data.negativeDa)}
           tone={data.negativeDa > 0 ? "warn" : undefined}
@@ -545,6 +547,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         />
         <TodaysActivityCard data={data} />
       </div>
+
 
 
 
