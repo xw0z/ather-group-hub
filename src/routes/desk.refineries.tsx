@@ -2618,7 +2618,7 @@ function StockTab({ refinery }: { refinery: Refinery }) {
                 const delta = Number(a.adjustment_delta ?? 0);
                 return (
                   <tr key={a.id} className="border-b border-border last:border-0">
-                    <td className="p-3 text-muted-foreground whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</td>
+                    <td className="p-3 text-muted-foreground whitespace-nowrap tabular-nums">{fmtTxTimestamp(a.transaction_date, a.created_at)}</td>
                     <td className="p-3 font-mono text-xs">{a.transaction_number}</td>
                     <td className="p-3"><Badge variant="secondary" className="uppercase">{metal}</Badge></td>
                     <td className="p-3 text-xs uppercase tracking-wider">{a.adjustment_kind ?? "—"}</td>
