@@ -528,16 +528,18 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         <EquityCard equity={refineryEquity} canCompute={canCompute} onClick={() => onTab("netposition")} />
       </div>
 
-      {/* Second row: clients, exposure, today summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 auto-rows-fr">
-        <StatCard label={t("refd.stat.totalClients")} value={String(data.totalClients)} onClick={() => onTab("clients")} />
+      {/* Second row: clients, exposure, today summary (compact KPIs) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 items-start">
+        <StatCard compact label={t("refd.stat.totalClients")} value={String(data.totalClients)} onClick={() => onTab("clients")} />
         <StatCard
+          compact
           label={t("refd.stat.owingGold")}
           value={String(data.negativePurity)}
           tone={data.negativePurity > 0 ? "warn" : undefined}
           onClick={() => goToClients("owing-gold")}
         />
         <StatCard
+          compact
           label={t("refd.stat.owingDa")}
           value={String(data.negativeDa)}
           tone={data.negativeDa > 0 ? "warn" : undefined}
@@ -545,6 +547,7 @@ function DashboardTab({ refinery, onTab }: { refinery: Refinery; onTab: (t: Tab)
         />
         <TodaysActivityCard data={data} />
       </div>
+
 
 
 
@@ -682,7 +685,7 @@ function StatusDot({ tone }: { tone: "positive" | "negative" | "neutral" | "warn
 }
 
 function StatCard({
-  icon, label, value, tone, valueClass, onClick,
+  icon, label, value, tone, valueClass, onClick, compact,
 }: {
   icon?: React.ReactNode;
   label: string;
@@ -690,8 +693,20 @@ function StatCard({
   tone?: "warn";
   valueClass?: string;
   onClick?: () => void;
+  compact?: boolean;
 }) {
   const interactive = onClick ? "cursor-pointer hover:border-ember/40 transition-colors" : "";
+  if (compact) {
+    return (
+      <Card className={`px-3 py-2 sm:px-3.5 sm:py-2.5 h-full flex items-center justify-between gap-2 ${interactive}`} onClick={onClick}>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground leading-tight truncate">{label}</p>
+          <p className={`text-base sm:text-lg font-semibold tabular-nums leading-tight ${tone === "warn" ? "text-amber-500" : ""} ${valueClass ?? ""}`}>{value}</p>
+        </div>
+        {icon && <span className="shrink-0 opacity-80">{icon}</span>}
+      </Card>
+    );
+  }
   return (
     <Card className={`p-3 sm:p-4 h-full flex flex-col justify-between ${interactive}`} onClick={onClick}>
       <div className="flex items-center justify-between mb-2 gap-2">
@@ -702,6 +717,7 @@ function StatCard({
     </Card>
   );
 }
+
 
 function EquityCard({ equity, canCompute, onClick }: { equity: number; canCompute: boolean; onClick?: () => void }) {
   const { t } = useLang();
@@ -741,26 +757,37 @@ function TodaysActivityCard({ data }: {
     todayReceivedDa: number; todayDeliveredDa: number;
   };
 }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Card className="p-3 sm:p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground leading-tight">Today's Activity</p>
-        <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0" />
-      </div>
-      <p className="text-lg sm:text-xl font-semibold tabular-nums mb-1">{data.todayCount} tx</p>
-      <div className="text-[10px] sm:text-[11px] text-muted-foreground space-y-0.5 tabular-nums">
-        <div className="flex justify-between gap-2"><span className="truncate">Gold bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todayGoldBought)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">Gold sold</span><span className="text-destructive shrink-0">{fmtG(data.todayGoldSold)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">Silver bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todaySilverBought)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">Silver sold</span><span className="text-destructive shrink-0">{fmtG(data.todaySilverSold)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">Buy total</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayBuyTotal)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">Sell total</span><span className="text-destructive shrink-0">{fmtDA(data.todaySellTotal)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">DA received</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayReceivedDa)}</span></div>
-        <div className="flex justify-between gap-2"><span className="truncate">DA delivered</span><span className="text-destructive shrink-0">{fmtDA(data.todayDeliveredDa)}</span></div>
-      </div>
+    <Card className="px-3 py-2 sm:px-3.5 sm:py-2.5 h-full flex flex-col">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-between gap-2 w-full text-left"
+        aria-expanded={open}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground leading-tight truncate">Today's Activity</p>
+          <p className="text-base sm:text-lg font-semibold tabular-nums leading-tight">{data.todayCount} tx</p>
+        </div>
+        <TrendingUp className={`h-4 w-4 text-emerald-500 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="text-[10px] sm:text-[11px] text-muted-foreground space-y-0.5 tabular-nums mt-2 pt-2 border-t border-border">
+          <div className="flex justify-between gap-2"><span className="truncate">Gold bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todayGoldBought)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">Gold sold</span><span className="text-destructive shrink-0">{fmtG(data.todayGoldSold)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">Silver bought</span><span className="text-emerald-500 shrink-0">{fmtG(data.todaySilverBought)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">Silver sold</span><span className="text-destructive shrink-0">{fmtG(data.todaySilverSold)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">Buy total</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayBuyTotal)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">Sell total</span><span className="text-destructive shrink-0">{fmtDA(data.todaySellTotal)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">DA received</span><span className="text-emerald-500 shrink-0">{fmtDA(data.todayReceivedDa)}</span></div>
+          <div className="flex justify-between gap-2"><span className="truncate">DA delivered</span><span className="text-destructive shrink-0">{fmtDA(data.todayDeliveredDa)}</span></div>
+        </div>
+      )}
     </Card>
   );
 }
+
 
 
 function txTypeBadge(t: RefineryTransaction) {
