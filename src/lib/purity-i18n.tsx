@@ -737,7 +737,7 @@ const en: Dict = {
   // Stock adj dialog
   "sad.newTitle": "New Stock Adjustment Transaction",
   "sad.editTitle": "Edit Stock Adjustment",
-  "sad.metal": "Metal",
+  "sad.metal": "Stock Type",
   "sad.kind": "Adjustment Kind",
   "sad.date": "Date",
   "sad.gold": "Gold (g)",
