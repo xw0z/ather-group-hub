@@ -3135,7 +3135,7 @@ const fr: Dict = {
   "refnp.bd.inventory": "Stock d'Or Pur en Inventaire",
   "refnp.bd.cogr": "Clients doivent à la raffinerie en Or",
   "refnp.bd.rocg": "Raffinerie doit aux clients en Or",
-  "refnp.bd.netPhysical": "Position Nette en Or Pur Physique",
+  "refnp.bd.netPhysical": "Capital de la Raffinerie",
   "refnp.bd.silverEq": "Équivalent Or de l'Argent",
   "refnp.bd.cogrDa": "Clients doivent à la raffinerie en DA (éq. or)",
   "refnp.bd.rocgDa": "Raffinerie doit aux clients en DA (éq. or)",
