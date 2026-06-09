@@ -51,6 +51,7 @@ import {
   renamePremiumCompany,
   deletePremiumCompany,
   createPremiumTransaction,
+  updatePremiumTransaction,
   deletePremiumTransaction,
   GRAMS_PER_OZ,
   type CompanySummary,
