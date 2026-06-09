@@ -282,3 +282,73 @@ export const deletePremiumTransaction = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+const UpdateTxInput = z.object({
+  id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  kind: z.enum(["add", "remove", "adjust", "discount", "premium"]),
+  grams: z.number().finite(),
+  per_oz: z.number().finite().nullable().optional(),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+export const updatePremiumTransaction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.infer<typeof UpdateTxInput>) => UpdateTxInput.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+
+    const { data: prev, error: prevErr } = await supabase
+      .from("swap_premium_transactions")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (prevErr) throw new Error(prevErr.message);
+    if (!prev) throw new Error("Transaction not found");
+
+    let grams = Math.abs(data.grams);
+    if (data.kind === "adjust") grams = data.grams;
+
+    let per_oz: number | null = null;
+    let amount_usd: number | null = null;
+    if (data.kind === "discount" || data.kind === "premium") {
+      per_oz = data.per_oz ?? 0;
+      const ounces = Math.abs(grams) * GRAMS_PER_OZ;
+      amount_usd = ounces * per_oz;
+    }
+
+    const newValues = {
+      company_id: data.company_id,
+      kind: data.kind,
+      grams,
+      per_oz,
+      amount_usd,
+      notes: data.notes ?? null,
+    };
+
+    const { data: row, error } = await supabase
+      .from("swap_premium_transactions")
+      .update(newValues)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await recordAudit({
+      userId,
+      module: "premium",
+      action: "premium_tx_updated",
+      entity_type: "premium_tx",
+      entity_id: data.id,
+      old_values: {
+        company_id: prev.company_id,
+        kind: prev.kind,
+        grams: prev.grams,
+        per_oz: prev.per_oz,
+        amount_usd: prev.amount_usd,
+        notes: prev.notes,
+      },
+      new_values: newValues,
+    });
+    return row as PremiumTx;
+  });

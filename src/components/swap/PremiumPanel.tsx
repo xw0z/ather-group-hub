@@ -51,6 +51,7 @@ import {
   renamePremiumCompany,
   deletePremiumCompany,
   createPremiumTransaction,
+  updatePremiumTransaction,
   deletePremiumTransaction,
   GRAMS_PER_OZ,
   type CompanySummary,
@@ -421,6 +422,7 @@ function CompanyDetail({
 }) {
   const [txs, setTxs] = useState<PremiumTx[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingTx, setEditingTx] = useState<PremiumTx | null>(null);
 
   const reload = async () => {
     if (!summary) return;
@@ -472,9 +474,10 @@ function CompanyDetail({
           <Button variant="outline" onClick={onReport}>
             <FileText className="h-4 w-4 mr-2" /> Statement
           </Button>
-          <NewTransactionDialog
+          <TransactionFormDialog
+            mode="create"
             companyId={summary.company.id}
-            onCreated={() => {
+            onSaved={() => {
               reload();
               onChanged();
             }}
@@ -518,16 +521,46 @@ function CompanyDetail({
         ) : (
           <ul className="divide-y divide-border/60">
             {txs.map((t) => (
-              <TxRow key={t.id} t={t} onDelete={() => handleDeleteTx(t.id)} />
+              <TxRow
+                key={t.id}
+                t={t}
+                onEdit={() => setEditingTx(t)}
+                onDelete={() => handleDeleteTx(t.id)}
+              />
             ))}
           </ul>
         )}
       </div>
+
+      {editingTx && (
+        <TransactionFormDialog
+          mode="edit"
+          companyId={summary.company.id}
+          tx={editingTx}
+          open
+          onOpenChange={(o) => {
+            if (!o) setEditingTx(null);
+          }}
+          onSaved={() => {
+            setEditingTx(null);
+            reload();
+            onChanged();
+          }}
+        />
+      )}
     </section>
   );
 }
 
-function TxRow({ t, onDelete }: { t: PremiumTx; onDelete: () => void }) {
+function TxRow({
+  t,
+  onEdit,
+  onDelete,
+}: {
+  t: PremiumTx;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const meta = KIND_META[t.kind];
   const Icon = meta.icon;
   return (
@@ -579,48 +612,96 @@ function TxRow({ t, onDelete }: { t: PremiumTx; onDelete: () => void }) {
           </>
         )}
       </div>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button size="icon" variant="ghost" className="h-8 w-8">
-            <Trash2 className="h-4 w-4 text-red-400" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="flex items-center gap-1">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          onClick={onEdit}
+          title="Edit transaction"
+        >
+          <Pencil className="h-4 w-4 text-primary" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-8 w-8" title="Delete transaction">
+              <Trash2 className="h-4 w-4 text-red-400" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </li>
   );
 }
 
-function NewTransactionDialog({
-  companyId,
-  onCreated,
-}: {
-  companyId: string;
-  onCreated: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<PremiumKind>("add");
-  const [grams, setGrams] = useState("");
-  const [perOz, setPerOz] = useState("");
-  const [notes, setNotes] = useState("");
+type TransactionFormDialogProps =
+  | {
+      mode: "create";
+      companyId: string;
+      tx?: undefined;
+      open?: undefined;
+      onOpenChange?: undefined;
+      onSaved: () => void;
+    }
+  | {
+      mode: "edit";
+      companyId: string;
+      tx: PremiumTx;
+      open: boolean;
+      onOpenChange: (open: boolean) => void;
+      onSaved: () => void;
+    };
+
+function TransactionFormDialog(props: TransactionFormDialogProps) {
+  const { mode, companyId, onSaved } = props;
+  const isEdit = mode === "edit";
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isEdit ? props.open : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isEdit) props.onOpenChange(v);
+    else setInternalOpen(v);
+  };
+
+  const initialKind: PremiumKind = isEdit ? props.tx.kind : "add";
+  const initialGrams = isEdit ? String(props.tx.grams ?? "") : "";
+  const initialPerOz =
+    isEdit && props.tx.per_oz != null ? String(props.tx.per_oz) : "";
+  const initialNotes = isEdit ? props.tx.notes ?? "" : "";
+
+  const [kind, setKind] = useState<PremiumKind>(initialKind);
+  const [grams, setGrams] = useState(initialGrams);
+  const [perOz, setPerOz] = useState(initialPerOz);
+  const [notes, setNotes] = useState(initialNotes);
   const [submitting, setSubmitting] = useState(false);
+
+  // Re-sync when opening for edit or switching tx
+  useEffect(() => {
+    if (open) {
+      setKind(initialKind);
+      setGrams(initialGrams);
+      setPerOz(initialPerOz);
+      setNotes(initialNotes);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEdit ? props.tx.id : null]);
 
   const gramsNum = parseFloat(grams) || 0;
   const perOzNum = parseFloat(perOz) || 0;
   const ounces = Math.abs(gramsNum) * GRAMS_PER_OZ;
   const charge = ounces * perOzNum;
-
   const isCharge = kind === "discount" || kind === "premium";
 
   const reset = () => {
@@ -635,22 +716,130 @@ function NewTransactionDialog({
     if (!gramsNum) return;
     setSubmitting(true);
     try {
-      await createPremiumTransaction({
-        data: {
-          company_id: companyId,
-          kind,
-          grams: gramsNum,
-          per_oz: isCharge ? perOzNum : null,
-          notes: notes.trim() || null,
-        },
-      });
-      reset();
+      if (isEdit) {
+        await updatePremiumTransaction({
+          data: {
+            id: props.tx.id,
+            company_id: companyId,
+            kind,
+            grams: gramsNum,
+            per_oz: isCharge ? perOzNum : null,
+            notes: notes.trim() || null,
+          },
+        });
+        toast.success("Transaction updated");
+      } else {
+        await createPremiumTransaction({
+          data: {
+            company_id: companyId,
+            kind,
+            grams: gramsNum,
+            per_oz: isCharge ? perOzNum : null,
+            notes: notes.trim() || null,
+          },
+        });
+        reset();
+      }
       setOpen(false);
-      onCreated();
+      onSaved();
+    } catch (err) {
+      console.error("premium tx save failed", err);
+      toast.error(err instanceof Error ? err.message : "Failed to save transaction");
     } finally {
       setSubmitting(false);
     }
   };
+
+  const dialog = (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{isEdit ? "Edit Transaction" : "New Transaction"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <Label>Type</Label>
+          <Select value={kind} onValueChange={(v) => setKind(v as PremiumKind)}>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="add">Add Gold Balance</SelectItem>
+              <SelectItem value="remove">Remove Gold Balance</SelectItem>
+              <SelectItem value="adjust">Balance Adjustment (+/-)</SelectItem>
+              <SelectItem value="discount">Discount Charge</SelectItem>
+              <SelectItem value="premium">Premium Charge</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Gold {kind === "adjust" ? "(grams, +/-)" : "(grams)"}</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={grams}
+            onChange={(e) => setGrams(e.target.value)}
+            placeholder="e.g. 20000"
+            className="mt-1.5 tabular-nums"
+            required
+          />
+        </div>
+        {isCharge && (
+          <>
+            <div>
+              <Label>Rate ($/oz)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={perOz}
+                onChange={(e) => setPerOz(e.target.value)}
+                placeholder="e.g. 20"
+                className="mt-1.5 tabular-nums"
+                required
+              />
+            </div>
+            <div className="rounded-lg border border-border/60 bg-card/60 p-3 text-sm space-y-1 tabular-nums">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Ounces</span>
+                <span>{ounces.toFixed(6)} oz</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Calculation</span>
+                <span>
+                  {ounces.toFixed(2)} × ${perOzNum.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold text-base pt-1 border-t border-border/60">
+                <span>{kind === "discount" ? "Discount" : "Premium"} Charge</span>
+                <span className={kind === "discount" ? "text-sky-400" : "text-fuchsia-400"}>
+                  {fmtUSD(charge)}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+        <div>
+          <Label>Notes (optional)</Label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="mt-1.5"
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={submitting || !gramsNum}>
+          {submitting ? "Saving…" : isEdit ? "Save Changes" : "Save Transaction"}
+        </Button>
+      </form>
+    </DialogContent>
+  );
+
+  if (isEdit) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        {dialog}
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -659,91 +848,11 @@ function NewTransactionDialog({
           <Plus className="h-4 w-4 mr-2" /> New Transaction
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New Transaction</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <Label>Type</Label>
-            <Select value={kind} onValueChange={(v) => setKind(v as PremiumKind)}>
-              <SelectTrigger className="mt-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="add">Add Gold Balance</SelectItem>
-                <SelectItem value="remove">Remove Gold Balance</SelectItem>
-                <SelectItem value="adjust">Balance Adjustment (+/-)</SelectItem>
-                <SelectItem value="discount">Discount Charge</SelectItem>
-                <SelectItem value="premium">Premium Charge</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>
-              Gold {kind === "adjust" ? "(grams, +/-)" : "(grams)"}
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={grams}
-              onChange={(e) => setGrams(e.target.value)}
-              placeholder="e.g. 20000"
-              className="mt-1.5 tabular-nums"
-              required
-            />
-          </div>
-          {isCharge && (
-            <>
-              <div>
-                <Label>Rate ($/oz)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={perOz}
-                  onChange={(e) => setPerOz(e.target.value)}
-                  placeholder="e.g. 20"
-                  className="mt-1.5 tabular-nums"
-                  required
-                />
-              </div>
-              <div className="rounded-lg border border-border/60 bg-card/60 p-3 text-sm space-y-1 tabular-nums">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Ounces</span>
-                  <span>{ounces.toFixed(6)} oz</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Calculation</span>
-                  <span>
-                    {ounces.toFixed(2)} × ${perOzNum.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold text-base pt-1 border-t border-border/60">
-                  <span>{kind === "discount" ? "Discount" : "Premium"} Charge</span>
-                  <span className={kind === "discount" ? "text-sky-400" : "text-fuchsia-400"}>
-                    {fmtUSD(charge)}
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-          <div>
-            <Label>Notes (optional)</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="mt-1.5"
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={submitting || !gramsNum}>
-            {submitting ? "Saving…" : "Save Transaction"}
-          </Button>
-        </form>
-      </DialogContent>
+      {dialog}
     </Dialog>
   );
 }
+
 
 function ReportCompanyStatement({
   summary,
