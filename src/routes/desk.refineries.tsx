@@ -3242,7 +3242,7 @@ function NewStockAdjustmentDialog({
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
             <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
-              Current: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
+              Current Asset Balance: {fmt(cur)} → Projected: <span className={balClass(projected - cur)}>{fmt(projected)}</span>
             </p>
           </div>
           <div className="space-y-2">
