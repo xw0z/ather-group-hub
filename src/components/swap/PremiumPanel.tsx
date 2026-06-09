@@ -852,7 +852,7 @@ function TransactionFormDialog(props: TransactionFormDialogProps) {
     </Dialog>
   );
 }
-}
+
 
 function ReportCompanyStatement({
   summary,
