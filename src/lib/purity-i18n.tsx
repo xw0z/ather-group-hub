@@ -2080,7 +2080,7 @@ const ar: Dict = {
   "refnp.bd.inventory": "مخزون الذهب الخالص",
   "refnp.bd.cogr": "ذهب يدين به العملاء للمصفاة",
   "refnp.bd.rocg": "ذهب تدين به المصفاة للعملاء",
-  "refnp.bd.netPhysical": "صافي مركز الذهب الخالص الفعلي",
+  "refnp.bd.netPhysical": "رأس مال المصفاة",
   "refnp.bd.silverEq": "مكافئ الفضة بالذهب",
   "refnp.bd.cogrDa": "دينار يدين به العملاء للمصفاة (مكافئ ذهب)",
   "refnp.bd.rocgDa": "دينار تدين به المصفاة للعملاء (مكافئ ذهب)",
