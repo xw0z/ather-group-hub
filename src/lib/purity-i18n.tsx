@@ -1791,7 +1791,7 @@ const ar: Dict = {
   "refs.toast.fail": "فشل",
   "sad.newTitle": "معاملة تعديل مخزون جديدة",
   "sad.editTitle": "تعديل المخزون",
-  "sad.metal": "المعدن",
+  "sad.metal": "نوع المخزون",
   "sad.kind": "نوع التعديل",
   "sad.date": "التاريخ",
   "sad.gold": "ذهب (غ)",
