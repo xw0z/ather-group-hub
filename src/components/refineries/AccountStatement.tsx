@@ -25,20 +25,29 @@ const num2 = (n: number) =>
   Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtG = (n: number) => `${num2(n)}`;
 const fmtDA = (n: number) => `${num2(n)}`;
+const pad2 = (n: number) => String(n).padStart(2, "0");
 const fmtDate = (s: string) => {
   try {
     const d = new Date(s.length === 10 ? `${s}T00:00:00Z` : s);
     return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
   } catch { return s; }
 };
+const fmtRowTs = (date: string, createdAt: string) => {
+  try {
+    const c = new Date(createdAt);
+    if (isNaN(c.getTime())) return date;
+    const datePart = String(date).slice(0, 10);
+    return `${datePart} ${pad2(c.getHours())}:${pad2(c.getMinutes())}:${pad2(c.getSeconds())}`;
+  } catch { return date; }
+};
 const fmtDateTime = (s: string) => {
   try {
-    return new Date(s).toLocaleString("en-GB", {
-      year: "numeric", month: "short", day: "2-digit",
-      hour: "2-digit", minute: "2-digit",
-    });
+    const c = new Date(s);
+    if (isNaN(c.getTime())) return s;
+    return `${c.getFullYear()}-${pad2(c.getMonth() + 1)}-${pad2(c.getDate())} ${pad2(c.getHours())}:${pad2(c.getMinutes())}:${pad2(c.getSeconds())}`;
   } catch { return s; }
 };
+
 
 const TYPE_KEYS: Record<StatementRow["type"], string> = {
   gold_received: "ref.statement.type.gold_received",
@@ -342,7 +351,7 @@ function TxTable({ rows, startIndex, t }: { rows: StatementRow[]; startIndex: nu
 
           return (
             <tr key={i} style={{ background: zebra ? PAPER_ALT : PAPER }}>
-              <td style={td}>{fmtDate(r.date)}</td>
+              <td style={{ ...td, whiteSpace: "nowrap" }}>{fmtRowTs(r.date, r.created_at)}</td>
               <td style={td}>{typeLabel}</td>
               <td style={{ ...td, textAlign: "center", fontSize: 9, fontWeight: 700, color: SUB }}>{metalLabel}</td>
               <td style={{ ...td, textAlign: "center" }}>
