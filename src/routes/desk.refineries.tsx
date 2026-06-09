@@ -850,7 +850,7 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
                   onClick={onOpen}
                   className={`border-b border-border last:border-0 ${onOpen ? "cursor-pointer hover:bg-muted/20" : ""}`}
                 >
-                  <td className="p-3 text-muted-foreground">{t.transaction_date}</td>
+                  <td className="p-3 text-muted-foreground whitespace-nowrap tabular-nums">{fmtTxTimestamp(t.transaction_date, (t as { created_at?: string }).created_at)}</td>
                   <td className="p-3 font-mono text-xs">{displayTxNumber(t)}</td>
                   <td className="p-3">
                     {t.transaction_type === "settlement" && t.counterparty_client_name ? (
@@ -902,7 +902,7 @@ function RecentTxTable({ rows, onOpen }: { rows: Array<RefineryTransaction & { c
                       <ClientLabel code={(t as { client_code?: string | null }).client_code} name={t.client_name} />
                     )}
                   </p>
-                  <p className="text-[11px] text-muted-foreground font-mono">{displayTxNumber(t)} · {t.transaction_date}</p>
+                  <p className="text-[11px] text-muted-foreground font-mono">{displayTxNumber(t)} · {fmtTxTimestamp(t.transaction_date, (t as { created_at?: string }).created_at)}</p>
                 </div>
                 <Badge className={`${badge.cls} shrink-0 text-[10px]`}>{badge.label}</Badge>
               </div>
@@ -1455,7 +1455,7 @@ function TransactionsTab({
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {tx.transaction_date} · {tx.transaction_type === "settlement" ? <span className="uppercase">{t("reft.badge.settlement")}</span> : <><span className="capitalize">{tx.direction}</span> · <span className="uppercase">{tx.transaction_type}</span></>}
+                  {fmtTxTimestamp(tx.transaction_date, (tx as { created_at?: string }).created_at)} · {tx.transaction_type === "settlement" ? <span className="uppercase">{t("reft.badge.settlement")}</span> : <><span className="capitalize">{tx.direction}</span> · <span className="uppercase">{tx.transaction_type}</span></>}
                 </p>
                 <div className="mt-2 text-sm tabular-nums">
                   {tx.transaction_type === "gold" ? (
@@ -1517,7 +1517,7 @@ function TransactionsTab({
               )}
               {filteredRows.map((tx) => (
                 <tr key={tx.id} className="border-b border-border last:border-0">
-                  <td className="p-3 text-muted-foreground whitespace-nowrap">{tx.transaction_date}</td>
+                  <td className="p-3 text-muted-foreground whitespace-nowrap tabular-nums">{fmtTxTimestamp(tx.transaction_date, (tx as { created_at?: string }).created_at)}</td>
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{displayTxNumber(tx)}</td>
                   <td className="p-3 whitespace-nowrap">
                     {tx.transaction_type === "settlement" && tx.counterparty_client_name ? (
@@ -3424,9 +3424,9 @@ function passwordStrength(p: string): { label: string; score: number; color: str
 }
 
 function fmtDateTime(s: string | null | undefined): string {
-  if (!s) return "—";
-  try { return new Date(s).toLocaleString(); } catch { return s; }
+  return fmtTimestamp(s);
 }
+
 
 type SwapProfile = Awaited<ReturnType<typeof getSwapOwnProfile>>;
 type SwapPrefs = Awaited<ReturnType<typeof getUserPreferences>>;
@@ -4499,7 +4499,7 @@ function BuySellTab({ refinery, assignment }: { refinery: Refinery; assignment: 
                 const isGold = metal === "gold";
                 return (
                   <tr key={r.id} className="border-b border-border last:border-0">
-                    <td className="p-3 text-muted-foreground tabular-nums">{r.transaction_date}</td>
+                    <td className="p-3 text-muted-foreground tabular-nums whitespace-nowrap">{fmtTxTimestamp(r.transaction_date, (r as { created_at?: string }).created_at)}</td>
                     <td className="p-3 font-mono text-xs">{r.transaction_number}</td>
                     <td className="p-3"><ClientLabel code={(r as { client_code?: string | null }).client_code} name={r.client_name} /></td>
                     <td className="p-3">
