@@ -3353,7 +3353,7 @@ function EditStockAdjustmentDialog({
             <Label>Amount ({metal === "da" ? "DA" : "grams"})</Label>
             <Input type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
             <p className="text-xs text-muted-foreground">
-              After reversing old: {fmt(base)} → Projected: <span className={balClass(projected - base)}>{fmt(projected)}</span>
+              After reversing old: {fmt(base)} → Projected Asset Balance: <span className={balClass(projected - base)}>{fmt(projected)}</span>
             </p>
           </div>
           <div className="space-y-2">
