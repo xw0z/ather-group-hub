@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { recordAudit } from "@/lib/swap-audit.server";
 
-export const GRAMS_PER_OZ = 0.0321507466;
+export const TROY_OZ_PER_GRAM = 0.0321507466;
 
 export type PremiumKind = "add" | "remove" | "adjust" | "discount" | "premium";
 
@@ -218,7 +218,7 @@ export const createPremiumTransaction = createServerFn({ method: "POST" })
     let amount_usd: number | null = null;
     if (data.kind === "discount" || data.kind === "premium") {
       per_oz = data.per_oz ?? 0;
-      const ounces = Math.abs(grams) * GRAMS_PER_OZ;
+      const ounces = Math.abs(grams) * TROY_OZ_PER_GRAM;
       amount_usd = ounces * per_oz;
     }
 
@@ -313,7 +313,7 @@ export const updatePremiumTransaction = createServerFn({ method: "POST" })
     let amount_usd: number | null = null;
     if (data.kind === "discount" || data.kind === "premium") {
       per_oz = data.per_oz ?? 0;
-      const ounces = Math.abs(grams) * GRAMS_PER_OZ;
+      const ounces = Math.abs(grams) * TROY_OZ_PER_GRAM;
       amount_usd = ounces * per_oz;
     }
 

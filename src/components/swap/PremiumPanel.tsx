@@ -53,7 +53,7 @@ import {
   createPremiumTransaction,
   updatePremiumTransaction,
   deletePremiumTransaction,
-  GRAMS_PER_OZ,
+  TROY_OZ_PER_GRAM,
   type CompanySummary,
   type PremiumKind,
   type PremiumTx,
@@ -700,7 +700,7 @@ function TransactionFormDialog(props: TransactionFormDialogProps) {
 
   const gramsNum = parseFloat(grams) || 0;
   const perOzNum = parseFloat(perOz) || 0;
-  const ounces = Math.abs(gramsNum) * GRAMS_PER_OZ;
+  const ounces = Math.abs(gramsNum) * TROY_OZ_PER_GRAM;
   const charge = ounces * perOzNum;
   const isCharge = kind === "discount" || kind === "premium";
 
