@@ -25,6 +25,14 @@ import {
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
 import { logClientAuditEvent } from "@/lib/swap-audit.functions";
+import {
+  fmtDateUTC,
+  fmtG as sharedFmtG,
+  fmtGNum as sharedFmtGNum,
+  fmtUSD as sharedFmtUSD,
+  formatTxNote as sharedFormatTxNote,
+  recomputeCompanySummary,
+} from "@/lib/swap-share-format";
 
 /* -------------------- i18n -------------------- */
 
