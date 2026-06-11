@@ -227,10 +227,15 @@ export const createPremiumTransaction = createServerFn({ method: "POST" })
     let per_oz: number | null = null;
     let amount_usd: number | null = null;
     if (data.kind === "discount" || data.kind === "premium") {
-      per_oz = data.per_oz ?? 0;
+      const p = Number(data.per_oz ?? 0);
+      if (!Number.isFinite(p) || p <= 0) {
+        throw new Error("Price per oz must be greater than 0 for discount or premium transactions.");
+      }
+      per_oz = p;
       const ounces = Math.abs(grams) * TROY_OZ_PER_GRAM;
-      amount_usd = ounces * per_oz;
+      amount_usd = ounces * p;
     }
+
 
     const { data: row, error } = await supabase
       .from("swap_premium_transactions")
@@ -326,10 +331,15 @@ export const updatePremiumTransaction = createServerFn({ method: "POST" })
     let per_oz: number | null = null;
     let amount_usd: number | null = null;
     if (data.kind === "discount" || data.kind === "premium") {
-      per_oz = data.per_oz ?? 0;
+      const p = Number(data.per_oz ?? 0);
+      if (!Number.isFinite(p) || p <= 0) {
+        throw new Error("Price per oz must be greater than 0 for discount or premium transactions.");
+      }
+      per_oz = p;
       const ounces = Math.abs(grams) * TROY_OZ_PER_GRAM;
-      amount_usd = ounces * per_oz;
+      amount_usd = ounces * p;
     }
+
 
     const newValues = {
       company_id: data.company_id,
