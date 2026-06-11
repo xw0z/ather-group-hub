@@ -2307,6 +2307,10 @@ function TransactionReceiptDialog({
     host.style.top = "0";
     host.style.zIndex = "-1";
     host.style.background = "#ffffff";
+    // (F6) Force LTR + English for offscreen export so Arabic mode does not
+    // mirror columns/numbers inside the exported PDF/PNG.
+    host.dir = "ltr";
+    host.lang = "en";
     document.body.appendChild(host);
     const root = createRoot(host);
     try {
@@ -2318,6 +2322,10 @@ function TransactionReceiptDialog({
         );
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
+      // (F7) Wait for web fonts to be ready before snapshotting, otherwise the
+      // first export can capture a fallback font.
+      try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch { /* noop */ }
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
       const target = host.firstElementChild as HTMLElement | null;
       if (!target) return null;
       return await html2canvas(target, {
@@ -3892,6 +3900,9 @@ async function renderStatementToCanvases(
   host.style.top = "0";
   host.style.zIndex = "-1";
   host.style.background = "#ffffff";
+  // (F6) Force LTR + English so Arabic mode does not mirror the exported report.
+  host.dir = "ltr";
+  host.lang = "en";
   document.body.appendChild(host);
   const root = createRoot(host);
   try {

@@ -1259,15 +1259,15 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       .limit(1);
     let openingGold = 0;
     let openingDa = 0;
+    let openingSource: "prior" | "first_in_window" | "client_current" = "client_current";
     if (priorTx && priorTx.length > 0) {
       openingGold = Number(priorTx[0].new_purity_balance ?? 0);
       openingDa = Number(priorTx[0].new_da_balance ?? 0);
-    } else {
-      // No prior settled transactions: fall back to the client's stored opening
-      // balance (used for imported clients / fresh data with no transactions yet).
-      openingGold = Number((cli as { purity_balance?: number | string | null }).purity_balance ?? 0);
-      openingDa = Number((cli as { da_balance?: number | string | null }).da_balance ?? 0);
+      openingSource = "prior";
     }
+    // (F2) The remainder of the opening fallback (first in-window prev balance
+    // OR client's current balance if no history at all) is resolved AFTER we
+    // load the in-window transactions, below.
 
     // Transactions in window (settled)
     const { data: txs, error: tErr } = await supabaseAdmin
@@ -1280,6 +1280,23 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       .lte("settled_at", toTs)
       .order("settled_at", { ascending: true });
     if (tErr) throw new Error(tErr.message);
+
+    // (F2) Resolve opening when there is no prior settled transaction.
+    if (openingSource !== "prior") {
+      if ((txs ?? []).length > 0) {
+        // Use the first in-window transaction's stored "previous" snapshot —
+        // this represents the balance just before the first in-window movement.
+        const first = txs![0];
+        openingGold = Number((first as { previous_purity_balance?: number | null }).previous_purity_balance ?? 0);
+        openingDa = Number((first as { previous_da_balance?: number | null }).previous_da_balance ?? 0);
+        openingSource = "first_in_window";
+      } else {
+        // No history at all → use client's current stored balance.
+        openingGold = Number((cli as { purity_balance?: number | string | null }).purity_balance ?? 0);
+        openingDa = Number((cli as { da_balance?: number | string | null }).da_balance ?? 0);
+        openingSource = "client_current";
+      }
+    }
 
     // Resolve counterparty names for settlements (single batch)
     const counterIds = Array.from(new Set((txs ?? [])
@@ -1302,11 +1319,22 @@ export const getAccountStatement = createServerFn({ method: "POST" })
     const rows: StatementRow[] = [];
     let totalGoldRecv = 0, totalGoldDeliv = 0, totalDaRecv = 0, totalDaPaid = 0, totalFees = 0;
 
+    // (F1) Compute running balances from chronological deltas at query time.
+    // Stored snapshots (new_purity_balance / new_da_balance) are kept on the
+    // transaction rows for audit, but we deliberately ignore them here so
+    // editing/deleting any non-latest transaction cannot leave stale snapshots
+    // visible in the statement.
+    let runGold = openingGold;
+    let runDa = openingDa;
+    const pushRow = (r: Omit<StatementRow, "running_gold" | "running_da">) => {
+      runGold += (r.gold_credit - r.gold_debit);
+      runDa += (r.da_credit - r.da_debit);
+      rows.push({ ...r, running_gold: runGold, running_da: runDa });
+    };
+
     for (const tx of txs ?? []) {
       const dateStr = tx.transaction_date ?? String(tx.settled_at).slice(0, 10);
       const refn = tx.transaction_number;
-      const runGold = Number(tx.new_purity_balance ?? 0);
-      const runDa = Number(tx.new_da_balance ?? 0);
 
       if (tx.transaction_type === "settlement") {
         const kind = (tx as any).settlement_kind as "gold" | "da" | null;
@@ -1328,34 +1356,49 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           else { daCredit = amount; totalDaRecv += amount; }
         }
 
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "settlement",
           description: descPrefix,
           client_name: cliLabel,
           gold_debit: goldDebit, gold_credit: goldCredit,
           da_debit: daDebit, da_credit: daCredit,
-          running_gold: runGold, running_da: runDa,
           original_weight: kind === "gold" ? amount : undefined,
           fee_price: fee > 0 ? Number(tx.fee_price) || 0 : undefined,
           fee_total: fee > 0 ? fee : undefined,
           weight_at_730: kind === "gold" && fee > 0 ? (amount * 1000) / 730 : undefined,
         });
 
-        if (fee > 0 && !isFrom) {
-          totalFees += fee;
+        // (F3) Gold settlement with refining fee → emit a separate Refining Fee
+        // row so the DA balance change is visible. SQL convention:
+        //   from client: DA += fee   (credit)
+        //   to   client: DA -= fee   (debit)
+        if (kind === "gold" && fee > 0) {
+          const feeDaCredit = isFrom ? fee : 0;
+          const feeDaDebit  = isFrom ? 0 : fee;
+          pushRow({
+            date: dateStr, created_at: String(tx.settled_at),
+            reference: refn, type: "refining_fee",
+            description: `Refining Fee — ${cliLabel}`,
+            client_name: cliLabel,
+            gold_debit: 0, gold_credit: 0,
+            da_debit: feeDaDebit, da_credit: feeDaCredit,
+            original_weight: amount, original_purity: 1000,
+            weight_at_730: (amount * 1000) / 730,
+            fee_price: Number(tx.fee_price) || 0, fee_total: fee,
+          });
+          if (!isFrom) totalFees += fee;
         }
       } else if (tx.transaction_type === "gold" && tx.direction === "receiving") {
         const gold = Number(tx.total_pure_weight) || 0;
         totalGoldRecv += gold;
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "gold_received",
           description: `Gold Received — ${cliLabel}`,
           client_name: cliLabel,
           gold_debit: 0, gold_credit: gold,
           da_debit: 0, da_credit: 0,
-          running_gold: runGold, running_da: runDa,
         });
         if (Number(tx.total_refining_fee) > 0) {
           const orig_w = Number(tx.total_gross_weight) || 0;
@@ -1363,14 +1406,13 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           const w730 = orig_p > 0 ? (orig_w * orig_p) / 730 : 0;
           const fee = Number(tx.total_refining_fee) || 0;
           totalFees += fee;
-          rows.push({
+          pushRow({
             date: dateStr, created_at: String(tx.settled_at),
             reference: refn, type: "refining_fee",
             description: `Refining Fee — ${cliLabel}`,
             client_name: cliLabel,
             gold_debit: 0, gold_credit: 0,
             da_debit: fee, da_credit: 0,
-            running_gold: runGold, running_da: runDa,
             original_weight: orig_w, original_purity: orig_p,
             weight_at_730: w730, fee_price: Number(tx.fee_price) || 0, fee_total: fee,
           });
@@ -1378,38 +1420,35 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       } else if (tx.transaction_type === "gold" && tx.direction === "delivery") {
         const gold = Number(tx.total_pure_weight) || 0;
         totalGoldDeliv += gold;
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "gold_delivered",
           description: `Gold Delivered — ${cliLabel}`,
           client_name: cliLabel,
           gold_debit: gold, gold_credit: 0,
           da_debit: 0, da_credit: 0,
-          running_gold: runGold, running_da: runDa,
         });
       } else if (tx.transaction_type === "da" && tx.direction === "receiving") {
         const da = Number(tx.da_amount) || 0;
         totalDaRecv += da;
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "da_received",
           description: `DA Payment Received — ${cliLabel}`,
           client_name: cliLabel,
           gold_debit: 0, gold_credit: 0,
           da_debit: 0, da_credit: da,
-          running_gold: runGold, running_da: runDa,
         });
       } else if (tx.transaction_type === "da" && tx.direction === "delivery") {
         const da = Number(tx.da_amount) || 0;
         totalDaPaid += da;
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn, type: "da_paid",
           description: `DA Payment Paid — ${cliLabel}`,
           client_name: cliLabel,
           gold_debit: 0, gold_credit: 0,
           da_debit: da, da_credit: 0,
-          running_gold: runGold, running_da: runDa,
         });
       } else if (tx.transaction_type === "buysell" && (tx as any).buysell_settlement === "settlement") {
         const metal = ((tx as any).buysell_metal ?? "gold") as "gold" | "silver";
@@ -1417,11 +1456,9 @@ export const getAccountStatement = createServerFn({ method: "POST" })
         const weight = Number((tx as any).buysell_weight) || 0;
         const total = Number((tx as any).buysell_total) || 0;
         const isBuy = kind === "buy";
-        // Buy: refinery owes client → DA credit. Sell: client owes refinery → DA debit.
         const daDebit = isBuy ? 0 : total;
         const daCredit = isBuy ? total : 0;
-        if (isBuy) totalDaRecv += 0; // not a DA receipt from the client's POV
-        rows.push({
+        pushRow({
           date: dateStr, created_at: String(tx.settled_at),
           reference: refn,
           type: isBuy ? "buy_metal" : "sell_metal",
@@ -1430,7 +1467,6 @@ export const getAccountStatement = createServerFn({ method: "POST" })
           metal,
           gold_debit: 0, gold_credit: 0,
           da_debit: daDebit, da_credit: daCredit,
-          running_gold: runGold, running_da: runDa,
         });
       }
     }
