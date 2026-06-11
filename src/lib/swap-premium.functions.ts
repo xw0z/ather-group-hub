@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { recordAudit } from "@/lib/swap-audit.server";
+import { assertPermission } from "@/lib/permissions.functions";
+
 
 export const TROY_OZ_PER_GRAM = 0.0321507466;
 
