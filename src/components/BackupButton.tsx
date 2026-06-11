@@ -22,10 +22,9 @@ export function BackupButton({
       const res = await run({ data: { app } });
       const blob = new Blob([res.json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const ts = res.generatedAt.replace(/[:.]/g, "-");
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${app}-backup_${ts}.json`;
+      a.download = res.fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
