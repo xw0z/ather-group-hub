@@ -1,73 +1,74 @@
-# Settlement = One Transaction (Plan)
+## Goal
 
-Goal: a settlement looks and behaves like a single transaction (one row, one number, one receipt, editable), while still updating both clients' balances correctly.
+Today `can_access_refinery()` only checks membership. The `refinery_users.role` column (`manager` / `staff` / `viewer`) exists but is **not enforced** for any mutating action. Any member with refinery access can call any `refinery_*` RPC. We will enforce roles in the database AND in the server functions, so a hostile client cannot bypass UI hiding.
 
-## Approach
+## Role Matrix (please confirm or adjust)
 
-Settlements are currently stored as **two** rows (one per client) so each client's account statement can show their side of the deal. Throwing that away would force a risky migration of existing data. Instead:
+| Action | viewer | staff | manager | admin (platform) |
+|---|---|---|---|---|
+| View transactions / clients / stock / reports | ✅ | ✅ | ✅ | ✅ |
+| Create gold/DA receiving & delivery transactions | ❌ | ✅ | ✅ | ✅ |
+| Edit / reverse a transaction | ❌ | ❌ | ✅ | ✅ |
+| Delete a transaction | ❌ | ❌ | ✅ | ✅ |
+| Buy / Sell (financial position change) | ❌ | ❌ | ✅ | ✅ |
+| Create / edit / delete settlement | ❌ | ❌ | ✅ | ✅ |
+| Stock adjustment (create / edit / delete) | ❌ | ❌ | ✅ | ✅ |
+| Client create / edit / delete | ❌ | ❌ | ✅ | ✅ |
+| Client notes (add) | ❌ | ✅ | ✅ | ✅ |
+| Price log entry | ❌ | ✅ | ✅ | ✅ |
+| Save / export reports | ❌ | ✅ | ✅ | ✅ |
+| Refinery settings (name, fees, branding) | ❌ | ❌ | ❌ | ✅ |
+| Manage refinery users | ❌ | ❌ | ❌ | ✅ |
+| Backup / restore | ❌ | ❌ | ❌ | ✅ |
 
-- Keep two backend rows (one per client), but **hide the second one** from the transactions list.
-- **One shared reference number** — drop the `-A` / `-B` suffix. Both rows share `REFINE-202606-0005`.
-- New **Edit Settlement** flow updates both rows atomically and recalculates both clients' balances.
-- Existing settlements keep working — old `-A`/`-B` numbers are normalised for display.
+Two items I want your explicit answer on:
+1. **Buy/Sell** → I'm proposing **manager+** because it moves real capital. The original spec said "staff: create transactions only" which is ambiguous. Confirm manager-only?
+2. **Refinery settings** (the refinery name, default fees, etc.) → I'm proposing **admin-only**. Originally you wrote "no settings" for staff but didn't say if managers can edit settings. Confirm admin-only, or allow managers?
 
-## What changes (user-visible)
+## Implementation
 
-1. **Transactions list** shows one row per settlement.
-2. **Client cell**: `AB1234 (Acme) → CD5678 (Beta)`.
-3. **Pure amount** appears once.
-4. **Edit** button is available on settlements, same as gold transactions. The edit dialog lets you change: From client, To client, Pure amount (or DA), Apply-fee toggle + fee prices, Date, Notes.
-5. After editing, both clients' balances are recomputed from scratch on the server (reverse old → apply new) in one transaction.
-6. **Receipt**: one settlement receipt; the number shown is the shared reference (no `-A`/`-B`).
-7. **Reference format**: `REFINE-202606-0005` (no suffix). Old rows display the same — the `-A`/`-B` is stripped at render time.
+### 1. Database migration
 
-## Technical details
+- Add `public.has_refinery_role(_uid uuid, _rid uuid, _min_role refinery_role) RETURNS boolean` (SECURITY DEFINER). Logic: platform admin → true; else look up the user's role for the refinery and compare against an ordering `viewer < staff < manager`.
+- Add role gates at the top of each mutating SECURITY DEFINER function:
+  - `refinery_create_buysell` → require `manager`
+  - `refinery_create_settlement`, `refinery_edit_settlement`, `refinery_delete_settlement` → `manager`
+  - `refinery_create_stock_adjustment`, `refinery_edit_stock_adjustment`, `refinery_delete_stock_adjustment` → `manager`
+  - `refinery_settle_transaction` → `staff` (settling a pending receive/delivery)
+  - `refinery_reverse_transaction` → `manager`
+  - `refinery_restore_from_payload` → already `is_platform_admin`, keep as-is
+- Tighten `refinery_clients` RLS: split `rc_all` into `SELECT` (any member) + `INSERT/UPDATE/DELETE` (manager+).
+- Tighten `refinery_client_notes` RLS: `SELECT` any member; `INSERT/UPDATE/DELETE` staff+.
+- Tighten `refinery_price_log` RLS: `SELECT` any member; `INSERT` staff+.
+- Tighten `refinery_report_history` RLS: `SELECT` any member; `INSERT` staff+.
+- Tighten `refinery_position_snapshots`: `SELECT` any member; `INSERT/UPDATE/DELETE` manager+.
+- `refinery_stock`, `refinery_stock_movements`, `refinery_transactions`, `refinery_transaction_gold_bars`: already SELECT-only or written exclusively by SECURITY DEFINER functions — no policy changes needed; the function-level gate is sufficient.
+- `refinery_audit_log`, `refinery_backups`, `refinery_backup_settings`, `refinery_users`: already admin-only — no change.
 
-### Database (single migration)
+### 2. Server function changes (`src/lib/refineries.functions.ts`)
 
-- `refinery_create_settlement`: write the **same canonical number** to both rows (no `-A`/`-B`).
-- New `public.refinery_edit_settlement(_group_id, _from_client, _to_client, _kind, _amount, _apply_fee, _from_fee_price, _to_fee_price, _date, _notes)`:
-  1. Load both existing rows for the group `FOR UPDATE`.
-  2. Reverse their effect on each client's balance using the stored `previous_*` / `new_*` snapshots.
-  3. Delete the two rows (or update them in place if the from/to client did not change).
-  4. Re-run the same logic as `refinery_create_settlement`, reusing the existing `settlement_group_id` and shared transaction number.
-  5. Append a row to `refinery_audit_log` (`action='settlement.edit'`, old/new payload).
-- `refinery_delete_settlement` stays as-is; it already cleans both rows.
+- Add a tiny helper `requireRefineryRole(refineryId, minRole)` that runs an RPC to `has_refinery_role` and throws `Error("Forbidden: requires X role")` on failure. Call it at the top of every `createServerFn` that mutates: create/edit/delete transaction, buy/sell, settlement, stock adjustment, client CRUD, settings updates, reports save, etc.
+- The two SECURITY DEFINER paths (DB functions + server-fn check) are belt-and-suspenders: the DB function is the real guarantee; the server-fn check returns a clean error message before the SQL even runs.
 
-### Backend (server functions)
+### 3. UI (out of scope for this task, optional follow-up)
 
-- `src/lib/refineries.functions.ts`:
-  - Add `editSettlement` (mirrors `createSettlement` + takes `group_id`). Calls the new RPC.
-  - `listTransactions`: append `WHERE settlement_role IS DISTINCT FROM 'to'` so the list returns only the "from" row for each settlement. Per-client statements (`getAccountStatement`) are untouched — they already filter by `client_id` and need both rows.
-  - Add a small display helper `displayTxNumber(tx)` that returns `tx.transaction_number.replace(/-[AB]$/, "")`. Used by the UI and the receipt.
+The user explicitly said "do not rely only on hiding buttons in the UI", so we focus on the server. I will NOT change the UI in this turn. Once the server enforcement is shipped, we can do a follow-up to grey out buttons for viewer/staff to match.
 
-### Frontend
+### 4. Migration safety
 
-- `src/routes/desk.refineries.tsx`
-  - `TransactionsTab` + `RecentTxTable`:
-    - Use `displayTxNumber` in the reference column.
-    - Client cell for settlements: `<ClientLabel code from_code name from_name /> → <ClientLabel code to_code name to_name />` (already partly there via `counterparty_client_name`; we'll wire `counterparty_client_code`).
-    - Remove the `tx.transaction_type !== "settlement"` guard on the Edit button.
-  - `TransactionFormPage`:
-    - Remove the "Settlements cannot be edited" block.
-    - On edit submit for `type === "settlement"`, call `editSettlement({ group_id, ... })` instead of `createSettlement`.
-    - Pre-fill the form from the loaded settlement (use existing `getSettlement` by `settlement_group_id`).
-  - `TransactionReceiptDialog`: use `displayTxNumber` for the displayed reference and the upload filename.
+All existing users currently have `role='manager'`, so no one gets locked out. New staff/viewer users will be correctly restricted from day one.
 
-- `src/components/refineries/SettlementReceipt.tsx`
-  - Replace the local `receiptNo = transaction_number.replace(/-A$/, "")` with `displayTxNumber` (handles both `-A` and `-B`).
-  - Show the shared number once at the top; remove the per-party "Ref" line (or relabel to `Side: From / To`).
+## Rollout
 
-### What is intentionally NOT changed
+1. Migration 1: add `has_refinery_role()` helper.
+2. Migration 2: add role gates inside each mutating DB function (one ALTER block per function via `CREATE OR REPLACE FUNCTION`).
+3. Migration 3: tighten the RLS policies listed above.
+4. Code edit: add `requireRefineryRole()` server-fn helper and call it in the handlers listed above.
 
-- DB schema of `refinery_transactions` — no column drops, no data migration of historical `-A`/`-B` rows. They continue to work and now also display as one row.
-- `getAccountStatement` — still consumes both rows so each client sees their own side. This is correct.
-- Delete flow — already handles both rows via `refinery_delete_settlement`.
+After approval I will execute these in order.
 
-## Acceptance check (after build)
+## Confirm before I proceed
 
-- Create a new settlement → one row in the list, number `REFINE-YYYYMM-NNNN`, client cell shows `FROM → TO`.
-- Open an old settlement (`-A`/`-B`) → renders as one row with normalised number.
-- Edit a settlement: change amount + swap From/To → both clients' balances reflect only the new values.
-- Delete a settlement → both rows gone, both balances restored.
-- Receipt: one PDF, one number, balances of both parties shown.
+- ✅ / ❌ Role matrix above
+- ✅ / ❌ Buy/Sell = manager-only
+- ✅ / ❌ Refinery settings = admin-only
