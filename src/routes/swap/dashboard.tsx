@@ -2453,33 +2453,47 @@ function MarginDetails({
   margin: ReturnType<typeof computeMargin>;
   usdBalance: number;
 }) {
-  const tier = margin.tier;
-  const tierBorder =
-    tier === "safe"
+  // H4: when XAU price is missing/invalid, do NOT show $0 gold value, "Safe"
+  // status, or 0.00% margin level — those would lie to the operator. Lock
+  // the row to a clear "Price unknown" state and hide derived numbers.
+  const priceUnknown = xau === null || !Number.isFinite(xau) || xau <= 0;
+  const noGold = goldKg === 0;
+  const tier = priceUnknown ? "warning" : margin.tier;
+  const tierBorder = priceUnknown
+    ? "border-slate-500/40 bg-slate-500/5"
+    : tier === "safe"
       ? "border-green-500/40 bg-green-500/5"
       : tier === "warning"
         ? "border-amber-500/40 bg-amber-500/5"
         : tier === "critical"
           ? "border-red-600/60 bg-red-600/10"
           : "border-red-500/40 bg-red-500/5";
-  const tierBadge =
-    tier === "safe"
+  const tierBadge = priceUnknown
+    ? "bg-slate-500/20 text-slate-500"
+    : tier === "safe"
       ? "bg-green-500/20 text-green-600"
       : tier === "warning"
         ? "bg-amber-500/20 text-amber-600"
         : tier === "critical"
           ? "bg-red-600/25 text-red-700"
           : "bg-red-500/20 text-red-600";
-  const tierLabel =
-    tier === "safe"
+  const tierLabel = priceUnknown
+    ? "⚠ Price unknown"
+    : tier === "safe"
       ? "✓ Safe"
       : tier === "warning"
         ? "⚠ Warning"
         : tier === "critical"
           ? "⛔ Critical margin needed"
           : "⚠ Margin needed";
-  const diffAccent: "green" | "amber" | "red" =
-    tier === "safe" ? "green" : tier === "warning" ? "amber" : "red";
+  const diffAccent: "green" | "amber" | "red" | undefined = priceUnknown
+    ? undefined
+    : tier === "safe"
+      ? "green"
+      : tier === "warning"
+        ? "amber"
+        : "red";
+  const dash = "—";
   return (
     <div className={`mt-3 rounded-md border p-3 ${tierBorder}`}>
       <div className="flex items-center justify-between mb-2">
@@ -2487,9 +2501,16 @@ function MarginDetails({
           Margin details
         </div>
         <span className={`text-[11px] px-2 py-0.5 rounded font-semibold ${tierBadge}`}>
-          {tierLabel} · {fmt(margin.marginLevelPct)}%
+          {tierLabel}
+          {!priceUnknown && !noGold ? ` · ${fmt(margin.marginLevelPct)}%` : ""}
         </span>
       </div>
+      {priceUnknown && (
+        <div className="text-[11px] text-amber-600 mb-2 px-2">
+          XAUUSD price is not available. Exposure, required margin and margin
+          level cannot be computed.
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-1.5 text-xs">
         <div className="col-span-2">
           <Row
@@ -2509,30 +2530,49 @@ function MarginDetails({
         )}
         <Row
           label="Gold Value (kg × 32.1507 × XAU)"
-          value={xau !== null ? `$${fmt(margin.goldValue)}` : "—"}
+          value={priceUnknown ? "Price unknown" : `$${fmt(margin.goldValue)}`}
         />
-        <Row label="XAUUSD price" value={xau !== null ? `$${fmt(xau)}/oz` : "not set"} />
+        <Row
+          label="XAUUSD price"
+          value={priceUnknown ? "not set" : `$${fmt(xau as number)}/oz`}
+        />
         <Row label="Margin %" value={`${fmt(marginPct)}%`} />
-        <Row label="Total exposure (= Gold Value)" value={`$${fmt(margin.totalExposure)}`} />
-        <Row label="Required Margin (Gold Value × Margin %)" value={`$${fmt(margin.requiredMargin)}`} />
+        <Row
+          label="Total exposure (= Gold Value)"
+          value={priceUnknown ? dash : `$${fmt(margin.totalExposure)}`}
+        />
+        <Row
+          label="Required Margin (Gold Value × Margin %)"
+          value={priceUnknown ? dash : `$${fmt(margin.requiredMargin)}`}
+        />
         <Row
           label="Equity (USD Balance + Gold Value)"
-          value={fmtMoney(margin.equity)}
-          accent={margin.equity < 0 ? "red" : undefined}
+          value={priceUnknown ? dash : fmtMoney(margin.equity)}
+          accent={!priceUnknown && margin.equity < 0 ? "red" : undefined}
         />
         <Row
           label="Available Margin (= Equity)"
-          value={fmtMoney(margin.availableMargin)}
-          accent={margin.availableMargin < 0 ? "red" : undefined}
+          value={priceUnknown ? dash : fmtMoney(margin.availableMargin)}
+          accent={!priceUnknown && margin.availableMargin < 0 ? "red" : undefined}
         />
-        <Row label="Margin level (Equity ÷ Required × 100)" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
+        <Row
+          label="Margin level (Equity ÷ Required × 100)"
+          value={
+            priceUnknown
+              ? dash
+              : noGold || margin.requiredMargin <= 0
+                ? "N/A"
+                : `${fmt(margin.marginLevelPct)}%`
+          }
+          accent={diffAccent}
+        />
         <Row
           label={
             margin.difference >= 0
               ? "Difference (Equity − Required) · extra available"
               : "Difference (Equity − Required) · needs to add"
           }
-          value={`$${fmt(Math.abs(margin.difference))}`}
+          value={priceUnknown ? dash : `$${fmt(Math.abs(margin.difference))}`}
           accent={diffAccent}
         />
       </div>
