@@ -294,21 +294,32 @@ export const checkClientCode = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z.object({
       code: codeSchema,
+      refineryId: z.string().uuid(),
       excludeClientId: z.string().uuid().optional().nullable(),
     }).parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    // M6: gate access to this refinery, and scope prefix collision lookup
+    // to the same refinery to avoid enumerating client codes across tenants.
+    const { data: allowed } = await supabaseAdmin.rpc("can_access_refinery", {
+      _uid: context.userId,
+      _rid: data.refineryId,
+    });
+    if (!allowed) throw new Error("Forbidden");
+
     const prefix = data.code.slice(0, 2);
     const exclude = data.excludeClientId ?? null;
     const [{ data: dup }, { data: prefixHits }] = await Promise.all([
       supabaseAdmin
         .from("refinery_clients")
         .select("id, name")
+        .eq("refinery_id", data.refineryId)
         .eq("code", data.code)
         .limit(2),
       supabaseAdmin
         .from("refinery_clients")
         .select("id, name, code")
+        .eq("refinery_id", data.refineryId)
         .ilike("code", `${prefix}%`)
         .limit(20),
     ]);
@@ -323,6 +334,7 @@ export const checkClientCode = createServerFn({ method: "POST" })
       prefixOthers: prefixOthers.map((c) => ({ name: c.name, code: c.code as string })),
     };
   });
+
 
 // =========================================================
 // Transactions

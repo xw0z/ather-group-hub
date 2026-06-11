@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordAudit, type AuditModule } from "@/lib/swap-audit.server";
+import { assertPermission } from "@/lib/permissions.functions";
+
 
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
 const positionTypeRule = z.enum(["long", "short"]);
@@ -98,13 +100,44 @@ export async function assertSwapUser(userId: string): Promise<void> {
 
 type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
-// Forex/CFD swap rollover multipliers by weekday (UTC).
+// Forex/CFD swap rollover multipliers by weekday.
 // Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
-// Wednesday charges 3 days to cover the weekend; Sat/Sun = 0.
+// Wednesday charges 3 days to cover the weekend; Sat/Sun = 0 by default.
+// Business timezone is Asia/Dubai (UTC+4, no DST) so weekday boundaries
+// align with the Dubai trading day, not UTC.
 const SWAP_DAY_MULTIPLIERS = [0, 1, 1, 3, 1, 1, 0] as const;
-export function swapDayMultiplier(date: Date = new Date()): number {
-  return SWAP_DAY_MULTIPLIERS[date.getUTCDay()];
+
+// Day-of-week (0=Sun..6=Sat) in Asia/Dubai. Dubai has no DST, fixed UTC+4,
+// so we can compute this with a fixed offset without Intl.
+export function dubaiWeekday(date: Date = new Date()): number {
+  const dubai = new Date(date.getTime() + 4 * 60 * 60 * 1000);
+  return dubai.getUTCDay();
 }
+
+export function swapDayMultiplier(date: Date = new Date()): number {
+  return SWAP_DAY_MULTIPLIERS[dubaiWeekday(date)];
+}
+
+// Settings-aware multiplier. Honours admin settings:
+//   wednesday_multiplier (default 3), skip_saturday (default true), skip_sunday (default true).
+export function swapDayMultiplierFromSettings(
+  date: Date,
+  settings: {
+    wednesday_multiplier?: number | null;
+    skip_saturday?: boolean | null;
+    skip_sunday?: boolean | null;
+  } | null | undefined,
+): number {
+  const wd = dubaiWeekday(date);
+  const wedMult = Number(settings?.wednesday_multiplier ?? 3);
+  const skipSat = settings?.skip_saturday ?? true;
+  const skipSun = settings?.skip_sunday ?? true;
+  if (wd === 0) return skipSun ? 0 : 1; // Sunday
+  if (wd === 6) return skipSat ? 0 : 1; // Saturday
+  if (wd === 3) return wedMult;          // Wednesday
+  return 1;
+}
+
 
 // Effective annual rate for a client given their position type.
 function effectiveAnnualRate(c: {
@@ -208,6 +241,8 @@ export const createSwapClient = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "create");
+
     const { data: row, error } = await supabaseAdmin
       .from("swap_clients")
       .insert({
@@ -261,6 +296,8 @@ export const updateSwapClient = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "edit");
+
     const patch: {
       code?: string;
       usd_balance?: number;
@@ -387,6 +424,8 @@ export const deleteSwapClient = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "delete");
+
     const { data: row } = await supabaseAdmin
       .from("swap_clients")
       .select("code")
@@ -452,7 +491,12 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
       }
     }
 
-    const todayMultiplier = swapDayMultiplier(new Date());
+    const { data: feeSettings } = await supabaseAdmin
+      .from("swap_settings")
+      .select("wednesday_multiplier, skip_saturday, skip_sunday")
+      .eq("id", "global")
+      .maybeSingle();
+    const todayMultiplier = swapDayMultiplierFromSettings(new Date(), feeSettings);
     return {
       today,
       todayMultiplier,
@@ -466,7 +510,12 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const addExp = Number(c.additional_exposure_pct ?? 5);
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
         const baseDaily = (effBal * effRate) / 100 / 365;
-        const liveDaily = baseDaily * todayMultiplier;
+        // M3: clamp negative-balance long clients — never create a negative fee
+        // (which would otherwise become a credit). Short clients keep sign.
+        const baseDailyClamped =
+          positionType === "long" && effBal < 0 ? 0 : baseDaily;
+        const liveDaily = baseDailyClamped * todayMultiplier;
+
 
         return {
           id: c.id,
@@ -581,6 +630,14 @@ export async function runDailyFeeJob() {
     xauusd = null;
   }
 
+  // Load fee settings once. wednesday_multiplier / skip_saturday / skip_sunday
+  // control day-of-week behavior so admin settings actually drive calculation.
+  const { data: feeSettings } = await supabaseAdmin
+    .from("swap_settings")
+    .select("wednesday_multiplier, skip_saturday, skip_sunday")
+    .eq("id", "global")
+    .maybeSingle();
+
   const today = new Date().toISOString().slice(0, 10);
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
@@ -591,7 +648,7 @@ export async function runDailyFeeJob() {
 
   // Determine which dates to write. Default: just today.
   // Backfill: for each client, fill any missing weekdays since their last
-  // snapshot up to today. Sat/Sun naturally skip (multiplier 0).
+  // snapshot up to today. Weekend skipping driven by settings.
   // Look back at most 14 days to bound the work.
   const MAX_BACKFILL_DAYS = 14;
   const { data: lastByClient } = await supabaseAdmin
@@ -646,7 +703,15 @@ export async function runDailyFeeJob() {
     const last = lastDateByClient.get(c.id) ?? null;
     const dates = last === today ? [today] : datesBetween(last, today);
     for (const d of dates) {
-      const mult = swapDayMultiplier(new Date(`${d}T00:00:00Z`));
+      const mult = swapDayMultiplierFromSettings(
+        new Date(`${d}T00:00:00Z`),
+        feeSettings,
+      );
+      // M3: never produce a negative daily fee for long clients (negative
+      // effective balance must not create a credit). Short clients keep sign.
+      const baseDaily = (effBal * effRate) / 100 / 365;
+      const baseDailyClamped =
+        positionType === "long" && effBal < 0 ? 0 : baseDaily;
       rows.push({
         client_id: c.id,
         fee_date: d,
@@ -658,7 +723,7 @@ export async function runDailyFeeJob() {
         effective_balance: effBal,
         day_multiplier: mult,
         position_type: positionType,
-        daily_fee: ((effBal * effRate) / 100 / 365) * mult,
+        daily_fee: baseDailyClamped * mult,
         created_at: nowIso,
       });
     }
@@ -666,11 +731,14 @@ export async function runDailyFeeJob() {
 
 
   if (rows.length > 0) {
+    // M1: idempotent insert — never overwrite a fee that has already been
+    // committed for (client_id, fee_date). Cron retries are safe.
     const { error: upErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .upsert(rows, { onConflict: "client_id,fee_date" });
+      .upsert(rows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
     if (upErr) throw new Error(upErr.message);
   }
+
 
   let whatsapp: { sent: number; failed: number; skipped?: string } = { sent: 0, failed: 0 };
   try {
