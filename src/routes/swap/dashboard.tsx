@@ -914,7 +914,7 @@ function DashboardOverview({
         ]);
         const totalGrams = companies.reduce((s, x) => s + (x.total_balance_grams || 0), 0);
         const todayStr = new Date().toISOString().slice(0, 10);
-        const txToday = txs.filter((t) => (t.created_at ?? "").slice(0, 10) === todayStr).length;
+        const txToday = txs.rows.filter((t) => (t.created_at ?? "").slice(0, 10) === todayStr).length;
         if (alive) setPremium({ totalGrams, txToday });
       } catch {
         if (alive) setPremium({ totalGrams: 0, txToday: 0 });
