@@ -489,10 +489,11 @@ function CompanyDetail({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-5">
           <Stat
-            label="Total Gold (without Discount / Premium)"
+            label="Available — No D/P"
             value={fmtG(summary.clean_remaining_grams)}
             tone={summary.clean_remaining_grams < 0 ? "danger" : "ok"}
             accent
+            tooltip="Total gold balance (Add − Remove + Adjust) minus grams consumed by Discount / Premium transactions."
           />
           <Stat
             label="Discount / Premium Gold"
