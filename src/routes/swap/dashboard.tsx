@@ -2346,7 +2346,12 @@ function MarginTab({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="font-medium flex items-center gap-2 flex-wrap min-w-0">
-                      <span>{c.code}</span>
+                      <span
+                        className="truncate max-w-[10rem] sm:max-w-[14rem]"
+                        title={c.code}
+                      >
+                        {c.code}
+                      </span>
                       {needsMargin && (
                         <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-600 font-semibold">
                           ⚠ Margin needed
