@@ -976,7 +976,7 @@ function ReportAllCompanies({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-muted-foreground border-b border-border/60">
-              <th className="py-2">Company</th>
+              <th className="py-2">Client Code</th>
               <th className="text-right">Total Gold</th>
               <th className="text-right">Clean Gold</th>
               <th className="text-right">D/P Gold</th>
