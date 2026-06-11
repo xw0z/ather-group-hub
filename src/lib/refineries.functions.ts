@@ -214,7 +214,7 @@ export const createClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => clientCreate.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "manager");
     const payload = { ...data, code: data.code ?? null };
     const { data: row, error } = await supabaseAdmin
       .from("refinery_clients").insert(payload).select("*").single();
@@ -244,7 +244,7 @@ export const updateClient = createServerFn({ method: "POST" })
     const { data: existing, error: e1 } = await supabaseAdmin
       .from("refinery_clients").select("refinery_id").eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
-    await assertAccess(context.userId, existing.refinery_id);
+    await assertRole(context.userId, existing.refinery_id, "manager");
     const { id, ...patch } = data;
     const { data: row, error } = await supabaseAdmin
       .from("refinery_clients").update(patch).eq("id", id).select("*").single();
@@ -264,7 +264,7 @@ export const deleteClient = createServerFn({ method: "POST" })
     const { data: existing, error: e1 } = await supabaseAdmin
       .from("refinery_clients").select("refinery_id").eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
-    await assertAccess(context.userId, existing.refinery_id);
+    await assertRole(context.userId, existing.refinery_id, "manager");
     const { count } = await supabaseAdmin
       .from("refinery_transactions")
       .select("id", { count: "exact", head: true })
