@@ -131,6 +131,20 @@ async function assertAdmin(uid: string) {
   return a;
 }
 
+// Role hierarchy: viewer (1) < staff (2) < manager (3). Platform admin bypasses.
+const ROLE_RANK: Record<string, number> = { viewer: 1, staff: 2, manager: 3 };
+async function assertRole(uid: string, refineryId: string, minRole: "viewer" | "staff" | "manager") {
+  const a = await loadAssignment(uid);
+  if (a.isAdmin) return a;
+  if (a.refineryId !== refineryId) throw new Error("Forbidden: refinery access denied.");
+  const have = ROLE_RANK[a.role ?? ""] ?? 0;
+  const need = ROLE_RANK[minRole];
+  if (have < need) {
+    throw new Error(`Forbidden: this action requires the "${minRole}" role or higher.`);
+  }
+  return a;
+}
+
 // =========================================================
 // Assignment + refineries
 // =========================================================
