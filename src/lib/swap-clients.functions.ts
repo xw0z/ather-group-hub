@@ -868,6 +868,7 @@ export const listSwapMarginHistory = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
     await assertPermission(context.userId, "audit", "view");
+    let q = supabaseAdmin
       .from("swap_margin_history")
       .select("*")
       .order("created_at", { ascending: false })
