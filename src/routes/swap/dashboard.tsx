@@ -203,7 +203,7 @@ function snapshotStamp(d = new Date()): string {
   });
 }
 
-const TROY_OZ_PER_KG_LOCAL = 32.1507466;
+// (margin math centralised in computeMargin from swap-clients.functions)
 
 type ReportClient = {
   code: string;
