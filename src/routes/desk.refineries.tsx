@@ -3900,6 +3900,9 @@ async function renderStatementToCanvases(
   host.style.top = "0";
   host.style.zIndex = "-1";
   host.style.background = "#ffffff";
+  // (F6) Force LTR + English so Arabic mode does not mirror the exported report.
+  host.dir = "ltr";
+  host.lang = "en";
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
