@@ -336,12 +336,12 @@ async function shareClientMarginReport(
     <div style="margin-top:20px;padding:4px 16px;background:#222;border:1px solid #2f2f2f;border-radius:10px">
       ${row("Position", positionLabel)}
       ${row("Live XAUUSD", `${money(xauPrice)} / oz`)}
-      ${row("USD Balance", money(usd), usd < 0 ? "#ef4444" : undefined)}
+      ${row(usd < 0 ? "USD Balance (client debt)" : "USD Balance", money(usd), usd < 0 ? "#ef4444" : undefined)}
       ${row("Gold Balance", `${num(goldGrams, 0)} g`)}
-      ${row("Gold Value", money(goldValue))}
-      ${row("Equity (USD + Gold)", money(equity), equity < 0 ? "#ef4444" : undefined)}
+      ${row("Gold Value (kg × 32.1507 × XAU)", money(goldValue))}
+      ${row("Equity (USD Balance + Gold Value)", money(equity), equity < 0 ? "#ef4444" : undefined)}
       ${row("Margin Requirement", `${num(reqPct)}%`)}
-      ${row("Required Margin", money(requiredMargin))}
+      ${row("Required Margin (Gold Value × Margin %)", money(requiredMargin))}
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0">
         <span style="font-size:13px;color:#9a9a9a;letter-spacing:0.02em">Margin Level</span>
         <span style="font-size:20px;color:${statusColor};font-weight:700;font-variant-numeric:tabular-nums">${num(marginLevelPct)}%</span>
@@ -2490,7 +2490,7 @@ function MarginDetails({
       <div className="grid grid-cols-2 gap-1.5 text-xs">
         <div className="col-span-2">
           <Row
-            label="USD Balance"
+            label={usdBalance < 0 ? "USD Balance (client debt)" : "USD Balance"}
             value={fmtMoney(usdBalance)}
             accent={usdBalance < 0 ? "red" : usdBalance > 0 ? "green" : undefined}
           />
@@ -2505,26 +2505,30 @@ function MarginDetails({
           </div>
         )}
         <Row
-          label="Gold value (USD)"
+          label="Gold Value (kg × 32.1507 × XAU)"
           value={xau !== null ? `$${fmt(margin.goldValue)}` : "—"}
         />
         <Row label="XAUUSD price" value={xau !== null ? `$${fmt(xau)}/oz` : "not set"} />
         <Row label="Margin %" value={`${fmt(marginPct)}%`} />
-        <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
-        <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
+        <Row label="Total exposure (= Gold Value)" value={`$${fmt(margin.totalExposure)}`} />
+        <Row label="Required Margin (Gold Value × Margin %)" value={`$${fmt(margin.requiredMargin)}`} />
         <Row
-          label="Equity (USD + Gold)"
+          label="Equity (USD Balance + Gold Value)"
           value={fmtMoney(margin.equity)}
           accent={margin.equity < 0 ? "red" : undefined}
         />
         <Row
-          label="Available margin"
+          label="Available Margin (= Equity)"
           value={fmtMoney(margin.availableMargin)}
           accent={margin.availableMargin < 0 ? "red" : undefined}
         />
-        <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
+        <Row label="Margin level (Equity ÷ Required × 100)" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
-          label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
+          label={
+            margin.difference >= 0
+              ? "Difference (Equity − Required) · extra available"
+              : "Difference (Equity − Required) · needs to add"
+          }
           value={`$${fmt(Math.abs(margin.difference))}`}
           accent={diffAccent}
         />
