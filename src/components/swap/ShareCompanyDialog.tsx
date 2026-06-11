@@ -530,9 +530,12 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
           </p>
         </div>
 
-        {/* Hidden offscreen render targets */}
+        {/* Hidden offscreen render targets — forced LTR/EN so html-to-image
+            captures the brand layout consistently regardless of UI locale. */}
         <div
           aria-hidden
+          dir="ltr"
+          lang="en"
           style={{
             position: "fixed",
             top: 0,
@@ -543,7 +546,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
         >
           <SummaryCard
             ref={summaryRef}
-            summary={summary}
+            summary={liveSummary}
             qr={qr}
             generatedAt={generatedAt}
             lang={lang}
@@ -552,7 +555,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
           {txs && (
             <StatementCard
               ref={statementRef}
-              summary={summary}
+              summary={liveSummary}
               txs={txs}
               qr={qr}
               generatedAt={generatedAt}
