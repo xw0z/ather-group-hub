@@ -335,7 +335,7 @@ function CompanyCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete "{s.company.name}"?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete the company and all its transactions.
+                    This will permanently delete the client code and all its transactions.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
