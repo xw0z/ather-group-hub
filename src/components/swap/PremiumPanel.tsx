@@ -142,7 +142,7 @@ export function PremiumPanel() {
       refresh();
     } catch (err) {
       console.error("deletePremiumCompany failed", err);
-      toast.error(err instanceof Error ? err.message : "Failed to delete company");
+      toast.error(err instanceof Error ? err.message : "Failed to delete client code");
     }
   };
 
@@ -223,11 +223,11 @@ export function PremiumPanel() {
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Company name…"
+          placeholder="Client code…"
           className="flex-1"
         />
         <Button type="submit" disabled={!newName.trim()}>
-          <Plus className="h-4 w-4 mr-2" /> Add Company
+          <Plus className="h-4 w-4 mr-2" /> Add Client Code
         </Button>
       </form>
 
@@ -309,7 +309,7 @@ function CompanyCard({
                 type="button"
                 onClick={onOpen}
                 className="font-semibold truncate text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer"
-                title="Open company"
+                title="Open client code"
               >
                 {s.company.name}
               </button>
@@ -335,7 +335,7 @@ function CompanyCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete "{s.company.name}"?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete the company and all its transactions.
+                    This will permanently delete the client code and all its transactions.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -447,7 +447,7 @@ function CompanyDetail({
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <p className="mt-4 text-sm text-muted-foreground">Company not found.</p>
+        <p className="mt-4 text-sm text-muted-foreground">Client code not found.</p>
       </div>
     );
   }
@@ -976,7 +976,7 @@ function ReportAllCompanies({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-muted-foreground border-b border-border/60">
-              <th className="py-2">Company</th>
+              <th className="py-2">Client Code</th>
               <th className="text-right">Total Gold</th>
               <th className="text-right">Clean Gold</th>
               <th className="text-right">D/P Gold</th>
