@@ -368,12 +368,14 @@ function Stat({
   tone,
   accent,
   small,
+  tooltip,
 }: {
   label: string;
   value: string;
   tone?: "ok" | "danger" | "sky" | "fuchsia";
   accent?: boolean;
   small?: boolean;
+  tooltip?: string;
 }) {
   const color =
     tone === "danger"
@@ -389,7 +391,13 @@ function Stat({
               : "text-foreground";
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p
+        className="text-[10px] uppercase tracking-wider text-muted-foreground"
+        title={tooltip}
+      >
+        {label}
+        {tooltip ? <span className="ml-1 opacity-60 cursor-help">ⓘ</span> : null}
+      </p>
       <p className={`${small ? "text-sm" : "text-base"} font-semibold tabular-nums mt-0.5 ${color}`}>
         {value}
       </p>
