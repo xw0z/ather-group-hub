@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_backup_audit_log: {
+        Row: {
+          action: string
+          app: string
+          created_at: string
+          details: Json | null
+          file_name: string | null
+          id: string
+          ip: string | null
+          safety_backup_id: string | null
+          tables_affected: string[] | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          app: string
+          created_at?: string
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          ip?: string | null
+          safety_backup_id?: string | null
+          tables_affected?: string[] | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          app?: string
+          created_at?: string
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          ip?: string | null
+          safety_backup_id?: string | null
+          tables_affected?: string[] | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      app_safety_backups: {
+        Row: {
+          app: string
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          file_name: string
+          file_size_bytes: number
+          id: string
+          payload: Json
+          schema_version: number
+        }
+        Insert: {
+          app: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          file_name: string
+          file_size_bytes?: number
+          id?: string
+          payload: Json
+          schema_version?: number
+        }
+        Update: {
+          app?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          payload?: Json
+          schema_version?: number
+        }
+        Relationships: []
+      }
       purity_activity_log: {
         Row: {
           action: string

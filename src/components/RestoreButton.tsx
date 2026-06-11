@@ -22,18 +22,33 @@ export function RestoreButton({
     e.target.value = "";
     if (!file) return;
     const ok = window.confirm(
-      `Restore ${app.toUpperCase()} from "${file.name}"?\n\nThis will overwrite existing rows with matching IDs and insert any missing rows. This cannot be undone.`,
+      `Restore ${app.toUpperCase()} from "${file.name}"?\n\n` +
+        `A SAFETY BACKUP of the current data will be taken automatically before the restore runs, ` +
+        `but this will still overwrite existing rows with matching IDs and insert any missing rows.\n\n` +
+        `Continue?`,
     );
     if (!ok) return;
+    const confirmText = window.prompt(
+      'Type RESTORE (all caps) to confirm this destructive action:',
+      "",
+    );
+    if (confirmText !== "RESTORE") {
+      alert("Restore cancelled. You must type RESTORE to confirm.");
+      return;
+    }
 
     setBusy(true);
     try {
       const text = await file.text();
-      const res = await run({ data: { app, payload: text } });
+      const res = await run({
+        data: { app, payload: text, sourceFileName: file.name, confirmText },
+      });
       const lines = Object.entries(res.report)
         .map(([t, r]) => `${t}: ${r.inserted}${r.skipped ? ` (${r.skipped})` : ""}`)
         .join("\n");
-      alert(`Restore complete.\n\n${lines}`);
+      alert(
+        `Restore complete.\n\nSafety backup: ${res.safetyFileName}\n\n${lines}`,
+      );
     } catch (err) {
       console.error("[restore] failed:", err);
       alert(
