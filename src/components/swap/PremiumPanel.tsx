@@ -309,7 +309,7 @@ function CompanyCard({
                 type="button"
                 onClick={onOpen}
                 className="font-semibold truncate text-left hover:text-primary hover:underline underline-offset-4 cursor-pointer"
-                title="Open company"
+                title="Open client code"
               >
                 {s.company.name}
               </button>
