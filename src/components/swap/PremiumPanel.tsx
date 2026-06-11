@@ -447,7 +447,7 @@ function CompanyDetail({
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <p className="mt-4 text-sm text-muted-foreground">Company not found.</p>
+        <p className="mt-4 text-sm text-muted-foreground">Client code not found.</p>
       </div>
     );
   }
