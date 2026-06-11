@@ -1259,15 +1259,15 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       .limit(1);
     let openingGold = 0;
     let openingDa = 0;
+    let openingSource: "prior" | "first_in_window" | "client_current" = "client_current";
     if (priorTx && priorTx.length > 0) {
       openingGold = Number(priorTx[0].new_purity_balance ?? 0);
       openingDa = Number(priorTx[0].new_da_balance ?? 0);
-    } else {
-      // No prior settled transactions: fall back to the client's stored opening
-      // balance (used for imported clients / fresh data with no transactions yet).
-      openingGold = Number((cli as { purity_balance?: number | string | null }).purity_balance ?? 0);
-      openingDa = Number((cli as { da_balance?: number | string | null }).da_balance ?? 0);
+      openingSource = "prior";
     }
+    // (F2) The remainder of the opening fallback (first in-window prev balance
+    // OR client's current balance if no history at all) is resolved AFTER we
+    // load the in-window transactions, below.
 
     // Transactions in window (settled)
     const { data: txs, error: tErr } = await supabaseAdmin
