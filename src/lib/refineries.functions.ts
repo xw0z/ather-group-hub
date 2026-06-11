@@ -440,7 +440,7 @@ export const createTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => txCreate.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "staff");
 
     // Compute totals — refining fee charged on equivalent weight at 730 purity
     let total_gross = 0, total_pure = 0, avg_purity = 0, fee = 0;
@@ -502,7 +502,7 @@ export const settleTransaction = createServerFn({ method: "POST" })
     const { data: tx, error: e0 } = await supabaseAdmin
       .from("refinery_transactions").select("refinery_id").eq("id", data.id).single();
     if (e0) throw new Error(e0.message);
-    await assertAccess(context.userId, tx.refinery_id);
+    await assertRole(context.userId, tx.refinery_id, "staff");
     const { data: settled, error } = await supabaseAdmin.rpc("refinery_settle_transaction", { _tx_id: data.id });
     if (error) throw new Error(error.message);
     return settled as RefineryTransaction;
@@ -514,7 +514,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => txUpdate.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "manager");
 
     // Reverse current settlement (if any)
     const { error: revErr } = await supabaseAdmin.rpc("refinery_reverse_transaction", { _tx_id: data.id });
@@ -580,7 +580,7 @@ export const deleteTransaction = createServerFn({ method: "POST" })
       .select("refinery_id, transaction_type, settlement_group_id")
       .eq("id", data.id).single();
     if (e0) throw new Error(e0.message);
-    await assertAccess(context.userId, tx.refinery_id);
+    await assertRole(context.userId, tx.refinery_id, "manager");
     // Buy/Sell transactions are immutable — deletion is blocked for audit integrity.
     if (tx.transaction_type === "buysell") {
       throw new Error("Buy/Sell transactions cannot be deleted. They are kept for audit integrity.");
@@ -626,7 +626,7 @@ export const createSettlement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => settlementCreate.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "manager");
     if (data.from_client_id === data.to_client_id) {
       throw new Error("From and To clients must be different");
     }
@@ -652,7 +652,7 @@ export const editSettlement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => settlementEdit.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "manager");
     if (data.from_client_id === data.to_client_id) {
       throw new Error("From and To clients must be different");
     }
@@ -842,7 +842,7 @@ export const adjustStock = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "manager");
     const { data: existing } = await supabaseAdmin
       .from("refinery_stock").select("*").eq("refinery_id", data.refineryId).maybeSingle();
     const before = {
@@ -890,7 +890,7 @@ export const updateStockAdjustment = createServerFn({ method: "POST" })
       .from("refinery_stock_movements").select("*").eq("id", data.movementId).single();
     if (me) throw new Error(me.message);
     if (mv.movement_type !== "adjustment") throw new Error("Only adjustment movements can be edited");
-    await assertAccess(context.userId, mv.refinery_id);
+    await assertRole(context.userId, mv.refinery_id, "manager");
 
     const { data: stk } = await supabaseAdmin
       .from("refinery_stock").select("*").eq("refinery_id", mv.refinery_id).maybeSingle();
@@ -924,7 +924,7 @@ export const deleteStockAdjustment = createServerFn({ method: "POST" })
       .from("refinery_stock_movements").select("*").eq("id", data.movementId).single();
     if (me) throw new Error(me.message);
     if (mv.movement_type !== "adjustment") throw new Error("Only adjustment movements can be deleted");
-    await assertAccess(context.userId, mv.refinery_id);
+    await assertRole(context.userId, mv.refinery_id, "manager");
 
     const { data: stk } = await supabaseAdmin
       .from("refinery_stock").select("*").eq("refinery_id", mv.refinery_id).maybeSingle();
@@ -955,7 +955,7 @@ export const adjustClientBalances = createServerFn({ method: "POST" })
     const { data: existing, error: e1 } = await supabaseAdmin
       .from("refinery_clients").select("refinery_id").eq("id", data.id).single();
     if (e1) throw new Error(e1.message);
-    await assertAccess(context.userId, existing.refinery_id);
+    await assertRole(context.userId, existing.refinery_id, "manager");
     const { error } = await supabaseAdmin.from("refinery_clients")
       .update({ purity_balance: data.purity_balance, da_balance: data.da_balance })
       .eq("id", data.id);
@@ -1488,7 +1488,7 @@ export const logRefineryReport = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refinery_id);
+    await assertRole(context.userId, data.refinery_id, "staff");
     const { data: prof } = await supabaseAdmin
       .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
     const username: string | null = prof?.username ?? null;
@@ -1733,7 +1733,7 @@ export const createStockAdjustment = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "manager");
     const signed = data.kind === "remove" || data.kind === "loss" ? -data.amount : data.amount;
     const { data: txId, error } = await supabaseAdmin.rpc("refinery_create_stock_adjustment", {
       _refinery_id: data.refineryId,
@@ -1768,7 +1768,7 @@ export const editStockAdjustment = createServerFn({ method: "POST" })
     if (txErr) throw new Error(txErr.message);
     if (!tx) throw new Error("Transaction not found");
     if (tx.transaction_type !== "stock_adjustment") throw new Error("Not a stock adjustment");
-    await assertAccess(context.userId, tx.refinery_id as string);
+    await assertRole(context.userId, tx.refinery_id as string, "manager");
 
     const signed = data.kind === "remove" || data.kind === "loss" ? -data.amount : data.amount;
     const { error } = await supabaseAdmin.rpc("refinery_edit_stock_adjustment", {
@@ -1803,7 +1803,7 @@ export const createBuySell = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "manager");
     const { data: txId, error } = await supabaseAdmin.rpc("refinery_create_buysell", {
       _refinery_id: data.refineryId,
       _client_id: data.clientId,
@@ -1889,7 +1889,7 @@ export const saveNetPositionPrice = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "staff");
     // resolve username
     const { data: prof } = await supabaseAdmin
       .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
@@ -1967,7 +1967,7 @@ export const recordPositionSnapshot = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "manager");
     const { data: prof } = await supabaseAdmin
       .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
     const today = new Date().toISOString().slice(0, 10);
@@ -2031,7 +2031,7 @@ export const addClientNote = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertAccess(context.userId, data.refineryId);
+    await assertRole(context.userId, data.refineryId, "staff");
     const { data: prof } = await supabaseAdmin
       .from("swap_profiles").select("username").eq("id", context.userId).maybeSingle();
     const { error } = await supabaseAdmin
@@ -2054,7 +2054,7 @@ export const deleteClientNote = createServerFn({ method: "POST" })
     const { data: row, error: fErr } = await supabaseAdmin
       .from("refinery_client_notes").select("refinery_id").eq("id", data.id).single();
     if (fErr) throw new Error(fErr.message);
-    await assertAccess(context.userId, row.refinery_id);
+    await assertRole(context.userId, row.refinery_id, "staff");
     const { error } = await supabaseAdmin.from("refinery_client_notes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
