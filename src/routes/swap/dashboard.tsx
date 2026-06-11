@@ -797,7 +797,7 @@ export function SwapDashboard({
               )}
               {effectiveTab === "premium" && can(perms, "premium", "view") && <PremiumPanel />}
               {effectiveTab === "reports" && can(perms, "reports", "view") && <ReportsTab />}
-              {effectiveTab === "audit" && isAdmin && <AuditLogTab />}
+              {effectiveTab === "audit" && (isAdmin || can(perms, "audit", "view")) && <AuditLogTab />}
               {effectiveTab === "users" && isAdmin && (
                 <UsersPanel currentUsername={username} />
               )}
