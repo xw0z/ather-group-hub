@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordAudit, type AuditModule } from "@/lib/swap-audit.server";
+import { assertPermission } from "@/lib/permissions.functions";
+
 
 const codeRule = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9_.\- ]+$/, "Letters, numbers, . _ - space only");
 const positionTypeRule = z.enum(["long", "short"]);
@@ -98,13 +100,44 @@ export async function assertSwapUser(userId: string): Promise<void> {
 
 type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
-// Forex/CFD swap rollover multipliers by weekday (UTC).
+// Forex/CFD swap rollover multipliers by weekday.
 // Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
-// Wednesday charges 3 days to cover the weekend; Sat/Sun = 0.
+// Wednesday charges 3 days to cover the weekend; Sat/Sun = 0 by default.
+// Business timezone is Asia/Dubai (UTC+4, no DST) so weekday boundaries
+// align with the Dubai trading day, not UTC.
 const SWAP_DAY_MULTIPLIERS = [0, 1, 1, 3, 1, 1, 0] as const;
-export function swapDayMultiplier(date: Date = new Date()): number {
-  return SWAP_DAY_MULTIPLIERS[date.getUTCDay()];
+
+// Day-of-week (0=Sun..6=Sat) in Asia/Dubai. Dubai has no DST, fixed UTC+4,
+// so we can compute this with a fixed offset without Intl.
+export function dubaiWeekday(date: Date = new Date()): number {
+  const dubai = new Date(date.getTime() + 4 * 60 * 60 * 1000);
+  return dubai.getUTCDay();
 }
+
+export function swapDayMultiplier(date: Date = new Date()): number {
+  return SWAP_DAY_MULTIPLIERS[dubaiWeekday(date)];
+}
+
+// Settings-aware multiplier. Honours admin settings:
+//   wednesday_multiplier (default 3), skip_saturday (default true), skip_sunday (default true).
+export function swapDayMultiplierFromSettings(
+  date: Date,
+  settings: {
+    wednesday_multiplier?: number | null;
+    skip_saturday?: boolean | null;
+    skip_sunday?: boolean | null;
+  } | null | undefined,
+): number {
+  const wd = dubaiWeekday(date);
+  const wedMult = Number(settings?.wednesday_multiplier ?? 3);
+  const skipSat = settings?.skip_saturday ?? true;
+  const skipSun = settings?.skip_sunday ?? true;
+  if (wd === 0) return skipSun ? 0 : 1; // Sunday
+  if (wd === 6) return skipSat ? 0 : 1; // Saturday
+  if (wd === 3) return wedMult;          // Wednesday
+  return 1;
+}
+
 
 // Effective annual rate for a client given their position type.
 function effectiveAnnualRate(c: {
