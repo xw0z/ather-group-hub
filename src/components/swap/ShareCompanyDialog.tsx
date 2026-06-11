@@ -121,7 +121,7 @@ const DICTS: Record<Lang, Dict> = {
     availableNoDP: "المتاح — بدون خ/ع",
     availableDesc: "إجمالي الذهب المتاح بعد استبعاد أثر الخصم / العلاوة",
     allTransactions: "جميع المعاملات",
-    noTransactions: "لا توجد معاملات مسجلة لهذه الشركة.",
+    noTransactions: "لا توجد معاملات مسجلة لكود العميل هذا.",
     date: "التاريخ",
     type: "النوع",
     weight: "الوزن",
