@@ -10,6 +10,31 @@ const positionTypeRule = z.enum(["long", "short"]);
 // 1 kg gold = 32.1507466 troy ounces
 export const TROY_OZ_PER_KG = 32.1507466;
 
+/**
+ * Margin calculation — business rules
+ * ------------------------------------
+ * Inputs:
+ *   - usd_balance:              Client's USD balance. POSITIVE = credit the client holds
+ *                               at the company. NEGATIVE = client debt to the company.
+ *   - gold_kg:                  Gold position held FOR the client (treated as client asset).
+ *   - xauusd_price:             Current XAU/USD spot price (per troy ounce).
+ *   - margin_requirement_pct:   Margin requirement on the gold exposure (e.g. 20 = 20%).
+ *
+ * Formulas:
+ *   Gold Value       = gold_kg × 32.1507466 (oz/kg) × XAU/USD
+ *   Equity           = USD Balance + Gold Value           (negative USD = client debt)
+ *   Total Exposure   = Gold Value                         (gold position is the exposure)
+ *   Required Margin  = Gold Value × Margin %
+ *   Available Margin = Equity                             (gold counted as client asset)
+ *   Difference       = Equity − Required Margin
+ *   Margin Level %   = (Equity ÷ Required Margin) × 100
+ *
+ * Status tiers:
+ *   - critical:  Equity < 0 (client is underwater — debt exceeds gold value)
+ *   - needed:    Equity < Required Margin (margin call needed)
+ *   - warning:   Margin Level between 100% and 120%
+ *   - safe:      Margin Level ≥ 120%, or no gold exposure with non-negative equity
+ */
 export function computeMargin(input: {
   usd_balance: number;
   gold_kg: number;
@@ -17,20 +42,20 @@ export function computeMargin(input: {
   margin_requirement_pct: number;
 }) {
   const xau = Number(input.xauusd_price ?? 0);
-  const usdBalance = Number(input.usd_balance);
+  const usdBalance = Number(input.usd_balance); // negative = client debt to company
   const goldValue = Number(input.gold_kg) * TROY_OZ_PER_KG * xau;
-  // Equity = USD balance + gold value (can be negative)
+  // Equity = USD Balance + Gold Value (gold treated as client asset)
   const equity = usdBalance + goldValue;
   // Total exposure is the gold position value only
   const totalExposure = goldValue;
+  // Required Margin = Gold Value × Margin %
   const requiredMargin = (totalExposure * Number(input.margin_requirement_pct)) / 100;
-  // Available margin is based on equity, not raw USD balance
+  // Available Margin = Equity (USD + Gold), NOT raw USD balance
   const availableMargin = equity;
+  // Difference = Equity − Required Margin (positive = surplus, negative = shortfall)
   const difference = availableMargin - requiredMargin;
   const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
   const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
-  // Tiered status: critical if equity < 0, needed if equity < required,
-  // warning if 100-120%, safe if >=120% or no exposure.
   let tier: "safe" | "warning" | "needed" | "critical";
   if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
   else if (equity < 0) tier = "critical";
