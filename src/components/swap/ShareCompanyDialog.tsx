@@ -848,39 +848,58 @@ const StatementCard = ({
       <div
         style={{
           marginTop: 16,
-          padding: "14px 18px",
+          padding: "18px 22px",
           background: CARD,
           border: `1px solid ${BORDER}`,
           borderRadius: 10,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          textAlign: "center",
         }}
       >
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              color: TEXT_MUTED,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-            }}
-          >
-            Total Discount / Premium
-          </div>
-          <div style={{ fontSize: 11, color: TEXT_FAINT, marginTop: 2 }}>
-            {fmtG(summary.dp_grams)} gold
-          </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: TEXT_MUTED,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            fontWeight: 700,
+          }}
+        >
+          Total Discount / Premium
         </div>
         <div
           style={{
-            fontSize: 20,
-            fontWeight: 800,
-            color: summary.dp_charges_usd < 0 ? DANGER : OK,
-            fontVariantNumeric: "tabular-nums",
+            marginTop: 10,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "baseline",
+            gap: 28,
+            flexWrap: "wrap",
           }}
         >
-          {fmtUSD(summary.dp_charges_usd)}
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: TEXT,
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: displayFont,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {fmtG(summary.dp_grams)}
+          </div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: summary.dp_charges_usd < 0 ? DANGER : OK,
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: displayFont,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {fmtUSD(summary.dp_charges_usd)}
+          </div>
         </div>
       </div>
 
