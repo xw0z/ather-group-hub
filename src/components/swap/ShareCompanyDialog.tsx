@@ -297,13 +297,29 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
       .catch(() => setQr(""));
   }, [open]);
 
+  // M4: always re-fetch the freshest transaction list on open so the share
+  // dialog never relies on stale parent props.
   useEffect(() => {
-    if (open && !txs) {
-      listCompanyTransactions({ data: { companyId: summary.company.id } })
-        .then(setTxs)
-        .catch(() => setTxs([]));
-    }
-  }, [open, summary.company.id, txs]);
+    if (!open) return;
+    let cancelled = false;
+    listCompanyTransactions({ data: { companyId: summary.company.id } })
+      .then((rows) => {
+        if (!cancelled) setTxs(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setTxs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, summary.company.id]);
+
+  // Recompute the summary from the freshly fetched transactions whenever they
+  // change — this is what the share image / PNG / statement renders.
+  const liveSummary: CompanySummary =
+    txs && txs.length >= 0
+      ? { company: summary.company, ...recomputeCompanySummary(txs) }
+      : summary;
 
   const triggerDownload = (dataUrl: string, fileName: string) => {
     const a = document.createElement("a");
