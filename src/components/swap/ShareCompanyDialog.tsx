@@ -73,9 +73,9 @@ type Dict = {
 
 const DICTS: Record<Lang, Dict> = {
   en: {
-    companySummary: "Company Summary",
+    companySummary: "Client Code Summary",
     goldDiscountBalance: "Gold Discount Balance",
-    company: "Company",
+    company: "Client Code",
     snapshot: "Snapshot",
     totalBalance: "Total Balance",
     dpGold: "Discount / Premium Gold",
@@ -83,7 +83,7 @@ const DICTS: Record<Lang, Dict> = {
     availableNoDP: "Available — No D/P",
     availableDesc: "Total available gold after excluding Discount / Premium effect",
     allTransactions: "All Transactions",
-    noTransactions: "No transactions recorded for this company.",
+    noTransactions: "No transactions recorded for this client code.",
     date: "Date",
     type: "Type",
     weight: "Weight",
@@ -99,10 +99,10 @@ const DICTS: Record<Lang, Dict> = {
     value: "Value",
     shareTitle: (n) => `Share ${n}`,
     language: "Language",
-    shareSummary: "Share Company Summary",
+    shareSummary: "Share Client Code Summary",
     shareSummaryDesc: "One-page overview image",
     shareStatement: "Share Full Transaction Statement",
-    shareStatementDesc: "Every transaction for this company",
+    shareStatementDesc: "Every transaction for this client code",
     fallbackNote: "Falls back to download on devices without native share.",
     generatingSummary: "Generating summary…",
     generatingStatement: "Generating full statement…",
