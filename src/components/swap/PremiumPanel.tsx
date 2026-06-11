@@ -59,25 +59,13 @@ import {
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
 import { ShareCompanyDialog } from "./ShareCompanyDialog";
+import {
+  fmtDateUTC as fmtDate,
+  fmtG,
+  fmtUSD,
+  formatTxNote,
+} from "@/lib/swap-share-format";
 
-const fmtG = (n: number) =>
-  `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} g`;
-const fmtUSD = (n: number) => {
-  const abs = Math.abs(n);
-  const s = abs.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return n < 0 ? `-$${s}` : `$${s}`;
-};
-const pad2 = (n: number) => String(n).padStart(2, "0");
-const fmtDate = (s: string) => {
-  try {
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-  } catch { return s; }
-};
 
 const KIND_META: Record<
   PremiumKind,
