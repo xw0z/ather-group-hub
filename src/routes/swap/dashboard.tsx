@@ -2490,7 +2490,7 @@ function MarginDetails({
       <div className="grid grid-cols-2 gap-1.5 text-xs">
         <div className="col-span-2">
           <Row
-            label="USD Balance"
+            label={usdBalance < 0 ? "USD Balance (client debt)" : "USD Balance"}
             value={fmtMoney(usdBalance)}
             accent={usdBalance < 0 ? "red" : usdBalance > 0 ? "green" : undefined}
           />
@@ -2505,26 +2505,30 @@ function MarginDetails({
           </div>
         )}
         <Row
-          label="Gold value (USD)"
+          label="Gold Value (kg × 32.1507 × XAU)"
           value={xau !== null ? `$${fmt(margin.goldValue)}` : "—"}
         />
         <Row label="XAUUSD price" value={xau !== null ? `$${fmt(xau)}/oz` : "not set"} />
         <Row label="Margin %" value={`${fmt(marginPct)}%`} />
-        <Row label="Total exposure" value={`$${fmt(margin.totalExposure)}`} />
-        <Row label="Required margin" value={`$${fmt(margin.requiredMargin)}`} />
+        <Row label="Total exposure (= Gold Value)" value={`$${fmt(margin.totalExposure)}`} />
+        <Row label="Required Margin (Gold Value × Margin %)" value={`$${fmt(margin.requiredMargin)}`} />
         <Row
-          label="Equity (USD + Gold)"
+          label="Equity (USD Balance + Gold Value)"
           value={fmtMoney(margin.equity)}
           accent={margin.equity < 0 ? "red" : undefined}
         />
         <Row
-          label="Available margin"
+          label="Available Margin (= Equity)"
           value={fmtMoney(margin.availableMargin)}
           accent={margin.availableMargin < 0 ? "red" : undefined}
         />
-        <Row label="Margin level" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
+        <Row label="Margin level (Equity ÷ Required × 100)" value={`${fmt(margin.marginLevelPct)}%`} accent={diffAccent} />
         <Row
-          label={margin.difference >= 0 ? "Extra available" : "Needs to add"}
+          label={
+            margin.difference >= 0
+              ? "Difference (Equity − Required) · extra available"
+              : "Difference (Equity − Required) · needs to add"
+          }
           value={`$${fmt(Math.abs(margin.difference))}`}
           accent={diffAccent}
         />
