@@ -630,6 +630,14 @@ export async function runDailyFeeJob() {
     xauusd = null;
   }
 
+  // Load fee settings once. wednesday_multiplier / skip_saturday / skip_sunday
+  // control day-of-week behavior so admin settings actually drive calculation.
+  const { data: feeSettings } = await supabaseAdmin
+    .from("swap_settings")
+    .select("wednesday_multiplier, skip_saturday, skip_sunday")
+    .eq("id", "global")
+    .maybeSingle();
+
   const today = new Date().toISOString().slice(0, 10);
   const { data: clients, error } = await supabaseAdmin
     .from("swap_clients")
@@ -640,7 +648,7 @@ export async function runDailyFeeJob() {
 
   // Determine which dates to write. Default: just today.
   // Backfill: for each client, fill any missing weekdays since their last
-  // snapshot up to today. Sat/Sun naturally skip (multiplier 0).
+  // snapshot up to today. Weekend skipping driven by settings.
   // Look back at most 14 days to bound the work.
   const MAX_BACKFILL_DAYS = 14;
   const { data: lastByClient } = await supabaseAdmin
@@ -695,7 +703,15 @@ export async function runDailyFeeJob() {
     const last = lastDateByClient.get(c.id) ?? null;
     const dates = last === today ? [today] : datesBetween(last, today);
     for (const d of dates) {
-      const mult = swapDayMultiplier(new Date(`${d}T00:00:00Z`));
+      const mult = swapDayMultiplierFromSettings(
+        new Date(`${d}T00:00:00Z`),
+        feeSettings,
+      );
+      // M3: never produce a negative daily fee for long clients (negative
+      // effective balance must not create a credit). Short clients keep sign.
+      const baseDaily = (effBal * effRate) / 100 / 365;
+      const baseDailyClamped =
+        positionType === "long" && effBal < 0 ? 0 : baseDaily;
       rows.push({
         client_id: c.id,
         fee_date: d,
@@ -707,7 +723,7 @@ export async function runDailyFeeJob() {
         effective_balance: effBal,
         day_multiplier: mult,
         position_type: positionType,
-        daily_fee: ((effBal * effRate) / 100 / 365) * mult,
+        daily_fee: baseDailyClamped * mult,
         created_at: nowIso,
       });
     }
@@ -715,11 +731,14 @@ export async function runDailyFeeJob() {
 
 
   if (rows.length > 0) {
+    // M1: idempotent insert — never overwrite a fee that has already been
+    // committed for (client_id, fee_date). Cron retries are safe.
     const { error: upErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .upsert(rows, { onConflict: "client_id,fee_date" });
+      .upsert(rows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
     if (upErr) throw new Error(upErr.message);
   }
+
 
   let whatsapp: { sent: number; failed: number; skipped?: string } = { sent: 0, failed: 0 };
   try {
