@@ -159,7 +159,7 @@ const DICTS: Record<Lang, Dict> = {
     availableNoDP: "Disponible — sans R/P",
     availableDesc: "Or total disponible après exclusion de l’effet remise / prime",
     allTransactions: "Toutes les transactions",
-    noTransactions: "Aucune transaction enregistrée pour cette société.",
+    noTransactions: "Aucune transaction enregistrée pour ce code client.",
     date: "Date",
     type: "Type",
     weight: "Poids",
