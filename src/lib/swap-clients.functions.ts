@@ -445,6 +445,7 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "audit", "view");
     const { data, error } = await supabaseAdmin
       .from("swap_activity_log")
       .select(
