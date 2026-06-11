@@ -1677,6 +1677,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_refinery_role: {
+        Args: {
+          _min_role: Database["public"]["Enums"]["refinery_role"]
+          _rid: string
+          _uid: string
+        }
+        Returns: boolean
+      }
       is_platform_admin: { Args: { _uid: string }; Returns: boolean }
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
