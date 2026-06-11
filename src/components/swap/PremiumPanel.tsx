@@ -142,7 +142,7 @@ export function PremiumPanel() {
       refresh();
     } catch (err) {
       console.error("deletePremiumCompany failed", err);
-      toast.error(err instanceof Error ? err.message : "Failed to delete company");
+      toast.error(err instanceof Error ? err.message : "Failed to delete client code");
     }
   };
 
