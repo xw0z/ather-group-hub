@@ -241,6 +241,8 @@ export const createSwapClient = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "create");
+
     const { data: row, error } = await supabaseAdmin
       .from("swap_clients")
       .insert({
@@ -294,6 +296,8 @@ export const updateSwapClient = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "edit");
+
     const patch: {
       code?: string;
       usd_balance?: number;
@@ -420,6 +424,8 @@ export const deleteSwapClient = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "swap", "delete");
+
     const { data: row } = await supabaseAdmin
       .from("swap_clients")
       .select("code")
