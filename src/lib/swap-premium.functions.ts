@@ -116,6 +116,8 @@ export const createPremiumCompany = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "create");
+
     const { data: row, error } = await supabase
       .from("swap_premium_companies")
       .insert({ name: data.name.trim(), created_by: userId })
@@ -140,6 +142,8 @@ export const renamePremiumCompany = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "edit");
+
     const { data: prev } = await supabase
       .from("swap_premium_companies")
       .select("name")
@@ -169,6 +173,8 @@ export const deletePremiumCompany = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "delete");
+
     const { data: prev } = await supabase
       .from("swap_premium_companies")
       .select("name")
@@ -203,6 +209,8 @@ export const createPremiumTransaction = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof TxInput>) => TxInput.parse(input))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "create");
+
 
     // Resolve username
     const { data: prof } = await supabase
@@ -264,6 +272,8 @@ export const deletePremiumTransaction = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "delete");
+
     const { data: prev } = await supabase
       .from("swap_premium_transactions")
       .select("company_id, kind, grams, per_oz, amount_usd, notes")
@@ -299,6 +309,8 @@ export const updatePremiumTransaction = createServerFn({ method: "POST" })
   .inputValidator((input: z.infer<typeof UpdateTxInput>) => UpdateTxInput.parse(input))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "edit");
+
 
     const { data: prev, error: prevErr } = await supabase
       .from("swap_premium_transactions")
