@@ -30,7 +30,7 @@ import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 // ---------------- shared helpers ----------------
 
-const TROY_OZ_PER_KG = 32.1507466;
+// margin math is centralised in computeMargin (swap-clients.functions)
 
 type Client = Awaited<ReturnType<typeof listSwapClients>>[number];
 
