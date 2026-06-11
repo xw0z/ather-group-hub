@@ -236,19 +236,22 @@ async function shareClientMarginReport(
   const usd = Number(client.usd_balance);
   const goldKg = Number(client.gold_kg);
   const goldGrams = goldKg * 1000;
-  const goldValue = goldKg * TROY_OZ_PER_KG_LOCAL * xauPrice;
-  const equity = usd + goldValue;
   const reqPct = Number(client.margin_requirement_pct);
-  const requiredMargin = (goldValue * reqPct) / 100;
-  const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
-  const diff = equity - requiredMargin;
 
-  let tier: "safe" | "warning" | "needed" | "critical";
-  if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
-  else if (equity < 0) tier = "critical";
-  else if (marginLevelPct >= 120) tier = "safe";
-  else if (marginLevelPct >= 100) tier = "warning";
-  else tier = "needed";
+  // M5: delegate to the single shared computeMargin so screen / PNG / PDF /
+  // WhatsApp share never drift.
+  const m = computeMargin({
+    usd_balance: usd,
+    gold_kg: goldKg,
+    xauusd_price: xauPrice,
+    margin_requirement_pct: reqPct,
+  });
+  const goldValue = m.goldValue;
+  const equity = m.equity;
+  const requiredMargin = m.requiredMargin;
+  const marginLevelPct = m.marginLevelPct;
+  const diff = m.difference;
+  const tier = m.tier;
 
   const statusLabel =
     tier === "safe"
