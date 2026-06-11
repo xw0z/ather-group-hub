@@ -491,7 +491,12 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
       }
     }
 
-    const todayMultiplier = swapDayMultiplier(new Date());
+    const { data: feeSettings } = await supabaseAdmin
+      .from("swap_settings")
+      .select("wednesday_multiplier, skip_saturday, skip_sunday")
+      .eq("id", "global")
+      .maybeSingle();
+    const todayMultiplier = swapDayMultiplierFromSettings(new Date(), feeSettings);
     return {
       today,
       todayMultiplier,
@@ -505,7 +510,12 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const addExp = Number(c.additional_exposure_pct ?? 5);
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
         const baseDaily = (effBal * effRate) / 100 / 365;
-        const liveDaily = baseDaily * todayMultiplier;
+        // M3: clamp negative-balance long clients — never create a negative fee
+        // (which would otherwise become a credit). Short clients keep sign.
+        const baseDailyClamped =
+          positionType === "long" && effBal < 0 ? 0 : baseDaily;
+        const liveDaily = baseDailyClamped * todayMultiplier;
+
 
         return {
           id: c.id,
