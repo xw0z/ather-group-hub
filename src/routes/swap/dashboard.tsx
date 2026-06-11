@@ -336,12 +336,12 @@ async function shareClientMarginReport(
     <div style="margin-top:20px;padding:4px 16px;background:#222;border:1px solid #2f2f2f;border-radius:10px">
       ${row("Position", positionLabel)}
       ${row("Live XAUUSD", `${money(xauPrice)} / oz`)}
-      ${row("USD Balance", money(usd), usd < 0 ? "#ef4444" : undefined)}
+      ${row(usd < 0 ? "USD Balance (client debt)" : "USD Balance", money(usd), usd < 0 ? "#ef4444" : undefined)}
       ${row("Gold Balance", `${num(goldGrams, 0)} g`)}
-      ${row("Gold Value", money(goldValue))}
-      ${row("Equity (USD + Gold)", money(equity), equity < 0 ? "#ef4444" : undefined)}
+      ${row("Gold Value (kg × 32.1507 × XAU)", money(goldValue))}
+      ${row("Equity (USD Balance + Gold Value)", money(equity), equity < 0 ? "#ef4444" : undefined)}
       ${row("Margin Requirement", `${num(reqPct)}%`)}
-      ${row("Required Margin", money(requiredMargin))}
+      ${row("Required Margin (Gold Value × Margin %)", money(requiredMargin))}
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0">
         <span style="font-size:13px;color:#9a9a9a;letter-spacing:0.02em">Margin Level</span>
         <span style="font-size:20px;color:${statusColor};font-weight:700;font-variant-numeric:tabular-nums">${num(marginLevelPct)}%</span>
