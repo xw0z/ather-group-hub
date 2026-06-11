@@ -450,7 +450,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "premium", label: "nav.premium", icon: TrendingUp, module: "premium" },
   { key: "refineries", label: "Refineries", icon: Factory, refineryGated: true },
   { key: "reports", label: "nav.reports", icon: FileText, module: "reports" },
-  { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit", adminOnly: true },
+  { key: "audit", label: "nav.audit", icon: ScrollText, module: "audit" },
   { key: "users", label: "nav.users", icon: UserPlus, module: "users", adminOnly: true },
   { key: "settings", label: "nav.settings", icon: SettingsIcon, module: "settings" },
   { key: "profile", label: "Profile", icon: UserCircle },
