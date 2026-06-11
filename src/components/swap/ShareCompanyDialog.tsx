@@ -235,29 +235,19 @@ const TX_COLOR: Record<PremiumTx["kind"], string> = {
   add: OK,
   remove: DANGER,
   adjust: INFO,
-  discount: OK,
+  discount: INFO,  // align with on-screen "text-sky-400" in PremiumPanel
   premium: EMBER,
 };
 
 /** Build a single-line, professional note for discount/premium rows. */
 function formatTxNote(t: PremiumTx, dict: Dict): string {
-  if (t.kind === "discount" || t.kind === "premium") {
-    const isPremium = t.kind === "premium";
-    const label = isPremium ? dict.premiumApplied : dict.discountApplied;
-    const sign = isPremium ? "+" : "-";
-    const rate = Number(t.per_oz ?? 0).toFixed(0);
-    const grams = (Number(t.grams) || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const valueAbs = Math.abs(Number(t.amount_usd ?? 0)).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const base = `${label} (${sign}${rate} USD/oz) | ${dict.gold}: ${grams} g | ${dict.value}: $${valueAbs}`;
-    return t.notes ? `${base} — ${t.notes}` : base;
-  }
-  return t.notes || "—";
+  return sharedFormatTxNote(t, {
+    premiumApplied: dict.premiumApplied,
+    discountApplied: dict.discountApplied,
+    gold: dict.gold,
+    value: dict.value,
+    emptyDash: "—",
+  });
 }
 
 /* -------------------- Component -------------------- */
