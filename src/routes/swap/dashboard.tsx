@@ -2278,9 +2278,13 @@ function MarginTab({
             <div className="text-[11px] text-muted-foreground">Gold valuation</div>
             <div className="font-semibold">${fmt(totals.totalGoldValue)}</div>
           </div>
-          <div className="rounded-md bg-muted/40 px-3 py-2">
-            <div className="text-[11px] text-muted-foreground">Total equity</div>
-            <div className="font-semibold">${fmt(totals.totalEquity)}</div>
+          <div
+            className={`rounded-md px-3 py-2 ${
+              totals.totalEquity < 0 ? "bg-red-500/15 text-red-600" : "bg-muted/40"
+            }`}
+          >
+            <div className="text-[11px] opacity-80">Total equity</div>
+            <div className="font-semibold">{fmtMoney(totals.totalEquity)}</div>
           </div>
           <div className="rounded-md bg-muted/40 px-3 py-2">
             <div className="text-[11px] text-muted-foreground">Total required</div>
