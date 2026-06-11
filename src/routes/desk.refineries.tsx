@@ -1208,8 +1208,9 @@ function ClientDialog({
     setCode(v);
     try {
       const r = await checkClientCode({
-        data: { code: v, excludeClientId: editing?.id ?? null },
+        data: { code: v, refineryId, excludeClientId: editing?.id ?? null },
       });
+
       if (r.duplicate) {
         setCodeError(t("cdlg.toast.codeUsed") + (r.duplicateOf ? ` (${r.duplicateOf})` : ""));
       } else if (r.prefixCollision) {
