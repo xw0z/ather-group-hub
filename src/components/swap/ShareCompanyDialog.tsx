@@ -149,9 +149,9 @@ const DICTS: Record<Lang, Dict> = {
     french: "الفرنسية",
   },
   fr: {
-    companySummary: "Résumé de la société",
+    companySummary: "Résumé du code client",
     goldDiscountBalance: "Solde de remise sur l’or",
-    company: "Société",
+    company: "Code client",
     snapshot: "Instantané",
     totalBalance: "Solde total",
     dpGold: "Or remise / prime",
