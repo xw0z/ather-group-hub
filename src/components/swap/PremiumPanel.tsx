@@ -565,22 +565,7 @@ function TxRow({
         </div>
         {t.kind === "discount" || t.kind === "premium" ? (
           <p className="text-xs text-muted-foreground mt-1 truncate whitespace-nowrap">
-            {(() => {
-              const isPremium = t.kind === "premium";
-              const label = isPremium ? "Premium Applied" : "Discount Applied";
-              const sign = isPremium ? "+" : "-";
-              const rate = Number(t.per_oz ?? 0).toFixed(0);
-              const grams = (Number(t.grams) || 0).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              });
-              const valueAbs = Math.abs(Number(t.amount_usd ?? 0)).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              });
-              const base = `${label} (${sign}${rate} USD/oz) | Gold: ${grams} g | Value: $${valueAbs}`;
-              return t.notes ? `${base} — ${t.notes}` : base;
-            })()}
+            {formatTxNote(t)}
           </p>
         ) : (
           <>
