@@ -196,36 +196,12 @@ const DICTS: Record<Lang, Dict> = {
   },
 };
 
-/* -------------------- Formatters -------------------- */
+/* -------------------- Formatters (delegated to shared module) -------------------- */
 
-const fmtG = (n: number) =>
-  `${(Number(n) || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} g`;
-
-const fmtGNum = (n: number) =>
-  (Number(n) || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-const fmtUSD = (n: number) => {
-  const v = Number(n) || 0;
-  const abs = Math.abs(v);
-  const s = abs.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return v < 0 ? `-$${s}` : `$${s}`;
-};
-
-const fmtDate = (d: string) => {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}:${p(dt.getSeconds())}`;
-};
+const fmtG = sharedFmtG;
+const fmtGNum = sharedFmtGNum;
+const fmtUSD = sharedFmtUSD;
+const fmtDate = fmtDateUTC;
 
 type Mode = "summary" | "statement";
 
