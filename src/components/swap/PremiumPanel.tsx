@@ -1018,19 +1018,53 @@ function ReportAllCompanies({
 }
 
 function ReportHistory({ onBack }: { onBack: () => void }) {
-  const [txs, setTxs] = useState<PremiumTx[] | null>(null);
+  const [rows, setRows] = useState<PremiumTx[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Record<string, string>>({});
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(0);
+  const pageSize = 100;
 
   useEffect(() => {
     (async () => {
-      const [t, s] = await Promise.all([
-        listAllTransactions(),
-        listPremiumCompanies(),
-      ]);
-      setTxs(t);
+      const s = await listPremiumCompanies();
       setCompanies(Object.fromEntries(s.map((x) => [x.company.id, x.company.name])));
     })();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await listAllTransactions({
+          data: {
+            limit: pageSize,
+            offset: page * pageSize,
+            fromDate: fromDate || undefined,
+            toDate: toDate || undefined,
+          },
+        });
+        if (cancelled) return;
+        setRows(res.rows);
+        setTotal(res.total);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, fromDate, toDate]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const resetFilters = () => {
+    setFromDate("");
+    setToDate("");
+    setPage(0);
+  };
 
   return (
     <section className="space-y-4">
@@ -1042,17 +1076,49 @@ function ReportHistory({ onBack }: { onBack: () => void }) {
           <p className="text-xs uppercase tracking-[0.4em] text-primary">Ather Group</p>
           <h1 className="text-2xl font-bold mt-2">Transaction History</h1>
           <p className="text-xs text-muted-foreground mt-2">
-            Most recent 500 transactions · Generated {new Date().toLocaleString("en-US")}
+            Showing {rows.length} of {total} · Generated {new Date().toLocaleString("en-US")}
           </p>
         </header>
 
-        {!txs ? (
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div>
+            <Label className="text-xs">From</Label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setPage(0);
+              }}
+              className="mt-1.5 h-9"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">To</Label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setPage(0);
+              }}
+              className="mt-1.5 h-9"
+            />
+          </div>
+          {(fromDate || toDate) && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              Clear
+            </Button>
+          )}
+        </div>
+
+        {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : !txs.length ? (
-          <p className="text-sm text-muted-foreground">No transactions recorded.</p>
+        ) : !rows.length ? (
+          <p className="text-sm text-muted-foreground">No transactions for this range.</p>
         ) : (
           <ul className="divide-y divide-border/60">
-            {txs.map((t) => {
+            {rows.map((t) => {
               const meta = KIND_META[t.kind];
               const Icon = meta.icon;
               return (
@@ -1062,7 +1128,7 @@ function ReportHistory({ onBack }: { onBack: () => void }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap text-sm">
-                      <span className="font-semibold">
+                      <span className="font-semibold truncate max-w-[200px]" title={companies[t.company_id] ?? "Unknown company"}>
                         {companies[t.company_id] ?? "Unknown company"}
                       </span>
                       <span className={`text-xs ${meta.color}`}>· {meta.label}</span>
@@ -1085,6 +1151,30 @@ function ReportHistory({ onBack }: { onBack: () => void }) {
               );
             })}
           </ul>
+        )}
+
+        {total > pageSize && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/60">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Page {page + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1 || loading}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
         )}
       </div>
     </section>
