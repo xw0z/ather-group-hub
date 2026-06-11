@@ -1281,6 +1281,23 @@ export const getAccountStatement = createServerFn({ method: "POST" })
       .order("settled_at", { ascending: true });
     if (tErr) throw new Error(tErr.message);
 
+    // (F2) Resolve opening when there is no prior settled transaction.
+    if (openingSource !== "prior") {
+      if ((txs ?? []).length > 0) {
+        // Use the first in-window transaction's stored "previous" snapshot —
+        // this represents the balance just before the first in-window movement.
+        const first = txs![0];
+        openingGold = Number((first as { previous_purity_balance?: number | null }).previous_purity_balance ?? 0);
+        openingDa = Number((first as { previous_da_balance?: number | null }).previous_da_balance ?? 0);
+        openingSource = "first_in_window";
+      } else {
+        // No history at all → use client's current stored balance.
+        openingGold = Number((cli as { purity_balance?: number | string | null }).purity_balance ?? 0);
+        openingDa = Number((cli as { da_balance?: number | string | null }).da_balance ?? 0);
+        openingSource = "client_current";
+      }
+    }
+
     // Resolve counterparty names for settlements (single batch)
     const counterIds = Array.from(new Set((txs ?? [])
       .map((t: any) => t.counterparty_client_id)
