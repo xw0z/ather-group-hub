@@ -223,11 +223,11 @@ export function PremiumPanel() {
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Company name…"
+          placeholder="Client code…"
           className="flex-1"
         />
         <Button type="submit" disabled={!newName.trim()}>
-          <Plus className="h-4 w-4 mr-2" /> Add Company
+          <Plus className="h-4 w-4 mr-2" /> Add Client Code
         </Button>
       </form>
 
