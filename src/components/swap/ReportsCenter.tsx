@@ -30,7 +30,7 @@ import { cached, invalidate, CK } from "@/lib/swap-cache";
 
 // ---------------- shared helpers ----------------
 
-const TROY_OZ_PER_KG = 32.1507466;
+// margin math is centralised in computeMargin (swap-clients.functions)
 
 type Client = Awaited<ReturnType<typeof listSwapClients>>[number];
 
@@ -223,19 +223,16 @@ function marginSectionHtml(c: Client, xau: number): string {
   const usd = Number(c.usd_balance);
   const goldKg = Number(c.gold_kg ?? 0);
   const goldGrams = goldKg * 1000;
-  const goldValue = goldKg * TROY_OZ_PER_KG * xau;
-  const equity = usd + goldValue;
   const reqPct = Number(c.margin_requirement_pct ?? 20);
-  const requiredMargin = (goldValue * reqPct) / 100;
-  const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
-  const diff = equity - requiredMargin;
-
-  let tier: "safe" | "warning" | "needed" | "critical";
-  if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
-  else if (equity < 0) tier = "critical";
-  else if (marginLevelPct >= 120) tier = "safe";
-  else if (marginLevelPct >= 100) tier = "warning";
-  else tier = "needed";
+  // M5: single source of truth — same computeMargin used on-screen and in
+  // share dialogs guarantees identical numbers across every output channel.
+  const m = computeMargin({
+    usd_balance: usd,
+    gold_kg: goldKg,
+    xauusd_price: xau,
+    margin_requirement_pct: reqPct,
+  });
+  const { goldValue, equity, requiredMargin, marginLevelPct, difference: diff, tier } = m;
 
   const statusLabel =
     tier === "safe"
@@ -266,7 +263,7 @@ function marginSectionHtml(c: Client, xau: number): string {
       ${row("Required Margin", money(requiredMargin))}
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0">
         <span style="font-size:13px;color:#9a9a9a;letter-spacing:0.02em">Margin Level</span>
-        <span style="font-size:20px;color:${statusColor};font-weight:700;font-variant-numeric:tabular-nums">${fmt(marginLevelPct)}%</span>
+        <span style="font-size:20px;color:${statusColor};font-weight:700;font-variant-numeric:tabular-nums">${requiredMargin > 0 ? `${fmt(marginLevelPct)}%` : "N/A"}</span>
       </div>
     </div>
     <div style="margin-top:16px;padding:14px 16px;background:${statusColor}1f;border:1px solid ${statusColor}55;border-radius:10px;text-align:center">

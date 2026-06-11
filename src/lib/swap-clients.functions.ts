@@ -57,13 +57,15 @@ export function computeMargin(input: {
   // Difference = Equity − Required Margin (positive = surplus, negative = shortfall)
   const difference = availableMargin - requiredMargin;
   const marginLevelPct = requiredMargin > 0 ? (equity / requiredMargin) * 100 : 0;
-  const status: "enough" | "needed" = difference >= 0 ? "enough" : "needed";
   let tier: "safe" | "warning" | "needed" | "critical";
   if (requiredMargin <= 0) tier = equity < 0 ? "critical" : "safe";
   else if (equity < 0) tier = "critical";
   else if (marginLevelPct >= 120) tier = "safe";
   else if (marginLevelPct >= 100) tier = "warning";
   else tier = "needed";
+  // status is derived from tier — keeps the two fields in lockstep.
+  const status: "enough" | "needed" =
+    tier === "needed" || tier === "critical" ? "needed" : "enough";
   return {
     goldValue,
     equity,
@@ -443,6 +445,7 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "audit", "view");
     const { data, error } = await supabaseAdmin
       .from("swap_activity_log")
       .select(
@@ -864,6 +867,7 @@ export const listSwapMarginHistory = createServerFn({ method: "GET" })
   )
   .handler(async ({ data, context }) => {
     await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "audit", "view");
     let q = supabaseAdmin
       .from("swap_margin_history")
       .select("*")

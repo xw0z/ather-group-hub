@@ -96,17 +96,37 @@ export const listCompanyTransactions = createServerFn({ method: "GET" })
     return (txs ?? []) as PremiumTx[];
   });
 
+const ListAllInput = z
+  .object({
+    limit: z.number().int().min(1).max(1000).optional(),
+    offset: z.number().int().min(0).optional(),
+    fromDate: z.string().optional(), // YYYY-MM-DD
+    toDate: z.string().optional(),   // YYYY-MM-DD (inclusive)
+  })
+  .optional();
+
 export const listAllTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: z.infer<typeof ListAllInput>) => ListAllInput.parse(input))
+  .handler(async ({ context, data }) => {
     const { supabase } = context;
-    const { data, error } = await supabase
+    const limit = data?.limit ?? 200;
+    const offset = data?.offset ?? 0;
+    let q = supabase
       .from("swap_premium_transactions")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(500);
+      .range(offset, offset + limit - 1);
+    if (data?.fromDate) q = q.gte("created_at", `${data.fromDate}T00:00:00.000Z`);
+    if (data?.toDate) q = q.lte("created_at", `${data.toDate}T23:59:59.999Z`);
+    const { data: rows, error, count } = await q;
     if (error) throw new Error(error.message);
-    return (data ?? []) as PremiumTx[];
+    return {
+      rows: (rows ?? []) as PremiumTx[],
+      total: count ?? rows?.length ?? 0,
+      limit,
+      offset,
+    };
   });
 
 export const createPremiumCompany = createServerFn({ method: "POST" })

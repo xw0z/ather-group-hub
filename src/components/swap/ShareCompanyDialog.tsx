@@ -25,6 +25,14 @@ import {
   type PremiumTx,
 } from "@/lib/swap-premium.functions";
 import { logClientAuditEvent } from "@/lib/swap-audit.functions";
+import {
+  fmtDateUTC,
+  fmtG as sharedFmtG,
+  fmtGNum as sharedFmtGNum,
+  fmtUSD as sharedFmtUSD,
+  formatTxNote as sharedFormatTxNote,
+  recomputeCompanySummary,
+} from "@/lib/swap-share-format";
 
 /* -------------------- i18n -------------------- */
 
@@ -188,36 +196,12 @@ const DICTS: Record<Lang, Dict> = {
   },
 };
 
-/* -------------------- Formatters -------------------- */
+/* -------------------- Formatters (delegated to shared module) -------------------- */
 
-const fmtG = (n: number) =>
-  `${(Number(n) || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} g`;
-
-const fmtGNum = (n: number) =>
-  (Number(n) || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-const fmtUSD = (n: number) => {
-  const v = Number(n) || 0;
-  const abs = Math.abs(v);
-  const s = abs.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return v < 0 ? `-$${s}` : `$${s}`;
-};
-
-const fmtDate = (d: string) => {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}:${p(dt.getSeconds())}`;
-};
+const fmtG = sharedFmtG;
+const fmtGNum = sharedFmtGNum;
+const fmtUSD = sharedFmtUSD;
+const fmtDate = fmtDateUTC;
 
 type Mode = "summary" | "statement";
 
@@ -251,29 +235,19 @@ const TX_COLOR: Record<PremiumTx["kind"], string> = {
   add: OK,
   remove: DANGER,
   adjust: INFO,
-  discount: OK,
+  discount: INFO,  // align with on-screen "text-sky-400" in PremiumPanel
   premium: EMBER,
 };
 
 /** Build a single-line, professional note for discount/premium rows. */
 function formatTxNote(t: PremiumTx, dict: Dict): string {
-  if (t.kind === "discount" || t.kind === "premium") {
-    const isPremium = t.kind === "premium";
-    const label = isPremium ? dict.premiumApplied : dict.discountApplied;
-    const sign = isPremium ? "+" : "-";
-    const rate = Number(t.per_oz ?? 0).toFixed(0);
-    const grams = (Number(t.grams) || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const valueAbs = Math.abs(Number(t.amount_usd ?? 0)).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const base = `${label} (${sign}${rate} USD/oz) | ${dict.gold}: ${grams} g | ${dict.value}: $${valueAbs}`;
-    return t.notes ? `${base} — ${t.notes}` : base;
-  }
-  return t.notes || "—";
+  return sharedFormatTxNote(t, {
+    premiumApplied: dict.premiumApplied,
+    discountApplied: dict.discountApplied,
+    gold: dict.gold,
+    value: dict.value,
+    emptyDash: "—",
+  });
 }
 
 /* -------------------- Component -------------------- */
@@ -323,13 +297,29 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
       .catch(() => setQr(""));
   }, [open]);
 
+  // M4: always re-fetch the freshest transaction list on open so the share
+  // dialog never relies on stale parent props.
   useEffect(() => {
-    if (open && !txs) {
-      listCompanyTransactions({ data: { companyId: summary.company.id } })
-        .then(setTxs)
-        .catch(() => setTxs([]));
-    }
-  }, [open, summary.company.id, txs]);
+    if (!open) return;
+    let cancelled = false;
+    listCompanyTransactions({ data: { companyId: summary.company.id } })
+      .then((rows) => {
+        if (!cancelled) setTxs(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setTxs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, summary.company.id]);
+
+  // Recompute the summary from the freshly fetched transactions whenever they
+  // change — this is what the share image / PNG / statement renders.
+  const liveSummary: CompanySummary =
+    txs && txs.length >= 0
+      ? { company: summary.company, ...recomputeCompanySummary(txs) }
+      : summary;
 
   const triggerDownload = (dataUrl: string, fileName: string) => {
     const a = document.createElement("a");
@@ -540,9 +530,12 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
           </p>
         </div>
 
-        {/* Hidden offscreen render targets */}
+        {/* Hidden offscreen render targets — forced LTR/EN so html-to-image
+            captures the brand layout consistently regardless of UI locale. */}
         <div
           aria-hidden
+          dir="ltr"
+          lang="en"
           style={{
             position: "fixed",
             top: 0,
@@ -553,7 +546,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
         >
           <SummaryCard
             ref={summaryRef}
-            summary={summary}
+            summary={liveSummary}
             qr={qr}
             generatedAt={generatedAt}
             lang={lang}
@@ -562,7 +555,7 @@ export function ShareCompanyDialog({ summary }: { summary: CompanySummary }) {
           {txs && (
             <StatementCard
               ref={statementRef}
-              summary={summary}
+              summary={liveSummary}
               txs={txs}
               qr={qr}
               generatedAt={generatedAt}
