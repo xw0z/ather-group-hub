@@ -799,85 +799,47 @@ const StatementCard = ({
               overflow: "hidden",
             }}
           >
-            <div
+            <table
               style={{
-                display: "grid",
-                gridTemplateColumns: "13% 13% 18% 56%",
-                padding: "10px 14px",
-                background: CARD_2,
-                fontSize: 10,
-                color: TEXT_MUTED,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
+                width: "100%",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
-              <span style={{ textAlign: "left", paddingRight: 12 }}>Date</span>
-              <span style={{ textAlign: "left", paddingRight: 12 }}>Type</span>
-              <span style={{ textAlign: "right", paddingRight: 16 }}>Weight</span>
-              <span style={{ textAlign: "left" }}>Notes</span>
-            </div>
-            {all.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "13% 13% 18% 56%",
-                  padding: "9px 14px",
-                  borderTop: `1px solid ${BORDER_SOFT}`,
-                  fontSize: 12,
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    color: TEXT_SOFT,
-                    fontVariantNumeric: "tabular-nums",
-                    textAlign: "left",
-                    paddingRight: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {fmtDate(t.created_at)}
-                </span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    letterSpacing: "0.12em",
-                    color: TX_COLOR[t.kind],
-                    textAlign: "left",
-                    paddingRight: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {TX_LABEL[t.kind]}
-                </span>
-                <span
-                  style={{
-                    textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
-                    color: TEXT,
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    paddingRight: 16,
-                  }}
-                >
-                  {fmtGNum(Number(t.grams))} g
-                </span>
-                <span
-                  style={{
-                    color: TEXT_MUTED,
-                    fontSize: 11,
-                    textAlign: "left",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {formatTxNote(t)}
-                </span>
-              </div>
-            ))}
+              <colgroup>
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "53%" }} />
+              </colgroup>
+              <thead>
+                <tr style={{ background: CARD_2 }}>
+                  <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 10, color: TEXT_MUTED, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Date</th>
+                  <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 10, color: TEXT_MUTED, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Type</th>
+                  <th style={{ textAlign: "right", padding: "12px 16px", fontSize: 10, color: TEXT_MUTED, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Weight</th>
+                  <th style={{ textAlign: "left", padding: "12px 18px", fontSize: 10, color: TEXT_MUTED, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700 }}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {all.map((t) => (
+                  <tr key={t.id} style={{ borderTop: `1px solid ${BORDER_SOFT}` }}>
+                    <td style={{ padding: "12px 16px", verticalAlign: "middle", color: TEXT_SOFT, fontSize: 11, whiteSpace: "nowrap" }}>
+                      {fmtDate(t.created_at)}
+                    </td>
+                    <td style={{ padding: "12px 16px", verticalAlign: "middle", fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", color: TX_COLOR[t.kind], whiteSpace: "nowrap" }}>
+                      {TX_LABEL[t.kind]}
+                    </td>
+                    <td style={{ padding: "12px 16px", verticalAlign: "middle", textAlign: "right", color: TEXT, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {fmtGNum(Number(t.grams))} g
+                    </td>
+                    <td style={{ padding: "12px 18px", verticalAlign: "middle", color: TEXT_SOFT, fontSize: 11, lineHeight: 1.55, wordBreak: "break-word", overflowWrap: "anywhere" }}>
+                      {formatTxNote(t)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
