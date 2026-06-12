@@ -2620,3 +2620,272 @@ export async function runScheduledBackups(now: Date = new Date()) {
   }
   return { processed: due.length, results };
 }
+
+// =========================================================
+// Refinery management (admin only): create / update / archive / restore / delete
+// =========================================================
+const REFINERY_ICON_NAMES = [
+  "factory","building2","building","warehouse","landmark","store",
+  "gem","diamond","coins","scale","flame","hammer","wrench","cog",
+  "shield","star","crown","sparkles","sun","moon","mountain","trophy",
+] as const;
+type RefineryIconName = typeof REFINERY_ICON_NAMES[number];
+
+const refineryWritable = z.object({
+  code: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9_\-]+$/, "Code must be letters, digits, '_' or '-'"),
+  name: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional().default(""),
+  status: z.enum(["active", "inactive"]).default("active"),
+  icon_name: z.enum(REFINERY_ICON_NAMES).default("factory"),
+  icon_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#f59e0b"),
+  badge_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#fef3c7"),
+  default_fee_price: z.number().min(0).default(0),
+  report_footer: z.string().max(4000).optional().default(""),
+  receipt_footer: z.string().max(4000).optional().default(""),
+});
+
+async function writeRefineryAudit(refineryId: string, userId: string, action: string, details: Record<string, unknown>) {
+  const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+  await supabaseAdmin.from("refinery_audit_log").insert({
+    refinery_id: refineryId,
+    user_id: userId,
+    user_email: u?.user?.email ?? null,
+    action,
+    details,
+  });
+}
+
+export const createRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => refineryWritable.parse(d))
+  .handler(async ({ data, context }): Promise<Refinery> => {
+    await assertAdmin(context.userId);
+    const { data: existing } = await supabaseAdmin
+      .from("refineries").select("id").ilike("code", data.code).maybeSingle();
+    if (existing) throw new Error(`A refinery with code "${data.code}" already exists.`);
+    const { data: row, error } = await supabaseAdmin
+      .from("refineries")
+      .insert({ ...data, code: data.code.toUpperCase() })
+      .select("*").single();
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("refinery_stock").insert({ refinery_id: row.id }).select();
+    await writeRefineryAudit(row.id, context.userId, "refinery.created", { code: row.code, name: row.name });
+    return row as Refinery;
+  });
+
+export const updateRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).merge(refineryWritable.partial()).parse(d))
+  .handler(async ({ data, context }): Promise<Refinery> => {
+    await assertAdmin(context.userId);
+    const { id, ...rest } = data;
+    if (rest.code) {
+      const { data: clash } = await supabaseAdmin
+        .from("refineries").select("id").ilike("code", rest.code).neq("id", id).maybeSingle();
+      if (clash) throw new Error(`Another refinery already uses code "${rest.code}".`);
+      rest.code = rest.code.toUpperCase();
+    }
+    const { data: row, error } = await supabaseAdmin
+      .from("refineries").update(rest).eq("id", id).select("*").single();
+    if (error) throw new Error(error.message);
+    await writeRefineryAudit(id, context.userId, "refinery.updated", { changes: rest });
+    return row as Refinery;
+  });
+
+export const archiveRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("refineries")
+      .update({ status: "archived", archived_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await writeRefineryAudit(data.id, context.userId, "refinery.archived", {});
+    return { ok: true };
+  });
+
+export const restoreRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("refineries")
+      .update({ status: "active", archived_at: null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await writeRefineryAudit(data.id, context.userId, "refinery.restored", {});
+    return { ok: true };
+  });
+
+export const deleteRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.rpc("refinery_admin_delete", { _refinery_id: data.id });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// =========================================================
+// Card stats — one row per refinery the caller can see
+// =========================================================
+export const getRefineryCardStats = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ ids: z.array(z.string().uuid()).min(0).max(50) }).parse(d))
+  .handler(async ({ data, context }): Promise<RefineryCardStats[]> => {
+    if (data.ids.length === 0) return [];
+    const a = await loadAssignment(context.userId);
+    const ids = a.isAdmin ? data.ids : data.ids.filter((id) => id === a.refineryId);
+    if (ids.length === 0) return [];
+
+    const [stocks, clients, txCounts, lastTx] = await Promise.all([
+      supabaseAdmin.from("refinery_stock").select("refinery_id, pure_gold_stock, silver_stock").in("refinery_id", ids),
+      supabaseAdmin.from("refinery_clients").select("refinery_id, purity_balance").in("refinery_id", ids),
+      supabaseAdmin.from("refinery_transactions").select("refinery_id", { count: "exact", head: false }).in("refinery_id", ids),
+      supabaseAdmin.from("refinery_transactions").select("refinery_id, created_at").in("refinery_id", ids).order("created_at", { ascending: false }).limit(500),
+    ]);
+
+    const stockMap = new Map<string, { gold: number; silver: number }>();
+    for (const s of stocks.data ?? []) {
+      const r = s as { refinery_id: string; pure_gold_stock: number; silver_stock: number };
+      stockMap.set(r.refinery_id, { gold: Number(r.pure_gold_stock || 0), silver: Number(r.silver_stock || 0) });
+    }
+
+    const clientAgg = new Map<string, { count: number; owedTo: number; owedBy: number }>();
+    for (const c of clients.data ?? []) {
+      const r = c as { refinery_id: string; purity_balance: number };
+      const cur = clientAgg.get(r.refinery_id) ?? { count: 0, owedTo: 0, owedBy: 0 };
+      cur.count += 1;
+      const bal = Number(r.purity_balance || 0);
+      if (bal > 0) cur.owedTo += bal;
+      else if (bal < 0) cur.owedBy += -bal;
+      clientAgg.set(r.refinery_id, cur);
+    }
+
+    const txCountMap = new Map<string, number>();
+    for (const t of txCounts.data ?? []) {
+      const r = t as { refinery_id: string };
+      txCountMap.set(r.refinery_id, (txCountMap.get(r.refinery_id) ?? 0) + 1);
+    }
+
+    const lastMap = new Map<string, string>();
+    for (const t of lastTx.data ?? []) {
+      const r = t as { refinery_id: string; created_at: string };
+      if (!lastMap.has(r.refinery_id)) lastMap.set(r.refinery_id, r.created_at);
+    }
+
+    return ids.map((id) => {
+      const s = stockMap.get(id) ?? { gold: 0, silver: 0 };
+      const c = clientAgg.get(id) ?? { count: 0, owedTo: 0, owedBy: 0 };
+      return {
+        id,
+        totalClients: c.count,
+        pureGoldStock: s.gold,
+        silverStock: s.silver,
+        goldOwedToClients: c.owedTo,
+        goldOwedByClients: c.owedBy,
+        transactionCount: txCountMap.get(id) ?? 0,
+        lastActivityAt: lastMap.get(id) ?? null,
+      };
+    });
+  });
+
+// =========================================================
+// Performance stats (item 11)
+// =========================================================
+export const getRefineryPerformance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    refineryId: z.string().uuid(),
+    months: z.number().int().min(1).max(24).default(6),
+  }).parse(d))
+  .handler(async ({ data, context }): Promise<RefineryPerformance> => {
+    await assertAccess(context.userId, data.refineryId);
+
+    const since = new Date();
+    since.setMonth(since.getMonth() - data.months);
+    const sinceIso = since.toISOString();
+
+    const { data: txs } = await supabaseAdmin
+      .from("refinery_transactions")
+      .select("client_id, transaction_type, direction, total_pure_weight, total_gross_weight, average_purity, total_refining_fee, transaction_date, created_at, adjustment_metal, adjustment_kind, adjustment_delta")
+      .eq("refinery_id", data.refineryId)
+      .gte("created_at", sinceIso);
+
+    let totalGoldReceived = 0;
+    let totalGoldDelivered = 0;
+    let totalRefiningFees = 0;
+    let totalLoss = 0;
+    let purityWeightedSum = 0;
+    let purityWeightTotal = 0;
+    const monthly = new Map<string, { received: number; delivered: number; fees: number }>();
+    const byClient = new Map<string, { volume: number; fees: number }>();
+
+    for (const t of (txs ?? []) as Array<{
+      client_id: string | null; transaction_type: string; direction: string;
+      total_pure_weight: number; total_gross_weight: number; average_purity: number;
+      total_refining_fee: number; transaction_date: string; created_at: string;
+      adjustment_metal: string | null; adjustment_kind: string | null; adjustment_delta: number | null;
+    }>) {
+      const month = (t.transaction_date || t.created_at).slice(0, 7);
+      const m = monthly.get(month) ?? { received: 0, delivered: 0, fees: 0 };
+
+      if (t.transaction_type === "gold") {
+        if (t.direction === "receiving") {
+          totalGoldReceived += Number(t.total_pure_weight || 0);
+          m.received += Number(t.total_pure_weight || 0);
+          totalRefiningFees += Number(t.total_refining_fee || 0);
+          m.fees += Number(t.total_refining_fee || 0);
+        } else {
+          totalGoldDelivered += Number(t.total_pure_weight || 0);
+          m.delivered += Number(t.total_pure_weight || 0);
+        }
+        const w = Number(t.total_gross_weight || 0);
+        if (w > 0 && t.average_purity) {
+          purityWeightedSum += Number(t.average_purity) * w;
+          purityWeightTotal += w;
+        }
+        if (t.client_id) {
+          const cur = byClient.get(t.client_id) ?? { volume: 0, fees: 0 };
+          cur.volume += Number(t.total_pure_weight || 0);
+          cur.fees += Number(t.total_refining_fee || 0);
+          byClient.set(t.client_id, cur);
+        }
+      }
+      if (t.transaction_type === "stock_adjustment" && t.adjustment_kind === "loss" && t.adjustment_metal === "gold") {
+        totalLoss += Math.abs(Number(t.adjustment_delta || 0));
+      }
+      monthly.set(month, m);
+    }
+
+    const months = Array.from(monthly.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({ month, ...v }));
+
+    let topClients: RefineryPerformance["topClients"] = [];
+    if (byClient.size) {
+      const ids = Array.from(byClient.keys());
+      const { data: cs } = await supabaseAdmin
+        .from("refinery_clients").select("id, code, name").in("id", ids);
+      topClients = (cs ?? [])
+        .map((c) => {
+          const r = c as { id: string; code: string | null; name: string };
+          const v = byClient.get(r.id)!;
+          return { id: r.id, code: r.code, name: r.name, volume: v.volume, fees: v.fees };
+        })
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 10);
+    }
+
+    return {
+      totalGoldReceived, totalGoldDelivered, totalRefiningFees, totalLoss,
+      averagePurity: purityWeightTotal > 0 ? purityWeightedSum / purityWeightTotal : 0,
+      monthly: months, topClients,
+    };
+  });
+
+export const REFINERY_ICONS_LIST = REFINERY_ICON_NAMES;
