@@ -213,6 +213,9 @@ function SwapClientDetail() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 space-y-4">
+        <div className="flex justify-end">
+          <MonthlyStatementButton clientId={c.id} />
+        </div>
         <section className="rounded-xl border border-border/60 bg-card p-4">
           <h2 className="text-sm font-semibold mb-3">
             {c.position_type === "short" ? "Daily swap benefits" : "Daily swap fees"}
