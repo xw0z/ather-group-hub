@@ -271,7 +271,7 @@ function statusTone(
 }
 
 function RefineryCard({
-  refinery, stats, isAdmin, onOpen, onEdit, onArchive, onRestore, onDelete, onStats,
+  refinery, stats, isAdmin, onOpen, onEdit, onArchive, onRestore, onDelete, onStats, onUsers,
 }: {
   refinery: Refinery;
   stats: RefineryCardStats | undefined;
@@ -282,6 +282,7 @@ function RefineryCard({
   onRestore: () => void;
   onDelete: () => void;
   onStats: () => void;
+  onUsers: () => void;
 }) {
   const archived = refinery.status === "archived";
   const hasActivity = !!stats && (stats.transactionCount > 0 || stats.totalClients > 0 || stats.pureGoldStock !== 0);
