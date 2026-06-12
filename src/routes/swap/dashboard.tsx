@@ -1289,6 +1289,7 @@ function HomeTab({
   return (
     <div className="space-y-4">
       <SwapControlCenter />
+      {isAdmin ? <BackfillPanel /> : null}
       <LiveXauCard
         isAdmin={isAdmin}
         livePrice={livePrice}
