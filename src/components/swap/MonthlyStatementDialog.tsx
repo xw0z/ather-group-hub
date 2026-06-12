@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
-import { Download, FileText, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Download, FileText, Image as ImageIcon, Loader2, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSwapClientMonthlyStatement } from "@/lib/swap-clients.functions";
+import { generateMonthlyStatementPdf } from "@/lib/swap-pdf.functions";
 
 type Statement = Awaited<ReturnType<typeof getSwapClientMonthlyStatement>>;
 
