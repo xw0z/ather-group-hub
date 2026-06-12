@@ -438,6 +438,7 @@ function UserManagement() {
                 </div>
 
                 <UserPermissionsEditor userId={u.id} username={u.username} onChanged={load} />
+                <RefineryAccessEditor userId={u.id} username={u.username} isAdmin={u.is_admin} />
               </article>
             );
           })}
