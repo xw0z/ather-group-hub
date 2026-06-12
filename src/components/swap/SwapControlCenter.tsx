@@ -176,7 +176,7 @@ export function SwapControlCenter() {
           label="Charged today"
           value={`${stats.chargedTodayCount} / ${stats.totalClients}`}
           hint={`Long ${stats.longCount} · Short ${stats.shortCount}`}
-          tone={stats.chargedTodayCount > 0 ? "good" : "muted"}
+          tone={stats.chargedTodayCount > 0 ? "good" : "default"}
           icon={<CheckCircle2 className="h-3 w-3" />}
         />
         <StatCard
@@ -187,7 +187,7 @@ export function SwapControlCenter() {
               ? `${stats.missingTodayCount} have no snapshot`
               : "All clients accounted for"
           }
-          tone={stats.missingTodayCount > 0 ? "warn" : "muted"}
+          tone={stats.missingTodayCount > 0 ? "warn" : "default"}
           icon={<Users className="h-3 w-3" />}
         />
       </div>
@@ -211,7 +211,7 @@ export function SwapControlCenter() {
           label="Backfilled (MTD)"
           value={`${stats.backfilledMtdCount}`}
           hint={stats.backfilledMtdCount > 0 ? "Includes late-written snapshots" : "No backfills this month"}
-          tone={stats.backfilledMtdCount > 0 ? "info" : "muted"}
+          tone={stats.backfilledMtdCount > 0 ? "info" : "default"}
           icon={<RefreshCw className="h-3 w-3" />}
         />
         <StatCard
