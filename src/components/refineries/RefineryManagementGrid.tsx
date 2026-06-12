@@ -112,44 +112,42 @@ export function RefineryManagementGrid({
   }, [refineries, stats, search, statusFilter, sortKey]);
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <Card className="p-3">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by code or name…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
-              <SelectItem value="all">All</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-            <SelectTrigger className="w-full sm:w-[170px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="code">Sort by Code</SelectItem>
-              <SelectItem value="name">Sort by Name</SelectItem>
-              <SelectItem value="activity">Sort by Activity</SelectItem>
-              <SelectItem value="gold">Sort by Gold Balance</SelectItem>
-            </SelectContent>
-          </Select>
-          {isAdmin && (
-            <Button onClick={() => setEditing("new")} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Add Refinery
-            </Button>
-          )}
+    <div className="space-y-3">
+      {/* Compact toolbar — single row on tablet+ */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search refineries…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9"
+          />
         </div>
-      </Card>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+            {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
+            <SelectItem value="all">All</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+          <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="code">Code</SelectItem>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="activity">Activity</SelectItem>
+            <SelectItem value="gold">Gold Balance</SelectItem>
+          </SelectContent>
+        </Select>
+        {isAdmin && (
+          <Button onClick={() => setEditing("new")} size="sm" className="h-9">
+            <Plus className="h-4 w-4 mr-1" /> Add
+          </Button>
+        )}
+      </div>
 
       {loading ? (
         <p className="text-center text-sm text-muted-foreground py-10">Loading refineries…</p>
@@ -158,7 +156,7 @@ export function RefineryManagementGrid({
           No refineries match the current filters.
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {filtered.map((r) => (
             <RefineryCard
               key={r.id}
@@ -255,13 +253,20 @@ export function RefineryManagementGrid({
   );
 }
 
-function statusTone(r: Refinery, last: string | null): { color: string; label: string; bg: string } {
-  if (r.status === "archived") return { color: "bg-slate-400", bg: "bg-slate-100", label: "Archived" };
-  if (r.status === "inactive") return { color: "bg-red-500", bg: "bg-red-50", label: "Inactive" };
+function statusTone(
+  r: Refinery,
+  last: string | null,
+): { dot: string; text: string; bg: string; label: string } {
+  if (r.status === "archived")
+    return { dot: "bg-slate-500", text: "text-slate-800", bg: "bg-slate-200", label: "Archived" };
+  if (r.status === "inactive")
+    return { dot: "bg-red-600", text: "text-red-900", bg: "bg-red-100", label: "Inactive" };
   const d = daysSince(last);
-  if (d > 30) return { color: "bg-red-500", bg: "bg-red-50", label: "Requires Attention" };
-  if (d > 7) return { color: "bg-yellow-500", bg: "bg-yellow-50", label: "Quiet" };
-  return { color: "bg-emerald-500", bg: "bg-emerald-50", label: "Active" };
+  if (d > 30)
+    return { dot: "bg-red-600", text: "text-red-900", bg: "bg-red-100", label: "Requires Attention" };
+  if (d > 7)
+    return { dot: "bg-amber-600", text: "text-amber-900", bg: "bg-amber-100", label: "Quiet" };
+  return { dot: "bg-emerald-600", text: "text-emerald-900", bg: "bg-emerald-100", label: "Active" };
 }
 
 function RefineryCard({
@@ -279,24 +284,48 @@ function RefineryCard({
 }) {
   const tone = statusTone(refinery, stats?.lastActivityAt ?? null);
   const archived = refinery.status === "archived";
+  const hasActivity = !!stats && (stats.transactionCount > 0 || stats.totalClients > 0 || stats.pureGoldStock !== 0);
+  const equity = stats ? stats.pureGoldStock + stats.goldOwedByClients - stats.goldOwedToClients : 0;
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/desk/refineries/${refinery.id}`;
+    const text = `${refinery.name} (${refinery.code})\n${url}`;
+    try {
+      if (navigator.share) await navigator.share({ title: refinery.name, text, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch { /* user cancelled */ }
+  };
 
   return (
-    <Card className={`p-3 sm:p-4 flex flex-col gap-3 transition hover:shadow-md ${archived ? "opacity-70" : ""}`}>
+    <div
+      className={`rounded-xl bg-card shadow-sm ring-1 ring-border/60 p-4 flex flex-col gap-3 transition hover:shadow-md ${archived ? "opacity-70" : ""}`}
+    >
       {/* Header */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-        <RefineryIcon name={refinery.icon_name} iconColor={refinery.icon_color} badgeColor={refinery.badge_color} size={20} />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+        <RefineryIcon
+          name={refinery.icon_name}
+          iconColor={refinery.icon_color}
+          badgeColor={refinery.badge_color}
+          size={22}
+        />
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-mono text-xs text-muted-foreground tracking-wider">{refinery.code}</p>
-            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] ${tone.bg}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${tone.color}`} />
-              <span>{tone.label}</span>
+          <h3 className="font-bold text-lg leading-tight truncate" title={refinery.name}>
+            {refinery.name}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            <span className="font-mono text-[11px] font-semibold px-1.5 py-0.5 rounded bg-muted text-foreground/80">
+              {refinery.code}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${tone.bg} ${tone.text}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+              {tone.label}
             </span>
           </div>
-          <h3 className="font-semibold text-base truncate" title={refinery.name}>{refinery.name}</h3>
-          {refinery.description && (
-            <p className="text-xs text-muted-foreground truncate">{refinery.description}</p>
-          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -305,17 +334,11 @@ function RefineryCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={onOpen}>
-              <ArrowRight className="h-4 w-4 mr-2" /> Open
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={onStats}>
               <BarChart3 className="h-4 w-4 mr-2" /> Statistics
             </DropdownMenuItem>
             {isAdmin && (
               <>
-                <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="h-4 w-4 mr-2" /> Edit
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {archived ? (
                   <DropdownMenuItem onClick={onRestore}>
@@ -335,33 +358,82 @@ function RefineryCard({
         </DropdownMenu>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <Stat icon={<Users className="h-3 w-3" />} label="Clients" value={stats ? String(stats.totalClients) : "—"} />
-        <Stat icon={<Coins className="h-3 w-3" />} label="Pure Gold" value={stats ? fmtG(stats.pureGoldStock) : "—"} />
-        <Stat icon={<Coins className="h-3 w-3" />} label="Silver" value={stats ? fmtG(stats.silverStock) : "—"} />
-        <Stat icon={<ArrowDownToLine className="h-3 w-3 text-emerald-600" />} label="Owed To" value={stats ? fmtG(stats.goldOwedToClients) : "—"} />
-        <Stat icon={<ArrowUpFromLine className="h-3 w-3 text-red-600" />} label="Owed By" value={stats ? fmtG(stats.goldOwedByClients) : "—"} />
-        <Stat icon={<ListChecks className="h-3 w-3" />} label="Tx" value={stats ? String(stats.transactionCount) : "—"} />
-      </div>
+      {/* Equity — hero number */}
+      {hasActivity && stats && (
+        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 px-3 py-2.5 flex items-baseline justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-amber-900/70 dark:text-amber-200/70">
+              Refinery Equity
+            </p>
+            <p
+              className={`text-xl font-bold tabular-nums ${equity >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}
+            >
+              {fmtG(equity)}
+            </p>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-right leading-tight">
+            Stock + Owed By<br />− Owed To
+          </p>
+        </div>
+      )}
 
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground border-t pt-2">
-        <span>Last activity: {fmtAgo(stats?.lastActivityAt ?? null)}</span>
-        <Button size="sm" onClick={onOpen} className="h-7 px-3">
-          Open <ArrowRight className="h-3 w-3 ml-1" />
+      {/* Stats — 2 cols mobile, 4 cols tablet+ */}
+      {hasActivity && stats ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2.5">
+          <Stat label="Pure Gold" value={fmtG(stats.pureGoldStock)} />
+          <Stat label="Silver" value={fmtG(stats.silverStock)} />
+          <Stat label="Clients" value={String(stats.totalClients)} />
+          <Stat label="Transactions" value={String(stats.transactionCount)} />
+          <Stat label="Owed To" value={fmtG(stats.goldOwedToClients)} tone="negative" />
+          <Stat label="Owed By" value={fmtG(stats.goldOwedByClients)} tone="positive" />
+          <Stat label="Last Activity" value={fmtAgo(stats.lastActivityAt)} span={2} />
+        </div>
+      ) : (
+        <div className="rounded-lg bg-muted/40 px-3 py-4 text-center">
+          <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
+          <p className="text-xs text-muted-foreground/80 mt-0.5">
+            Add clients and transactions to see stats here.
+          </p>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-4 gap-1.5 pt-1">
+        <Button size="sm" onClick={onOpen} className="h-8 bg-orange-600 hover:bg-orange-700 text-white col-span-1">
+          Open
+        </Button>
+        {isAdmin && (
+          <Button size="sm" variant="outline" onClick={onEdit} className="h-8">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={handleShare} className="h-8">
+          <Share2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={onStats} className="h-8">
+          <BarChart3 className="h-3.5 w-3.5" />
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Stat({
+  label, value, tone, span,
+}: {
+  label: string;
+  value: string;
+  tone?: "positive" | "negative";
+  span?: 1 | 2;
+}) {
+  const color =
+    tone === "positive" ? "text-emerald-700 dark:text-emerald-400"
+    : tone === "negative" ? "text-red-700 dark:text-red-400"
+    : "text-foreground";
   return (
-    <div className="rounded-md border bg-muted/30 px-2 py-1.5 min-w-0">
-      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-        {icon} <span className="truncate">{label}</span>
-      </div>
-      <p className="font-semibold text-xs truncate">{value}</p>
+    <div className={`min-w-0 ${span === 2 ? "col-span-2 sm:col-span-4" : ""}`}>
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
+      <p className={`text-sm font-semibold tabular-nums truncate ${color}`}>{value}</p>
     </div>
   );
 }
