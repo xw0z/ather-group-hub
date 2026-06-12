@@ -384,7 +384,7 @@ function CreateUserForm({
     role: Role; display_name: string | null; phone: string | null;
   }) => Promise<void>;
 }) {
-  const [username, setUsername] = useState(`BRH-${refineryCode}`);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
