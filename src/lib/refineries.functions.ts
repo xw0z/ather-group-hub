@@ -189,9 +189,14 @@ export const listRefineries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<Refinery[]> => {
     const a = await loadAssignment(context.userId);
-    let q = supabaseAdmin.from("refineries").select("id, name, status").order("name");
-    if (!a.isAdmin && a.refineryId) q = q.eq("id", a.refineryId);
-    if (!a.isAdmin && !a.refineryId) return [];
+    let q = supabaseAdmin
+      .from("refineries")
+      .select("id, name, status, code, description, icon_name, icon_color, badge_color, default_fee_price, report_footer, receipt_footer, archived_at, created_at")
+      .order("code", { ascending: true });
+    if (!a.isAdmin) {
+      if (!a.refineryId) return [];
+      q = q.eq("id", a.refineryId).neq("status", "archived");
+    }
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as Refinery[];
