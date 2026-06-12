@@ -1292,6 +1292,7 @@ function HomeTab({
   return (
     <div className="space-y-4">
       <SwapControlCenter />
+      <SmartWarningsPanel />
       {isAdmin ? <BackfillPanel /> : null}
       {isAdmin ? <FeeLockPanel /> : null}
       {isAdmin ? <FeeAuditPanel /> : null}
