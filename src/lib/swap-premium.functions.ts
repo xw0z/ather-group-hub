@@ -88,7 +88,9 @@ export const listCompanyTransactions = createServerFn({ method: "GET" })
     z.object({ companyId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const { data: txs, error } = await supabase
       .from("swap_premium_transactions")
       .select("*")
