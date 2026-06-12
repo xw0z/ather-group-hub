@@ -475,6 +475,43 @@ export function MonthlyStatementDialog({
                   )}
                   PDF
                 </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={busy !== null}
+                  onClick={async () => {
+                    if (!data) return;
+                    setBusy("server");
+                    try {
+                      const res = await generateMonthlyStatementPdf({
+                        data: { clientId, month },
+                      });
+                      const bin = atob(res.base64);
+                      const bytes = new Uint8Array(bin.length);
+                      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                      const blob = new Blob([bytes], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = res.filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (e) {
+                      alert(e instanceof Error ? e.message : "Export failed");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "server" ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                  )}
+                  Official PDF
+                </Button>
               </div>
             </div>
           ) : null}
