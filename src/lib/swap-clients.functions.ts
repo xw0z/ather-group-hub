@@ -168,8 +168,20 @@ const ACTION_MODULE: Record<string, AuditModule> = {
   client_deleted: "clients",
   fees_computed_manual: "swap",
   fees_backfilled: "swap",
+  fee_date_locked: "swap",
+  fee_date_unlocked: "swap",
   xau_price_override: "margin",
 };
+
+// Returns the set of fee_dates (YYYY-MM-DD) that are currently locked.
+async function loadLockedDates(dates: string[]): Promise<Set<string>> {
+  if (dates.length === 0) return new Set();
+  const { data } = await supabaseAdmin
+    .from("swap_fee_locks")
+    .select("fee_date")
+    .in("fee_date", dates);
+  return new Set((data ?? []).map((r) => r.fee_date as string));
+}
 
 function deriveModule(
   action: string,
