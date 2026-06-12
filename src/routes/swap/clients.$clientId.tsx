@@ -323,6 +323,20 @@ function SwapClientDetail() {
                         </div>
                       </div>
 
+                      <div className="mt-2 rounded px-2 py-1.5 bg-muted/30 border border-border/40">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Formula
+                        </div>
+                        <div className="text-[11px] font-mono break-all">
+                          Effective Balance × Rate ÷ 365 × Multiplier
+                        </div>
+                        <div className="text-[11px] font-mono break-all font-semibold">
+                          {formulaStr}
+                        </div>
+                      </div>
+
+
+
                       <div className="text-sm mt-2">
                         {isShort ? "Benefit credited: " : "Fee charged: "}
                         <span
