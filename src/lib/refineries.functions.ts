@@ -2889,3 +2889,251 @@ export const getRefineryPerformance = createServerFn({ method: "POST" })
   });
 
 export const REFINERY_ICONS_LIST = REFINERY_ICON_NAMES;
+
+// =========================================================
+// Refinery-scoped user management (admin)
+// =========================================================
+export type AssignedRefineryUser = {
+  user_id: string;
+  username: string | null;
+  email: string | null;
+  display_name: string | null;
+  phone: string | null;
+  role: RefineryRole;
+  status: string;
+  is_admin: boolean;
+  last_login: string | null;
+};
+
+export const listAssignedRefineryUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<AssignedRefineryUser[]> => {
+    await assertAccess(context.userId, data.refineryId);
+    const { data: rows, error } = await supabaseAdmin
+      .from("refinery_users")
+      .select("user_id, role, status, display_name, phone, created_at")
+      .eq("refinery_id", data.refineryId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? []).map((r) => r.user_id as string);
+    if (!ids.length) return [];
+    const [{ data: profiles }, { data: logins }] = await Promise.all([
+      supabaseAdmin
+        .from("swap_profiles")
+        .select("id, username, email, is_admin")
+        .in("id", ids),
+      supabaseAdmin
+        .from("swap_login_history")
+        .select("user_id, occurred_at, status")
+        .in("user_id", ids)
+        .eq("status", "success")
+        .order("occurred_at", { ascending: false }),
+    ]);
+    const profMap = new Map((profiles ?? []).map((p) => [p.id as string, p]));
+    const lastLogin = new Map<string, string>();
+    for (const l of logins ?? []) {
+      const uid = l.user_id as string;
+      if (!lastLogin.has(uid)) lastLogin.set(uid, l.occurred_at as string);
+    }
+    return (rows ?? []).map((r) => {
+      const p = profMap.get(r.user_id as string);
+      return {
+        user_id: r.user_id as string,
+        username: (p?.username as string | undefined) ?? null,
+        email: (p?.email as string | undefined) ?? null,
+        display_name: (r.display_name as string | null) ?? null,
+        phone: (r.phone as string | null) ?? null,
+        role: r.role as RefineryRole,
+        status: (r.status as string) ?? "active",
+        is_admin: Boolean(p?.is_admin),
+        last_login: lastLogin.get(r.user_id as string) ?? null,
+      };
+    });
+  });
+
+const usernameRule = z
+  .string()
+  .trim()
+  .min(2)
+  .max(64)
+  .regex(/^[a-zA-Z0-9_.-]+$/, "Letters, numbers, . _ - only");
+
+export const createRefineryUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        refinery_id: z.string().uuid(),
+        username: usernameRule,
+        password: z.string().min(6).max(128),
+        email: z.string().email().max(255).optional().or(z.literal("")),
+        role: z.enum(["manager", "staff", "viewer"]).default("staff"),
+        display_name: z.string().trim().max(120).optional().nullable(),
+        phone: z.string().trim().max(64).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const username = data.username.toLowerCase();
+    const { data: existing } = await supabaseAdmin
+      .from("swap_profiles")
+      .select("id")
+      .ilike("username", username)
+      .maybeSingle();
+    if (existing) throw new Error("Username already taken.");
+    const authEmail =
+      data.email && data.email !== "" ? data.email : `${username}@ather.group`;
+    const { data: created, error: createErr } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
+        password: data.password,
+        email_confirm: true,
+      });
+    if (createErr || !created.user)
+      throw new Error(createErr?.message ?? "Failed to create user.");
+    const { error: profErr } = await supabaseAdmin.from("swap_profiles").insert({
+      id: created.user.id,
+      username,
+      email: data.email && data.email !== "" ? data.email : null,
+      is_admin: false,
+    });
+    if (profErr) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw new Error(profErr.message);
+    }
+    const { error: assignErr } = await supabaseAdmin
+      .from("refinery_users")
+      .upsert(
+        {
+          user_id: created.user.id,
+          refinery_id: data.refinery_id,
+          role: data.role,
+          status: "active",
+          display_name: data.display_name ?? null,
+          phone: data.phone ?? null,
+        },
+        { onConflict: "user_id" },
+      );
+    if (assignErr) throw new Error(assignErr.message);
+    return { ok: true, user_id: created.user.id, username };
+  });
+
+export const updateRefineryUserAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        refinery_id: z.string().uuid(),
+        user_id: z.string().uuid(),
+        role: z.enum(["manager", "staff", "viewer"]).optional(),
+        status: z.enum(["active", "inactive"]).optional(),
+        display_name: z.string().max(120).optional().nullable(),
+        phone: z.string().max(64).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const patch: Record<string, unknown> = {};
+    if (data.role !== undefined) patch.role = data.role;
+    if (data.status !== undefined) patch.status = data.status;
+    if (data.display_name !== undefined) patch.display_name = data.display_name;
+    if (data.phone !== undefined) patch.phone = data.phone;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("refinery_users")
+      .update(patch)
+      .eq("user_id", data.user_id)
+      .eq("refinery_id", data.refinery_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const removeRefineryUserAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ refinery_id: z.string().uuid(), user_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("refinery_users")
+      .delete()
+      .eq("refinery_id", data.refinery_id)
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resetRefineryUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ user_id: z.string().uuid(), password: z.string().min(6).max(128) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      password: data.password,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// List unassigned (or admin) swap users that can be added to a refinery.
+export const listAssignableUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ refineryId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const [{ data: profiles, error: e1 }, { data: assigned, error: e2 }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("swap_profiles")
+          .select("id, username, email, is_admin")
+          .order("username", { ascending: true }),
+        supabaseAdmin
+          .from("refinery_users")
+          .select("user_id, refinery_id"),
+      ]);
+    if (e1) throw new Error(e1.message);
+    if (e2) throw new Error(e2.message);
+    const assignedMap = new Map<string, string>();
+    for (const a of assigned ?? []) assignedMap.set(a.user_id as string, a.refinery_id as string);
+    return (profiles ?? [])
+      .filter((p) => !p.is_admin)
+      .map((p) => ({
+        id: p.id as string,
+        username: (p.username as string) ?? "",
+        email: (p.email as string | null) ?? null,
+        assigned_refinery_id: assignedMap.get(p.id as string) ?? null,
+        already_in_this_refinery: assignedMap.get(p.id as string) === data.refineryId,
+      }));
+  });
+
+export const assignExistingUserToRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        refinery_id: z.string().uuid(),
+        user_id: z.string().uuid(),
+        role: z.enum(["manager", "staff", "viewer"]).default("staff"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin.from("refinery_users").upsert(
+      {
+        user_id: data.user_id,
+        refinery_id: data.refinery_id,
+        role: data.role,
+        status: "active",
+      },
+      { onConflict: "user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
