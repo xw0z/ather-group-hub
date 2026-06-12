@@ -299,7 +299,7 @@ function SwapClientDetail() {
                         {isShort ? "Benefit credited: " : "Fee charged: "}
                         <span
                           className={`font-semibold ${
-                            isShort ? "text-red-600" : "text-green-600"
+                            isShort ? "text-green-600" : "text-red-600"
                           }`}
                         >
                           {isShort ? "+" : "-"}${fmt(Math.abs(f.daily_fee))}
