@@ -252,6 +252,7 @@ export function RefineryManagementGrid({
 
       {/* Performance dialog */}
       {perfFor && <RefineryPerformanceDialog refinery={perfFor} onClose={() => setPerfFor(null)} />}
+      {usersFor && <RefineryUsersDialog refinery={usersFor} isAdmin={isAdmin} onClose={() => setUsersFor(null)} />}
     </div>
   );
 }
