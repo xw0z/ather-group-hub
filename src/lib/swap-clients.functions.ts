@@ -167,6 +167,7 @@ const ACTION_MODULE: Record<string, AuditModule> = {
   client_updated: "clients",
   client_deleted: "clients",
   fees_computed_manual: "swap",
+  fees_backfilled: "swap",
   xau_price_override: "margin",
 };
 
@@ -1312,3 +1313,271 @@ export const getSwapClientMonthlyStatement = createServerFn({ method: "GET" })
       rows,
     };
   });
+
+
+// ============================================================
+// Backfill preview & approval workflow (admin)
+// ============================================================
+const dateRule = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
+
+async function assertSwapAdmin(userId: string): Promise<void> {
+  const { data: prof } = await supabaseAdmin
+    .from("swap_profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!prof?.is_admin) throw new Error("Admin only.");
+}
+
+type BackfillItem = {
+  client_id: string;
+  client_code: string;
+  position_type: "long" | "short";
+  fee_date: string;
+  day_multiplier: number;
+  usd_balance: number;
+  annual_rate: number;
+  additional_exposure_pct: number;
+  effective_balance: number;
+  expected_fee: number;
+};
+
+export const previewSwapBackfill = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        start_date: dateRule,
+        end_date: dateRule,
+        client_id: z.string().uuid().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+
+    const { data: feeSettings } = await supabaseAdmin
+      .from("swap_settings")
+      .select("wednesday_multiplier, skip_saturday, skip_sunday")
+      .eq("id", "global")
+      .maybeSingle();
+
+    let cq = supabaseAdmin
+      .from("swap_clients")
+      .select(
+        "id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type",
+      );
+    if (data.client_id) cq = cq.eq("id", data.client_id);
+    const { data: clients, error: cErr } = await cq;
+    if (cErr) throw new Error(cErr.message);
+
+    const clientIds = (clients ?? []).map((c) => c.id);
+    const { data: existing, error: eErr } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("client_id, fee_date")
+      .in("client_id", clientIds.length ? clientIds : ["00000000-0000-0000-0000-000000000000"])
+      .gte("fee_date", data.start_date)
+      .lte("fee_date", data.end_date);
+    if (eErr) throw new Error(eErr.message);
+    const existingSet = new Set(
+      (existing ?? []).map((r) => `${r.client_id}|${r.fee_date}`),
+    );
+
+    // Enumerate the date range
+    const dates: string[] = [];
+    const start = new Date(`${data.start_date}T00:00:00Z`);
+    const end = new Date(`${data.end_date}T00:00:00Z`);
+    if (end.getTime() < start.getTime()) throw new Error("end_date is before start_date");
+    if ((end.getTime() - start.getTime()) / 86400_000 > 92) {
+      throw new Error("Range too large (max 92 days)");
+    }
+    for (let d = new Date(start); d.getTime() <= end.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+      dates.push(d.toISOString().slice(0, 10));
+    }
+
+    const items: BackfillItem[] = [];
+    let weekend_skipped = 0;
+    for (const c of clients ?? []) {
+      const positionType = (c.position_type ?? "long") as "long" | "short";
+      const effRate =
+        positionType === "short"
+          ? Number(c.short_annual_rate ?? 0)
+          : Number(c.annual_rate);
+      const addExp = Number(c.additional_exposure_pct ?? 5);
+      const effBal = effectiveBalance(Number(c.usd_balance), addExp);
+      for (const d of dates) {
+        if (existingSet.has(`${c.id}|${d}`)) continue;
+        const mult = swapDayMultiplierFromSettings(
+          new Date(`${d}T00:00:00Z`),
+          feeSettings,
+        );
+        if (mult === 0) {
+          weekend_skipped += 1;
+          continue;
+        }
+        const expected = (Math.abs(effBal) * effRate) / 100 / 365 * mult;
+        items.push({
+          client_id: c.id,
+          client_code: c.code,
+          position_type: positionType,
+          fee_date: d,
+          day_multiplier: mult,
+          usd_balance: Number(c.usd_balance),
+          annual_rate: effRate,
+          additional_exposure_pct: addExp,
+          effective_balance: effBal,
+          expected_fee: expected,
+        });
+      }
+    }
+
+    items.sort((a, b) =>
+      a.fee_date === b.fee_date
+        ? a.client_code.localeCompare(b.client_code)
+        : a.fee_date.localeCompare(b.fee_date),
+    );
+
+    return {
+      summary: {
+        clients_scanned: (clients ?? []).length,
+        days_in_range: dates.length,
+        missing_count: items.length,
+        weekend_skipped,
+        total_expected: items.reduce((s, x) => s + x.expected_fee, 0),
+      },
+      items,
+    };
+  });
+
+export const applySwapBackfill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        items: z
+          .array(
+            z.object({
+              client_id: z.string().uuid(),
+              fee_date: dateRule,
+            }),
+          )
+          .min(1)
+          .max(2000),
+        reason: z.string().trim().min(1).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+
+    const { data: feeSettings } = await supabaseAdmin
+      .from("swap_settings")
+      .select("wednesday_multiplier, skip_saturday, skip_sunday")
+      .eq("id", "global")
+      .maybeSingle();
+
+    const clientIds = [...new Set(data.items.map((i) => i.client_id))];
+    const { data: clients, error: cErr } = await supabaseAdmin
+      .from("swap_clients")
+      .select(
+        "id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type",
+      )
+      .in("id", clientIds);
+    if (cErr) throw new Error(cErr.message);
+    const byId = new Map((clients ?? []).map((c) => [c.id, c]));
+
+    // Re-check what already exists so the apply step stays idempotent.
+    const dates = [...new Set(data.items.map((i) => i.fee_date))];
+    const { data: existing } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("client_id, fee_date")
+      .in("client_id", clientIds)
+      .in("fee_date", dates);
+    const existingSet = new Set(
+      (existing ?? []).map((r) => `${r.client_id}|${r.fee_date}`),
+    );
+
+    const nowIso = new Date().toISOString();
+    const rows: Array<{
+      client_id: string;
+      fee_date: string;
+      xauusd_price: number | null;
+      usd_balance: number;
+      annual_rate: number;
+      additional_exposure_pct: number;
+      effective_balance: number;
+      day_multiplier: number;
+      position_type: "long" | "short";
+      daily_fee: number;
+      created_at: string;
+    }> = [];
+
+    let skipped_existing = 0;
+    let skipped_weekend = 0;
+    let skipped_no_client = 0;
+
+    for (const it of data.items) {
+      if (existingSet.has(`${it.client_id}|${it.fee_date}`)) {
+        skipped_existing += 1;
+        continue;
+      }
+      const c = byId.get(it.client_id);
+      if (!c) {
+        skipped_no_client += 1;
+        continue;
+      }
+      const positionType = (c.position_type ?? "long") as "long" | "short";
+      const effRate =
+        positionType === "short"
+          ? Number(c.short_annual_rate ?? 0)
+          : Number(c.annual_rate);
+      const addExp = Number(c.additional_exposure_pct ?? 5);
+      const effBal = effectiveBalance(Number(c.usd_balance), addExp);
+      const mult = swapDayMultiplierFromSettings(
+        new Date(`${it.fee_date}T00:00:00Z`),
+        feeSettings,
+      );
+      if (mult === 0) {
+        skipped_weekend += 1;
+        continue;
+      }
+      const fee = (Math.abs(effBal) * effRate) / 100 / 365 * mult;
+      rows.push({
+        client_id: c.id,
+        fee_date: it.fee_date,
+        xauusd_price: null,
+        usd_balance: Number(c.usd_balance),
+        annual_rate: effRate,
+        additional_exposure_pct: addExp,
+        effective_balance: effBal,
+        day_multiplier: mult,
+        position_type: positionType,
+        daily_fee: fee,
+        created_at: nowIso,
+      });
+    }
+
+    let inserted = 0;
+    if (rows.length > 0) {
+      const { error: iErr, count } = await supabaseAdmin
+        .from("swap_daily_fees")
+        .upsert(rows, { onConflict: "client_id,fee_date", ignoreDuplicates: true, count: "exact" });
+      if (iErr) throw new Error(iErr.message);
+      inserted = count ?? rows.length;
+    }
+
+    const result = {
+      requested: data.items.length,
+      inserted,
+      skipped_existing,
+      skipped_weekend,
+      skipped_no_client,
+      total_amount: rows.reduce((s, r) => s + r.daily_fee, 0),
+    };
+    await logActivity(context.userId, "fees_backfilled", null, null, {
+      ...result,
+      reason: data.reason,
+    });
+    return result;
+  });
+

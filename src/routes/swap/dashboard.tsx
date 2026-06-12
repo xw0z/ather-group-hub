@@ -67,6 +67,7 @@ import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
 import { SwapControlCenter } from "@/components/swap/SwapControlCenter";
+import { BackfillPanel } from "@/components/swap/BackfillPanel";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
@@ -1288,6 +1289,7 @@ function HomeTab({
   return (
     <div className="space-y-4">
       <SwapControlCenter />
+      {isAdmin ? <BackfillPanel /> : null}
       <LiveXauCard
         isAdmin={isAdmin}
         livePrice={livePrice}
