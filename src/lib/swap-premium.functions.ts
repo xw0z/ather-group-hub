@@ -40,7 +40,9 @@ export type CompanySummary = {
 export const listPremiumCompanies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const { data: companies, error } = await supabase
       .from("swap_premium_companies")
       .select("*")
