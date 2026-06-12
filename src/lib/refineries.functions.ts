@@ -1157,9 +1157,38 @@ export const assignUserToRefinery = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const { error } = await supabaseAdmin
       .from("refinery_users")
-      .upsert({ user_id: data.user_id, refinery_id: data.refinery_id, role: data.role }, { onConflict: "user_id" });
+      .upsert({ user_id: data.user_id, refinery_id: data.refinery_id, role: data.role, status: "active" }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const unassignUserFromRefinery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ user_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("refinery_users")
+      .delete()
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getUserRefineryAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ user_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: row } = await supabaseAdmin
+      .from("refinery_users")
+      .select("refinery_id, role")
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    return {
+      refineryId: (row?.refinery_id as string | undefined) ?? null,
+      role: (row?.role as "manager" | "staff" | "viewer" | undefined) ?? null,
+    };
   });
 
 export const listRefineryStaff = createServerFn({ method: "POST" })
