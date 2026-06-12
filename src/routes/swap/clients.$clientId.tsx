@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentSwapUser } from "@/lib/swap-users.functions";
 import { getSwapClientHistory } from "@/lib/swap-clients.functions";
 import { SwapFooter } from "@/components/SwapFooter";
+import { MonthlyStatementButton } from "@/components/swap/MonthlyStatementDialog";
 
 export const Route = createFileRoute("/swap/clients/$clientId")({
   head: () => ({
