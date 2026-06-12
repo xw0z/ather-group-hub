@@ -256,17 +256,15 @@ export function RefineryManagementGrid({
 function statusTone(
   r: Refinery,
   last: string | null,
-): { dot: string; text: string; bg: string; label: string } {
-  if (r.status === "archived")
-    return { dot: "bg-slate-500", text: "text-slate-800", bg: "bg-slate-200", label: "Archived" };
-  if (r.status === "inactive")
-    return { dot: "bg-red-600", text: "text-red-900", bg: "bg-red-100", label: "Inactive" };
+  hasActivity: boolean,
+): { dot: string; label: string } {
+  if (r.status === "archived") return { dot: "bg-muted-foreground/60", label: "Archived" };
+  if (r.status === "inactive") return { dot: "bg-destructive", label: "Inactive" };
+  if (!hasActivity) return { dot: "bg-muted-foreground/50", label: "Idle" };
   const d = daysSince(last);
-  if (d > 30)
-    return { dot: "bg-red-600", text: "text-red-900", bg: "bg-red-100", label: "Requires Attention" };
-  if (d > 7)
-    return { dot: "bg-amber-600", text: "text-amber-900", bg: "bg-amber-100", label: "Quiet" };
-  return { dot: "bg-emerald-600", text: "text-emerald-900", bg: "bg-emerald-100", label: "Active" };
+  if (d > 30) return { dot: "bg-destructive", label: "Requires Attention" };
+  if (d > 7) return { dot: "bg-muted-foreground/60", label: "Quiet" };
+  return { dot: "bg-emerald-500", label: "Active" };
 }
 
 function RefineryCard({
@@ -282,12 +280,13 @@ function RefineryCard({
   onDelete: () => void;
   onStats: () => void;
 }) {
-  const tone = statusTone(refinery, stats?.lastActivityAt ?? null);
   const archived = refinery.status === "archived";
   const hasActivity = !!stats && (stats.transactionCount > 0 || stats.totalClients > 0 || stats.pureGoldStock !== 0);
+  const tone = statusTone(refinery, stats?.lastActivityAt ?? null, hasActivity);
   const equity = stats ? stats.pureGoldStock + stats.goldOwedByClients - stats.goldOwedToClients : 0;
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const url = `${window.location.origin}/desk/refineries/${refinery.id}`;
     const text = `${refinery.name} (${refinery.code})\n${url}`;
     try {
@@ -299,126 +298,107 @@ function RefineryCard({
     } catch { /* user cancelled */ }
   };
 
+  const stop = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
+
   return (
     <div
-      className={`rounded-xl bg-card shadow-sm ring-1 ring-border/60 p-4 flex flex-col gap-3 transition hover:shadow-md ${archived ? "opacity-70" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      className={`group rounded-lg border border-border/60 bg-card hover:border-border hover:bg-card/80 transition cursor-pointer ${archived ? "opacity-60" : ""}`}
     >
       {/* Header */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-        <RefineryIcon
-          name={refinery.icon_name}
-          iconColor={refinery.icon_color}
-          badgeColor={refinery.badge_color}
-          size={22}
-        />
-        <div className="min-w-0">
-          <h3 className="font-bold text-lg leading-tight truncate" title={refinery.name}>
-            {refinery.name}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+        <div className="min-w-0 flex items-center gap-2.5">
+          <h3 className="font-semibold text-base text-foreground truncate" title={refinery.name}>
+            Refinery {refinery.code}
           </h3>
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="font-mono text-[11px] font-semibold px-1.5 py-0.5 rounded bg-muted text-foreground/80">
-              {refinery.code}
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${tone.bg} ${tone.text}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-              {tone.label}
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+            {tone.label}
+          </span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-              <MoreHorizontal className="h-4 w-4" />
+        <div className="flex items-center gap-0.5 -mr-2 opacity-70 group-hover:opacity-100 transition">
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={stop(onEdit)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
+              Edit
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={onStats}>
-              <BarChart3 className="h-4 w-4 mr-2" /> Statistics
-            </DropdownMenuItem>
-            {isAdmin && (
-              <>
-                <DropdownMenuSeparator />
-                {archived ? (
-                  <DropdownMenuItem onClick={onRestore}>
-                    <RotateCcw className="h-4 w-4 mr-2" /> Restore
+          )}
+          <Button variant="ghost" size="sm" onClick={handleShare} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
+            Share
+          </Button>
+          <Button variant="ghost" size="sm" onClick={stop(onStats)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
+            Reports
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-7 w-7 text-muted-foreground">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={onStats}>
+                <BarChart3 className="h-4 w-4 mr-2" /> Statistics
+              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  {archived ? (
+                    <DropdownMenuItem onClick={onRestore}>
+                      <RotateCcw className="h-4 w-4 mr-2" /> Restore
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={onArchive}>
+                      <Archive className="h-4 w-4 mr-2" /> Archive
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete…
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={onArchive}>
-                    <Archive className="h-4 w-4 mr-2" /> Archive
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete…
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      {/* Equity — hero number */}
-      {hasActivity && stats && (
-        <div className="rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 px-3 py-2.5 flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-amber-900/70 dark:text-amber-200/70">
-              Refinery Equity
-            </p>
-            <p
-              className={`text-xl font-bold tabular-nums ${equity >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}
-            >
-              {fmtG(equity)}
-            </p>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-right leading-tight">
-            Stock + Owed By<br />− Owed To
-          </p>
-        </div>
-      )}
+      <div className="h-px bg-border/50" />
 
-      {/* Stats — 2 cols mobile, 4 cols tablet+ */}
       {hasActivity && stats ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2.5">
-          <Stat label="Pure Gold" value={fmtG(stats.pureGoldStock)} />
-          <Stat label="Silver" value={fmtG(stats.silverStock)} />
-          <Stat label="Clients" value={String(stats.totalClients)} />
-          <Stat label="Transactions" value={String(stats.transactionCount)} />
-          <Stat label="Owed To" value={fmtG(stats.goldOwedToClients)} tone="negative" />
-          <Stat label="Owed By" value={fmtG(stats.goldOwedByClients)} tone="positive" />
-          <Stat label="Last Activity" value={fmtAgo(stats.lastActivityAt)} span={2} />
+        <div className="px-4 py-3 space-y-3">
+          {/* Equity headline */}
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Refinery Equity</span>
+            <span className={`text-2xl font-semibold tabular-nums ${equity > 0 ? "text-emerald-400" : equity < 0 ? "text-destructive" : "text-foreground"}`}>
+              {fmtG(equity)}
+            </span>
+          </div>
+
+          {/* Stat rows — Bloomberg-style key/value list */}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">
+            <Row label="Pure Gold" value={fmtG(stats.pureGoldStock)} />
+            <Row label="Silver" value={fmtG(stats.silverStock)} />
+            <Row label="Clients" value={String(stats.totalClients)} />
+            <Row label="Transactions" value={String(stats.transactionCount)} />
+            <Row label="Owed To" value={fmtG(stats.goldOwedToClients)} tone={stats.goldOwedToClients > 0 ? "negative" : undefined} />
+            <Row label="Owed By" value={fmtG(stats.goldOwedByClients)} tone={stats.goldOwedByClients > 0 ? "positive" : undefined} />
+            <Row label="Last Activity" value={fmtAgo(stats.lastActivityAt)} span={2} />
+          </dl>
         </div>
       ) : (
-        <div className="rounded-lg bg-muted/40 px-3 py-4 text-center">
-          <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
-          <p className="text-xs text-muted-foreground/80 mt-0.5">
-            Add clients and transactions to see stats here.
+        <div className="px-4 py-5">
+          <p className="text-sm text-foreground">No activity yet</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Create first client or transaction.
           </p>
         </div>
       )}
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-4 gap-1.5 pt-1">
-        <Button size="sm" onClick={onOpen} className="h-8 bg-orange-600 hover:bg-orange-700 text-white col-span-1">
-          Open
-        </Button>
-        {isAdmin && (
-          <Button size="sm" variant="outline" onClick={onEdit} className="h-8">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Button size="sm" variant="outline" onClick={handleShare} className="h-8">
-          <Share2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="sm" variant="outline" onClick={onStats} className="h-8">
-          <BarChart3 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
     </div>
   );
 }
 
-function Stat({
+function Row({
   label, value, tone, span,
 }: {
   label: string;
@@ -427,12 +407,13 @@ function Stat({
   span?: 1 | 2;
 }) {
   const color =
-    tone === "positive" ? "text-emerald-700 dark:text-emerald-400"
-    : tone === "negative" ? "text-red-700 dark:text-red-400"
+    tone === "positive" ? "text-emerald-400"
+    : tone === "negative" ? "text-destructive"
     : "text-foreground";
   return (
-    <div className={`min-w-0 ${span === 2 ? "col-span-2 sm:col-span-4" : ""}`}>
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
+    <div className={`flex items-baseline justify-between gap-2 min-w-0 ${span === 2 ? "col-span-2" : ""}`}>
+      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground truncate">{label}</dt>
+      <dd className={`tabular-nums font-medium ${color} truncate`}>{value}</dd>
       <p className={`text-sm font-semibold tabular-nums truncate ${color}`}>{value}</p>
     </div>
   );
