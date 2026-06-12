@@ -1596,6 +1596,7 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
       skipped_existing,
       skipped_weekend,
       skipped_no_client,
+      skipped_locked,
       total_amount: rows.reduce((s, r) => s + r.daily_fee, 0),
     };
     await logActivity(context.userId, "fees_backfilled", null, null, {
