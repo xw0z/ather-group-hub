@@ -1698,15 +1698,28 @@ export function ClientBreakdown({
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      console.error("[purity] shareClientImage failed:", err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      console.error("[purity] shareClientImage failed:", err, { stack });
       void logActivity("share_failed", "purity_report", {
         format: "image",
         supplier: r.name,
         report_id: reportId || null,
         duration_ms: Date.now() - started,
         reason,
+        stack: stack ? stack.split("\n").slice(0, 6).join("\n") : null,
+        bars: r.bars.length,
+        ua: typeof navigator !== "undefined" ? navigator.userAgent : null,
       });
-      toast.error("Could not generate the image report", { description: reason });
+      toast.error("Image failed — falling back to PDF", { description: reason });
+      // Release the in-flight guard before delegating to the PDF path.
+      shareInFlightRef.current = false;
+      setBusyKey(null);
+      try {
+        await shareClientPDF(r);
+      } catch (pdfErr) {
+        console.error("[purity] PDF fallback also failed:", pdfErr);
+      }
+      return;
     } finally {
       shareInFlightRef.current = false;
       setBusyKey(null);
