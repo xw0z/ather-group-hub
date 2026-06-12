@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
-import { Download, FileText, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Download, FileText, Image as ImageIcon, Loader2, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSwapClientMonthlyStatement } from "@/lib/swap-clients.functions";
+import { generateMonthlyStatementPdf } from "@/lib/swap-pdf.functions";
 
 type Statement = Awaited<ReturnType<typeof getSwapClientMonthlyStatement>>;
 
@@ -213,7 +214,7 @@ export function MonthlyStatementDialog({
   const [data, setData] = useState<Statement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"pdf" | "png" | null>(null);
+  const [busy, setBusy] = useState<"pdf" | "png" | "server" | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -473,6 +474,43 @@ export function MonthlyStatementDialog({
                     <FileText className="h-4 w-4 mr-1" />
                   )}
                   PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={busy !== null}
+                  onClick={async () => {
+                    if (!data) return;
+                    setBusy("server");
+                    try {
+                      const res = await generateMonthlyStatementPdf({
+                        data: { clientId, month },
+                      });
+                      const bin = atob(res.base64);
+                      const bytes = new Uint8Array(bin.length);
+                      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                      const blob = new Blob([bytes], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = res.filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (e) {
+                      alert(e instanceof Error ? e.message : "Export failed");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "server" ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                  )}
+                  Official PDF
                 </Button>
               </div>
             </div>
