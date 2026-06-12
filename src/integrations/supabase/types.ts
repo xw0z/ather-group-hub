@@ -1257,6 +1257,30 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_fee_locks: {
+        Row: {
+          fee_date: string
+          locked_at: string
+          locked_by: string | null
+          locked_by_email: string | null
+          reason: string
+        }
+        Insert: {
+          fee_date: string
+          locked_at?: string
+          locked_by?: string | null
+          locked_by_email?: string | null
+          reason: string
+        }
+        Update: {
+          fee_date?: string
+          locked_at?: string
+          locked_by?: string | null
+          locked_by_email?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
       swap_login_history: {
         Row: {
           browser: string | null

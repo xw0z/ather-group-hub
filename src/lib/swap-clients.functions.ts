@@ -168,8 +168,20 @@ const ACTION_MODULE: Record<string, AuditModule> = {
   client_deleted: "clients",
   fees_computed_manual: "swap",
   fees_backfilled: "swap",
+  fee_date_locked: "swap",
+  fee_date_unlocked: "swap",
   xau_price_override: "margin",
 };
+
+// Returns the set of fee_dates (YYYY-MM-DD) that are currently locked.
+async function loadLockedDates(dates: string[]): Promise<Set<string>> {
+  if (dates.length === 0) return new Set();
+  const { data } = await supabaseAdmin
+    .from("swap_fee_locks")
+    .select("fee_date")
+    .in("fee_date", dates);
+  return new Set((data ?? []).map((r) => r.fee_date as string));
+}
 
 function deriveModule(
   action: string,
@@ -791,12 +803,16 @@ export async function runDailyFeeJob() {
   }
 
 
-  if (rows.length > 0) {
+  // Drop any rows for locked fee_dates — locked snapshots are immutable.
+  const lockedDates = await loadLockedDates([...new Set(rows.map((r) => r.fee_date))]);
+  const writableRows = rows.filter((r) => !lockedDates.has(r.fee_date));
+
+  if (writableRows.length > 0) {
     // M1: idempotent insert — never overwrite a fee that has already been
     // committed for (client_id, fee_date). Cron retries are safe.
     const { error: upErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .upsert(rows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
+      .upsert(writableRows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
     if (upErr) throw new Error(upErr.message);
   }
 
@@ -1497,6 +1513,9 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
       (existing ?? []).map((r) => `${r.client_id}|${r.fee_date}`),
     );
 
+    // Locked dates can never be backfilled — they're append-blocked.
+    const lockedDates = await loadLockedDates(dates);
+
     const nowIso = new Date().toISOString();
     const rows: Array<{
       client_id: string;
@@ -1515,8 +1534,13 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
     let skipped_existing = 0;
     let skipped_weekend = 0;
     let skipped_no_client = 0;
+    let skipped_locked = 0;
 
     for (const it of data.items) {
+      if (lockedDates.has(it.fee_date)) {
+        skipped_locked += 1;
+        continue;
+      }
       if (existingSet.has(`${it.client_id}|${it.fee_date}`)) {
         skipped_existing += 1;
         continue;
@@ -1572,6 +1596,7 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
       skipped_existing,
       skipped_weekend,
       skipped_no_client,
+      skipped_locked,
       total_amount: rows.reduce((s, r) => s + r.daily_fee, 0),
     };
     await logActivity(context.userId, "fees_backfilled", null, null, {
@@ -1580,4 +1605,88 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
     });
     return result;
   });
+
+// ============================================================================
+// Fee Lock System
+// ----------------------------------------------------------------------------
+// A locked fee_date blocks all writes to swap_daily_fees for that date:
+//   - cron / runDailyFeeJob skip locked dates
+//   - applySwapBackfill counts them in skipped_locked
+// Admin-only operations; every lock/unlock is logged with a mandatory reason.
+// ============================================================================
+
+export const listSwapFeeLocks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .select("fee_date, reason, locked_at, locked_by, locked_by_email")
+      .order("fee_date", { ascending: false })
+      .limit(365);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const lockSwapFeeDate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        fee_date: dateRule,
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const username = await getUsername(context.userId);
+    const { error } = await supabaseAdmin.from("swap_fee_locks").upsert(
+      {
+        fee_date: data.fee_date,
+        reason: data.reason,
+        locked_by: context.userId,
+        locked_by_email: username,
+        locked_at: new Date().toISOString(),
+      },
+      { onConflict: "fee_date" },
+    );
+    if (error) throw new Error(error.message);
+    await logActivity(context.userId, "fee_date_locked", "fee_date", data.fee_date, {
+      fee_date: data.fee_date,
+      reason: data.reason,
+    });
+    return { ok: true };
+  });
+
+export const unlockSwapFeeDate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        fee_date: dateRule,
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const { data: existing } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .select("reason, locked_at, locked_by_email")
+      .eq("fee_date", data.fee_date)
+      .maybeSingle();
+    const { error } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .delete()
+      .eq("fee_date", data.fee_date);
+    if (error) throw new Error(error.message);
+    await logActivity(context.userId, "fee_date_unlocked", "fee_date", data.fee_date, {
+      fee_date: data.fee_date,
+      unlock_reason: data.reason,
+      previous_lock: existing ?? null,
+    });
+    return { ok: true };
+  });
+
 
