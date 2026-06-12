@@ -40,7 +40,9 @@ export type CompanySummary = {
 export const listPremiumCompanies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const { data: companies, error } = await supabase
       .from("swap_premium_companies")
       .select("*")
@@ -86,7 +88,9 @@ export const listCompanyTransactions = createServerFn({ method: "GET" })
     z.object({ companyId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const { data: txs, error } = await supabase
       .from("swap_premium_transactions")
       .select("*")
@@ -109,7 +113,9 @@ export const listAllTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof ListAllInput>) => ListAllInput.parse(input))
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const limit = data?.limit ?? 200;
     const offset = data?.offset ?? 0;
     let q = supabase
