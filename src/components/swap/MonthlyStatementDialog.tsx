@@ -214,7 +214,7 @@ export function MonthlyStatementDialog({
   const [data, setData] = useState<Statement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"pdf" | "png" | null>(null);
+  const [busy, setBusy] = useState<"pdf" | "png" | "server" | null>(null);
 
   useEffect(() => {
     if (!open) return;
