@@ -1244,6 +1244,9 @@ function HomeTab({
   const [data, setData] = useState<Awaited<ReturnType<typeof listTodaySwapFees>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [jobStatus, setJobStatus] = useState<Awaited<
+    ReturnType<typeof getDailyFeeJobStatus>
+  > | null>(null);
 
   async function load() {
     setLoading(true);
@@ -1254,8 +1257,17 @@ function HomeTab({
       setLoading(false);
     }
   }
+  async function loadJobStatus() {
+    try {
+      const s = await getDailyFeeJobStatus();
+      setJobStatus(s);
+    } catch {
+      /* non-fatal */
+    }
+  }
   useEffect(() => {
     load();
+    loadJobStatus();
   }, []);
 
   const totalLive = useMemo(
