@@ -618,6 +618,62 @@ export const computeSwapFeesNow = createServerFn({ method: "POST" })
     return result;
   });
 
+// Status for the automatic daily-fee snapshot job (cron at 22:00 UTC).
+// Reads the most recent cron run from the audit log + the latest snapshot date.
+export const getDailyFeeJobStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { data: runs } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select("created_at, status, details")
+      .eq("module", "system")
+      .eq("action", "daily_fees_cron")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const lastRun = runs?.[0] ?? null;
+
+    const { data: lastSuccessRun } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select("created_at")
+      .eq("module", "system")
+      .eq("action", "daily_fees_cron")
+      .eq("status", "success")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const { data: lastFee } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("fee_date, created_at")
+      .order("fee_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    // Next scheduled run = next 22:00 UTC after now.
+    const now = new Date();
+    const next = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        22,
+        0,
+        0,
+      ),
+    );
+    if (next.getTime() <= now.getTime()) {
+      next.setUTCDate(next.getUTCDate() + 1);
+    }
+
+    return {
+      lastRunAt: lastRun?.created_at ?? null,
+      lastRunStatus: (lastRun?.status as string | null) ?? null,
+      lastSuccessAt: lastSuccessRun?.[0]?.created_at ?? null,
+      lastSnapshotDate: lastFee?.[0]?.fee_date ?? null,
+      nextRunAt: next.toISOString(),
+      healthy: lastRun ? lastRun.status === "success" : false,
+    };
+  });
+
 // Shared core used by cron + manual trigger.
 export async function runDailyFeeJob() {
   let xauusd: number | null = null;
