@@ -37,6 +37,7 @@ import {
 import {
   computeMargin,
   computeSwapFeesNow,
+  getDailyFeeJobStatus,
   createSwapClient,
   deleteSwapClient,
   getLiveXauPrice,
