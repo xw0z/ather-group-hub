@@ -392,12 +392,20 @@ function RefineryShell({
   );
 
 
+  const isTestRefinery = /TEST|AUDIT|DO NOT USE/i.test(refinery.name);
+  const testBanner = isTestRefinery ? (
+    <div className="mb-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs sm:text-sm font-semibold text-destructive">
+      ⚠ TEST REFINERY — DO NOT USE FOR PRODUCTION
+    </div>
+  ) : null;
+
   if (embedded) {
     return (
       <div>
         <div className="mb-4">
           <h1 className="font-display text-2xl">{refinery.name}</h1>
         </div>
+        {testBanner}
         {tabsBar}
         {body}
       </div>
@@ -407,11 +415,13 @@ function RefineryShell({
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title={refinery.name.toUpperCase()} subtitle="" onSignOut={onSignOut} onBack={onBack} />
+      {testBanner ? <div className="px-3 sm:px-6 pt-3">{testBanner}</div> : null}
       {tabsBar}
       {body}
     </main>
   );
 }
+
 
 
 // =============================================================
