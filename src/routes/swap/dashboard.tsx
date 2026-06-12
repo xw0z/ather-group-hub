@@ -1318,6 +1318,7 @@ function HomeTab({
                   const r = await computeSwapFeesNow();
                   invalidate(CK.todayFees);
                   await load();
+                  await loadJobStatus();
                   alert(
                     `Snapshots written: ${r.count}${
                       r.xauusd ? ` · XAUUSD $${fmt(r.xauusd)}` : ""
@@ -1329,10 +1330,76 @@ function HomeTab({
                   setRunning(false);
                 }
               }}
+              title="Admin recovery — the automatic job runs daily at 22:00 UTC"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
-              {running ? "Running…" : "Run snapshots now"}
+              {running ? "Running…" : "Run snapshots now (manual)"}
             </Button>
+          ) : null}
+        </div>
+
+        {/* Automatic job status — visible to all users so they know snapshots
+            are running unattended. Admins see a warning when the last cron
+            run failed. */}
+        <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Automatic snapshot job
+            </div>
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                jobStatus?.healthy
+                  ? "bg-green-100 text-green-700"
+                  : jobStatus?.lastRunAt
+                    ? "bg-red-100 text-red-700"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {jobStatus?.healthy
+                ? "Healthy"
+                : jobStatus?.lastRunAt
+                  ? "Failed"
+                  : "No runs yet"}
+            </span>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <div className="text-muted-foreground">Last automatic run</div>
+              <div className="font-medium">
+                {jobStatus?.lastRunAt
+                  ? new Date(jobStatus.lastRunAt).toUTCString()
+                  : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Last successful snapshot</div>
+              <div className="font-medium">
+                {jobStatus?.lastSnapshotDate ?? "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Last success at</div>
+              <div className="font-medium">
+                {jobStatus?.lastSuccessAt
+                  ? new Date(jobStatus.lastSuccessAt).toUTCString()
+                  : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Next scheduled run</div>
+              <div className="font-medium">
+                {jobStatus?.nextRunAt
+                  ? new Date(jobStatus.nextRunAt).toUTCString()
+                  : "Daily 22:00 UTC"}
+              </div>
+            </div>
+          </div>
+          {isAdmin && jobStatus && !jobStatus.healthy && jobStatus.lastRunAt ? (
+            <p className="mt-2 text-[11px] text-red-600">
+              ⚠ The last automatic snapshot run failed. Check the audit log
+              (module: system, action: daily_fees_cron) and use “Run snapshots
+              now (manual)” to recover.
+            </p>
           ) : null}
         </div>
 
