@@ -680,9 +680,42 @@ function SummaryCard({
 
 /* ---------- Headless renderer: mount → snapshot → unmount ---------- */
 
+// iOS Safari hard-caps a single canvas at 16,777,216 px² (≈4096×4096).
+// Other browsers vary (Chrome desktop 268M+, Firefox 472M). We default to the
+// iOS budget when iOS/iPadOS is detected so toBlob() never silently returns null.
+function detectMaxCanvasPixels(): number {
+  if (typeof navigator === "undefined") return 268_435_456;
+  const ua = navigator.userAgent || "";
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS 13+ reports as Mac; treat any touch-enabled "Mac" as iOS-class.
+    (ua.includes("Macintosh") && typeof document !== "undefined" && "ontouchend" in document);
+  if (isIOS) return 16_777_216;
+  // Conservative cross-browser ceiling that still gives a sharp image.
+  return 67_108_864; // ~8192×8192
+}
+
+async function preloadImagesUnder(root: HTMLElement): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.allSettled(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        return img.decode().catch(() => undefined);
+      }
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        // Safety net — never hang the share flow on a broken image.
+        setTimeout(done, 5000);
+      });
+    }),
+  );
+}
+
 export async function renderPurityReportToCanvas(
   data: PurityReportData,
-  opts: { scale?: number } = {},
+  opts: { scale?: number; maxPixels?: number } = {},
 ): Promise<HTMLCanvasElement> {
   injectFonts();
   await waitForFonts();
@@ -698,25 +731,59 @@ export async function renderPurityReportToCanvas(
   document.body.appendChild(host);
 
   const root = createRoot(host);
-  await new Promise<void>((resolve) => {
-    root.render(<RenderOnce data={data} onMounted={resolve} />);
-  });
-  // Give layout + webfonts one more frame
-  await new Promise((r) => requestAnimationFrame(() => r(null)));
-  await waitForFonts();
+  try {
+    await new Promise<void>((resolve) => {
+      root.render(<RenderOnce data={data} onMounted={resolve} />);
+    });
+    // Give layout + webfonts one more frame
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await waitForFonts();
 
-  const target = host.firstElementChild as HTMLElement;
-  const { default: html2canvas } = await import("html2canvas-pro");
-  const canvas = await html2canvas(target, {
-    scale: opts.scale ?? 6,
-    useCORS: true,
-    backgroundColor: "#fffdf8",
-    logging: false,
-  });
+    const target = host.firstElementChild as HTMLElement;
+    if (!target) throw new Error("Report mount failed (empty host).");
 
-  root.unmount();
-  host.remove();
-  return canvas;
+    // Ensure every <img> (logo, gold bars, badge, scale, loss) is fully
+    // decoded before html2canvas snapshots. Hidden trees normally race here.
+    await preloadImagesUnder(target);
+
+    const width = target.scrollWidth || 2480;
+    const height = target.scrollHeight || 3508;
+    if (!width || !height) {
+      throw new Error(`Report layout produced empty dimensions (${width}×${height}).`);
+    }
+
+    const requestedScale = opts.scale ?? 3;
+    const maxPixels = opts.maxPixels ?? detectMaxCanvasPixels();
+    // Pick the largest scale that fits under the device's canvas pixel cap.
+    const fitScale = Math.sqrt(maxPixels / (width * height));
+    const scale = Math.max(0.75, Math.min(requestedScale, fitScale));
+
+    const { default: html2canvas } = await import("html2canvas-pro");
+    const canvas = await html2canvas(target, {
+      scale,
+      useCORS: true,
+      backgroundColor: "#fffdf8",
+      logging: false,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+    });
+
+    if (!canvas || !canvas.width || !canvas.height) {
+      throw new Error(
+        `html2canvas returned empty canvas (target ${width}×${height}, scale ${scale.toFixed(2)}).`,
+      );
+    }
+    return canvas;
+  } finally {
+    try {
+      root.unmount();
+    } catch {
+      /* ignore */
+    }
+    host.remove();
+  }
 }
 
 function RenderOnce({
