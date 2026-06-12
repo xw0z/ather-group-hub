@@ -238,6 +238,30 @@ function SwapClientDetail() {
                   f.effective_balance,
                   f.day_multiplier,
                 );
+                // Fee status badge
+                const created = new Date(f.created_at);
+                const feeDay = new Date(`${f.fee_date}T00:00:00Z`);
+                const lagDays = (created.getTime() - feeDay.getTime()) / 86400_000;
+                const isBackfilled = lagDays > 1.5;
+                const isWeekend = f.day_multiplier === 0;
+                const isCharged = Number(f.daily_fee) !== 0;
+                const statusLabel = isBackfilled
+                  ? "Backfilled"
+                  : isWeekend
+                    ? "Weekend"
+                    : isCharged
+                      ? "Charged"
+                      : "Skipped";
+                const statusClass = isBackfilled
+                  ? "bg-blue-500/15 text-blue-700"
+                  : isWeekend
+                    ? "bg-muted text-muted-foreground"
+                    : isCharged
+                      ? "bg-green-500/15 text-green-700"
+                      : "bg-orange-500/15 text-orange-700";
+                const absEffStr = fmt(Math.abs(f.effective_balance));
+                const formulaStr = `${absEffStr} × ${fmt(f.annual_rate)}% ÷ 365 × ${f.day_multiplier} = ${fmt(Math.abs(f.daily_fee))}`;
+
                 return (
                   <li
                     key={f.id}
