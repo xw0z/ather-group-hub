@@ -803,12 +803,16 @@ export async function runDailyFeeJob() {
   }
 
 
-  if (rows.length > 0) {
+  // Drop any rows for locked fee_dates — locked snapshots are immutable.
+  const lockedDates = await loadLockedDates([...new Set(rows.map((r) => r.fee_date))]);
+  const writableRows = rows.filter((r) => !lockedDates.has(r.fee_date));
+
+  if (writableRows.length > 0) {
     // M1: idempotent insert — never overwrite a fee that has already been
     // committed for (client_id, fee_date). Cron retries are safe.
     const { error: upErr } = await supabaseAdmin
       .from("swap_daily_fees")
-      .upsert(rows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
+      .upsert(writableRows, { onConflict: "client_id,fee_date", ignoreDuplicates: true });
     if (upErr) throw new Error(upErr.message);
   }
 
