@@ -70,6 +70,7 @@ import { SwapControlCenter } from "@/components/swap/SwapControlCenter";
 import { BackfillPanel } from "@/components/swap/BackfillPanel";
 import { FeeLockPanel } from "@/components/swap/FeeLockPanel";
 import { FeeAuditPanel } from "@/components/swap/FeeAuditPanel";
+import { SmartWarningsPanel } from "@/components/swap/SmartWarningsPanel";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
