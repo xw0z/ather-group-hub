@@ -1044,3 +1044,143 @@ export const setManualXauPrice = createServerFn({ method: "POST" })
     };
   });
 
+
+// =============================================================================
+// Swap Control Center — aggregated stats for the operations dashboard.
+// Phase 1: today/MTD totals, charged vs skipped counts, missing-day detection,
+// backfill detection, automation + Twilio health.
+// =============================================================================
+export const getSwapControlCenterStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
+
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+      .toISOString()
+      .slice(0, 10);
+
+    // All client codes (for missing detection + counts).
+    const { data: clients, error: cErr } = await supabaseAdmin
+      .from("swap_clients")
+      .select("id, code, position_type, usd_balance");
+    if (cErr) throw new Error(cErr.message);
+    const totalClients = clients?.length ?? 0;
+    const longCount = clients?.filter((c) => (c.position_type ?? "long") === "long").length ?? 0;
+    const shortCount = clients?.filter((c) => c.position_type === "short").length ?? 0;
+
+    // Fees since month start.
+    const { data: feesMtd, error: fErr } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("client_id, fee_date, daily_fee, day_multiplier, created_at, position_type")
+      .gte("fee_date", monthStart)
+      .order("fee_date", { ascending: false });
+    if (fErr) throw new Error(fErr.message);
+
+    let mtdTotal = 0;
+    let todayTotal = 0;
+    let chargedTodayCount = 0;
+    let skippedTodayCount = 0;
+    let backfilledMtdCount = 0;
+    const todayClientIds = new Set<string>();
+    let biggestTodayFee = 0;
+    let biggestTodayClientId: string | null = null;
+
+    for (const f of feesMtd ?? []) {
+      const fee = Number(f.daily_fee);
+      mtdTotal += Math.abs(fee);
+      // Backfill heuristic: row written more than 1 day after its fee_date.
+      const created = new Date(f.created_at);
+      const feeDay = new Date(`${f.fee_date}T00:00:00Z`);
+      const lagDays = (created.getTime() - feeDay.getTime()) / 86400_000;
+      if (lagDays > 1.5) backfilledMtdCount += 1;
+
+      if (f.fee_date === today) {
+        todayTotal += Math.abs(fee);
+        todayClientIds.add(f.client_id);
+        if (fee !== 0) chargedTodayCount += 1;
+        else skippedTodayCount += 1;
+        if (Math.abs(fee) > biggestTodayFee) {
+          biggestTodayFee = Math.abs(fee);
+          biggestTodayClientId = f.client_id;
+        }
+      }
+    }
+    // Clients with no row today at all = also "skipped/missing" today.
+    const missingTodayCount = totalClients - todayClientIds.size;
+
+    // Missing-day warnings: look back 14 days, find weekdays where no
+    // snapshot rows exist for any client. (Weekend skip respects settings.)
+    const { data: feeSettings } = await supabaseAdmin
+      .from("swap_settings")
+      .select("wednesday_multiplier, skip_saturday, skip_sunday")
+      .eq("id", "global")
+      .maybeSingle();
+    const past14: { date: string; expected: boolean; rowCount: number }[] = [];
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(now);
+      d.setUTCDate(d.getUTCDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const mult = swapDayMultiplierFromSettings(d, feeSettings);
+      past14.push({ date: iso, expected: mult > 0, rowCount: 0 });
+    }
+    const { data: past14Fees } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("fee_date")
+      .gte("fee_date", past14[past14.length - 1].date)
+      .lte("fee_date", past14[0].date);
+    for (const f of past14Fees ?? []) {
+      const slot = past14.find((p) => p.date === f.fee_date);
+      if (slot) slot.rowCount += 1;
+    }
+    const missingDays = past14
+      .filter((p) => p.expected && p.rowCount === 0)
+      .map((p) => p.date);
+
+    // Automation status (reuse existing logic).
+    const { data: runs } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select("created_at, status")
+      .eq("module", "system")
+      .eq("action", "daily_fees_cron")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const lastRun = runs?.[0] ?? null;
+    const next = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 22, 0, 0),
+    );
+    if (next.getTime() <= now.getTime()) next.setUTCDate(next.getUTCDate() + 1);
+
+    const biggestClient = biggestTodayClientId
+      ? clients?.find((c) => c.id === biggestTodayClientId) ?? null
+      : null;
+
+    return {
+      today,
+      monthStart,
+      todayTotal,
+      mtdTotal,
+      totalClients,
+      longCount,
+      shortCount,
+      chargedTodayCount,
+      skippedTodayCount,
+      missingTodayCount,
+      backfilledMtdCount,
+      missingDays,
+      biggestTodayFee,
+      biggestTodayClient: biggestClient
+        ? { id: biggestClient.id, code: biggestClient.code }
+        : null,
+      automation: {
+        lastRunAt: lastRun?.created_at ?? null,
+        lastRunStatus: (lastRun?.status as string | null) ?? null,
+        nextRunAt: next.toISOString(),
+        healthy: lastRun ? lastRun.status === "success" : false,
+      },
+      twilio: {
+        configured: !!process.env.TWILIO_API_KEY && !!process.env.TWILIO_WHATSAPP_FROM,
+      },
+    };
+  });
