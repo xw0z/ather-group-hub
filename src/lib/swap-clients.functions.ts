@@ -1513,6 +1513,9 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
       (existing ?? []).map((r) => `${r.client_id}|${r.fee_date}`),
     );
 
+    // Locked dates can never be backfilled — they're append-blocked.
+    const lockedDates = await loadLockedDates(dates);
+
     const nowIso = new Date().toISOString();
     const rows: Array<{
       client_id: string;
@@ -1531,8 +1534,13 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
     let skipped_existing = 0;
     let skipped_weekend = 0;
     let skipped_no_client = 0;
+    let skipped_locked = 0;
 
     for (const it of data.items) {
+      if (lockedDates.has(it.fee_date)) {
+        skipped_locked += 1;
+        continue;
+      }
       if (existingSet.has(`${it.client_id}|${it.fee_date}`)) {
         skipped_existing += 1;
         continue;
