@@ -419,7 +419,7 @@ function CreateUserForm({
       }}
     >
       <Field label="Username *">
-        <Input value={username} onChange={(e) => setUsername(e.target.value)} className="h-11 text-base" autoComplete="off" autoCapitalize="off" spellCheck={false} />
+        <Input value={username} onChange={(e) => setUsername(e.target.value)} className="h-11 text-base" autoComplete="off" autoCapitalize="off" spellCheck={false} placeholder="Enter username" />
       </Field>
       <Field label="Password * (min 6 chars)">
         <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 text-base" autoComplete="new-password" />
