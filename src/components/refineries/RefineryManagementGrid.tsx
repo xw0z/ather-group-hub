@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Archive, Trash2, Search, RotateCcw, FileText, Share2,
   ShieldCheck, ArrowRight, Users, Coins, ArrowDownToLine, ArrowUpFromLine,
-  ListChecks, AlertTriangle, MoreHorizontal, BarChart3,
+  ListChecks, AlertTriangle, MoreHorizontal, BarChart3, UserCog,
 } from "lucide-react";
+import { RefineryUsersDialog } from "./RefineryUsersDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,7 @@ export function RefineryManagementGrid({
   const [pendingArchive, setPendingArchive] = useState<Refinery | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Refinery | null>(null);
   const [perfFor, setPerfFor] = useState<Refinery | null>(null);
+  const [usersFor, setUsersFor] = useState<Refinery | null>(null);
 
   const reload = async () => {
     setLoading(true);
@@ -173,6 +175,7 @@ export function RefineryManagementGrid({
               }}
               onDelete={() => setPendingDelete(r)}
               onStats={() => setPerfFor(r)}
+              onUsers={() => setUsersFor(r)}
             />
           ))}
         </div>
@@ -249,6 +252,7 @@ export function RefineryManagementGrid({
 
       {/* Performance dialog */}
       {perfFor && <RefineryPerformanceDialog refinery={perfFor} onClose={() => setPerfFor(null)} />}
+      {usersFor && <RefineryUsersDialog refinery={usersFor} isAdmin={isAdmin} onClose={() => setUsersFor(null)} />}
     </div>
   );
 }
@@ -268,7 +272,7 @@ function statusTone(
 }
 
 function RefineryCard({
-  refinery, stats, isAdmin, onOpen, onEdit, onArchive, onRestore, onDelete, onStats,
+  refinery, stats, isAdmin, onOpen, onEdit, onArchive, onRestore, onDelete, onStats, onUsers,
 }: {
   refinery: Refinery;
   stats: RefineryCardStats | undefined;
@@ -279,6 +283,7 @@ function RefineryCard({
   onRestore: () => void;
   onDelete: () => void;
   onStats: () => void;
+  onUsers: () => void;
 }) {
   const archived = refinery.status === "archived";
   const hasActivity = !!stats && (stats.transactionCount > 0 || stats.totalClients > 0 || stats.pureGoldStock !== 0);
@@ -331,6 +336,11 @@ function RefineryCard({
           <Button variant="ghost" size="sm" onClick={stop(onStats)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
             Reports
           </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={stop(onUsers)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
+              Users
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-7 w-7 text-muted-foreground">
@@ -340,6 +350,9 @@ function RefineryCard({
             <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={onStats}>
                 <BarChart3 className="h-4 w-4 mr-2" /> Statistics
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onUsers}>
+                <UserCog className="h-4 w-4 mr-2" /> Assigned users
               </DropdownMenuItem>
               {isAdmin && (
                 <>
