@@ -1184,3 +1184,131 @@ export const getSwapControlCenterStats = createServerFn({ method: "GET" })
       },
     };
   });
+
+
+// ============================================================
+// Monthly Client Statement
+// ============================================================
+const monthRule = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "YYYY-MM");
+
+export const getSwapClientMonthlyStatement = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), month: monthRule }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapUser(context.userId);
+
+    const [year, mon] = data.month.split("-").map(Number);
+    const monthStart = `${data.month}-01`;
+    const nextMonthDate = new Date(Date.UTC(year, mon, 1));
+    const monthEnd = nextMonthDate.toISOString().slice(0, 10); // exclusive
+
+    const { data: client, error: cErr } = await supabaseAdmin
+      .from("swap_clients")
+      .select(
+        "id, code, usd_balance, annual_rate, short_annual_rate, additional_exposure_pct, position_type, notes",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!client) throw new Error("Client not found");
+
+    const { data: monthRows, error: mErr } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select(
+        "id, fee_date, xauusd_price, daily_fee, usd_balance, annual_rate, position_type, additional_exposure_pct, effective_balance, day_multiplier, created_at",
+      )
+      .eq("client_id", data.id)
+      .gte("fee_date", monthStart)
+      .lt("fee_date", monthEnd)
+      .order("fee_date", { ascending: true });
+    if (mErr) throw new Error(mErr.message);
+
+    // Opening balance = usd_balance of the most recent row BEFORE this month
+    const { data: priorRow } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("usd_balance")
+      .eq("client_id", data.id)
+      .lt("fee_date", monthStart)
+      .order("fee_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const firstInMonth = monthRows?.[0];
+    const lastInMonth = monthRows?.[monthRows.length - 1];
+    const opening_balance = priorRow
+      ? Number(priorRow.usd_balance)
+      : firstInMonth
+        ? Number(firstInMonth.usd_balance)
+        : Number(client.usd_balance);
+    const closing_balance = lastInMonth
+      ? Number(lastInMonth.usd_balance)
+      : Number(client.usd_balance);
+
+    let total_fee = 0;
+    let charged_days = 0;
+    let skipped_days = 0;
+    let weekend_days = 0;
+    let backfilled_days = 0;
+    const manual_days = 0; // Phase 4 will track this explicitly
+
+    const rows = (monthRows ?? []).map((f) => {
+      const fee = Number(f.daily_fee);
+      const mult = Number(f.day_multiplier ?? 1);
+      const created = new Date(f.created_at);
+      const feeDay = new Date(`${f.fee_date}T00:00:00Z`);
+      const lagDays = (created.getTime() - feeDay.getTime()) / 86400_000;
+      const isBackfilled = lagDays > 1.5;
+      const isWeekend = mult === 0;
+      const isCharged = fee !== 0;
+      total_fee += fee;
+      if (isWeekend) weekend_days += 1;
+      else if (isBackfilled) backfilled_days += 1;
+      if (isCharged) charged_days += 1;
+      else if (!isWeekend) skipped_days += 1;
+      return {
+        id: f.id,
+        fee_date: f.fee_date,
+        usd_balance: Number(f.usd_balance),
+        effective_balance:
+          f.effective_balance !== null && f.effective_balance !== undefined
+            ? Number(f.effective_balance)
+            : Number(f.usd_balance) *
+              (1 + Number(f.additional_exposure_pct ?? 5) / 100),
+        annual_rate: Number(f.annual_rate),
+        additional_exposure_pct: Number(f.additional_exposure_pct ?? 5),
+        day_multiplier: mult,
+        daily_fee: fee,
+        xauusd_price: f.xauusd_price !== null ? Number(f.xauusd_price) : null,
+        position_type: (f.position_type ?? "long") as "long" | "short",
+        created_at: f.created_at,
+        is_backfilled: isBackfilled,
+        is_weekend: isWeekend,
+        is_charged: isCharged,
+      };
+    });
+
+    return {
+      client: {
+        id: client.id,
+        code: client.code,
+        notes: client.notes ?? null,
+        position_type: (client.position_type ?? "long") as "long" | "short",
+        annual_rate: Number(client.annual_rate),
+        short_annual_rate: Number(client.short_annual_rate ?? 0),
+      },
+      month: data.month,
+      opening_balance,
+      closing_balance,
+      totals: {
+        total_fee,
+        charged_days,
+        skipped_days,
+        weekend_days,
+        backfilled_days,
+        manual_days,
+      },
+      rows,
+    };
+  });
