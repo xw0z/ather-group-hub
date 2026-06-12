@@ -335,6 +335,11 @@ function RefineryCard({
           <Button variant="ghost" size="sm" onClick={stop(onStats)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
             Reports
           </Button>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={stop(onUsers)} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground">
+              Users
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-7 w-7 text-muted-foreground">
@@ -344,6 +349,9 @@ function RefineryCard({
             <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={onStats}>
                 <BarChart3 className="h-4 w-4 mr-2" /> Statistics
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onUsers}>
+                <UserCog className="h-4 w-4 mr-2" /> Assigned users
               </DropdownMenuItem>
               {isAdmin && (
                 <>
