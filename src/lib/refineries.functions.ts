@@ -19,7 +19,40 @@ export type RefinerySettlementRole = "from" | "to";
 export type RefineryTxStatus = "draft" | "pending" | "settled" | "cancelled";
 export type RefineryBarType = "bar" | "scrap";
 
-export type Refinery = { id: string; name: string; status: string };
+export type Refinery = {
+  id: string;
+  name: string;
+  status: string;
+  code: string;
+  description: string;
+  icon_name: string;
+  icon_color: string;
+  badge_color: string;
+  default_fee_price: number;
+  report_footer: string;
+  receipt_footer: string;
+  archived_at: string | null;
+  created_at?: string;
+};
+export type RefineryCardStats = {
+  id: string;
+  totalClients: number;
+  pureGoldStock: number;
+  silverStock: number;
+  goldOwedByClients: number; // sum of negative purity balances (clients owe us → negative)
+  goldOwedToClients: number; // sum of positive purity balances
+  transactionCount: number;
+  lastActivityAt: string | null;
+};
+export type RefineryPerformance = {
+  totalGoldReceived: number;
+  totalGoldDelivered: number;
+  totalRefiningFees: number;
+  totalLoss: number;
+  averagePurity: number;
+  monthly: Array<{ month: string; received: number; delivered: number; fees: number }>;
+  topClients: Array<{ id: string; code: string | null; name: string; volume: number; fees: number }>;
+};
 export type RefineryAssignment = {
   isAdmin: boolean;
   refineryId: string | null;
