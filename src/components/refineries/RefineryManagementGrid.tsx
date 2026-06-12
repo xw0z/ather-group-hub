@@ -175,6 +175,7 @@ export function RefineryManagementGrid({
               }}
               onDelete={() => setPendingDelete(r)}
               onStats={() => setPerfFor(r)}
+              onUsers={() => setUsersFor(r)}
             />
           ))}
         </div>
