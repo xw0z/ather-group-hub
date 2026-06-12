@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Archive, Trash2, Search, RotateCcw, FileText, Share2,
   ShieldCheck, ArrowRight, Users, Coins, ArrowDownToLine, ArrowUpFromLine,
-  ListChecks, AlertTriangle, MoreHorizontal, BarChart3,
+  ListChecks, AlertTriangle, MoreHorizontal, BarChart3, UserCog,
 } from "lucide-react";
+import { RefineryUsersDialog } from "./RefineryUsersDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
