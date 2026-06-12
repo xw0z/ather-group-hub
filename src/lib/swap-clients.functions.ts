@@ -512,11 +512,12 @@ export const listTodaySwapFees = createServerFn({ method: "GET" })
         const effRate = effectiveAnnualRate(c);
         const addExp = Number(c.additional_exposure_pct ?? 5);
         const effBal = effectiveBalance(Number(c.usd_balance), addExp);
-        const baseDaily = (effBal * effRate) / 100 / 365;
-        // M3: clamp negative-balance long clients — never create a negative fee
-        // (which would otherwise become a credit). Short clients keep sign.
-        const baseDailyClamped =
-          positionType === "long" && effBal < 0 ? 0 : baseDaily;
+        // Fee magnitude is based on ABS(effective_balance). A negative USD
+        // balance means the client owes money and must still be charged the
+        // financing fee. Sign of charge/credit is conveyed by position_type
+        // in the UI (long = charge, short = benefit).
+        const baseDaily = (Math.abs(effBal) * effRate) / 100 / 365;
+        const baseDailyClamped = baseDaily;
         const liveDaily = baseDailyClamped * todayMultiplier;
 
 
