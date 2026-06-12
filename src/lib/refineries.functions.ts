@@ -3036,7 +3036,12 @@ export const updateRefineryUserAccess = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      role?: "manager" | "staff" | "viewer";
+      status?: string;
+      display_name?: string | null;
+      phone?: string | null;
+    } = {};
     if (data.role !== undefined) patch.role = data.role;
     if (data.status !== undefined) patch.status = data.status;
     if (data.display_name !== undefined) patch.display_name = data.display_name;
