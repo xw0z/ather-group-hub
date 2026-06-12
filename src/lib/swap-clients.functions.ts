@@ -470,6 +470,33 @@ export const listSwapActivityLog = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// Phase 6 — Fee audit trail: scoped to swap-fee lifecycle events
+// (manual computes, backfills, locks, unlocks, cron runs).
+const FEE_AUDIT_ACTIONS = [
+  "fees_computed_manual",
+  "fees_backfilled",
+  "fee_date_locked",
+  "fee_date_unlocked",
+  "daily_fees_cron",
+] as const;
+
+export const listSwapFeeAuditEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
+    await assertPermission(context.userId, "audit", "view");
+    const { data, error } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select(
+        "id, username, action, module, status, details, ip_address, created_at",
+      )
+      .in("action", FEE_AUDIT_ACTIONS as unknown as string[])
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const listTodaySwapFees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
