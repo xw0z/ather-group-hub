@@ -22,6 +22,7 @@ import { updateSwapOwnPassword } from "@/lib/swap-profile.functions";
 import { cached, invalidate, CK } from "@/lib/swap-cache";
 import { toast } from "sonner";
 import { UserPermissionsEditor } from "@/components/swap/UserPermissionsEditor";
+import { RefineryAccessEditor } from "@/components/swap/RefineryAccessEditor";
 import { useLang } from "@/lib/purity-i18n";
 
 
