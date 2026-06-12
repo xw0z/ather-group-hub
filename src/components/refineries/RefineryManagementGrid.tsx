@@ -414,7 +414,7 @@ function Row({
     <div className={`flex items-baseline justify-between gap-2 min-w-0 ${span === 2 ? "col-span-2" : ""}`}>
       <dt className="text-[11px] uppercase tracking-wider text-muted-foreground truncate">{label}</dt>
       <dd className={`tabular-nums font-medium ${color} truncate`}>{value}</dd>
-      <p className={`text-sm font-semibold tabular-nums truncate ${color}`}>{value}</p>
+      
     </div>
   );
 }
