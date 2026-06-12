@@ -66,6 +66,7 @@ import { logClientAuditEvent } from "@/lib/swap-audit.functions";
 import { SwapFooter } from "@/components/SwapFooter";
 import { SettingsPanel } from "@/components/swap/SettingsPanel";
 import { ReportsCenter } from "@/components/swap/ReportsCenter";
+import { SwapControlCenter } from "@/components/swap/SwapControlCenter";
 import { AuditLogPanel } from "@/components/swap/AuditLogPanel";
 import { UsersPanel } from "@/components/swap/UsersPanel";
 import { PremiumPanel } from "@/components/swap/PremiumPanel";
@@ -1286,6 +1287,7 @@ function HomeTab({
 
   return (
     <div className="space-y-4">
+      <SwapControlCenter />
       <LiveXauCard
         isAdmin={isAdmin}
         livePrice={livePrice}
@@ -1293,6 +1295,7 @@ function HomeTab({
         onRefresh={onRefreshPrice}
         onPriceChanged={onPriceChanged}
       />
+
 
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

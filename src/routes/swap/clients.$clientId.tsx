@@ -238,6 +238,30 @@ function SwapClientDetail() {
                   f.effective_balance,
                   f.day_multiplier,
                 );
+                // Fee status badge
+                const created = new Date(f.created_at);
+                const feeDay = new Date(`${f.fee_date}T00:00:00Z`);
+                const lagDays = (created.getTime() - feeDay.getTime()) / 86400_000;
+                const isBackfilled = lagDays > 1.5;
+                const isWeekend = f.day_multiplier === 0;
+                const isCharged = Number(f.daily_fee) !== 0;
+                const statusLabel = isBackfilled
+                  ? "Backfilled"
+                  : isWeekend
+                    ? "Weekend"
+                    : isCharged
+                      ? "Charged"
+                      : "Skipped";
+                const statusClass = isBackfilled
+                  ? "bg-blue-500/15 text-blue-700"
+                  : isWeekend
+                    ? "bg-muted text-muted-foreground"
+                    : isCharged
+                      ? "bg-green-500/15 text-green-700"
+                      : "bg-orange-500/15 text-orange-700";
+                const absEffStr = fmt(Math.abs(f.effective_balance));
+                const formulaStr = `${absEffStr} × ${fmt(f.annual_rate)}% ÷ 365 × ${f.day_multiplier} = ${fmt(Math.abs(f.daily_fee))}`;
+
                 return (
                   <li
                     key={f.id}
@@ -259,6 +283,10 @@ function SwapClientDetail() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                           {f.day_multiplier}× day
                         </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+
                       </div>
                       <div className="text-[11px] text-muted-foreground">
                         Snapshot: {fmtSnapshot(f.created_at)}
@@ -294,6 +322,20 @@ function SwapClientDetail() {
                           </div>
                         </div>
                       </div>
+
+                      <div className="mt-2 rounded px-2 py-1.5 bg-muted/30 border border-border/40">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Formula
+                        </div>
+                        <div className="text-[11px] font-mono break-all">
+                          Effective Balance × Rate ÷ 365 × Multiplier
+                        </div>
+                        <div className="text-[11px] font-mono break-all font-semibold">
+                          {formulaStr}
+                        </div>
+                      </div>
+
+
 
                       <div className="text-sm mt-2">
                         {isShort ? "Benefit credited: " : "Fee charged: "}
