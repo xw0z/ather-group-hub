@@ -113,7 +113,9 @@ export const listAllTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: z.infer<typeof ListAllInput>) => ListAllInput.parse(input))
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await assertPermission(userId, "premium", "view");
+
     const limit = data?.limit ?? 200;
     const offset = data?.offset ?? 0;
     let q = supabase
