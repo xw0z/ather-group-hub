@@ -2651,7 +2651,7 @@ async function writeRefineryAudit(refineryId: string, userId: string, action: st
     user_id: userId,
     user_email: u?.user?.email ?? null,
     action,
-    details,
+    details: details as never,
   });
 }
 
