@@ -1286,6 +1286,7 @@ function HomeTab({
 
   return (
     <div className="space-y-4">
+      <SwapControlCenter />
       <LiveXauCard
         isAdmin={isAdmin}
         livePrice={livePrice}
@@ -1293,6 +1294,7 @@ function HomeTab({
         onRefresh={onRefreshPrice}
         onPriceChanged={onPriceChanged}
       />
+
 
       <section className="rounded-xl border border-border/60 bg-card p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
