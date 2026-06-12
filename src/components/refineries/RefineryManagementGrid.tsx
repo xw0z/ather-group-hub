@@ -67,6 +67,7 @@ export function RefineryManagementGrid({
   const [pendingArchive, setPendingArchive] = useState<Refinery | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Refinery | null>(null);
   const [perfFor, setPerfFor] = useState<Refinery | null>(null);
+  const [usersFor, setUsersFor] = useState<Refinery | null>(null);
 
   const reload = async () => {
     setLoading(true);
