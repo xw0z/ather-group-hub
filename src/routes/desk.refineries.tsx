@@ -49,6 +49,7 @@ import { AccountStatementReport } from "@/components/refineries/AccountStatement
 import { TransactionReceiptReport } from "@/components/refineries/TransactionReceipt";
 import { SettlementReceiptReport } from "@/components/refineries/SettlementReceipt";
 import { ClientLabel, clientLabelText } from "@/components/refineries/ClientLabel";
+import { RefineryManagementGrid } from "@/components/refineries/RefineryManagementGrid";
 import { Download, History as HistoryIcon, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { fmtTxTimestamp, fmtTimestamp } from "@/lib/utils";
@@ -198,7 +199,7 @@ function RefineriesPage() {
 // Refinery picker (admin only)
 // =============================================================
 function RefineryPicker({
-  refineries, isAdmin, onSignOut, embedded, onPick,
+  refineries: _refineries, isAdmin, onSignOut, embedded, onPick,
 }: {
   refineries: Refinery[];
   isAdmin: boolean;
@@ -207,43 +208,25 @@ function RefineryPicker({
   onPick?: (refineryId: string) => void;
 }) {
   const navigate = useNavigate();
+  const { t: tr } = useLang();
   const pick = (id: string) => {
     if (onPick) onPick(id);
     else navigate({ to: "/desk/refineries", search: { r: id, tab: "dashboard" } });
   };
-  const { t: tr } = useLang();
-  const grid = (
-    <div className={embedded ? "" : "max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12"}>
-      <h1 className="font-display text-3xl mb-2">{tr("ref.pageTitle")}</h1>
-      <p className="text-sm text-muted-foreground mb-8">
-        {tr("ref.pickRefinery")}
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {refineries.map((r) => (
-          <Card
-            key={r.id}
-            className="p-6 cursor-pointer hover:border-ember/60 transition-colors"
-            onClick={() => pick(r.id)}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-md bg-ember/15 border border-ember/40 flex items-center justify-center">
-                <Scale className="h-5 w-5 text-ember" />
-              </div>
-              <div>
-                <p className="font-display text-lg tracking-wide">{r.name}</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">{tr("ref.tab.dashboard")} · {tr("ref.tab.clients")} · {tr("ref.tab.transactions")} · {tr("ref.tab.stock")}</p>
-          </Card>
-        ))}
+  const body = (
+    <div className={embedded ? "" : "max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10"}>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="font-display text-2xl sm:text-3xl">{tr("ref.pageTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{tr("ref.pickRefinery")}</p>
       </div>
+      <RefineryManagementGrid isAdmin={isAdmin} onPick={pick} />
     </div>
   );
-  if (embedded) return grid;
+  if (embedded) return body;
   return (
     <main className="min-h-screen bg-background text-foreground">
       <TopBar title="REFINERIES" subtitle={isAdmin ? tr("ref.pickRefinery") : ""} onSignOut={onSignOut} />
-      {grid}
+      {body}
     </main>
   );
 }

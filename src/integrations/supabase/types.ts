@@ -283,23 +283,50 @@ export type Database = {
       }
       refineries: {
         Row: {
+          archived_at: string | null
+          badge_color: string
+          code: string
           created_at: string
+          default_fee_price: number
+          description: string
+          icon_color: string
+          icon_name: string
           id: string
           name: string
+          receipt_footer: string
+          report_footer: string
           status: string
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          badge_color?: string
+          code: string
           created_at?: string
+          default_fee_price?: number
+          description?: string
+          icon_color?: string
+          icon_name?: string
           id?: string
           name: string
+          receipt_footer?: string
+          report_footer?: string
           status?: string
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          badge_color?: string
+          code?: string
           created_at?: string
+          default_fee_price?: number
+          description?: string
+          icon_color?: string
+          icon_name?: string
           id?: string
           name?: string
+          receipt_footer?: string
+          report_footer?: string
           status?: string
           updated_at?: string
         }
@@ -1794,6 +1821,10 @@ export type Database = {
       is_purity_user: { Args: { _uid: string }; Returns: boolean }
       is_refinery_admin: { Args: { _uid: string }; Returns: boolean }
       is_swap_user: { Args: { _uid: string }; Returns: boolean }
+      refinery_admin_delete: {
+        Args: { _refinery_id: string }
+        Returns: undefined
+      }
       refinery_create_buysell: {
         Args: {
           _client_id: string
