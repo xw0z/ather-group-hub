@@ -1606,3 +1606,87 @@ export const applySwapBackfill = createServerFn({ method: "POST" })
     return result;
   });
 
+// ============================================================================
+// Fee Lock System
+// ----------------------------------------------------------------------------
+// A locked fee_date blocks all writes to swap_daily_fees for that date:
+//   - cron / runDailyFeeJob skip locked dates
+//   - applySwapBackfill counts them in skipped_locked
+// Admin-only operations; every lock/unlock is logged with a mandatory reason.
+// ============================================================================
+
+export const listSwapFeeLocks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSwapUser(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .select("fee_date, reason, locked_at, locked_by, locked_by_email")
+      .order("fee_date", { ascending: false })
+      .limit(365);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const lockSwapFeeDate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        fee_date: dateRule,
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const username = await getUsername(context.userId);
+    const { error } = await supabaseAdmin.from("swap_fee_locks").upsert(
+      {
+        fee_date: data.fee_date,
+        reason: data.reason,
+        locked_by: context.userId,
+        locked_by_email: username,
+        locked_at: new Date().toISOString(),
+      },
+      { onConflict: "fee_date" },
+    );
+    if (error) throw new Error(error.message);
+    await logActivity(context.userId, "fee_date_locked", "fee_date", data.fee_date, {
+      fee_date: data.fee_date,
+      reason: data.reason,
+    });
+    return { ok: true };
+  });
+
+export const unlockSwapFeeDate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        fee_date: dateRule,
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSwapAdmin(context.userId);
+    const { data: existing } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .select("reason, locked_at, locked_by_email")
+      .eq("fee_date", data.fee_date)
+      .maybeSingle();
+    const { error } = await supabaseAdmin
+      .from("swap_fee_locks")
+      .delete()
+      .eq("fee_date", data.fee_date);
+    if (error) throw new Error(error.message);
+    await logActivity(context.userId, "fee_date_unlocked", "fee_date", data.fee_date, {
+      fee_date: data.fee_date,
+      unlock_reason: data.reason,
+      previous_lock: existing ?? null,
+    });
+    return { ok: true };
+  });
+
+
