@@ -167,6 +167,7 @@ const ACTION_MODULE: Record<string, AuditModule> = {
   client_updated: "clients",
   client_deleted: "clients",
   fees_computed_manual: "swap",
+  fees_backfilled: "swap",
   xau_price_override: "margin",
 };
 
