@@ -1717,3 +1717,243 @@ export const unlockSwapFeeDate = createServerFn({ method: "POST" })
   });
 
 
+
+// ============================================================
+// Phase 7 — Smart Warning System
+// ============================================================
+
+export type SwapWarningSeverity = "info" | "warning" | "critical";
+export type SwapWarning = {
+  id: string;
+  category:
+    | "automation"
+    | "snapshot"
+    | "fee-spike"
+    | "price-stale"
+    | "margin"
+    | "config"
+    | "lock";
+  severity: SwapWarningSeverity;
+  title: string;
+  detail: string;
+  entity?: { kind: "client" | "date" | "system"; id?: string | null; label?: string | null };
+  suggestedAction?: string;
+};
+
+export const getSwapSmartWarnings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ generatedAt: string; warnings: SwapWarning[] }> => {
+    await assertSwapUser(context.userId);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const yesterday = new Date(now.getTime() - 86400_000).toISOString().slice(0, 10);
+    const warnings: SwapWarning[] = [];
+
+    // --- Clients ----------------------------------------------------------
+    const { data: clients } = await supabaseAdmin
+      .from("swap_clients")
+      .select(
+        "id, code, position_type, usd_balance, gold_kg, xauusd_price, margin_requirement_pct",
+      );
+    const clientList = clients ?? [];
+    const clientById = new Map(clientList.map((c) => [c.id, c]));
+
+    // --- Margin warnings (critical / needed / warning) --------------------
+    for (const c of clientList) {
+      const m = computeMargin({
+        usd_balance: Number(c.usd_balance),
+        gold_kg: Number(c.gold_kg ?? 0),
+        xauusd_price: c.xauusd_price !== null ? Number(c.xauusd_price) : 0,
+        margin_requirement_pct: Number(c.margin_requirement_pct ?? 20),
+      });
+      if (m.tier === "critical") {
+        warnings.push({
+          id: `margin-critical-${c.id}`,
+          category: "margin",
+          severity: "critical",
+          title: `${c.code}: equity underwater`,
+          detail: `Equity $${m.equity.toFixed(2)} is negative — client debt exceeds gold value.`,
+          entity: { kind: "client", id: c.id, label: c.code },
+          suggestedAction: "Issue an immediate margin call or close exposure.",
+        });
+      } else if (m.tier === "needed") {
+        warnings.push({
+          id: `margin-needed-${c.id}`,
+          category: "margin",
+          severity: "warning",
+          title: `${c.code}: margin call needed`,
+          detail: `Margin level ${m.marginLevelPct.toFixed(1)}% — shortfall $${Math.abs(m.difference).toFixed(2)}.`,
+          entity: { kind: "client", id: c.id, label: c.code },
+          suggestedAction: "Request top-up or reduce exposure.",
+        });
+      }
+    }
+
+    // --- Today snapshot coverage ------------------------------------------
+    const { data: todayFees } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("client_id, daily_fee")
+      .eq("fee_date", today);
+    const chargedToday = new Set((todayFees ?? []).map((r) => r.client_id));
+    const missingToday = clientList.filter((c) => !chargedToday.has(c.id));
+    if (missingToday.length > 0) {
+      warnings.push({
+        id: `snapshot-missing-${today}`,
+        category: "snapshot",
+        severity: missingToday.length > clientList.length / 2 ? "critical" : "warning",
+        title: `${missingToday.length} client(s) missing today's snapshot`,
+        detail: `No swap_daily_fees row written today (${today}) for: ${missingToday
+          .slice(0, 6)
+          .map((c) => c.code)
+          .join(", ")}${missingToday.length > 6 ? "…" : ""}.`,
+        entity: { kind: "date", id: today, label: today },
+        suggestedAction: "Run snapshots manually from the Control Center, or backfill.",
+      });
+    }
+
+    // --- Fee spike detection (today vs yesterday per client) --------------
+    const { data: yFees } = await supabaseAdmin
+      .from("swap_daily_fees")
+      .select("client_id, daily_fee")
+      .eq("fee_date", yesterday);
+    const yMap = new Map<string, number>();
+    for (const r of yFees ?? []) yMap.set(r.client_id, Math.abs(Number(r.daily_fee)));
+    for (const r of todayFees ?? []) {
+      const todayFee = Math.abs(Number(r.daily_fee));
+      const prev = yMap.get(r.client_id) ?? 0;
+      if (prev > 1 && todayFee > prev * 1.5 && todayFee - prev > 25) {
+        const c = clientById.get(r.client_id);
+        if (!c) continue;
+        warnings.push({
+          id: `fee-spike-${r.client_id}`,
+          category: "fee-spike",
+          severity: todayFee > prev * 3 ? "warning" : "info",
+          title: `${c.code}: fee jumped ${(((todayFee - prev) / prev) * 100).toFixed(0)}%`,
+          detail: `Today $${todayFee.toFixed(2)} vs yesterday $${prev.toFixed(2)}.`,
+          entity: { kind: "client", id: c.id, label: c.code },
+          suggestedAction: "Verify balance change, exposure %, or Wednesday multiplier.",
+        });
+      }
+    }
+
+    // --- Stale XAU price --------------------------------------------------
+    const { data: lastPrice } = await supabaseAdmin
+      .from("swap_xau_snapshots")
+      .select("created_at, price")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const lp = lastPrice?.[0];
+    if (!lp) {
+      warnings.push({
+        id: "price-no-history",
+        category: "price-stale",
+        severity: "warning",
+        title: "No XAU price history found",
+        detail: "swap_xau_snapshots is empty — live pricing will fall back to manual entry.",
+        entity: { kind: "system" },
+        suggestedAction: "Enter a manual XAU price or check the price feed integration.",
+      });
+    } else {
+      const ageHours = (now.getTime() - new Date(lp.created_at).getTime()) / 3_600_000;
+      if (ageHours > 6) {
+        warnings.push({
+          id: "price-stale",
+          category: "price-stale",
+          severity: ageHours > 24 ? "critical" : "warning",
+          title: `XAU price is ${ageHours.toFixed(1)}h old`,
+          detail: `Last snapshot $${Number(lp.price).toFixed(2)} at ${new Date(lp.created_at).toUTCString()}.`,
+          entity: { kind: "system" },
+          suggestedAction: "Refresh live price or set a manual override.",
+        });
+      }
+    }
+
+    // --- Automation health ------------------------------------------------
+    const { data: cronRuns } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select("created_at, status, details")
+      .eq("module", "system")
+      .eq("action", "daily_fees_cron")
+      .order("created_at", { ascending: false })
+      .limit(3);
+    const lastCron = cronRuns?.[0];
+    if (!lastCron) {
+      warnings.push({
+        id: "cron-no-runs",
+        category: "automation",
+        severity: "warning",
+        title: "Daily fee job has never run",
+        detail: "No daily_fees_cron entries in the activity log.",
+        entity: { kind: "system" },
+        suggestedAction: "Verify the cron webhook secret and pg_cron schedule.",
+      });
+    } else {
+      const ageHours =
+        (now.getTime() - new Date(lastCron.created_at).getTime()) / 3_600_000;
+      if (lastCron.status !== "success") {
+        warnings.push({
+          id: "cron-last-failed",
+          category: "automation",
+          severity: "critical",
+          title: "Last automatic fee run failed",
+          detail: `Ran ${ageHours.toFixed(1)}h ago with status "${lastCron.status}". Check the audit trail.`,
+          entity: { kind: "system" },
+          suggestedAction: "Use the manual recovery button in the Control Center.",
+        });
+      } else if (ageHours > 30) {
+        warnings.push({
+          id: "cron-stale",
+          category: "automation",
+          severity: "warning",
+          title: `No successful cron run in ${ageHours.toFixed(0)}h`,
+          detail: "Daily job should run every 24h around 22:00 UTC.",
+          entity: { kind: "system" },
+          suggestedAction: "Check scheduler health and run manually.",
+        });
+      }
+    }
+
+    // --- Twilio config ----------------------------------------------------
+    if (!process.env.TWILIO_API_KEY || !process.env.TWILIO_WHATSAPP_FROM) {
+      warnings.push({
+        id: "twilio-missing",
+        category: "config",
+        severity: "info",
+        title: "Twilio / WhatsApp not configured",
+        detail: "TWILIO_API_KEY or TWILIO_WHATSAPP_FROM is missing — daily notifications will not send.",
+        entity: { kind: "system" },
+        suggestedAction: "Add Twilio credentials in Settings → Secrets.",
+      });
+    }
+
+    // --- Edit attempts on locked dates ------------------------------------
+    const { data: lockedAttempts } = await supabaseAdmin
+      .from("swap_activity_log")
+      .select("created_at, action, details")
+      .in("action", ["fees_backfilled", "fees_computed_manual"])
+      .gte("created_at", new Date(now.getTime() - 7 * 86400_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(50);
+    let skippedLockTotal = 0;
+    for (const r of lockedAttempts ?? []) {
+      const d = r.details as { skipped_locked?: number } | null;
+      if (d?.skipped_locked && d.skipped_locked > 0) skippedLockTotal += d.skipped_locked;
+    }
+    if (skippedLockTotal > 0) {
+      warnings.push({
+        id: "lock-skipped",
+        category: "lock",
+        severity: "info",
+        title: `${skippedLockTotal} write(s) blocked by fee locks (7d)`,
+        detail: "Recent backfill / recompute operations were filtered by active fee-date locks.",
+        entity: { kind: "system" },
+        suggestedAction: "Review locked dates if the writes were intentional.",
+      });
+    }
+
+    // Sort: critical → warning → info, then by title.
+    const order: Record<SwapWarningSeverity, number> = { critical: 0, warning: 1, info: 2 };
+    warnings.sort((a, b) => order[a.severity] - order[b.severity] || a.title.localeCompare(b.title));
+
+    return { generatedAt: now.toISOString(), warnings };
+  });
