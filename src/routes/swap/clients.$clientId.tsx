@@ -283,6 +283,10 @@ function SwapClientDetail() {
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                           {f.day_multiplier}× day
                         </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+
                       </div>
                       <div className="text-[11px] text-muted-foreground">
                         Snapshot: {fmtSnapshot(f.created_at)}
