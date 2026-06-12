@@ -1490,6 +1490,37 @@ function SwapFeesList({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // Phase 8 — Advanced Filters
+  const [query, setQuery] = useState("");
+  const [posFilter, setPosFilter] = useState<"all" | "long" | "short">("all");
+  const [minFee, setMinFee] = useState("");
+  const [sortKey, setSortKey] = useState<"code" | "fee" | "balance">("fee");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const min = parseFloat(minFee);
+    let out = rows.filter((r) => {
+      if (q && !r.code.toLowerCase().includes(q) && !(r.notes ?? "").toLowerCase().includes(q)) return false;
+      if (posFilter !== "all" && r.position_type !== posFilter) return false;
+      if (!Number.isNaN(min) && Math.abs(Number(r.live_daily_fee) || 0) < min) return false;
+      return true;
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    out = [...out].sort((a, b) => {
+      if (sortKey === "code") return a.code.localeCompare(b.code) * dir;
+      if (sortKey === "balance") return (Number(a.usd_balance) - Number(b.usd_balance)) * dir;
+      return (Math.abs(Number(a.live_daily_fee) || 0) - Math.abs(Number(b.live_daily_fee) || 0)) * dir;
+    });
+    return out;
+  }, [rows, query, posFilter, minFee, sortKey, sortDir]);
+
+  const visibleSum = useMemo(
+    () => filteredRows.reduce((s, r) => s + (Number(r.live_daily_fee) || 0), 0),
+    [filteredRows],
+  );
+  const hasFilter = query.trim() !== "" || posFilter !== "all" || minFee.trim() !== "";
+
   function startEdit(r: SwapFeeRow) {
     setEditingId(r.id);
     setEditLong(String(r.annual_rate));
@@ -1521,9 +1552,92 @@ function SwapFeesList({
   }
 
   return (
+    <>
+      <div className="mb-3 rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div className="sm:col-span-2">
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Search</Label>
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Code or notes…"
+              className="h-8"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Position</Label>
+            <select
+              value={posFilter}
+              onChange={(e) => setPosFilter(e.target.value as typeof posFilter)}
+              className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="long">Long / Buy</option>
+              <option value="short">Short / Sell</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Min |fee| $</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={minFee}
+              onChange={(e) => setMinFee(e.target.value)}
+              placeholder="0"
+              className="h-8"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="text-muted-foreground">Sort:</span>
+          {(["fee", "code", "balance"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => (sortKey === k ? setSortDir((d) => (d === "asc" ? "desc" : "asc")) : setSortKey(k))}
+              className={`px-2 py-0.5 rounded-full border transition ${
+                sortKey === k
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {k} {sortKey === k ? (sortDir === "asc" ? "↑" : "↓") : ""}
+            </button>
+          ))}
+          <span className="ml-auto text-muted-foreground">
+            {filteredRows.length}/{rows.length} shown
+            {hasFilter ? (
+              <>
+                {" · sum "}
+                <span className={`font-semibold ${visibleSum < 0 ? "text-red-600" : visibleSum > 0 ? "text-green-600" : ""}`}>
+                  {visibleSum < 0 ? "-" : visibleSum > 0 ? "+" : ""}${fmt(Math.abs(visibleSum))}
+                </span>
+              </>
+            ) : null}
+            {hasFilter ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setPosFilter("all");
+                  setMinFee("");
+                }}
+                className="ml-2 underline hover:text-foreground"
+              >
+                Reset
+              </button>
+            ) : null}
+          </span>
+        </div>
+      </div>
+
     <ul className="space-y-2">
       {err && <p className="text-sm text-destructive">{err}</p>}
-      {rows.map((r) => {
+      {filteredRows.length === 0 ? (
+        <li className="text-sm text-muted-foreground p-3 text-center">No rows match these filters.</li>
+      ) : null}
+      {filteredRows.map((r) => {
+
         const isShort = r.position_type === "short";
         const isEditing = editingId === r.id;
         const effBal = r.effective_balance ?? r.usd_balance * (1 + (r.additional_exposure_pct ?? 5) / 100);
