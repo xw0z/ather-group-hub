@@ -767,11 +767,11 @@ export async function runDailyFeeJob() {
         new Date(`${d}T00:00:00Z`),
         feeSettings,
       );
-      // M3: never produce a negative daily fee for long clients (negative
-      // effective balance must not create a credit). Short clients keep sign.
-      const baseDaily = (effBal * effRate) / 100 / 365;
-      const baseDailyClamped =
-        positionType === "long" && effBal < 0 ? 0 : baseDaily;
+      // Fee magnitude uses ABS(effective_balance): clients with a negative
+      // USD balance still owe daily financing fees. Position type drives the
+      // displayed sign (charge vs benefit).
+      const baseDaily = (Math.abs(effBal) * effRate) / 100 / 365;
+      const baseDailyClamped = baseDaily;
       rows.push({
         client_id: c.id,
         fee_date: d,
